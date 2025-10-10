@@ -17,30 +17,40 @@ jobs:
 
       - name: Restructure repository
         run: |
-          # Move all contents from pacman-master/pacman-master to root
-          if [ -d "pacman-master/pacman-master" ]; then
-            cd pacman-master/pacman-master
+          # Move all contents from pacman-master/ to root
+          if [ -d "pacman-master" ]; then
+            echo "Found pacman-master directory, moving contents to root..."
+            cd pacman-master
             
             # Move all files and directories to root
             for item in * .[!.]* ..?*; do
               if [ -e "$item" ] && [ "$item" != "." ] && [ "$item" != ".." ]; then
-                mv "$item" ../../ 2>/dev/null || true
+                echo "Moving $item to root"
+                mv "$item" ../ 2>/dev/null || true
               fi
             done
             
-            cd ../..
+            cd ..
             
-            # Remove empty nested directories
-            rm -rf pacman-master/pacman-master
+            # Remove empty directory
             rm -rf pacman-master
+            echo "Restructuring complete!"
+          else
+            echo "pacman-master directory not found, skipping restructure"
           fi
 
       - name: Update README with deploy note
         run: |
           if [ -f "README.md" ]; then
-            echo "" >> README.md
-            echo "## Deployment" >> README.md
-            echo "Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı." >> README.md
+            # Check if deploy note already exists
+            if ! grep -q "## Deployment" README.md; then
+              echo "" >> README.md
+              echo "## Deployment" >> README.md
+              echo "Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı." >> README.md
+              echo "README updated with deployment note"
+            else
+              echo "Deployment note already exists in README"
+            fi
           fi
 
       - name: Commit changes
@@ -48,5 +58,10 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add -A
-          git commit -m "Yapı sadeleştirildi ve deploy uyumlu hale getirildi" || echo "No changes to commit"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Yapı sadeleştirildi ve deploy uyumlu hale getirildi"
+            git push
+            echo "Changes committed and pushed successfully"
+          fi
