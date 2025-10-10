@@ -3,6 +3,9 @@ name: Restructure Repository
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   restructure:
     runs-on: ubuntu-latest
