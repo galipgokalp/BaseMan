@@ -1,5 +1,6 @@
 Pac-Man
 =======
+
 A historical tribute and accurate remake of the original Pac-Man arcade game
 
 Inspired by [The Pac-Man Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html)
@@ -59,23 +60,33 @@ Each of the following games are playable from the main menu.
 
 ### Turbo Mode
 
-Each game has an alternate mode called Turbo (a.k.a. speedy mode). This is a popular hardware modification of the game found in many of the original arcade cabinets. In this mode, Pac-Man travels about twice as fast (same speed as the disembodied eyes of the ghosts) and is not slowed down when eating pellets.
+Each game has an alternate mode called Turbo (a.k.a. speedy mode).  This is
+a popular hardware modification of the game found in many of the original
+arcade cabinets.  In this mode, Pac-Man travels about twice as fast (same
+speed as the disembodied eyes of the ghosts) and is not slowed down when
+eating pellets.
 
 ### High Scores
 
-High scores for each game (normal and turbo separately) are stored on your local machine by your browser.
+High scores for each game (normal and turbo separately) are stored on your
+local machine by your browser.
 
 Learn Mode
 ----------
 
-Learn Mode allows you to visualize the behaviors of the ghosts. (The colored square represents the ghost bait.)
+Learn Mode allows you to visualize the behaviors of the ghosts. (The colored
+square represents the ghost bait.)
 
 ![Learn][2]
 
 Practice Mode
 -------------
 
-This mode allows you to practice the game with special features. You can go into **slow-motion** or **rewind time** with the special onscreen buttons or the hotkeys listed below. (The time-manipulation controls and design were borrowed from the game [Braid](http://braid-game.com/)). You can also turn on **invincibility** or **ghost visualizers** from the menu.
+This mode allows you to practice the game with special features.  You can go
+into **slow-motion** or **rewind time** with the special onscreen buttons or
+the hotkeys listed below.  (The time-manipulation controls and design were
+borrowed from the game [Braid](http://braid-game.com/)).  You can also turn
+on **invincibility** or **ghost visualizers** from the menu.
 
 ![Practice][3]
 
@@ -94,34 +105,48 @@ This mode allows you to practice the game with special features. You can go into
 Procedurally-Generated Maps
 ---------------------------
 
-In the **Cookie-Man** game mode, the mazes change as often as they do in Ms. Pac-Man, but are **procedurally generated**. Each level has a pre-defined color palette, granting an element of consistency to the random structure of the mazes.
+In the **Cookie-Man** game mode, the mazes change as often as they do in Ms.
+Pac-Man, but are **procedurally generated**.  Each level has a pre-defined
+color palette, granting an element of consistency to the random structure of
+the mazes.
 
 ![Procedural][4]
 
 ### Algorithm Description
 
-The mazes are built carefully to closely match design patterns deduced from the original maps found in Pac-Man and Ms. Pac-Man.
+The mazes are built carefully to closely match design patterns deduced from
+the original maps found in Pac-Man and Ms. Pac-Man.
 
 Accuracy
 --------
 
-It is a goal of this project to stay reasonably accurate to the original arcade game. The current accuracy is due to the work of reverse-engineers Jamey Pittman and Bart Grantham.
+It is a goal of this project to stay reasonably accurate to the original
+arcade game.  The current accuracy is due to the work of reverse-engineers
+Jamey Pittman and Bart Grantham.
 
-Currently, the coordinate space, movement physics, ghost behavior, actor speeds, timers, and update rate match that of the original arcade game.
+Currently, the coordinate space, movement physics, ghost behavior, actor
+speeds, timers, and update rate match that of the original arcade game.
 
 ### Inaccuracies
 
-The **timings** of certain non-critical events such as score display pauses and map-blinking animations are currently approximated.
+The **timings** of certain non-critical events such as score display pauses
+and map-blinking animations are currently approximated.
 
-Unfortunately, you **cannot use patterns from the original Pac-Man** because of complications with random number generators.
+Unfortunately, you **cannot use patterns from the original Pac-Man** because
+of complications with random number generators.
 
-Also, the **collision detection** is tighter than the original (checked twice as often) to prevent pass-through "bugs".
+Also, the **collision detection** is tighter than the original (checked twice
+as often) to prevent pass-through "bugs".
 
-I also chose to leave out the **overflow bug** which shifts a ghost target when Pac-Man is facing up, [detailed here](http://donhodges.com/pacman_pinky_explanation.htm).
+I also chose to leave out the **overflow bug** which shifts a ghost target
+when Pac-Man is facing up, [detailed
+here](http://donhodges.com/pacman_pinky_explanation.htm).
 
 ### Report/Fix Bugs
 
-Feel free to report any inaccuracies that may detract or simply annoy. Any reverse-engineers willing to contribute their expertise to this project would be a big help as well!
+Feel free to report any inaccuracies that may detract or simply annoy.  Any
+reverse-engineers willing to contribute their expertise to this project would
+be a big help as well!
 
 Navigating the Repository
 -------------------------
@@ -140,21 +165,39 @@ Credits
 
 ### Reverse-Engineers
 
-Thanks to **Jamey Pittman** for compiling [The Pac-Man Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html) from his own research and those of other reverse-engineers, notably 'Dav' and 'JamieVegas' from [this Atari Age forum thread](http://www.atariage.com/forums/topic/68707-pac-man-ghost-ai-question/).  Further thanks to Jamey Pittman for replying to my arcade implementation-specific questions with some very elaborate details to meet the accuracy requirements of this project.
+Thanks to **Jamey Pittman** for compiling [The Pac-Man
+Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html) from
+his own research and those of other reverse-engineers, notably 'Dav' and
+'JamieVegas' from [this Atari Age forum
+thread](http://www.atariage.com/forums/topic/68707-pac-man-ghost-ai-question/).
+Further thanks to Jamey Pittman for replying to my arcade
+implementation-specific questions with some very elaborate details to meet the
+accuracy requirements of this project.
 
-Thanks to **Bart Grantham** for sharing his expert knowledge on Ms. Pac-Man's internals, providing me with an annotated disassembly and notes on how fruit paths work in meticulous detail.
+Thanks to **Bart Grantham** for sharing his expert knowledge on Ms. Pac-Man's
+internals, providing me with an annotated disassembly and notes on how fruit
+paths work in meticulous detail.
 
 ### Original Games
 
-Thanks to the original Pac-Man team at Namco for creating such an enduring game.  And thanks to the MAME team for their arcade emulator and very helpful debugger.
+Thanks to the original Pac-Man team at Namco for creating such an enduring
+game.  And thanks to the MAME team for their arcade emulator and very helpful
+debugger.
 
-Thanks to the Ms. Pac-Man team at GCC for improving Pac-Man with a variety of aesthetic maps that I based the map generator on.
+Thanks to the Ms. Pac-Man team at GCC for improving Pac-Man with a variety of
+aesthetic maps that I based the map generator on.
 
-Thanks to Jonathan Blow for creating the rewind mechanic in [Braid](http://braid-game.com) which inspired the same mechanic in my project.  Further thanks for presenting the implementation details in [this talk](https://store.cmpgame.com/product/5900/The-Implementation-of-Rewind-in-braid) which helped in my own implementation.
+Thanks to Jonathan Blow for creating the rewind mechanic in
+[Braid](http://braid-game.com/) which inspired the same mechanic in my
+project.  Further thanks for presenting the implementation details in [this
+talk](https://store.cmpgame.com/product/5900/The-Implementation-of-Rewind-in-braid)
+which helped in my own implementation.
 
 ### Art
 
-Thanks to Tang Yongfa and their cookie monster Pac-Man design at [threadless website](http://www.threadless.com/product/2362/Cookies) which I used as the character in the random maze mode.
+Thanks to Tang Yongfa and their cookie monster Pac-Man design at [threadless
+website](http://www.threadless.com/product/2362/Cookies) which I used as the
+character in the random maze mode.
 
 Links to Public Feedback
 ------------------------
@@ -180,3 +223,5 @@ Links to Public Feedback
 Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı.
 
 **Not:** Vercel deploy için sadece statik dosya kullanılmaktadır, ekstra build işlemi gerekmez. Tüm statik dosyalar (HTML, JS, CSS, varlıklar) kök dizinde bulunmakta ve publish directory "/" (kök) olarak ayarlanmalıdır.
+
+**Statik deploy: build gerektirmez, tüm dosyalar kökte**
