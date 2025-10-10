@@ -1,6 +1,5 @@
 Pac-Man
 =======
-
 A historical tribute and accurate remake of the original Pac-Man arcade game
 
 Inspired by [The Pac-Man Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html)
@@ -60,10 +59,7 @@ Each of the following games are playable from the main menu.
 
 ### Turbo Mode
 
-Each game has an alternate mode called Turbo (a.k.a. speedy mode).  This is a
-popular hardware modification of the game found in many of the original arcade
-cabinets.  In this mode, Pac-Man travels about twice as fast (same speed as the disembodied eyes of the
-ghosts) and is not slowed down when eating pellets.
+Each game has an alternate mode called Turbo (a.k.a. speedy mode). This is a popular hardware modification of the game found in many of the original arcade cabinets. In this mode, Pac-Man travels about twice as fast (same speed as the disembodied eyes of the ghosts) and is not slowed down when eating pellets.
 
 ### High Scores
 
@@ -72,15 +68,14 @@ High scores for each game (normal and turbo separately) are stored on your local
 Learn Mode
 ----------
 
-Learn Mode allows you to visualize the behaviors of the ghosts.  (The colored square represents the ghost bait.)
+Learn Mode allows you to visualize the behaviors of the ghosts. (The colored square represents the ghost bait.)
 
 ![Learn][2]
 
 Practice Mode
 -------------
 
-This mode allows you to practice the game with special features.  You can go
-into **slow-motion** or **rewind time** with the special onscreen buttons or the hotkeys listed below.  (The time-manipulation controls and design were borrowed from the game [Braid](http://braid-game.com/)).  You can also turn on **invincibility** or **ghost visualizers** from the menu.
+This mode allows you to practice the game with special features. You can go into **slow-motion** or **rewind time** with the special onscreen buttons or the hotkeys listed below. (The time-manipulation controls and design were borrowed from the game [Braid](http://braid-game.com/)). You can also turn on **invincibility** or **ghost visualizers** from the menu.
 
 ![Practice][3]
 
@@ -99,7 +94,7 @@ into **slow-motion** or **rewind time** with the special onscreen buttons or the
 Procedurally-Generated Maps
 ---------------------------
 
-In the **Cookie-Man** game mode, the mazes change as often as they do in Ms. Pac-Man, but are **procedurally generated**.  Each level has a pre-defined color palette, granting an element of consistency to the random structure of the mazes.
+In the **Cookie-Man** game mode, the mazes change as often as they do in Ms. Pac-Man, but are **procedurally generated**. Each level has a pre-defined color palette, granting an element of consistency to the random structure of the mazes.
 
 ![Procedural][4]
 
@@ -110,8 +105,7 @@ The mazes are built carefully to closely match design patterns deduced from the 
 Accuracy
 --------
 
-It is a goal of this project to stay reasonably accurate to the original
-arcade game. The current accuracy is due to the work of reverse-engineers Jamey Pittman and Bart Grantham.
+It is a goal of this project to stay reasonably accurate to the original arcade game. The current accuracy is due to the work of reverse-engineers Jamey Pittman and Bart Grantham.
 
 Currently, the coordinate space, movement physics, ghost behavior, actor speeds, timers, and update rate match that of the original arcade game.
 
@@ -127,10 +121,11 @@ I also chose to leave out the **overflow bug** which shifts a ghost target when 
 
 ### Report/Fix Bugs
 
-Feel free to report any inaccuracies that may detract or simply annoy.  Any reverse-engineers willing to contribute their expertise to this project would be a big help as well!
+Feel free to report any inaccuracies that may detract or simply annoy. Any reverse-engineers willing to contribute their expertise to this project would be a big help as well!
 
 Navigating the Repository
 -------------------------
+
 - all javascript source files are located in the "src/" directory
 - "build.sh" file concatenates all the source files into "pacman.js" in the top directory
 - "debug.htm" displays the game by using the "src/*.js" files
@@ -175,12 +170,13 @@ Links to Public Feedback
 - http://www.classicarcadegaming.com/forums/index.php?topic=4563.0
 - http://news.dice.com/2012/09/04/pac-man-online-open-source/
 
-
-
 [1]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/montage2.png
 [2]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/learn.png
 [3]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/practice.png
 [4]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/procedural.png
 
 ## Deployment
+
 Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı.
+
+**Not:** Vercel deploy için sadece statik dosya kullanılmaktadır, ekstra build işlemi gerekmez. Tüm statik dosyalar (HTML, JS, CSS, varlıklar) kök dizinde bulunmakta ve publish directory "/" (kök) olarak ayarlanmalıdır.
