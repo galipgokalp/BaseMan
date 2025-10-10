@@ -1,0 +1,49 @@
+name: Restructure Repository
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restructure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restructure repository
+        run: |
+          # Move all contents from pacman-master/pacman-master to root
+          if [ -d "pacman-master/pacman-master" ]; then
+            cd pacman-master/pacman-master
+            
+            # Move all files and directories to root
+            for item in * .[!.]* ..?*; do
+              if [ -e "$item" ] && [ "$item" != "." ] && [ "$item" != ".." ]; then
+                mv "$item" ../../ 2>/dev/null || true
+              fi
+            done
+            
+            cd ../..
+            
+            # Remove empty nested directories
+            rm -rf pacman-master/pacman-master
+            rm -rf pacman-master
+          fi
+
+      - name: Update README with deploy note
+        run: |
+          if [ -f "README.md" ]; then
+            echo "" >> README.md
+            echo "## Deployment" >> README.md
+            echo "Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı." >> README.md
+          fi
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "Yapı sadeleştirildi ve deploy uyumlu hale getirildi" || echo "No changes to commit"
+          git push
