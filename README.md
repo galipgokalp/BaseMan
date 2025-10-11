@@ -1,7 +1,6 @@
-Pac-Man
+BaseMan
 =======
-
-A historical tribute and accurate remake of the original Pac-Man arcade game
+A historical tribute and accurate remake of the original BaseMan arcade game
 
 Inspired by [The Pac-Man Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html)
 
@@ -51,7 +50,7 @@ Games
 
 Each of the following games are playable from the main menu.
 
-![Montage][1]
+![Montage](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/montage2.png)
 
 - **Pac-Man**: 1980 original arcade by Namco.
 - **Ms. Pac-Man**: 1981 Pac-Man modification by GCC/Midway.
@@ -62,9 +61,8 @@ Each of the following games are playable from the main menu.
 
 Each game has an alternate mode called Turbo (a.k.a. speedy mode).  This is
 a popular hardware modification of the game found in many of the original
-arcade cabinets.  In this mode, Pac-Man travels about twice as fast (same
-speed as the disembodied eyes of the ghosts) and is not slowed down when
-eating pellets.
+arcade cabinets.  In this mode, Pac-Man travels about twice as fast (same speed as the
+disembodied eyes of the ghosts) and is not slowed down when eating pellets.
 
 ### High Scores
 
@@ -77,7 +75,7 @@ Learn Mode
 Learn Mode allows you to visualize the behaviors of the ghosts. (The colored
 square represents the ghost bait.)
 
-![Learn][2]
+![Learn](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/learn.png)
 
 Practice Mode
 -------------
@@ -88,7 +86,7 @@ the hotkeys listed below.  (The time-manipulation controls and design were
 borrowed from the game [Braid](http://braid-game.com/)).  You can also turn
 on **invincibility** or **ghost visualizers** from the menu.
 
-![Practice][3]
+![Practice](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/practice.png)
 
 ### Practice Controls
 
@@ -110,7 +108,7 @@ Pac-Man, but are **procedurally generated**.  Each level has a pre-defined
 color palette, granting an element of consistency to the random structure of
 the mazes.
 
-![Procedural][4]
+![Procedural](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/procedural.png)
 
 ### Algorithm Description
 
@@ -138,9 +136,8 @@ of complications with random number generators.
 Also, the **collision detection** is tighter than the original (checked twice
 as often) to prevent pass-through "bugs".
 
-I also chose to leave out the **overflow bug** which shifts a ghost target
-when Pac-Man is facing up, [detailed
-here](http://donhodges.com/pacman_pinky_explanation.htm).
+I also chose to leave out the **overflow bug** which shifts a ghost target when
+Pac-Man is facing up, [detailed here](http://donhodges.com/pacman_pinky_explanation.htm).
 
 ### Report/Fix Bugs
 
@@ -166,9 +163,9 @@ Credits
 ### Reverse-Engineers
 
 Thanks to **Jamey Pittman** for compiling [The Pac-Man
-Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html) from
-his own research and those of other reverse-engineers, notably 'Dav' and
-'JamieVegas' from [this Atari Age forum
+Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html) from his own
+research and those of other reverse-engineers, notably 'Dav' and 'JamieVegas'
+from [this Atari Age forum
 thread](http://www.atariage.com/forums/topic/68707-pac-man-ghost-ai-question/).
 Further thanks to Jamey Pittman for replying to my arcade
 implementation-specific questions with some very elaborate details to meet the
