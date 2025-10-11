@@ -1,4 +1,17 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjM5OTY3MywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDhEOGYyRTMxQmE2NWUzQTUwMDUyMmU0MUNlMzcxMmQ0YjMwZkYzZEIifQ",
+    "payload": "eyJkb21haW4iOiJiYXNlLW1hbi52ZXJjZWwuYXBwIn0",
+    "signature": "MHg0NDRiYTcwMTVlMjlkOWE0ZWNiNDAzNjhkYTY5YjAzN2YwZTFiZDk3OTVmYTEyYWVkZDJiYTgxYmU4YTM2ZDkxMTBlMWQwNGIyYmNiOGU4ZTBkNWE4NDBjM2Y5NTI4ZWYzYjIxMWUzNDYzZWE0Y2FhZmExZGFlZDRiMTVhZjI0MjFi"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "BaseMan",
+    "homeUrl": "https://base-man.vercel.app/",
+    "iconUrl": "https://base-man.vercel.app/icon.png",
+    "subtitle": "Pacman on Base!",
+    "description": "A tribute remake of Pac-Man arcade game for Base."
+  },
   "baseBuilder": {
     "allowedAddresses": ["0x8132C74c2774935e4CCa5c9B709E381c143b98f7"]
   }
