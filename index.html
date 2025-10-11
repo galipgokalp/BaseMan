@@ -55,7 +55,7 @@
         }
     </style>
 
-<script src="pacman.js"></script>
+    <script src="pacman.js"></script>
 
 </head>
 
@@ -64,6 +64,12 @@
     <div style='font-family: ArcadeR'> </div>
     <canvas id='canvas'><div id="canvas-warning">Your browser does not support HTML Canvas.  Please upgrade!</div></canvas>
     <canvas id='atlas' style="display:none"></canvas>
+
+    <!-- Splash ekranını kaldıran kod -->
+    <script type="module">
+      import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk'
+      sdk.actions.ready();
+    </script>
 
 </body>
 
