@@ -2,6 +2,10 @@
   "baseBuilder": {
     "allowedAddresses": ["0x8132C74c2774935e4CCa5c9B709E381c143b98f7"]
   },
+  "accountAssociation": {
+    "baseAccount": "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
+    "type": "base-builder"
+  },
   "miniapp": {
     "version": "1",
     "name": "BaseMan",
