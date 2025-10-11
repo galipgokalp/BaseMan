@@ -33,6 +33,22 @@
   "miniapp": {
     "version": "1",
     "homeUrl": "https://base-man.vercel.app/",
-    "iconUrl": "https://base-man.vercel.app/icon.png"
+    "iconUrl": "https://base-man.vercel.app/icon.png",
+    "splashImageUrl": "https://base-man.vercel.app/splash.png",
+    "splashBackgroundColor": "#141416",
+    "screenshots": [
+      "https://base-man.vercel.app/shots/montage.png"
+    ],
+    "previewImageUrl": "https://base-man.vercel.app/shots/pac.png",
+    "heroImageUrl": "https://base-man.vercel.app/shots/otto.png",
+    "action": {
+      "title": "Play",
+      "url": "https://base-man.vercel.app/"
+    },
+    "socialShare": {
+      "title": "Play BaseMan on Base",
+      "description": "Classic Pac-Man mechanics rebuilt for the Base mini app ecosystem.",
+      "imageUrl": "https://base-man.vercel.app/shots/montage.png"
+    }
   }
 }
