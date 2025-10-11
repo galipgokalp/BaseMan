@@ -26,13 +26,13 @@
       "miniapp"
     ],
     "screenshotUrls": [
-      "https://base-man.vercel.app/shots/montage.png"
+      "https://base-man.vercel.app/shots/screenshot_portrait_1284x2778.png"
     ],
-    "heroImageUrl": "https://base-man.vercel.app/shots/otto.png",
+    "heroImageUrl": "https://base-man.vercel.app/shots/hero_1200x630.png",
     "tagline": "Chomp through Base mazes",
     "ogTitle": "Play BaseMan on Base",
     "ogDescription": "Classic Pacman gameplay rebuilt for the Base mini app ecosystem.",
-    "ogImageUrl": "https://base-man.vercel.app/shots/montage.png",
+    "ogImageUrl": "https://base-man.vercel.app/shots/hero_1200x630.png",
     "requiredChains": [
       "eip155:8453"
     ]
