@@ -1,17 +1,5 @@
 {
   "baseBuilder": {
     "allowedAddresses": ["0x8132C74c2774935e4CCa5c9B709E381c143b98f7"]
-  },
-  "accountAssociation": {
-    "baseAccount": "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
-    "type": "base-builder"
-  },
-  "miniapp": {
-    "version": "1",
-    "name": "BaseMan",
-    "homeUrl": "https://base-man.vercel.app/",
-    "iconUrl": "https://base-man.vercel.app/icon.png",
-    "subtitle": "Pacman on Base!",
-    "description": "A tribute remake of Pac-Man arcade game for Base."
   }
 }
