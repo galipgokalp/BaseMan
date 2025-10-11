@@ -4,41 +4,26 @@
     "payload": "eyJkb21haW4iOiJiYXNlLW1hbi52ZXJjZWwuYXBwIn0",
     "signature": "MHg0NDRiYTcwMTVlMjlkOWE0ZWNiNDAzNjhkYTY5YjAzN2YwZTFiZDk3OTVmYTEyYWVkZDJiYTgxYmU4YTM2ZDkxMTBlMWQwNGIyYmNiOGU4ZTBkNWE4NDBjM2Y5NTI4ZWYzYjIxMWUzNDYzZWE0Y2FhZmExZGFlZDRiMTVhZjI0MjFi"
   },
-  "name": "BaseMan",
-  "description": "A tribute remake of Pac-Man arcade game for Base.",
-  "splashImageUrl": "https://base-man.vercel.app/splash.png",
-  "splashBackgroundColor": "#141416",
-  "primaryCategory": "games",
-  "categories": ["game", "arcade"],
-  "tags": ["pacman", "base", "arcade", "miniapp"],
-  "subtitle": "Pacman on Base!",
-  "websiteUrl": "https://base-man.vercel.app/",
-  "appGithub": "https://github.com/galipgokalp/BaseMan",
-  "creator": {
-    "name": "0x8132C74c2774935e4CCa5c9B709E381c143b98f7"
-  },
   "baseBuilder": {
     "allowedAddresses": ["0x8132C74c2774935e4CCa5c9B709E381c143b98f7"]
   },
   "miniapp": {
     "version": "1",
+    "name": "BaseMan",
     "homeUrl": "https://base-man.vercel.app/",
     "iconUrl": "https://base-man.vercel.app/icon.png",
     "splashImageUrl": "https://base-man.vercel.app/splash.png",
     "splashBackgroundColor": "#141416",
-    "screenshots": [
-      "https://base-man.vercel.app/shots/montage.png"
-    ],
-    "previewImageUrl": "https://base-man.vercel.app/shots/pac.png",
+    "subtitle": "Pacman on Base",
+    "description": "Classic Pacman mechanics rebuilt for the Base mini app ecosystem.",
+    "primaryCategory": "games",
+    "tags": ["pacman", "base", "arcade", "miniapp"],
+    "screenshotUrls": ["https://base-man.vercel.app/shots/montage.png"],
     "heroImageUrl": "https://base-man.vercel.app/shots/otto.png",
-    "action": {
-      "title": "Play",
-      "url": "https://base-man.vercel.app/"
-    },
-    "socialShare": {
-      "title": "Play BaseMan on Base",
-      "description": "Classic Pac-Man mechanics rebuilt for the Base mini app ecosystem.",
-      "imageUrl": "https://base-man.vercel.app/shots/montage.png"
-    }
+    "tagline": "Chomp through Base mazes",
+    "ogTitle": "Play BaseMan on Base",
+    "ogDescription": "Classic Pacman gameplay rebuilt for the Base mini app ecosystem.",
+    "ogImageUrl": "https://base-man.vercel.app/shots/montage.png",
+    "requiredChains": ["eip155:8453"]
   }
 }
