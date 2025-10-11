@@ -222,3 +222,10 @@ Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı.
 **Not:** Vercel deploy için sadece statik dosya kullanılmaktadır, ekstra build işlemi gerekmez. Tüm statik dosyalar (HTML, JS, CSS, varlıklar) kök dizinde bulunmakta ve publish directory "/" (kök) olarak ayarlanmalıdır.
 
 **Statik deploy: build gerektirmez, tüm dosyalar kökte**
+
+## Mini App Manifest ve Base.dev Entegrasyonu
+
+- `.well-known/farcaster.json` artık `config/manifest.base.json` dosyasından üretiliyor. Manifestteki alan yapısı Farcaster Mini Apps dokümantasyonunda (`https://miniapps.farcaster.xyz/`) ve Base Data Driven Growth rehberinde (`https://docs.base.org/mini-apps/technical-guides/data-driven-growth`) tanımlanan gereksinimlerle uyumludur.
+- Manifesti güncellemek için `config/manifest.base.json` dosyasını düzenleyin ve ardından `npm run manifest:generate` komutunu çalıştırın. Komut gereksinim alanlarını doğrular ve güncel manifesti `.well-known/farcaster.json` içinde oluşturur.
+- Base.dev analitiklerini kullanmak için Base hesabınızla ilişkili cüzdan adreslerini `baseBuilder.allowedAddresses` listesine ekleyin. Dağıtım ortamında farklı adresler kullanmak istiyorsanız komutu çağırmadan önce `BASE_BUILDER_ALLOWED_ADDRESSES` ortam değişkenini virgülle ayrılmış biçimde set edebilirsiniz.
+- Manifestteki `accountAssociation.header/payload/signature` alanları Farcaster domain doğrulaması için zorunludur. Değerleri yenilerken önce Base.dev/Farcaster araçlarıyla yeni imzaları üretip `config/manifest.base.json` dosyasına yazın.

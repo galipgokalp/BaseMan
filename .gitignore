@@ -2,7 +2,11 @@
 *.pyc
 .idea
 .next
-node_modules
+node_modules/
 public
 pages
 styles
+.env
+.env.*
+!.env.example
+.DS_Store

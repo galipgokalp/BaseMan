@@ -9,16 +9,8 @@
   "splashImageUrl": "https://base-man.vercel.app/splash.png",
   "splashBackgroundColor": "#141416",
   "primaryCategory": "games",
-  "categories": [
-    "game",
-    "arcade"
-  ],
-  "tags": [
-    "pacman",
-    "base",
-    "arcade",
-    "miniapp"
-  ],
+  "categories": ["game", "arcade"],
+  "tags": ["pacman", "base", "arcade", "miniapp"],
   "subtitle": "Pacman on Base!",
   "websiteUrl": "https://base-man.vercel.app/",
   "appGithub": "https://github.com/galipgokalp/BaseMan",
@@ -26,9 +18,7 @@
     "name": "0x8132C74c2774935e4CCa5c9B709E381c143b98f7"
   },
   "baseBuilder": {
-    "allowedAddresses": [
-      "0x8132C74c2774935e4CCa5c9B709E381c143b98f7"
-    ]
+    "allowedAddresses": ["0x8132C74c2774935e4CCa5c9B709E381c143b98f7"]
   },
   "miniapp": {
     "version": "1",
