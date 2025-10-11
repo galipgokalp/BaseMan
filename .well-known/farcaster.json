@@ -14,7 +14,10 @@
     "categories": ["game", "arcade"],
     "tags": ["pacman", "base", "arcade", "miniapp"],
     "creator": "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
-    "website": "https://base-man.vercel.app/"
+    "website": "https://base-man.vercel.app/",
+    "splashImageUrl": "https://base-man.vercel.app/splash.png",
+    "splashBackgroundColor": "#141416",
+    "primaryCategory": "games"
   },
   "baseBuilder": {
     "allowedAddresses": ["0x8132C74c2774935e4CCa5c9B709E381c143b98f7"]
