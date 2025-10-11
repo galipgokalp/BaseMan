@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "pacman",
   "version": "1.0.0",
   "description": "Everyone's favorite arcade game",
