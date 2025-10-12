@@ -21,9 +21,22 @@
   },
   "homepage": "https://github.com/masonicGIT/pacman#readme",
   "scripts": {
-    "manifest:generate": "node scripts/generate-manifest.mjs"
+    "manifest:generate": "node scripts/generate-manifest.mjs",
+    "contracts:compile": "npx hardhat compile",
+    "contracts:test": "npx hardhat test",
+    "contracts:deploy:sepolia": "npx hardhat run scripts/deploy-baseman-registry.cjs --network baseSepolia",
+    "contracts:deploy:base": "npx hardhat run scripts/deploy-baseman-registry.cjs --network base",
+    "onchain:config": "node scripts/generate-onchain-config.mjs"
   },
   "dependencies": {
-    "node": "^20.1.0"
+    "ethers": "^6.13.0",
+    "node": "^20.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.5"
   }
 }

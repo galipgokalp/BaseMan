@@ -42,9 +42,6 @@
     <div style='font-family: ArcadeR'> </div>
     <canvas id='canvas'><div id="canvas-warning">Your browser does not support HTML Canvas.  Please upgrade!</div></canvas>
     <canvas id='atlas' style="display:none"></canvas>
-    <script type="module">
-      import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk'
-      sdk.actions.ready();
-    </script>
-</body>
+    <script type="module" src="src/onchain-client.js"></script>
+  </body>
 </html>

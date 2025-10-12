@@ -11,3 +11,5 @@ styles
 !.env.example
 .DS_Store
 .vercel
+artifacts/
+cache/
