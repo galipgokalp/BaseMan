@@ -2,6 +2,64 @@ import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk@0.4.5";
 import { ethers } from "https://esm.sh/ethers@6.13.0";
 import { onchainConfig } from "./onchain-config.js";
 
+function createDebugOverlay() {
+  const container = document.createElement("div");
+  container.id = "baseman-debug";
+  container.style.position = "fixed";
+  container.style.left = "8px";
+  container.style.right = "8px";
+  container.style.bottom = "8px";
+  container.style.maxHeight = "45vh";
+  container.style.overflowY = "auto";
+  container.style.background = "rgba(0, 0, 0, 0.75)";
+  container.style.color = "#0f0";
+  container.style.font = "12px monospace";
+  container.style.padding = "6px";
+  container.style.zIndex = "9999";
+  container.style.pointerEvents = "none";
+  container.style.whiteSpace = "pre-wrap";
+  container.style.display = "none";
+
+  const buffer = [];
+  const flush = () => {
+    if (container.parentElement || !document.body) return;
+    document.body.appendChild(container);
+    if (buffer.length) {
+      container.textContent = buffer.join("\n") + "\n";
+      container.style.display = "block";
+      buffer.length = 0;
+    }
+  };
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    flush();
+  } else {
+    document.addEventListener("DOMContentLoaded", flush, { once: true });
+  }
+
+  return (message) => {
+    const entry = `[${new Date().toISOString().split("T")[1].split(".")[0]}] ${message}`;
+    if (container.parentElement && document.body) {
+      container.style.display = "block";
+      container.textContent += entry + "\n";
+    } else {
+      buffer.push(entry);
+      flush();
+    }
+  };
+}
+
+const debug = createDebugOverlay();
+debug("onchain-client module loaded");
+
+window.addEventListener("error", (event) => {
+  debug(`Error: ${(event && event.message) || event}`);
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  debug(`Unhandled rejection: ${event.reason}`);
+});
+
 const CONTRACT_ABI = [
   "function submitScore(address player,uint256 score,uint256 deadline,bytes signature)",
   "function completeQuest(address player,uint256 questId,uint256 deadline,bytes signature)",
@@ -32,17 +90,20 @@ const state = {
 };
 
 sdk.actions.ready();
+debug("sdk.actions.ready() called");
 
 async function ensureWallet() {
   if (state.contract) return state;
 
   try {
     await sdk.actions.signIn();
+    debug("sdk.actions.signIn() resolved");
   } catch (error) {
-    console.warn("[BaseMan] signIn skipped or failed:", error);
+    debug(`signIn error: ${error?.message || error}`);
   }
 
   const provider = await sdk.wallet.getEthereumProvider();
+  debug("Received provider from sdk.wallet.getEthereumProvider()");
   await ensureChain(provider, onchainConfig.chainId);
 
   const browserProvider = new ethers.BrowserProvider(provider);
@@ -52,6 +113,7 @@ async function ensureWallet() {
   state.signer = signer;
   state.address = ethers.getAddress(address);
   state.contract = new ethers.Contract(onchainConfig.registryAddress, CONTRACT_ABI, signer);
+  debug(`Wallet ready: ${state.address}`);
 
   return state;
 }
@@ -80,8 +142,9 @@ async function ensureChain(provider, chainId) {
           }
         ]
       });
+      debug(`Added chain ${chainId} via wallet_addEthereumChain`);
     } else {
-      console.warn("[BaseMan] wallet_switchEthereumChain failed", error);
+      debug(`wallet_switchEthereumChain failed: ${error?.message || error}`);
     }
   }
 }
@@ -101,8 +164,10 @@ async function requestScoreSignature(score, durationMs) {
   const payload = await response.json();
   if (!response.ok) {
     const message = payload?.error || "Failed to obtain score signature";
+    debug(`score-sign failed: ${message}`);
     throw new Error(message);
   }
+  debug(`score-sign success for ${score} (duration ${durationMs}ms)`);
   return payload;
 }
 
@@ -139,9 +204,9 @@ async function submitScore() {
       signature
     );
 
-    console.log("[BaseMan] Submitted score tx:", tx.hash);
+    debug(`submitScore tx sent: ${tx.hash}`);
   } catch (error) {
-    console.error("[BaseMan] submitScore failed:", error);
+    debug(`submitScore error: ${error?.message || error}`);
   } finally {
     state.submitting = false;
     state.runStartedAt = null;
@@ -150,6 +215,7 @@ async function submitScore() {
 
 function handleRunStart() {
   state.runStartedAt = performance.now();
+  debug("Run started");
 }
 
 function patchStateHooks() {
@@ -160,6 +226,7 @@ function patchStateHooks() {
       return original(...args);
     };
     window.newGameState._patchedForOnchain = true;
+    debug("Patched newGameState.init");
   }
 
   if (window.overState?.init && !window.overState._patchedForOnchain) {
@@ -169,6 +236,7 @@ function patchStateHooks() {
       return original(...args);
     };
     window.overState._patchedForOnchain = true;
+    debug("Patched overState.init");
   }
 }
 
