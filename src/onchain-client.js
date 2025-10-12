@@ -52,6 +52,8 @@ function createDebugOverlay() {
 const debug = createDebugOverlay();
 debug("onchain-client module loaded");
 
+window.BaseManModuleLoaded = true;
+
 window.addEventListener("error", (event) => {
   debug(`Error: ${(event && event.message) || event}`);
 });
