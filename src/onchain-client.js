@@ -7,14 +7,27 @@
     }
   };
 
-  const sdk = window.sdk;
-  const ethers = window.ethers;
+  let sdk =
+    window.sdk ||
+    (window.fc && window.fc.miniapp) ||
+    (window.farcaster && window.farcaster.miniapp) ||
+    window.MiniAppSDK ||
+    window.FarcasterMiniAppSDK ||
+    (window.MiniApp && window.MiniApp.sdk);
+
+  if (!sdk && window.globalThis?.MiniAppSDK?.default) {
+    sdk = window.globalThis.MiniAppSDK.default;
+  }
+
+  const ethers = window.ethers || window.Ethers || window.ethersjs;
   const onchainConfig = window.BaseManOnchainConfig;
 
   if (!sdk) {
     showFailure("Farcaster Mini App SDK (window.sdk) bulunamadı.");
     return;
   }
+  window.sdk = sdk;
+
   if (!ethers) {
     showFailure("ethers.js globali (window.ethers) bulunamadı.");
     return;
@@ -278,4 +291,3 @@
     };
   }
 })();
-
