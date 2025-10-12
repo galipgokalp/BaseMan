@@ -38,6 +38,7 @@
   }
 
   const debug = createDebugOverlay();
+  console.log("[BaseMan] onchain-client script running");
   debug("onchain-client başlatıldı");
   window.BaseManModuleLoaded = true;
 
