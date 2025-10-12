@@ -52,7 +52,11 @@
 
     attempts += 1;
     if (attempts % 10 === 0) {
-      debug("SDK/Ethers bekleniyor... deneme #" + attempts);
+      const hints = Object.keys(window)
+        .filter((key) => key.toLowerCase().includes("mini"))
+        .slice(0, 10)
+        .join(", ");
+      debug("SDK/Ethers bekleniyor... deneme #" + attempts + (hints ? " | mini keys: " + hints : ""));
     }
 
     if (attempts >= MAX_ATTEMPTS) {
