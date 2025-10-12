@@ -42,6 +42,9 @@
     <div style='font-family: ArcadeR'> </div>
     <canvas id='canvas'><div id="canvas-warning">Your browser does not support HTML Canvas.  Please upgrade!</div></canvas>
     <canvas id='atlas' style="display:none"></canvas>
+    <script defer src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk@0.4.5/dist/index.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+    <script defer src="src/onchain-config.js"></script>
     <script>
       window.BaseManModuleLoaded = false;
       window.__BaseManModuleFailureShown = false;
@@ -67,12 +70,12 @@
         });
       };
     </script>
-    <script type="module" src="src/onchain-client.js"></script>
+    <script defer src="src/onchain-client.js"></script>
     <script>
       window.addEventListener("load", function() {
         setTimeout(function() {
           if (!window.BaseManModuleLoaded) {
-            window.__showModuleFailure("Modül yüklenmedi (type=module).");
+            window.__showModuleFailure("On-chain modülü yüklenmedi.");
           }
         }, 1500);
       });
