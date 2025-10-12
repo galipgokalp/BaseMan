@@ -1,6 +1,6 @@
 (function () {
-  const MAX_ATTEMPTS = 60;
-  const POLL_DELAY_MS = 100;
+  const MAX_ATTEMPTS = 300;
+  const POLL_DELAY_MS = 200;
   let attempts = 0;
 
   const debug = createDebugOverlay();
