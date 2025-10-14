@@ -23,7 +23,17 @@
       () => window.MiniAppSDK,
       () => window.FarcasterMiniAppSDK,
       () => window.MiniApp && window.MiniApp.sdk,
-      () => (window.globalThis && window.globalThis.MiniAppSDK && window.globalThis.MiniAppSDK.default) || null
+      () => window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp),
+      () =>
+        (window.globalThis &&
+          window.globalThis.MiniAppSDK &&
+          window.globalThis.MiniAppSDK.default) ||
+        null,
+      () =>
+        (window.globalThis &&
+          window.globalThis.miniapp &&
+          (window.globalThis.miniapp.default || window.globalThis.miniapp.sdk)) ||
+        null
     ];
     for (const getter of candidates) {
       try {
@@ -330,4 +340,3 @@
 
   tryInitialize();
 })();
-
