@@ -62,6 +62,7 @@ var newChildObject = function(parentObj, newObj) {
 };
 
 var DEBUG = false;
+
 //@line 1 "src/sound.js"
 /* Sound handlers added by Dr James Freeman who was sad such a great reverse was a silent movie  */
 
@@ -147,6 +148,7 @@ function preloadAudio() {
         }
     }
 }
+
 //@line 1 "src/random.js"
 
 var getRandomColor = function() {
@@ -156,6 +158,7 @@ var getRandomColor = function() {
 var getRandomInt = function(min,max) {
     return Math.floor(Math.random() * (max-min+1)) + min;
 };
+
 
 //@line 1 "src/game.js"
 //////////////////////////////////////////////////////////////////////////////////////
@@ -435,6 +438,7 @@ var saveHighScores = function() {
         localStorage.highScores = JSON.stringify(highScores);
     }
 };
+
 //@line 1 "src/direction.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Directions
@@ -539,6 +543,7 @@ var getOpenTiles = function(tile,dirEnum) {
 var isNextTileFloor = function(tile,dir) {
     return map.isFloorTile(tile.x+dir.x,tile.y+dir.y);
 };
+
 
 //@line 1 "src/Map.js"
 //////////////////////////////////////////////////////////////////////////////////////
@@ -925,6 +930,7 @@ Map.prototype.onDotEat = function(x,y) {
     this.timeEaten[i] = vcr.getTime();
     renderer.erasePellet(x,y);
 };
+
 //@line 1 "src/colors.js"
 // source: http://mjijackson.com/2008/02/rgb-to-hsl-and-rgb-to-hsv-color-model-conversion-algorithms-in-javascript
 
@@ -1075,6 +1081,7 @@ function rgbString(rgb) {
     var b = Math.floor(rgb[2]);
     return 'rgb('+r+','+g+','+b+')';
 }
+
 //@line 1 "src/mapgen.js"
 var mapgen = (function(){
 
@@ -2527,6 +2534,7 @@ var mapgen = (function(){
         return map;
     };
 })();
+
 //@line 1 "src/atlas.js"
 
 var atlas = (function(){
@@ -3049,6 +3057,7 @@ var atlas = (function(){
         drawSnail: copySnail,
     };
 })();
+
 //@line 1 "src/renderers.js"
 //////////////////////////////////////////////////////////////
 // Renderers
@@ -4130,6 +4139,7 @@ var initRenderer = function(){
     ];
     renderer = renderer_list[1];
 };
+
 //@line 1 "src/hud.js"
 
 var hud = (function(){
@@ -4169,6 +4179,7 @@ var hud = (function(){
     };
 
 })();
+
 //@line 1 "src/galagaStars.js"
 
 var galagaStars = (function() {
@@ -4239,6 +4250,7 @@ var galagaStars = (function() {
     };
 
 })();
+
 //@line 1 "src/Button.js"
 var getPointerPos = function(evt) {
     var obj = canvas;
@@ -4501,6 +4513,7 @@ ToggleButton.prototype = newChildObject(Button.prototype, {
     },
 
 });
+
 //@line 1 "src/Menu.js"
 var Menu = function(title,x,y,w,h,pad,font,fontcolor) {
     this.title = title;
@@ -4655,6 +4668,7 @@ Menu.prototype = {
         }
     },
 };
+
 //@line 1 "src/inGameMenu.js"
 ////////////////////////////////////////////////////
 // In-Game Menu
@@ -4833,6 +4847,7 @@ var inGameMenu = (function() {
         },
     };
 })();
+
 
 //@line 1 "src/sprites.js"
 //////////////////////////////////////////////////////////////////////////////////////
@@ -7378,6 +7393,7 @@ var drawExclamationPoint = function(ctx,x,y) {
 
     ctx.restore();
 };
+
 //@line 1 "src/Actor.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // The actor class defines common data functions for the ghosts and pacman
@@ -7568,6 +7584,7 @@ Actor.prototype.update = function(j) {
     // update head direction
     this.steer();
 };
+
 //@line 1 "src/Ghost.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Ghost class
@@ -8040,6 +8057,7 @@ Ghost.prototype.setTarget = function() {
         this.targetting = 'pacman';
     }
 };
+
 //@line 1 "src/Player.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Player is the controllable character (Pac-Man)
@@ -8270,6 +8288,7 @@ Player.prototype.update = function(j) {
         }
     }
 };
+
 //@line 1 "src/actors.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // create all the actors
@@ -8307,6 +8326,7 @@ pacman.pathColor = "rgba(255,255,0,0.8)";
 // (suggests drawing/update order)
 var actors = [blinky, pinky, inky, clyde, pacman];
 var ghosts = [blinky, pinky, inky, clyde];
+
 //@line 1 "src/targets.js"
 /////////////////////////////////////////////////////////////////
 // Targetting
@@ -8567,6 +8587,7 @@ pacman.getPathDistLeft = function(fromPixel, dirEnum) {
 };
 
 })();
+
 //@line 1 "src/ghostCommander.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Ghost Commander
@@ -8673,6 +8694,7 @@ var ghostCommander = (function() {
         },
     };
 })();
+
 //@line 1 "src/ghostReleaser.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Ghost Releaser
@@ -8827,6 +8849,7 @@ var ghostReleaser = (function(){
         },
     };
 })();
+
 //@line 1 "src/elroyTimer.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Elroy Timer
@@ -8895,6 +8918,7 @@ var elroyTimer = (function(){
         load: load,
     };
 })();
+
 //@line 1 "src/energizer.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Energizer
@@ -9005,6 +9029,7 @@ var energizer = (function() {
         updatePointsTimer: function() { if (pointsFramesLeft > 0) pointsFramesLeft--; },
     };
 })();
+
 //@line 1 "src/fruit.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Fruit
@@ -9356,6 +9381,7 @@ var setFruitFromGameMode = (function() {
         }
     };
 })();
+
 //@line 1 "src/executive.js"
 var executive = (function(){
 
@@ -9499,6 +9525,7 @@ var executive = (function(){
         getFps: function() { return fps; },
     };
 })();
+
 //@line 1 "src/states.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // States
@@ -9590,6 +9617,29 @@ var homeState = (function(){
         menu.disable();
     };
 
+    var connectWallet = function () {
+        var onchain = window.BaseManOnchain;
+        if (!onchain || typeof onchain.ensureWallet !== "function") {
+            console.warn("[BaseMan] On-chain modülü henüz hazır değil.");
+            return;
+        }
+        onchain
+            .ensureWallet()
+            .then(function () {
+                if (typeof onchain.log === "function") {
+                    onchain.log("Cüzdan bağlantısı tamamlandı.");
+                }
+            })
+            .catch(function (error) {
+                var message = (error && error.message) || error || "Bilinmeyen hata";
+                if (typeof onchain.log === "function") {
+                    onchain.log("Cüzdan bağlantı hatası: " + message);
+                } else {
+                    console.error("[BaseMan] Cüzdan bağlantı hatası:", message);
+                }
+            });
+    };
+
     var menu = new Menu("CHOOSE A GAME",2*tileSize,0*tileSize,mapWidth-4*tileSize,3*tileSize,tileSize,tileSize+"px ArcadeR", "#EEE");
     var getIconAnimFrame = function(frame) {
         frame = Math.floor(frame/3)+1;
@@ -9629,6 +9679,8 @@ var homeState = (function(){
             drawCookiemanSprite(ctx,x,y,DIR_RIGHT,getIconAnimFrame(frame), true);
         });
 
+    menu.addSpacer(0.5);
+    menu.addTextButton("CONNECT WALLET", connectWallet);
     menu.addSpacer(0.5);
     menu.addTextIconButton("LEARN",
         function() {
@@ -11414,6 +11466,7 @@ var initSwipe = function() {
     document.ontouchmove = touchMove;
     document.ontouchcancel = touchCancel;
 };
+
 //@line 1 "src/cutscenes.js"
 ////////////////////////////////////////////////
 // Cutscenes
@@ -12553,6 +12606,7 @@ var triggerCutsceneAtEndLevel = function() {
     return false;
 };
 
+
 //@line 1 "src/maps.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Maps
@@ -13096,6 +13150,7 @@ mapMsPacman4.fruitPaths = {
                  { "path": "<vvv>>>>>>^^^^^^^^^>>>vv>>>>" }
              ]
          };
+
 //@line 1 "src/vcr.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // VCR
@@ -13505,6 +13560,7 @@ var vcr = (function() {
         },
     };
 })();
+
 //@line 1 "src/main.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Entry Point
@@ -13532,4 +13588,5 @@ window.addEventListener("load", function() {
 	}
     executive.init();
 });
+
 })();

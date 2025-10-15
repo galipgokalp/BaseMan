@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/masonicGIT/pacman#readme",
   "scripts": {
+    "game:build": "node scripts/build-pacman.mjs",
     "manifest:generate": "node scripts/generate-manifest.mjs",
     "contracts:compile": "npx hardhat compile",
     "contracts:test": "npx hardhat test",

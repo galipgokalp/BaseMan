@@ -149,7 +149,7 @@ Navigating the Repository
 -------------------------
 
 - all javascript source files are located in the "src/" directory
-- "build.sh" file concatenates all the source files into "pacman.js" in the top directory
+- `"pacman.js"` dosyası `src/` altındaki JavaScript dosyalarının birleştirilmiş halidir; kaynak kodda değişiklik yaptıktan sonra `npm run game:build` komutu ile yeniden oluşturulur.
 - "debug.htm" displays the game by using the "src/*.js" files
 - "index.htm" displays the game by using the "pacman.js" file only
 - the "fruit" directory contains notes and diagrams on Ms. Pac-Man fruit paths
@@ -219,9 +219,7 @@ Links to Public Feedback
 
 Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı.
 
-**Not:** Vercel deploy için sadece statik dosya kullanılmaktadır, ekstra build işlemi gerekmez. Tüm statik dosyalar (HTML, JS, CSS, varlıklar) kök dizinde bulunmakta ve publish directory "/" (kök) olarak ayarlanmalıdır.
-
-**Statik deploy: build gerektirmez, tüm dosyalar kökte**
+**Not:** Deploy öncesinde `npm run game:build` komutunu çalıştırarak `pacman.js` dosyasını güncellediğinizden emin olun. Vercel statik servis yaptığı için komut çıktılarını repo kökünde bulundurmak gerekir; publish directory "/" (kök) kalmalıdır.
 
 ## Mini App Manifest ve Base.dev Entegrasyonu
 
