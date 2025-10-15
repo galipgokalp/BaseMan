@@ -159,8 +159,28 @@
       return state;
     }
 
+    function toHexChainId(chainId) {
+      try {
+        if (typeof chainId === "bigint") {
+          return ethers.toBeHex(chainId);
+        }
+        if (typeof chainId === "number") {
+          return ethers.toBeHex(chainId);
+        }
+        if (typeof chainId === "string" && chainId.startsWith("0x")) {
+          return ethers.toBeHex(chainId);
+        }
+        if (typeof chainId === "string" && chainId.trim() !== "") {
+          return ethers.toBeHex(BigInt(chainId));
+        }
+        throw new Error("chainId boş olamaz");
+      } catch (error) {
+        throw new Error(`Geçersiz chainId: ${chainId} (${error?.message || error})`);
+      }
+    }
+
     async function ensureChain(provider, chainId) {
-      const hexChainId = ethers.hexlify(chainId);
+      const hexChainId = toHexChainId(chainId);
       try {
         await provider.request({
           method: "wallet_switchEthereumChain",
