@@ -121,6 +121,7 @@
       signer: null,
       address: null,
       contract: null,
+      provider: null,
       runStartedAt: null,
       submitting: false
     };
@@ -139,6 +140,9 @@
       }
 
       const provider = await sdk.wallet.getEthereumProvider();
+      if (!provider) {
+        throw new Error("Ethereum sağlayıcısı alınamadı.");
+      }
       debug("sdk.wallet.getEthereumProvider() döndü");
       await ensureChain(provider, config.chainId);
 
@@ -149,6 +153,7 @@
       state.signer = signer;
       state.address = ethers.getAddress(address);
       state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
+      state.provider = provider;
       debug(`Cüzdan hazır: ${state.address}`);
 
       return state;
@@ -207,6 +212,70 @@
       return payload;
     }
 
+    async function submitScoreWithPaymaster(callData) {
+      if (!config.paymasterUrl) {
+        return null;
+      }
+      if (!state.provider || typeof state.provider.request !== "function") {
+        debug("paymaster isteği için provider bulunamadı.");
+        return null;
+      }
+
+      const hexChainId = (() => {
+        try {
+          return ethers.toBeHex(config.chainId);
+        } catch (error) {
+          debug(`chainId hex dönüştürme hatası: ${error?.message || error}`);
+          return null;
+        }
+      })();
+      if (!hexChainId) return null;
+
+      const payload = {
+        version: "1.0.0",
+        from: state.address,
+        chainId: hexChainId,
+        atomicRequired: true,
+        calls: [
+          {
+            to: config.registryAddress,
+            data: callData,
+            value: "0x0"
+          }
+        ],
+        capabilities: {
+          paymasterService: {
+            url: config.paymasterUrl,
+            optional: false
+          }
+        }
+      };
+
+      try {
+        debug("wallet_sendCalls (paymaster) isteği gönderiliyor.");
+        const result = await state.provider.request({
+          method: "wallet_sendCalls",
+          params: [payload]
+        });
+
+        if (result && typeof result === "object") {
+          if (result.id) {
+            debug(`wallet_sendCalls isteği gönderildi. id=${result.id}`);
+          } else {
+            debug(`wallet_sendCalls yanıtı: ${JSON.stringify(result)}`);
+          }
+        } else {
+          debug("wallet_sendCalls yanıtı beklenenden farklı.");
+        }
+
+        return result;
+      } catch (error) {
+        const message = error?.message || error;
+        debug(`wallet_sendCalls başarısız: ${message}`);
+        return null;
+      }
+    }
+
     async function submitScore() {
       if (state.submitting) return;
       if (typeof window.getScore !== "function") return;
@@ -234,6 +303,68 @@
 
         const scoreValue = signedScore ? BigInt(signedScore) : score;
         const deadlineValue = BigInt(deadline);
+
+        let paymasterHandled = false;
+        const contractInterface = state.contract && state.contract.interface;
+        if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
+          const callData = contractInterface.encodeFunctionData("submitScore", [
+            state.address,
+            scoreValue,
+            deadlineValue,
+            signature
+          ]);
+          const paymasterResult = await submitScoreWithPaymaster(callData);
+          if (paymasterResult) {
+            let identifier = null;
+            if (typeof paymasterResult === "string") {
+              identifier = paymasterResult;
+            } else if (typeof paymasterResult === "object") {
+              if (typeof paymasterResult.id === "string") {
+                identifier = paymasterResult.id;
+              } else if (typeof paymasterResult.hash === "string") {
+                identifier = paymasterResult.hash;
+              }
+            }
+
+            if (identifier) {
+              paymasterHandled = true;
+              debug(`Paymaster destekli gönderim başlatıldı (id: ${identifier}).`);
+              if (
+                typeof paymasterResult === "object" &&
+                typeof paymasterResult.id === "string"
+              ) {
+                setTimeout(() => {
+                  if (!state.provider || typeof state.provider.request !== "function") return;
+                  state.provider
+                    .request({
+                      method: "wallet_getCallsStatus",
+                      params: [paymasterResult.id]
+                    })
+                    .then((status) => {
+                      debug(
+                        `wallet_getCallsStatus yanıtı: ${
+                          status ? JSON.stringify(status) : "boş yanıt"
+                        }`
+                      );
+                    })
+                    .catch((statusError) => {
+                      debug(
+                        `wallet_getCallsStatus hatası: ${
+                          statusError?.message || statusError
+                        }`
+                      );
+                    });
+                }, 3000);
+              }
+            }
+          }
+        }
+
+        if (paymasterHandled) {
+          return;
+        } else if (config.paymasterUrl) {
+          debug("Paymaster gönderimi tamamlanamadı, standart işlem gönderiliyor.");
+        }
 
         const tx = await state.contract.submitScore(
           state.address,
@@ -283,7 +414,8 @@
     window.BaseManOnchain = {
       ensureWallet,
       submitScore,
-      handleRunStart
+      handleRunStart,
+      log: debug
     };
   }
 

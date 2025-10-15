@@ -88,6 +88,29 @@ var homeState = (function(){
         menu.disable();
     };
 
+    var connectWallet = function () {
+        var onchain = window.BaseManOnchain;
+        if (!onchain || typeof onchain.ensureWallet !== "function") {
+            console.warn("[BaseMan] On-chain modülü henüz hazır değil.");
+            return;
+        }
+        onchain
+            .ensureWallet()
+            .then(function () {
+                if (typeof onchain.log === "function") {
+                    onchain.log("Cüzdan bağlantısı tamamlandı.");
+                }
+            })
+            .catch(function (error) {
+                var message = (error && error.message) || error || "Bilinmeyen hata";
+                if (typeof onchain.log === "function") {
+                    onchain.log("Cüzdan bağlantı hatası: " + message);
+                } else {
+                    console.error("[BaseMan] Cüzdan bağlantı hatası:", message);
+                }
+            });
+    };
+
     var menu = new Menu("CHOOSE A GAME",2*tileSize,0*tileSize,mapWidth-4*tileSize,3*tileSize,tileSize,tileSize+"px ArcadeR", "#EEE");
     var getIconAnimFrame = function(frame) {
         frame = Math.floor(frame/3)+1;
@@ -127,6 +150,8 @@ var homeState = (function(){
             drawCookiemanSprite(ctx,x,y,DIR_RIGHT,getIconAnimFrame(frame), true);
         });
 
+    menu.addSpacer(0.5);
+    menu.addTextButton("CONNECT WALLET", connectWallet);
     menu.addSpacer(0.5);
     menu.addTextIconButton("LEARN",
         function() {
@@ -1636,4 +1661,3 @@ var overState = (function() {
         },
     };
 })();
-
