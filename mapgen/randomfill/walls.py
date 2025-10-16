@@ -162,7 +162,7 @@ class Map:
             self.tiles = []
             self.w = w
             self.h = h
-            for i in xrange(w*h):
+            for i in range(w*h):
                 self.tiles.append('.')
         else:
             self.setMap(w,h,tile_str)
@@ -180,8 +180,8 @@ class Map:
     def __str__(self):
         s = "\n"
         i = 0
-        for y in xrange(self.h):
-            for x in xrange(self.w):
+        for y in range(self.h):
+            for x in range(self.w):
                 s += self.tiles[i]
                 i += 1
             s += "\n"
@@ -193,7 +193,7 @@ class Map:
 
     # converts index to x,y
     def i_to_xy(self,i):
-        return i%self.w, i/self.w
+        return i % self.w, i // self.w
 
     # validates x,y
     def xy_valid(self,x,y):
@@ -225,8 +225,8 @@ class Map:
     def can_new_block_fit(self,x,y):
         if not (self.xy_valid(x,y) and self.xy_valid(x+3,y+3)):
             return False
-        for y0 in xrange(y,y+4):
-            for x0 in xrange(x,x+4):
+        for y0 in range(y,y+4):
+            for x0 in range(x,x+4):
                 if self.get_tile(x0,y0) != '.':
                     return False
         return True
@@ -234,8 +234,8 @@ class Map:
     # create a list of valid starting positions
     def update_pos_list(self):
         self.pos_list = []
-        for y in xrange(self.h):
-            for x in xrange(self.w):
+        for y in range(self.h):
+            for x in range(self.w):
                 if self.can_new_block_fit(x,y):
                     self.pos_list.append((x,y))
 
@@ -245,8 +245,8 @@ class Map:
     # it when they are chosen.  This filling is a heuristic to eliminate gaps.
     def update_connections(self):
         self.connections = {}
-        for y in xrange(self.h):
-            for x in xrange(self.w):
+        for y in range(self.h):
+            for x in range(self.w):
                 if (x,y) in self.pos_list:
                     if any(self.get_tile(x-1,y+y0)=='|' for y0 in range(4)): self.add_connection(x,y,1,0)
                     if any(self.get_tile(x+4,y+y0)=='|' for y0 in range(4)): self.add_connection(x,y,-1,0)
@@ -374,9 +374,9 @@ class Map:
 
         # print the map states after each phase for debugging
         if self.verbose:
-            print "added block at ",x,y
-            for a,b,c in zip(first_lines, grow_lines, extend_lines):
-                print a,b,c
+            print("added block at", x, y)
+            for a, b, c in zip(first_lines, grow_lines, extend_lines):
+                print(a, b, c)
 
         return True
 
@@ -428,4 +428,4 @@ if __name__ == "__main__":
     # reflect the first 14 columns to print the map
     for line in str(tileMap).splitlines():
         s = line[:14]
-        print s+s[::-1]
+        print(s + s[::-1])

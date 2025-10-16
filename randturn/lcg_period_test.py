@@ -14,15 +14,15 @@ if __name__ == "__main__":
 	
 	m = 0x2000
 	lcg = LCG(5,1,m)
-	results = [lcg.next() for i in xrange(m)]
+	results = [lcg.next() for _ in range(m)]
 
 	numUnique = len(set(results))
 	if numUnique == m:
-		print "full cycling period"
+		print("full cycling period")
 	else:
-		print "not a full period", numUnique
+		print("not a full period", numUnique)
 
-	print "%-4s %-4s" % ('step', 'value')
-	print "-"*10
+	print("{:<4} {:<4}".format('step', 'value'))
+	print("-" * 10)
 	for i,x in enumerate(results):
-		print "%-4X %04X" % (i, x)
+		print("{:<4X} {:04X}".format(i, x))

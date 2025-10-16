@@ -43,7 +43,7 @@ def printTurnProb(turnProb):
 	for i,val in enumerate(turnProb):
 		result = insertPercentIntoStr(result, i, val)
 	
-	print result
+	print(result)
 
 if __name__ == "__main__":
 	
@@ -52,8 +52,8 @@ if __name__ == "__main__":
 	def getTryTurnProb(bytes_8k):
 		freq = [0,0,0,0]
 		for b in bytes_8k:
-			b = ord(b) & 3
-			freq[b] += 1
+			val = b if isinstance(b, int) else ord(b)
+			freq[val & 3] += 1
 		total = sum(freq)
 		return [float(i)/total for i in freq]
 	
@@ -97,17 +97,17 @@ if __name__ == "__main__":
 		printTurnProb(turnProb)
 
 
-	print "Stats on Frightened Ghost Turns"
-	print "(based on Midway Pac-Man ROM)"
-	print
-	print "Probability that ghost will TRY a direction:"
-	print
+	print("Stats on Frightened Ghost Turns")
+	print("(based on Midway Pac-Man ROM)")
+	print()
+	print("Probability that ghost will TRY a direction:")
+	print()
 
 	printTurnProb(turnTryProb)
 
-	print
-	print "Actual probability when some turns are constrained:"
-	print
+	print()
+	print("Actual probability when some turns are constrained:")
+	print()
 
 	for case in cases:
 		printTurnProbFromOpenings(case)
