@@ -35,6 +35,8 @@
     "ogImageUrl": "https://base-man.vercel.app/shots/hero_1200x630.png",
     "requiredChains": [
       "eip155:8453"
-    ]
+    ],
+    "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook",
+    "noindex": false
   }
 }
