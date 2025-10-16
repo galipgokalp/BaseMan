@@ -25,7 +25,6 @@
     "ogDescription": "Classic Pacman gameplay rebuilt for the Base mini app ecosystem.",
     "ogImageUrl": "https://base-man.vercel.app/shots/hero_1200x630.png",
     "requiredChains": ["eip155:8453"],
-    "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook",
-    "noindex": false
+    "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook"
   }
 }

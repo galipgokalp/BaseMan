@@ -36,7 +36,6 @@
     "requiredChains": [
       "eip155:8453"
     ],
-    "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook",
-    "noindex": false
+    "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook"
   }
 }
