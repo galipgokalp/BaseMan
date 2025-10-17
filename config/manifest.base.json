@@ -8,7 +8,7 @@
     "allowedAddresses": ["0x8132C74c2774935e4CCa5c9B709E381c143b98f7"]
   },
   "miniapp": {
-    "version": 1,
+    "version": "1",
     "name": "BaseMan",
     "homeUrl": "https://base-man.vercel.app/",
     "iconUrl": "https://base-man.vercel.app/icon.png",
