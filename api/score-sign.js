@@ -12,7 +12,7 @@ import {
 const signer = getSigner("SCORE_SIGNER_PRIVATE_KEY");
 
 const SIGNATURE_TTL_SECONDS = Number(process.env.SCORE_SIGNATURE_TTL_SECONDS ?? "300");
-const MIN_DURATION_MS = Number(process.env.SCORE_MIN_DURATION_MS ?? "10000");
+const MIN_DURATION_MS = Number(process.env.SCORE_MIN_DURATION_MS ?? "3000");
 const MAX_SCORE = BigInt(process.env.SCORE_MAX_VALUE ?? "100000000");
 
 const ScorePayloadSchema = z.object({

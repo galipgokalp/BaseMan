@@ -24,6 +24,24 @@
     "ogTitle": "Play BaseMan on Base",
     "ogDescription": "Classic Pacman gameplay rebuilt for the Base mini app ecosystem.",
     "ogImageUrl": "https://base-man.vercel.app/shots/hero_1200x630.png",
+    "contentSecurityPolicy": {
+      "defaultSrc": ["'self'"],
+      "scriptSrc": ["'self'", "https://cdn.jsdelivr.net"],
+      "styleSrc": ["'self'", "'unsafe-inline'"],
+      "imgSrc": ["'self'", "data:", "https://base-man.vercel.app", "https://ipfs.decentralized-content.com"],
+      "fontSrc": ["'self'", "data:", "https://base-man.vercel.app"],
+      "connectSrc": [
+        "'self'",
+        "https://base-man.vercel.app",
+        "https://pulse.walletconnect.org",
+        "https://explorer-api.walletconnect.com",
+        "https://relay.walletconnect.com",
+        "https://rpc.walletconnect.com",
+        "https://api.base.org",
+        "https://api.developer.coinbase.com",
+        "https://ipfs.decentralized-content.com"
+      ]
+    },
     "requiredChains": ["eip155:8453"],
     "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook"
   }

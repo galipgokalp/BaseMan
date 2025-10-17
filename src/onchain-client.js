@@ -219,6 +219,10 @@
         throw new Error("Geçersiz cüzdan adresi");
       }
 
+      debug(
+        `score-sign isteği hazırlanıyor: skor=${score.toString()} duration=${durationMs}ms`
+      );
+
       const response = await fetch(config.scoreEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -415,25 +419,60 @@
       debug("Oyun başlangıcı yakalandı");
     }
 
-    function patchStateHooks() {
-      if (window.newGameState?.init && !window.newGameState._patchedForOnchain) {
-        const original = window.newGameState.init.bind(window.newGameState);
-        window.newGameState.init = function patchedInit(...args) {
+    function patchStateHooks(attempt = 0) {
+      const ensureRunStart = () => {
+        if (state.runStartedAt === null) {
           handleRunStart();
-          return original(...args);
-        };
-        window.newGameState._patchedForOnchain = true;
-        debug("newGameState.init patch'lendi");
-      }
+        }
+      };
 
-      if (window.overState?.init && !window.overState._patchedForOnchain) {
-        const original = window.overState.init.bind(window.overState);
-        window.overState.init = function patchedGameOver(...args) {
-          submitScore();
+      const patchInit = (target, flagKey, hook, label) => {
+        if (!target?.init || target[flagKey]) {
+          return;
+        }
+        const original = target.init.bind(target);
+        target.init = function patchedInit(...args) {
+          try {
+            hook?.apply(this, args);
+          } catch (error) {
+            debug(`${label} hook hatası: ${error?.message || error}`);
+          }
           return original(...args);
         };
-        window.overState._patchedForOnchain = true;
-        debug("overState.init patch'lendi");
+        target[flagKey] = true;
+        debug(`${label} patch'lendi`);
+      };
+
+      patchInit(window.newGameState, "_patchedForOnchain", handleRunStart, "newGameState.init");
+      patchInit(window.readyState, "_patchedForOnchainReady", ensureRunStart, "readyState.init");
+      patchInit(
+        window.readyNewState,
+        "_patchedForOnchainReadyNew",
+        ensureRunStart,
+        "readyNewState.init"
+      );
+      patchInit(
+        window.readyRestartState,
+        "_patchedForOnchainReadyRestart",
+        ensureRunStart,
+        "readyRestartState.init"
+      );
+      patchInit(window.overState, "_patchedForOnchain", submitScore, "overState.init");
+
+      const shouldRetry =
+        !window.newGameState ||
+        !window.newGameState._patchedForOnchain ||
+        !window.overState ||
+        !window.overState._patchedForOnchain ||
+        !window.readyState ||
+        !window.readyState._patchedForOnchainReady ||
+        !window.readyNewState ||
+        !window.readyNewState._patchedForOnchainReadyNew ||
+        !window.readyRestartState ||
+        !window.readyRestartState._patchedForOnchainReadyRestart;
+
+      if (shouldRetry && attempt < 10) {
+        setTimeout(() => patchStateHooks(attempt + 1), 250);
       }
     }
 
