@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  background: #000;
+}
+
+@font-face {
+  font-family: "ArcadeR";
+  src: url("../font/ARCADE_R.TTF");
+}
+
+.font-preload {
+  font-family: "ArcadeR";
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+#atlas.atlas-hidden {
+  display: none;
+}
+
+#canvas-warning {
+  color: #ff0;
+  font-size: 1.5em;
+}

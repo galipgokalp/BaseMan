@@ -15,7 +15,7 @@ function parseRegistryConfig() {
   assert(ethers.isAddress(rawAddress), "NEXT_PUBLIC_REGISTRY_ADDRESS must be a valid address");
   const address = ethers.getAddress(rawAddress);
 
-  const rawChainId = process.env.REGISTRY_CHAIN_ID ?? "84532";
+  const rawChainId = process.env.REGISTRY_CHAIN_ID ?? "8453";
   let chainId;
   try {
     chainId = BigInt(rawChainId);
@@ -66,4 +66,3 @@ export function normalizeAddress(value) {
   assert(ethers.isAddress(value), "Invalid address provided");
   return ethers.getAddress(value);
 }
-

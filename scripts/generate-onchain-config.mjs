@@ -12,7 +12,7 @@ if (!registryAddress) {
   throw new Error("NEXT_PUBLIC_REGISTRY_ADDRESS env variable is required to generate on-chain config.");
 }
 
-const chainIdRaw = process.env.REGISTRY_CHAIN_ID ?? "84532";
+const chainIdRaw = process.env.REGISTRY_CHAIN_ID ?? "8453";
 let chainId;
 try {
   chainId = Number(chainIdRaw);

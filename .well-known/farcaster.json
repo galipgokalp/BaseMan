@@ -10,7 +10,7 @@
     ]
   },
   "miniapp": {
-    "version": "1",
+    "version": 1,
     "name": "BaseMan",
     "homeUrl": "https://base-man.vercel.app/",
     "iconUrl": "https://base-man.vercel.app/icon.png",
@@ -38,12 +38,10 @@
         "'self'"
       ],
       "scriptSrc": [
-        "'self'",
-        "https://cdn.jsdelivr.net"
+        "'self'"
       ],
       "styleSrc": [
-        "'self'",
-        "'unsafe-inline'"
+        "'self'"
       ],
       "imgSrc": [
         "'self'",

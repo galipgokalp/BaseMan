@@ -21,32 +21,16 @@
     />
     <!-- ============================== -->
 
-    <style>
-        body {
-            margin:0;
-            background: #000;
-        }
-        @font-face {
-            font-family: 'ArcadeR';
-            src: url('font/ARCADE_R.TTF');
-        }
-        #canvas-warning {
-            color: #FF0;
-            font-size: 1.5em;
-        }
-    </style>
+    <link rel="stylesheet" href="styles/main.css" />
 
     <script src="pacman.js"></script>
 </head>
 <body>
-    <div style='font-family: ArcadeR'> </div>
+    <div class="font-preload"></div>
     <canvas id='canvas'><div id="canvas-warning">Your browser does not support HTML Canvas.  Please upgrade!</div></canvas>
-    <canvas id='atlas' style="display:none"></canvas>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk@0.2.0/dist/index.min.js"
-    ></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+    <canvas id='atlas' class="atlas-hidden"></canvas>
+    <script defer src="vendor/miniapp-sdk/index.min.js"></script>
+    <script defer src="vendor/ethers/ethers.umd.min.js"></script>
     <script defer src="src/onchain-config.js"></script>
     <script defer src="src/onchain-bootstrap.js"></script>
     <script defer src="src/onchain-client.js"></script>
