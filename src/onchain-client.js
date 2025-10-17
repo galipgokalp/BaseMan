@@ -211,11 +211,19 @@
     }
 
     async function requestScoreSignature(score, durationMs) {
+      let playerAddress = state.address;
+      try {
+        playerAddress = ethers.getAddress(playerAddress);
+      } catch (error) {
+        debug(`score-sign adres normalize edilemedi: ${error?.message || error}`);
+        throw new Error("Geçersiz cüzdan adresi");
+      }
+
       const response = await fetch(config.scoreEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          playerAddress: state.address,
+          playerAddress,
           score: score.toString(),
           durationMs,
           level: window.level ?? 1
