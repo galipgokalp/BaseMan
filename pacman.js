@@ -412,6 +412,11 @@ var setScore = function(score) {
     scores[getScoreIndex()] = score;
 };
 
+if (typeof window !== "undefined") {
+    window.getScore = getScore;
+    window.setScore = setScore;
+}
+
 var getHighScore = function() {
     return highScores[getScoreIndex()];
 };
