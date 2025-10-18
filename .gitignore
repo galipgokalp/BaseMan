@@ -12,3 +12,4 @@ pages
 .vercel
 artifacts/
 cache/
+.codex/
