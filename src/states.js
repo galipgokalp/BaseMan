@@ -88,28 +88,9 @@ var homeState = (function(){
         menu.disable();
     };
 
-    var connectWallet = function () {
-        var onchain = window.BaseManOnchain;
-        if (!onchain || typeof onchain.ensureWallet !== "function") {
-            console.warn("[BaseMan] On-chain modülü henüz hazır değil.");
-            return;
-        }
-        onchain
-            .ensureWallet()
-            .then(function () {
-                if (typeof onchain.log === "function") {
-                    onchain.log("Cüzdan bağlantısı tamamlandı.");
-                }
-            })
-            .catch(function (error) {
-                var message = (error && error.message) || error || "Bilinmeyen hata";
-                if (typeof onchain.log === "function") {
-                    onchain.log("Cüzdan bağlantı hatası: " + message);
-                } else {
-                    console.error("[BaseMan] Cüzdan bağlantı hatası:", message);
-                }
-            });
-    };
+    var walletReady = false;
+    var walletError = null;
+    var walletListenerAttached = false;
 
     var menu = new Menu("CHOOSE A GAME",2*tileSize,0*tileSize,mapWidth-4*tileSize,3*tileSize,tileSize,tileSize+"px ArcadeR", "#EEE");
     var getIconAnimFrame = function(frame) {
@@ -151,8 +132,6 @@ var homeState = (function(){
         });
 
     menu.addSpacer(0.5);
-    menu.addTextButton("CONNECT WALLET", connectWallet);
-    menu.addSpacer(0.5);
     menu.addTextIconButton("LEARN",
         function() {
             exitTo(learnState);
@@ -161,15 +140,71 @@ var homeState = (function(){
             atlas.drawGhostSprite(ctx,x,y,Math.floor(frame/8)%2,DIR_RIGHT,false,false,false,blinky.color);
         });
 
+    var setWalletStatus = function(ready, error) {
+        walletReady = !!ready;
+        walletError = walletReady ? null : error || null;
+        if (walletReady) {
+            if (!menu.isEnabled()) {
+                menu.enable();
+            }
+        } else if (menu.isEnabled()) {
+            menu.disable();
+        }
+    };
+
+    var syncWalletState = function() {
+        var onchain = window.BaseManOnchain;
+        if (onchain && typeof onchain.isWalletReady === "function") {
+            var ready = onchain.isWalletReady();
+            var error =
+                ready || typeof onchain.getWalletError !== "function"
+                    ? null
+                    : onchain.getWalletError();
+            setWalletStatus(ready, error);
+        } else {
+            setWalletStatus(false, null);
+        }
+    };
+
+    var handleWalletStatus = function(event) {
+        var detail = (event && event.detail) || {};
+        setWalletStatus(detail.ready, detail.error);
+    };
+
+    var ensureWalletListener = function() {
+        if (walletListenerAttached || typeof window === "undefined") {
+            return;
+        }
+        window.addEventListener("baseman-wallet-status", handleWalletStatus);
+        walletListenerAttached = true;
+    };
+
     return {
         init: function() {
-            menu.enable();
+            ensureWalletListener();
+            syncWalletState();
             audio.coffeeBreakMusic.startLoop();
         },
         draw: function() {
             renderer.clearMapFrame();
             renderer.beginMapClip();
             renderer.renderFunc(menu.draw,menu);
+            if (!walletReady) {
+                renderer.renderFunc(function(ctx) {
+                    var centerX = mapWidth / 2;
+                    var baseY = mapHeight - 3 * tileSize;
+                    ctx.save();
+                    ctx.fillStyle = "#EEE";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.font = tileSize + "px ArcadeR";
+                    ctx.fillText("Farcaster cüzdanı gerekli", centerX, baseY);
+                    ctx.font = (tileSize * 0.6) + "px ArcadeR";
+                    var message = walletError || "Lütfen Farcaster istemcisinden cüzdanınıza bağlanın.";
+                    ctx.fillText(message, centerX, baseY + 1.2 * tileSize);
+                    ctx.restore();
+                });
+            }
             renderer.endMapClip();
         },
         update: function() {

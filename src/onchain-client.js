@@ -123,14 +123,36 @@
       contract: null,
       provider: null,
       runStartedAt: null,
-      submitting: false
+      submitting: false,
+      walletReady: false,
+      walletError: null
     };
+
+    function emitWalletStatus(ready, error) {
+      state.walletReady = !!ready;
+      state.walletError = ready ? null : error ? String(error) : null;
+      try {
+        window.dispatchEvent(
+          new CustomEvent("baseman-wallet-status", {
+            detail: {
+              ready: state.walletReady,
+              error: state.walletError,
+              address: state.walletReady ? state.address : null
+            }
+          })
+        );
+      } catch (eventError) {
+        debug(`wallet-status event hatası: ${eventError?.message || eventError}`);
+      }
+    }
 
     sdk.actions.ready();
     debug("sdk.actions.ready() çağrıldı");
 
     async function ensureWallet() {
-      if (state.contract) return state;
+      if (state.contract) {
+        return state;
+      }
 
       try {
         await sdk.actions.signIn();
@@ -139,24 +161,35 @@
         debug(`signIn hatası: ${error?.message || error}`);
       }
 
-      const provider = await sdk.wallet.getEthereumProvider();
-      if (!provider) {
-        throw new Error("Ethereum sağlayıcısı alınamadı.");
+      try {
+        const provider = await sdk.wallet.getEthereumProvider();
+        if (!provider) {
+          throw new Error("Ethereum sağlayıcısı alınamadı.");
+        }
+        debug("sdk.wallet.getEthereumProvider() döndü");
+        await ensureChain(provider, config.chainId);
+
+        const browserProvider = new ethers.BrowserProvider(provider);
+        const signer = await browserProvider.getSigner();
+        const address = await signer.getAddress();
+
+        state.signer = signer;
+        state.address = ethers.getAddress(address);
+        state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
+        state.provider = provider;
+        debug(`Cüzdan hazır: ${state.address}`);
+
+        emitWalletStatus(true, null);
+        return state;
+      } catch (error) {
+        state.signer = null;
+        state.address = null;
+        state.contract = null;
+        state.provider = null;
+        const message = error?.message || error || "Cüzdan hazırlanamadı";
+        emitWalletStatus(false, message);
+        throw error instanceof Error ? error : new Error(String(error));
       }
-      debug("sdk.wallet.getEthereumProvider() döndü");
-      await ensureChain(provider, config.chainId);
-
-      const browserProvider = new ethers.BrowserProvider(provider);
-      const signer = await browserProvider.getSigner();
-      const address = await signer.getAddress();
-
-      state.signer = signer;
-      state.address = ethers.getAddress(address);
-      state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
-      state.provider = provider;
-      debug(`Cüzdan hazır: ${state.address}`);
-
-      return state;
     }
 
     function toHexChainId(chainId) {
@@ -482,8 +515,14 @@
       ensureWallet,
       submitScore,
       handleRunStart,
-      log: debug
+      log: debug,
+      isWalletReady: () => state.walletReady,
+      getWalletError: () => state.walletError
     };
+
+    ensureWallet().catch((error) => {
+      debug(`Otomatik cüzdan hazırlığı başarısız: ${error?.message || error}`);
+    });
   }
 
   function createDebugOverlay() {
