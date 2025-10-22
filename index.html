@@ -27,12 +27,26 @@
 </head>
 <body>
     <div class="font-preload"></div>
-    <canvas id='canvas'><div id="canvas-warning">Your browser does not support HTML Canvas.  Please upgrade!</div></canvas>
+    <div id="game-shell" class="game-shell">
+      <canvas id='canvas'><div id="canvas-warning">Your browser does not support HTML Canvas.  Please upgrade!</div></canvas>
+      <section id="leaderboard-panel" class="leaderboard-panel" data-limit="100">
+        <header class="leaderboard-header">
+          <span class="leaderboard-title">PAC-BOARD</span>
+          <button type="button" class="leaderboard-refresh" data-refresh>Yenile</button>
+        </header>
+        <div class="leaderboard-status" data-status>Skor tablosu yükleniyor…</div>
+        <ol class="leaderboard-list leaderboard-list-top" data-list-top></ol>
+        <div class="leaderboard-scroll" data-scroll-wrapper>
+          <ol class="leaderboard-list leaderboard-list-rest" data-list-rest></ol>
+        </div>
+      </section>
+    </div>
     <canvas id='atlas' class="atlas-hidden"></canvas>
     <script defer src="vendor/miniapp-sdk/index.min.js"></script>
     <script defer src="vendor/ethers/ethers.umd.min.js"></script>
     <script defer src="src/onchain-config.js"></script>
     <script defer src="src/onchain-bootstrap.js"></script>
     <script defer src="src/onchain-client.js"></script>
+    <script defer src="src/leaderboard-panel.js"></script>
   </body>
 </html>

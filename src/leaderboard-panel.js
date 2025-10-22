@@ -1,0 +1,357 @@
+(() => {
+  const panel = document.getElementById("leaderboard-panel");
+  if (!panel) return;
+
+  const statusEl = panel.querySelector("[data-status]");
+  const topListEl = panel.querySelector("[data-list-top]");
+  const restListEl = panel.querySelector("[data-list-rest]");
+  const scrollWrapper = panel.querySelector("[data-scroll-wrapper]");
+  const refreshBtn = panel.querySelector("[data-refresh]");
+  const limit = Number(panel.dataset.limit || "10");
+
+  let loading = false;
+  let timerId = null;
+  let visible = true;
+
+  const abbreviateAddress = (address) => {
+    if (typeof address !== "string") return "";
+    if (address.length <= 10) return address;
+    return `${address.slice(0, 6)}…${address.slice(-4)}`;
+  };
+
+  const fallbackAvatar = (address) => {
+    if (!address) return "";
+    return `https://effigy.im/a/${address}.png`;
+  };
+
+  const parseDateValue = (value) => {
+    if (!value && value !== 0) return null;
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) return null;
+      return new Date(value);
+    }
+    if (typeof value === "string") {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    return null;
+  };
+
+  const formatRelativeTime = (value) => {
+    const date = parseDateValue(value);
+    if (!date) return "";
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 0) {
+      return "";
+    }
+    const minutes = Math.floor(diffMs / (60 * 1000));
+    if (minutes < 1) return "Az önce";
+    if (minutes < 60) return `${minutes} dk önce`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} sa önce`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} g önce`;
+    return date.toLocaleDateString("tr-TR", {
+      month: "short",
+      day: "numeric"
+    });
+  };
+
+  const formatScore = (value, fallback) => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value.toLocaleString("tr-TR");
+    }
+    if (typeof fallback === "string") {
+      return fallback;
+    }
+    if (typeof value === "string") {
+      return value;
+    }
+    return "0";
+  };
+
+  const formatTimestamp = (value) => {
+    if (!value && value !== 0) return "";
+    const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate()
+    ).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(
+      date.getMinutes()
+    ).padStart(2, "0")}`;
+  };
+
+  const createListItem = (entry, fallbackRank) => {
+    const li = document.createElement("li");
+    li.className = "leaderboard-item";
+
+    const rank = document.createElement("span");
+    rank.className = "leaderboard-rank";
+    const rankValue =
+      typeof entry.rank === "number" && Number.isFinite(entry.rank) ? entry.rank : fallbackRank;
+    rank.textContent = `#${rankValue}`;
+    li.append(rank);
+
+    const identityRoot = document.createElement(entry?.profile?.profileUrl ? "a" : "div");
+    identityRoot.className = "leaderboard-identity";
+    if (entry?.profile?.profileUrl) {
+      identityRoot.href = entry.profile.profileUrl;
+      identityRoot.target = "_blank";
+      identityRoot.rel = "noopener noreferrer";
+    }
+
+    const avatar = document.createElement("div");
+    avatar.className = "leaderboard-avatar";
+    if (entry?.profile?.avatarUrl || entry?.player) {
+      const img = document.createElement("img");
+      img.src = entry?.profile?.avatarUrl || fallbackAvatar(entry.player);
+      img.alt =
+        entry?.profile?.username
+          ? `@${entry.profile.username}`
+          : entry?.profile?.displayName || abbreviateAddress(entry.player);
+      img.loading = "lazy";
+      img.referrerPolicy = "no-referrer";
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = "👾";
+    }
+    identityRoot.appendChild(avatar);
+
+    const identityText = document.createElement("div");
+    identityText.className = "leaderboard-text";
+    identityRoot.appendChild(identityText);
+
+    const name = document.createElement("span");
+    name.className = "leaderboard-name";
+    name.textContent =
+      entry?.profile?.displayName || entry?.profile?.username || abbreviateAddress(entry.player);
+    identityText.appendChild(name);
+
+    const handle = document.createElement("span");
+    handle.className = "leaderboard-handle";
+    if (entry?.profile?.username) {
+      handle.textContent = `@${entry.profile.username}`;
+    } else {
+      handle.textContent = abbreviateAddress(entry.player);
+    }
+    identityText.appendChild(handle);
+
+    li.append(identityRoot);
+
+    const scoreWrap = document.createElement("div");
+    scoreWrap.className = "leaderboard-score";
+
+    const scoreValue = document.createElement("span");
+    scoreValue.className = "leaderboard-score-value";
+    scoreValue.textContent = formatScore(entry.totalScore, entry.highScore);
+    scoreWrap.appendChild(scoreValue);
+
+    const scoreLabel = document.createElement("span");
+    scoreLabel.className = "leaderboard-score-label";
+    scoreLabel.textContent = "Toplam puan";
+    scoreWrap.appendChild(scoreLabel);
+
+    const updateLabel = document.createElement("span");
+    updateLabel.className = "leaderboard-updated";
+    const relative = entry.lastUpdatedAt
+      ? formatRelativeTime(entry.lastUpdatedAt)
+      : formatTimestamp(entry.lastUpdate ?? entry.updatedAt);
+    if (relative) {
+      updateLabel.textContent = `Son güncelleme: ${relative}`;
+      scoreWrap.appendChild(updateLabel);
+    }
+
+    li.append(scoreWrap);
+    return li;
+  };
+
+  const renderRows = (items = []) => {
+    if (topListEl) {
+      topListEl.innerHTML = "";
+    }
+    if (restListEl) {
+      restListEl.innerHTML = "";
+    }
+    if (scrollWrapper) {
+      scrollWrapper.hidden = true;
+    }
+    if (!items.length) {
+      statusEl.textContent = "Henüz skor kaydı bulunmuyor.";
+      return null;
+    }
+
+    const effectiveItems = items.slice(0, limit);
+    const topItems = effectiveItems.slice(0, 5);
+    const restItems = effectiveItems.slice(5);
+
+    if (topListEl) {
+      const fragmentTop = document.createDocumentFragment();
+      topItems.forEach((entry, index) => {
+        fragmentTop.appendChild(createListItem(entry, index + 1));
+      });
+      topListEl.appendChild(fragmentTop);
+    }
+
+    if (restItems.length && restListEl && scrollWrapper) {
+      const fragmentRest = document.createDocumentFragment();
+      restItems.forEach((entry, index) => {
+        const fallbackRank = 5 + index + 1;
+        fragmentRest.appendChild(createListItem(entry, fallbackRank));
+      });
+      restListEl.appendChild(fragmentRest);
+      scrollWrapper.hidden = false;
+    }
+
+    return {
+      total: items.length,
+      pinned: topItems.length,
+      scrollable: restItems.length
+    };
+  };
+
+  const renderError = (message) => {
+    statusEl.textContent = message;
+    if (topListEl) {
+      topListEl.innerHTML = "";
+    }
+    if (restListEl) {
+      restListEl.innerHTML = "";
+    }
+    if (scrollWrapper) {
+      scrollWrapper.hidden = true;
+    }
+  };
+
+  const loadLeaderboard = async () => {
+    if (loading) return;
+    if (!visible) return;
+    loading = true;
+    statusEl.textContent = "Skor tablosu güncelleniyor…";
+
+    try {
+      const response = await fetch(`/api/leaderboard?limit=${limit}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const rendered = renderRows(Array.isArray(payload.items) ? payload.items : []);
+
+      if (rendered) {
+        const total = rendered.total ?? payload.items?.length ?? 0;
+        const pinned = rendered.pinned ?? Math.min(total, 5);
+        const scrollable = rendered.scrollable ?? Math.max(0, total - pinned);
+        const updateText =
+          (payload?.updatedAt && (formatRelativeTime(payload.updatedAt) || formatTimestamp(payload.updatedAt))) ||
+          "-";
+        statusEl.textContent = `Toplam kayıt: ${total} • İlk ${pinned} sabit${
+          scrollable ? ` • ${scrollable} kaydırılabilir` : ""
+        } • Güncelleme: ${updateText}`;
+      }
+    } catch (error) {
+      console.error("[leaderboard-panel] load failed", error);
+      renderError("Skor tablosu şu anda yüklenemiyor.");
+    } finally {
+      loading = false;
+    }
+  };
+
+  const startPolling = () => {
+    stopPolling();
+    if (!visible) return;
+    timerId = window.setInterval(loadLeaderboard, 30000);
+  };
+
+  const stopPolling = () => {
+    if (timerId) {
+      window.clearInterval(timerId);
+      timerId = null;
+    }
+  };
+
+  const setVisible = (value, options = {}) => {
+    const shouldShow = Boolean(value);
+    const reload = options.reload !== undefined ? options.reload : true;
+    if (visible === shouldShow) {
+      return;
+    }
+    visible = shouldShow;
+    panel.hidden = !visible;
+    if (!visible) {
+      stopPolling();
+    } else if (reload) {
+      loadLeaderboard();
+      startPolling();
+    } else {
+      startPolling();
+    }
+  };
+
+  const init = () => {
+    if (typeof window.__BaseManLeaderboardDesiredVisible === "boolean") {
+      visible = window.__BaseManLeaderboardDesiredVisible;
+    }
+    panel.hidden = !visible;
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        if (!visible) {
+          setVisible(true);
+        }
+        loadLeaderboard();
+      });
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        if (!visible) return;
+        loadLeaderboard();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    });
+
+    if (visible) {
+      loadLeaderboard();
+      startPolling();
+    }
+  };
+
+  init();
+
+  window.BaseManLeaderboard = {
+    show() {
+      window.__BaseManLeaderboardDesiredVisible = true;
+      setVisible(true);
+    },
+    hide() {
+      window.__BaseManLeaderboardDesiredVisible = false;
+      setVisible(false, { reload: false });
+    },
+    setVisible(value) {
+      window.__BaseManLeaderboardDesiredVisible = Boolean(value);
+      setVisible(value);
+    },
+    refresh() {
+      if (visible) {
+        void loadLeaderboard();
+      }
+    }
+  };
+
+  if (typeof window.__BaseManLeaderboardDesiredVisible === "boolean") {
+    window.BaseManLeaderboard.setVisible(window.__BaseManLeaderboardDesiredVisible);
+  } else {
+    window.__BaseManLeaderboardDesiredVisible = visible;
+  }
+})();

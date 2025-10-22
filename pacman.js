@@ -3132,6 +3132,8 @@ var initRenderer = function(){
         canvas.style.width = canvas.width / ratio;
         canvas.style.height = canvas.height / ratio;
 
+        syncLeaderboardDimensions();
+
         if (resets > 0) {
             ctx.restore();
         }
@@ -3147,6 +3149,19 @@ var initRenderer = function(){
         bgCtx.scale(scale,scale);
 
         resets++;
+    };
+
+    var syncLeaderboardDimensions = function() {
+        var ratio = getDevicePixelRatio();
+        var cssWidth = canvas.width / ratio;
+        var shell = document.getElementById("game-shell");
+        if (shell) {
+            shell.style.width = cssWidth + "px";
+        }
+        var panel = document.getElementById("leaderboard-panel");
+        if (panel) {
+            panel.style.width = "100%";
+        }
     };
 
     // get the target scale that will cause the canvas to fit the window
@@ -3182,7 +3197,11 @@ var initRenderer = function(){
         canvas.style.top = y;
         console.log(canvas.style.left);
         */
-        document.body.style.marginLeft = (window.innerWidth - w)/2 + "px";
+        var shell = document.getElementById("game-shell");
+        if (shell) {
+            shell.style.marginLeft = Math.max(0, ((window.innerWidth - 10) - w) / 2) + "px";
+            shell.style.marginRight = shell.style.marginLeft;
+        }
     };
 
     // create foreground and background canvases
@@ -4184,6 +4203,7 @@ var hud = (function(){
     };
 
 })();
+homeState.showLeaderboard = true;
 
 //@line 1 "src/galagaStars.js"
 
@@ -9540,8 +9560,19 @@ var executive = (function(){
 // current game state
 var state;
 
+var updateLeaderboardVisibility = function(visible) {
+    if (typeof window !== "undefined") {
+        window.__BaseManLeaderboardDesiredVisible = !!visible;
+        var api = window.BaseManLeaderboard;
+        if (api && typeof api.setVisible === "function") {
+            api.setVisible(visible);
+        }
+    }
+};
+
 // switches to another game state
 var switchState = function(nextState,fadeDuration, continueUpdate1, continueUpdate2) {
+    updateLeaderboardVisibility(!!(nextState && nextState.showLeaderboard));
     state = (fadeDuration) ? fadeNextState(state,nextState,fadeDuration,continueUpdate1, continueUpdate2) : nextState;
     audio.silence();
     state.init();

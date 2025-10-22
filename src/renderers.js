@@ -66,6 +66,8 @@ var initRenderer = function(){
         canvas.style.width = canvas.width / ratio;
         canvas.style.height = canvas.height / ratio;
 
+        syncLeaderboardDimensions();
+
         if (resets > 0) {
             ctx.restore();
         }
@@ -81,6 +83,19 @@ var initRenderer = function(){
         bgCtx.scale(scale,scale);
 
         resets++;
+    };
+
+    var syncLeaderboardDimensions = function() {
+        var ratio = getDevicePixelRatio();
+        var cssWidth = canvas.width / ratio;
+        var shell = document.getElementById("game-shell");
+        if (shell) {
+            shell.style.width = cssWidth + "px";
+        }
+        var panel = document.getElementById("leaderboard-panel");
+        if (panel) {
+            panel.style.width = "100%";
+        }
     };
 
     // get the target scale that will cause the canvas to fit the window
@@ -116,7 +131,11 @@ var initRenderer = function(){
         canvas.style.top = y;
         console.log(canvas.style.left);
         */
-        document.body.style.marginLeft = (window.innerWidth - w)/2 + "px";
+        var shell = document.getElementById("game-shell");
+        if (shell) {
+            shell.style.marginLeft = Math.max(0, ((window.innerWidth - 10) - w) / 2) + "px";
+            shell.style.marginRight = shell.style.marginLeft;
+        }
     };
 
     // create foreground and background canvases
