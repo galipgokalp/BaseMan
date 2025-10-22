@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <title>BaseMan Address History Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        font-size: 16px;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #111;
+        color: #f1f1f1;
+        min-height: 100vh;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin-top: 0;
+        font-size: 1.8rem;
+      }
+
+      form {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        background: rgba(255, 255, 255, 0.05);
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-weight: 600;
+      }
+
+      input,
+      select {
+        font: inherit;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.4);
+        color: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 10px 16px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        background: #3b82f6;
+        color: white;
+      }
+
+      button[disabled] {
+        opacity: 0.6;
+        cursor: progress;
+      }
+
+      .results {
+        display: grid;
+        gap: 16px;
+      }
+
+      .status {
+        font-size: 0.95rem;
+        color: #cbd5f5;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+
+      th,
+      td {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 8px 10px;
+        text-align: left;
+      }
+
+      pre {
+        overflow-x: auto;
+        font-size: 0.8rem;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 16px;
+        border-radius: 12px;
+        margin: 0;
+      }
+
+      .error {
+        color: #f87171;
+        font-weight: 600;
+      }
+
+      a {
+        color: #93c5fd;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>BaseMan Address History Viewer</h1>
+      <p>
+        Bu yardımcı arayüz, <code>/api/address-history</code> uç noktasının döndürdüğü sonuçları incelemek
+        için hazırlanmıştır. Vercel <code>dev</code> veya üretim ortamında aynı origin üzerinden açılmalıdır.
+      </p>
+      <form id="query-form">
+        <label>
+          Oyuncu adresi (0x…)
+          <input
+            id="player"
+            name="player"
+            placeholder="0x1234…"
+            autocapitalize="none"
+            spellcheck="false"
+            autocomplete="off"
+          />
+        </label>
+        <label>
+          Ağ
+          <select id="network" name="network">
+            <option value="base-sepolia">base-sepolia</option>
+            <option value="base">base</option>
+          </select>
+        </label>
+        <label>
+          Limit
+          <input id="limit" name="limit" type="number" min="1" max="500" value="50" />
+        </label>
+        <label>
+          Başlangıç bloğu (opsiyonel)
+          <input id="fromBlock" name="fromBlock" type="number" min="0" placeholder="Örn: 1234567" />
+        </label>
+        <label>
+          Bitiş bloğu (opsiyonel)
+          <input id="toBlock" name="toBlock" type="number" min="0" placeholder="Örn: 1240000" />
+        </label>
+        <div style="display: flex; align-items: end; gap: 12px">
+          <button type="submit">Sorguyu Çalıştır</button>
+          <button type="button" id="reset-button">Formu Temizle</button>
+        </div>
+      </form>
+
+      <section class="results">
+        <div id="status" class="status">Henüz sorgu çalıştırılmadı.</div>
+        <div id="error" class="error" hidden></div>
+        <div id="table-wrapper"></div>
+        <details>
+          <summary>Ham JSON Yanıtı</summary>
+          <pre id="raw-json">Yok</pre>
+        </details>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById("query-form");
+      const statusEl = document.getElementById("status");
+      const errorEl = document.getElementById("error");
+      const tableWrapper = document.getElementById("table-wrapper");
+      const rawJsonEl = document.getElementById("raw-json");
+      const resetButton = document.getElementById("reset-button");
+
+      function buildQuery(params) {
+        const search = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && String(value).trim() !== "") {
+            search.set(key, String(value).trim());
+          }
+        });
+        return `/api/address-history?${search.toString()}`;
+      }
+
+      function renderTable(items = []) {
+        if (!items.length) {
+          tableWrapper.innerHTML = "<em>Kayıt bulunamadı.</em>";
+          return;
+        }
+
+        const headers = [
+          "type",
+          "player",
+          "questId",
+          "score",
+          "blockNumber",
+          "blockTimestamp",
+          "emittedAt",
+          "txHash"
+        ];
+
+        const rows = items
+          .map((item) => {
+            return `<tr>${headers
+              .map((field) => {
+                const value = item[field] ?? "";
+                return `<td>${value === null ? "" : String(value)}</td>`;
+              })
+              .join("")}</tr>`;
+          })
+          .join("");
+
+        const table = `
+          <table>
+            <thead>
+              <tr>${headers.map((field) => `<th>${field}</th>`).join("")}</tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+        tableWrapper.innerHTML = table;
+      }
+
+      async function runQuery(event) {
+        event.preventDefault();
+        errorEl.hidden = true;
+        errorEl.textContent = "";
+        statusEl.textContent = "Sorgu gönderiliyor…";
+        tableWrapper.innerHTML = "";
+        rawJsonEl.textContent = "≋";
+
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        const payload = {
+          player: form.player.value,
+          network: form.network.value,
+          limit: form.limit.value,
+          fromBlock: form.fromBlock.value,
+          toBlock: form.toBlock.value
+        };
+
+        try {
+          const response = await fetch(buildQuery(payload), {
+            headers: { Accept: "application/json" }
+          });
+          const data = await response.json();
+          rawJsonEl.textContent = JSON.stringify(data, null, 2);
+
+          if (!response.ok) {
+            throw new Error(data?.error || "İstek başarısız oldu");
+          }
+
+          statusEl.textContent = `Kaynak: ${data.source} | Toplam event: ${data.totalEvents} | Aralık: ${data.range.fromBlock ?? "?"} → ${data.range.toBlock ?? "?"}`;
+          renderTable(data.items);
+        } catch (error) {
+          console.error(error);
+          errorEl.hidden = false;
+          errorEl.textContent = error instanceof Error ? error.message : String(error);
+          statusEl.textContent = "Hata oluştu.";
+          tableWrapper.innerHTML = "";
+        } finally {
+          submitButton.disabled = false;
+        }
+      }
+
+      function resetForm() {
+        form.reset();
+        statusEl.textContent = "Form sıfırlandı.";
+        errorEl.hidden = true;
+        errorEl.textContent = "";
+        tableWrapper.innerHTML = "";
+        rawJsonEl.textContent = "Yok";
+      }
+
+      form.addEventListener("submit", runQuery);
+      resetButton.addEventListener("click", resetForm);
+    </script>
+  </body>
+</html>

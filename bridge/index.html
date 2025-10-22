@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BaseMan Appchain Bridge (Beta)</title>
+    <link rel="stylesheet" href="/styles/main.css" />
+    <link rel="stylesheet" href="/styles/appchain-bridge.css" />
+  </head>
+  <body data-base-chain-id="84532" data-appchain-chain-id="0">
+    <header class="bridge-header">
+      <nav class="bridge-nav">
+        <a class="bridge-nav__link" href="/">← Ana Sayfa</a>
+      </nav>
+      <h1 class="bridge-title">BaseMan Appchain Bridge <span class="bridge-badge">beta</span></h1>
+      <p class="bridge-lead">
+        Base ana ağı ile BaseMan Appchain arasında varlık transferini kolaylaştıracak yeni köprü
+        bileşenini hazırlıyoruz. Aşağıdaki yapılandırma, Appchain erişimi açıldığında OnchainKit
+        Bridge bileşeninin devreye alınması için kullanılıyor.
+      </p>
+    </header>
+
+    <main class="bridge-main">
+      <section class="bridge-card bridge-card--widget">
+        <h2 class="bridge-card__title">Canlı Köprü Deneyimi</h2>
+        <div id="bridge-root" class="bridge-widget" aria-live="polite">
+          <p class="bridge-widget__placeholder">OnchainKit köprü bileşeni hazırlandığında burada yer alacak.</p>
+        </div>
+        <p class="bridge-card__note">
+          Butona tıklayarak uzaktaki OnchainKit modüllerini yüklemeyi deneyebilirsiniz. Modül hazır
+          değilse manuel adımları takip edin.
+        </p>
+        <button id="bridge-load-button" class="bridge-button" type="button">
+          OnchainKit Bileşenini Yüklemeyi Dene
+        </button>
+        <p id="bridge-status" class="bridge-status" data-status="idle">
+          Köprü bileşeni hazır değil. Testnet erişimi açıldığında otomatik olarak etkinleşecek.
+        </p>
+      </section>
+
+      <section class="bridge-card">
+        <h2 class="bridge-card__title">Aktif Yapılandırma</h2>
+        <div class="bridge-config">
+          <article class="bridge-config__item">
+            <h3>Base Sepolia</h3>
+            <dl>
+              <dt>Zincir ID</dt>
+              <dd id="bridge-base-chain-id">84532</dd>
+              <dt>RPC Uç Noktası</dt>
+              <dd id="bridge-base-rpc">https://sepolia.base.org</dd>
+              <dt>Registry Adresi</dt>
+              <dd id="bridge-base-registry">-</dd>
+            </dl>
+          </article>
+          <article class="bridge-config__item">
+            <h3>BaseMan Appchain</h3>
+            <dl>
+              <dt>Zincir ID</dt>
+              <dd id="bridge-appchain-chain-id">0</dd>
+              <dt>RPC Uç Noktası</dt>
+              <dd id="bridge-appchain-rpc">Beklemede</dd>
+              <dt>Registry Adresi</dt>
+              <dd id="bridge-appchain-registry">Beklemede</dd>
+            </dl>
+          </article>
+        </div>
+        <details class="bridge-config__details">
+          <summary>JSON yapılandırmasını göster</summary>
+          <pre id="bridge-config-json" class="bridge-config__json"></pre>
+        </details>
+      </section>
+
+      <section class="bridge-card">
+        <h2 class="bridge-card__title">Manuel Adımlar</h2>
+        <ol class="bridge-steps">
+          <li>Base ağında sahip olduğunuz varlıkları <strong>wallet.base.org</strong> üzerinden kontrol edin.</li>
+          <li>Appchain testnet erişimi sağlandığında kayıtlı cüzdan adresinizle giriş yapın.</li>
+          <li>Varlıkları taşımadan önce <strong>BaseManRegistry</strong> adreslerini doğrulayın.</li>
+          <li>Manuel transfer sonrası <em>score</em> ve <em>quest</em> imza uç noktalarının doğru zinciri seçtiğinden emin olun.</li>
+          <li>Her iki ağda da <code>scripts/agentkit/run-verify-*.mjs</code> betikleriyle doğrulama yapın.</li>
+        </ol>
+      </section>
+    </main>
+
+    <script src="/bridge/bridge-bootstrap.js" type="module"></script>
+  </body>
+</html>

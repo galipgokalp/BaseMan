@@ -157,6 +157,10 @@ Navigating the Repository
 - the "sprites" directory contains references sprite sheets and an atlas viewer "atlas.htm" for viewing the scalable game sprites.
 - the "font" directory contains font resources used in the game.
 
+### Onchain Tools Belgeleri
+
+Coinbase Developer Docs kapsamındaki **ONCHAIN TOOLS** başlıklarıyla hizalanan çalışma planına `docs/onchain-tools/` dizininden ulaşabilirsiniz. Her kategori (Paymaster, Appchains, Data alt başlıkları ve AgentKit) için ayrı dokümanlar hazırlanmıştır.
+
 Credits
 -------
 
