@@ -155,7 +155,9 @@
       }
 
       try {
-        await sdk.actions.signIn();
+        await sdk.actions.signIn({
+          acceptAuthAddress: true
+        });
         debug("sdk.actions.signIn() tamamlandı");
       } catch (error) {
         debug(`signIn hatası: ${error?.message || error}`);
