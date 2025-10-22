@@ -8,9 +8,13 @@ pages
 .env
 .env.*
 !.env.example
+.secrets/
 .DS_Store
 .vercel
 artifacts/
 cache/
 .codex/
 AGENTS.md
+docs/webhooks/latest-subscription.md
+tmp/
+docs-local/

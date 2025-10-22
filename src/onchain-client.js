@@ -277,12 +277,33 @@
       return payload;
     }
 
+    function resolveCapabilityUrl(url) {
+      if (!url || typeof url !== "string") {
+        return null;
+      }
+      try {
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+          return url;
+        }
+        return new URL(url, window.location.origin).toString();
+      } catch (error) {
+        debug(`paymaster URL çözümlenemedi: ${error?.message || error}`);
+        return null;
+      }
+    }
+
     async function submitScoreWithPaymaster(callData) {
       if (!config.paymasterUrl) {
         return null;
       }
       if (!state.provider || typeof state.provider.request !== "function") {
         debug("paymaster isteği için provider bulunamadı.");
+        return null;
+      }
+
+      const capabilityUrl = resolveCapabilityUrl(config.paymasterUrl);
+      if (!capabilityUrl) {
+        debug("Paymaster capability URL çözümlenemedi.");
         return null;
       }
 
@@ -310,7 +331,7 @@
         ],
         capabilities: {
           paymasterService: {
-            url: config.paymasterUrl,
+            url: capabilityUrl,
             optional: false
           }
         }

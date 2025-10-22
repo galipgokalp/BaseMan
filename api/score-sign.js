@@ -1,19 +1,17 @@
 import { ethers } from "ethers";
 import { z } from "zod";
 import {
+  getRegistryContext,
+  getRegistryTargets,
   getSigner,
   normalizeAddress,
-  registryAddress,
-  registryChainIdNumber,
-  registryDomain,
   scoreTypes
 } from "./_lib/registry.js";
-
-const signer = getSigner("SCORE_SIGNER_PRIVATE_KEY");
 
 const SIGNATURE_TTL_SECONDS = Number(process.env.SCORE_SIGNATURE_TTL_SECONDS ?? "300");
 const MIN_DURATION_MS = Number(process.env.SCORE_MIN_DURATION_MS ?? "3000");
 const MAX_SCORE = BigInt(process.env.SCORE_MAX_VALUE ?? "100000000");
+const DEFAULT_CHAIN = process.env.REGISTRY_DEFAULT_TARGET || "base-sepolia";
 
 const ScorePayloadSchema = z.object({
   playerAddress: z
@@ -29,7 +27,8 @@ const ScorePayloadSchema = z.object({
     .positive()
     .max(10 * 60 * 1000, { message: "durationMs seems unrealistic" }),
   level: z.coerce.number().int().min(0).optional(),
-  signatureSeed: z.string().max(128).optional()
+  signatureSeed: z.string().max(128).optional(),
+  chain: z.string().trim().optional()
 });
 
 function parseBody(req) {
@@ -66,6 +65,23 @@ export default async function handler(req, res) {
   }
 
   const data = parsed.data;
+  const targetChain = data.chain ?? DEFAULT_CHAIN;
+  let registryContext;
+  try {
+    registryContext = getRegistryContext(targetChain);
+  } catch (error) {
+    if (String(error.message).includes("Unsupported registry target")) {
+      return res.status(400).json({
+        error: "Unsupported chain value",
+        supported: getRegistryTargets()
+      });
+    }
+    return res.status(500).json({
+      error: "Registry configuration missing",
+      details: error.message
+    });
+  }
+
   if (data.durationMs < MIN_DURATION_MS) {
     return res.status(400).json({
       error: "durationMs below threshold",
@@ -90,13 +106,20 @@ export default async function handler(req, res) {
     deadline
   };
 
-  const signature = await signer.signTypedData(registryDomain, scoreTypes, value);
+  const signerKeyMap = {
+    appchain: "APPCHAIN_SCORE_SIGNER_PRIVATE_KEY",
+    "base-sepolia": "BASE_SEPOLIA_SCORE_SIGNER_PRIVATE_KEY"
+  };
+  const signerKey = signerKeyMap[registryContext.target] || "SCORE_SIGNER_PRIVATE_KEY";
+  const signer = getSigner(signerKey);
+  const signature = await signer.signTypedData(registryContext.domain, scoreTypes, value);
 
   return res.status(200).json({
     signature,
     deadline: deadlineSeconds,
-    contractAddress: registryAddress,
-    chainId: registryChainIdNumber,
-    score: data.score.toString()
+    contractAddress: registryContext.address,
+    chainId: registryContext.chainIdNumber,
+    score: data.score.toString(),
+    chain: registryContext.target
   });
 }

@@ -1,17 +1,15 @@
 import { ethers } from "ethers";
 import { z } from "zod";
 import {
+  getRegistryContext,
+  getRegistryTargets,
   getSigner,
   normalizeAddress,
-  questTypes,
-  registryAddress,
-  registryChainIdNumber,
-  registryDomain
+  questTypes
 } from "./_lib/registry.js";
 
-const signer = getSigner("QUEST_SIGNER_PRIVATE_KEY");
-
 const SIGNATURE_TTL_SECONDS = Number(process.env.QUEST_SIGNATURE_TTL_SECONDS ?? "300");
+const DEFAULT_CHAIN = process.env.REGISTRY_DEFAULT_TARGET || "base-sepolia";
 
 const allowedQuestIds = (process.env.ALLOWED_QUEST_IDS || "")
   .split(",")
@@ -39,7 +37,8 @@ const QuestPayloadSchema = z.object({
       note: z.string().max(280).optional(),
       score: z.coerce.bigint().optional()
     })
-    .optional()
+    .optional(),
+  chain: z.string().trim().optional()
 });
 
 function parseBody(req) {
@@ -76,6 +75,23 @@ export default async function handler(req, res) {
   }
 
   const data = parsed.data;
+  const targetChain = data.chain ?? DEFAULT_CHAIN;
+  let registryContext;
+  try {
+    registryContext = getRegistryContext(targetChain);
+  } catch (error) {
+    if (String(error.message).includes("Unsupported registry target")) {
+      return res.status(400).json({
+        error: "Unsupported chain value",
+        supported: getRegistryTargets()
+      });
+    }
+    return res.status(500).json({
+      error: "Registry configuration missing",
+      details: error.message
+    });
+  }
+
   const questId = data.questId;
   if (allowedQuestIds.length && !allowedQuestIds.some((value) => value === questId)) {
     return res.status(400).json({
@@ -94,14 +110,20 @@ export default async function handler(req, res) {
     deadline
   };
 
-  const signature = await signer.signTypedData(registryDomain, questTypes, value);
+  const signerKeyMap = {
+    appchain: "APPCHAIN_QUEST_SIGNER_PRIVATE_KEY",
+    "base-sepolia": "BASE_SEPOLIA_QUEST_SIGNER_PRIVATE_KEY"
+  };
+  const signerKey = signerKeyMap[registryContext.target] || "QUEST_SIGNER_PRIVATE_KEY";
+  const signer = getSigner(signerKey);
+  const signature = await signer.signTypedData(registryContext.domain, questTypes, value);
 
   return res.status(200).json({
     signature,
     deadline: deadlineSeconds,
-    contractAddress: registryAddress,
-    chainId: registryChainIdNumber,
-    questId: questId.toString()
+    contractAddress: registryContext.address,
+    chainId: registryContext.chainIdNumber,
+    questId: questId.toString(),
+    chain: registryContext.target
   });
 }
-

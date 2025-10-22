@@ -27,10 +27,18 @@
     "contracts:test": "npx hardhat test",
     "contracts:deploy:sepolia": "npx hardhat run scripts/deploy-baseman-registry.cjs --network baseSepolia",
     "contracts:deploy:base": "npx hardhat run scripts/deploy-baseman-registry.cjs --network base",
-    "onchain:config": "node scripts/generate-onchain-config.mjs"
+    "onchain:config": "node scripts/generate-onchain-config.mjs",
+    "agentkit:verify": "node scripts/agentkit/run-verify-score.mjs",
+    "agentkit:verify-quest": "node scripts/agentkit/run-verify-quest.mjs",
+    "webhooks:setup": "node scripts/setup-secrets.mjs"
   },
   "dependencies": {
+    "@account-abstraction/contracts": "^0.8.0",
+    "@coinbase/agentkit": "^0.10.3",
+    "@coinbase/cdp-sdk": "^1.38.4",
+    "aes-js": "^4.0.0-beta.5",
     "ethers": "^6.13.0",
+    "prompts": "^2.4.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

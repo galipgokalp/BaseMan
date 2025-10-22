@@ -30,12 +30,27 @@ const config = {
   questEndpoint: "/api/quest-sign"
 };
 
-const paymasterUrl = (process.env.PAYMASTER_URL || "").trim();
+const resolveFirstNonEmpty = (...candidates) => {
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+  return "";
+};
+
+const paymasterUrl = resolveFirstNonEmpty(
+  process.env.NEXT_PUBLIC_PAYMASTER_URL,
+  process.env.PAYMASTER_URL
+);
 if (paymasterUrl) {
   config.paymasterUrl = paymasterUrl;
 }
 
-const bundlerUrl = (process.env.BUNDLER_URL || "").trim();
+const bundlerUrl = resolveFirstNonEmpty(
+  process.env.NEXT_PUBLIC_BUNDLER_URL,
+  process.env.BUNDLER_URL
+);
 if (bundlerUrl) {
   config.bundlerUrl = bundlerUrl;
 }

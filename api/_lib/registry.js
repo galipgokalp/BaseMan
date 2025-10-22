@@ -3,41 +3,128 @@ import { ethers } from "ethers";
 const CONTRACT_NAME = "BaseManRegistry";
 const CONTRACT_VERSION = "1";
 
+function normalizeTarget(raw) {
+  return (raw || "").trim().toLowerCase().replace(/_/g, "-");
+}
+
+const DEFAULT_TARGET = normalizeTarget(process.env.REGISTRY_DEFAULT_TARGET || "base-sepolia");
+
+const CHAIN_SOURCES = {
+  base: {
+    addressEnv: ["NEXT_PUBLIC_REGISTRY_ADDRESS"],
+    chainIdEnv: ["REGISTRY_CHAIN_ID"],
+    defaultChainId: "8453"
+  },
+  "base-sepolia": {
+    addressEnv: ["BASE_SEPOLIA_REGISTRY_ADDRESS", "NEXT_PUBLIC_REGISTRY_ADDRESS"],
+    chainIdEnv: ["BASE_SEPOLIA_REGISTRY_CHAIN_ID", "REGISTRY_CHAIN_ID"],
+    defaultChainId: "84532"
+  },
+  appchain: {
+    addressEnv: ["APPCHAIN_REGISTRY_ADDRESS"],
+    chainIdEnv: ["APPCHAIN_REGISTRY_CHAIN_ID"],
+    defaultChainId: null
+  }
+};
+
+const CHAIN_ALIASES = {
+  base: "base",
+  "base-mainnet": "base",
+  "base-sepolia": "base-sepolia",
+  basesepolia: "base-sepolia",
+  "base-testnet": "base-sepolia",
+  appchain: "appchain"
+};
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(`[BaseManRegistry] ${message}`);
   }
 }
 
-function parseRegistryConfig() {
-  const rawAddress = process.env.NEXT_PUBLIC_REGISTRY_ADDRESS;
-  assert(rawAddress, "NEXT_PUBLIC_REGISTRY_ADDRESS env variable is required");
-  assert(ethers.isAddress(rawAddress), "NEXT_PUBLIC_REGISTRY_ADDRESS must be a valid address");
+function resolveChainKey(target) {
+  const normalized = normalizeTarget(target || DEFAULT_TARGET);
+  const aliased = CHAIN_ALIASES[normalized] || normalized;
+  const source = CHAIN_SOURCES[aliased];
+  assert(source, `Unsupported registry target "${target || normalized}"`);
+  return { key: aliased, source };
+}
+
+function readFirstEnv(keys = []) {
+  for (const key of keys) {
+    if (key && process.env[key]) {
+      return process.env[key];
+    }
+  }
+  return undefined;
+}
+
+const registryCache = new Map();
+
+function buildDomain(address, chainId) {
+  return {
+    name: CONTRACT_NAME,
+    version: CONTRACT_VERSION,
+    chainId,
+    verifyingContract: address
+  };
+}
+
+function parseRegistryConfig(target) {
+  const { key, source } = resolveChainKey(target);
+  if (registryCache.has(key)) {
+    return registryCache.get(key);
+  }
+
+  const rawAddress = readFirstEnv(source.addressEnv);
+  assert(
+    rawAddress,
+    `${source.addressEnv.join(" / ")} env variable is required for target "${key}"`
+  );
+  assert(ethers.isAddress(rawAddress), `${source.addressEnv[0]} must be a valid address`);
   const address = ethers.getAddress(rawAddress);
 
-  const rawChainId = process.env.REGISTRY_CHAIN_ID ?? "8453";
+  const rawChainId =
+    readFirstEnv(source.chainIdEnv) ??
+    (source.defaultChainId !== null ? source.defaultChainId : undefined);
+  assert(
+    rawChainId !== undefined,
+    `${source.chainIdEnv.join(" / ")} env variable is required for target "${key}"`
+  );
+
   let chainId;
   try {
     chainId = BigInt(rawChainId);
   } catch (error) {
-    throw new Error(`[BaseManRegistry] REGISTRY_CHAIN_ID must be a valid integer value`);
+    throw new Error(`[BaseManRegistry] ${source.chainIdEnv[0]} must be a valid integer value`);
   }
 
-  return { address, chainId };
+  const config = {
+    target: key,
+    address,
+    chainId,
+    chainIdNumber: Number(chainId),
+    domain: buildDomain(address, chainId)
+  };
+
+  registryCache.set(key, config);
+  return config;
 }
 
-const registryConfig = parseRegistryConfig();
+export function getRegistryContext(target = DEFAULT_TARGET) {
+  return parseRegistryConfig(target);
+}
 
-export const registryAddress = registryConfig.address;
-export const registryChainId = registryConfig.chainId;
-export const registryChainIdNumber = Number(registryConfig.chainId);
+export function getRegistryTargets() {
+  return Object.keys(CHAIN_SOURCES);
+}
 
-export const registryDomain = {
-  name: CONTRACT_NAME,
-  version: CONTRACT_VERSION,
-  chainId: registryConfig.chainId,
-  verifyingContract: registryConfig.address
-};
+const defaultContext = getRegistryContext();
+
+export const registryAddress = defaultContext.address;
+export const registryChainId = defaultContext.chainId;
+export const registryChainIdNumber = defaultContext.chainIdNumber;
+export const registryDomain = defaultContext.domain;
 
 export const scoreTypes = {
   Score: [

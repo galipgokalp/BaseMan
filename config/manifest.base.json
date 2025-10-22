@@ -42,7 +42,7 @@
         "https://ipfs.decentralized-content.com"
       ]
     },
-    "requiredChains": ["eip155:8453"],
+    "requiredChains": ["eip155:84532"],
     "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook"
   }
 }
