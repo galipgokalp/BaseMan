@@ -4203,7 +4203,6 @@ var hud = (function(){
     };
 
 })();
-homeState.showLeaderboard = true;
 
 //@line 1 "src/galagaStars.js"
 
@@ -9745,6 +9744,7 @@ var homeState = (function(){
     };
 
     return {
+        showLeaderboard: true,
         init: function() {
             ensureWalletListener();
             syncWalletState();
