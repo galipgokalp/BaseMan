@@ -5,5 +5,5 @@ window.BaseManOnchainConfig = {
   "scoreEndpoint": "/api/score-sign",
   "questEndpoint": "/api/quest-sign",
   "paymasterUrl": "/api/paymaster-proxy",
-  "bundlerUrl": "https://api.developer.coinbase.com/rpc/v1/base-sepolia/69bb7254-e851-40e8-bd99-9a95fdd5edae"
+  "bundlerUrl": "https://api.developer.coinbase.com/rpc/v1/base-sepolia/EUGYHs6dwJGFywyG2wcArmuw0tWn80v1"
 };

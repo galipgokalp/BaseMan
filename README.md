@@ -225,6 +225,29 @@ Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı.
 
 **Not:** Deploy öncesinde `npm run game:build` komutunu çalıştırarak `pacman.js` dosyasını güncellediğinizden emin olun. Vercel statik servis yaptığı için komut çıktılarını repo kökünde bulundurmak gerekir; publish directory "/" (kök) kalmalıdır.
 
+## Base + Farcaster Integration (Checklist)
+
+- Env hazırlığı (.env → Vercel):
+  - Ağ/Registry: `REGISTRY_DEFAULT_TARGET`, `REGISTRY_CHAIN_ID`, `NEXT_PUBLIC_REGISTRY_ADDRESS`, `BASE_SEPOLIA_REGISTRY_ADDRESS`
+  - İmzalama: `BASE_SEPOLIA_SCORE_SIGNER_PRIVATE_KEY` (dedicated signer), `SCORE_SIGNER_PRIVATE_KEY` (healthcheck)
+  - RPC/Paymaster/Bundler: `BASE_SEPOLIA_RPC_URL`, `BASE_SEPOLIA_RPC_HEADERS`, `PAYMASTER_SERVICE_URL`, `PAYMASTER_API_KEY`, `NEXT_PUBLIC_BUNDLER_URL`, `PAYMASTER_ENFORCE_ALLOWLIST`
+  - Data/SQL: `CDP_SQL_API_KEY`, `CDP_SQL_API_BASE_URL`
+  - Leaderboard RPC fallback: `ADDRESS_HISTORY_RPC_URL` (header’sız RPC), opsiyonel `LEADERBOARD_FALLBACK_WINDOW_BLOCKS`, `LEADERBOARD_FALLBACK_CHUNK_SIZE`
+  - Farcaster profil (ops.): `FARCASTER_PROFILE_PROVIDER`, `NEYNAR_API_KEY`
+
+- Build/Run:
+  - Yerel: `npm run game:build && npm run dev`
+  - Manifest üret: `npm run manifest:generate` → `.well-known/farcaster.json`
+
+- Testler (yerel veya prod):
+  - Manifest: `curl -sS http://127.0.0.1:5173/.well-known/farcaster.json`
+  - Skor imzası: `POST /api/score-sign`
+  - Leaderboard: `GET /api/leaderboard?limit=5`
+
+- Notlar:
+  - Leaderboard, CDP SQL ingest gecikmesi olduğunda RPC fallback ile son N bloktan event okur.
+  - Production’da deployer private key tutmayın; dedicated signer kullanın ve authorizer’ı bu adrese ayarlayın.
+
 ## Mini App Manifest ve Base.dev Entegrasyonu
 
 - `.well-known/farcaster.json` artık `config/manifest.base.json` dosyasından üretiliyor. Manifestteki alan yapısı Farcaster Mini Apps dokümantasyonunda (`https://miniapps.farcaster.xyz/`) ve Base Data Driven Growth rehberinde (`https://docs.base.org/mini-apps/technical-guides/data-driven-growth`) tanımlanan gereksinimlerle uyumludur.

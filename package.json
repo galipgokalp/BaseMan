@@ -21,7 +21,9 @@
   },
   "homepage": "https://github.com/masonicGIT/pacman#readme",
   "scripts": {
+    "dev": "node scripts/dev-server.mjs",
     "game:build": "node scripts/build-pacman.mjs",
+    "healthcheck": "node scripts/healthcheck.mjs",
     "manifest:generate": "node scripts/generate-manifest.mjs",
     "contracts:compile": "npx hardhat compile",
     "contracts:test": "npx hardhat test",
@@ -44,7 +46,8 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^5.0.2",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
     "hardhat": "^2.22.5"
   },
   "engines": {

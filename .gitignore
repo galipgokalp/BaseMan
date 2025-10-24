@@ -18,3 +18,8 @@ AGENTS.md
 docs/webhooks/latest-subscription.md
 tmp/
 docs-local/
+.server.log
+.server.pid
+.devserver.log
+.tmp_*
+.tmp*.json
