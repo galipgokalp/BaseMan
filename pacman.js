@@ -9559,19 +9559,8 @@ var executive = (function(){
 // current game state
 var state;
 
-var updateLeaderboardVisibility = function(visible) {
-    if (typeof window !== "undefined") {
-        window.__BaseManLeaderboardDesiredVisible = !!visible;
-        var api = window.BaseManLeaderboard;
-        if (api && typeof api.setVisible === "function") {
-            api.setVisible(visible);
-        }
-    }
-};
-
 // switches to another game state
 var switchState = function(nextState,fadeDuration, continueUpdate1, continueUpdate2) {
-    updateLeaderboardVisibility(!!(nextState && nextState.showLeaderboard));
     state = (fadeDuration) ? fadeNextState(state,nextState,fadeDuration,continueUpdate1, continueUpdate2) : nextState;
     audio.silence();
     state.init();
@@ -9744,7 +9733,6 @@ var homeState = (function(){
     };
 
     return {
-        showLeaderboard: true,
         init: function() {
             ensureWalletListener();
             syncWalletState();

@@ -5,6 +5,8 @@ const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
 const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
 const PROFILE_CACHE = new Map();
 const FALLBACK_PROVIDER = "neynar";
+const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
+let ENRICHMENT_DISABLED_REASON = null;
 
 function normalizeAddress(value) {
   if (!value) return null;
@@ -102,6 +104,11 @@ async function fetchNeynarProfile(address) {
     if (response.status === 404) {
       return null;
     }
+    // Treat auth/payment errors as "disabled" to avoid spamming logs
+    if (response.status === 401 || response.status === 402) {
+      ENRICHMENT_DISABLED_REASON = `neynar-${response.status}`;
+      return null;
+    }
     const text = await response.text();
     throw new Error(`Neynar responded with ${response.status}: ${text}`);
   }
@@ -121,7 +128,7 @@ async function resolveProfile(address) {
 
   let profile = null;
   try {
-    if (PROFILE_PROVIDER === "neynar" || (!PROFILE_PROVIDER && FALLBACK_PROVIDER === "neynar")) {
+    if (!ENRICHMENT_DISABLED_REASON && !DISABLE_ENRICHMENT && (PROFILE_PROVIDER === "neynar" || (!PROFILE_PROVIDER && FALLBACK_PROVIDER === "neynar"))) {
       if (!NEYNAR_API_KEY) {
         PROFILE_CACHE.set(cacheKey, null);
         return null;
@@ -137,6 +144,20 @@ async function resolveProfile(address) {
 }
 
 export async function fetchProfilesForAddresses(addresses = []) {
+  if (DISABLE_ENRICHMENT || ENRICHMENT_DISABLED_REASON) {
+    // Short-circuit: do not attempt external calls
+    const results = new Map();
+    for (const raw of addresses) {
+      const addr = normalizeAddress(raw);
+      if (addr) results.set(addr.toLowerCase(), null);
+    }
+    if (ENRICHMENT_DISABLED_REASON) {
+      console.warn(
+        `[farcaster-profiles] enrichment disabled (${ENRICHMENT_DISABLED_REASON}); set FARCASTER_PROFILE_PROVIDER=none to silence`
+      );
+    }
+    return results;
+  }
   const results = new Map();
   const tasks = [];
 
