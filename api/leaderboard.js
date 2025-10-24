@@ -3,14 +3,20 @@ import { registryAddress } from "./_lib/registry.js";
 import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
 
 const DEFAULT_SQL_BASE = "https://api.cdp.coinbase.com";
+const ALT_SQL_BASE = "https://api.developer.coinbase.com";
 // keccak256("ScoreSubmitted(address,uint256,uint256)")
 const SCORE_EVENT_TOPIC = "0xb7f20d0949b6a8bc59d005af4a52f7ff5d0cfcde9056fa556adb0e4b24dcb6d2";
 const SQL_API_KEY = process.env.CDP_SQL_API_KEY || "";
 const SQL_BASE_URL = (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, "");
 const SQL_TIMEOUT_MS = Number.parseInt(process.env.CDP_SQL_QUERY_TIMEOUT_MS || "15000", 10);
 const SQL_POLL_INTERVAL_MS = 750;
-const SQL_ENDPOINT = `${SQL_BASE_URL}/sql/v1/queries`;
-const PLATFORM_RUN_ENDPOINT = `${SQL_BASE_URL}/platform/v2/data/query/run`;
+function endpointsFor(baseUrl) {
+  const base = (baseUrl || DEFAULT_SQL_BASE).replace(/\/$/, "");
+  return {
+    v1: `${base}/sql/v1/queries`,
+    platform: `${base}/platform/v2/data/query/run`
+  };
+}
 
 function sanitizeLimit(value) {
   if (value === undefined || value === null) {
@@ -47,8 +53,8 @@ LIMIT ${limit};
 `.trim();
 }
 
-async function postQuery(statement) {
-  const response = await fetch(SQL_ENDPOINT, {
+async function postQuery(endpoint, statement) {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${SQL_API_KEY}`,
@@ -66,8 +72,8 @@ async function postQuery(statement) {
   return response.json();
 }
 
-async function fetchQuery(queryId) {
-  const response = await fetch(`${SQL_ENDPOINT}/${queryId}`, {
+async function fetchQuery(baseEndpoint, queryId) {
+  const response = await fetch(`${baseEndpoint}/${queryId}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${SQL_API_KEY}`
@@ -208,8 +214,9 @@ async function enrichWithProfiles(items) {
   });
 }
 
-async function runQueryV1(statement) {
-  const initial = await postQuery(statement);
+async function runQueryV1(base, statement) {
+  const eps = endpointsFor(base);
+  const initial = await postQuery(eps.v1, statement);
 
   let rows = extractRows(initial?.result ?? initial);
   if (!rows && initial?.id) {
@@ -224,7 +231,7 @@ async function runQueryV1(statement) {
         break;
       }
       await new Promise((resolve) => setTimeout(resolve, SQL_POLL_INTERVAL_MS));
-      current = await fetchQuery(initial.id);
+      current = await fetchQuery(eps.v1, initial.id);
       rows = extractRows(current?.result ?? current);
     }
     if (!rows) {
@@ -237,8 +244,9 @@ async function runQueryV1(statement) {
   return rows;
 }
 
-async function runQueryPlatform(statement) {
-  const response = await fetch(PLATFORM_RUN_ENDPOINT, {
+async function runQueryPlatform(base, statement) {
+  const eps = endpointsFor(base);
+  const response = await fetch(eps.platform, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${SQL_API_KEY}`,
@@ -259,13 +267,28 @@ async function runQueryPlatform(statement) {
 }
 
 async function runQuery(statement) {
-  try {
-    return await runQueryV1(statement);
-  } catch (e) {
-    // Fallback to platform/v2 endpoint if v1 path unsupported (404) or other errors
-    console.warn("[leaderboard] v1 SQL failed, trying platform run:", e?.message || e);
-    return await runQueryPlatform(statement);
+  // Try provided base first, then alternate known base URLs
+  const tried = new Set();
+  const bases = [SQL_BASE_URL, ALT_SQL_BASE, DEFAULT_SQL_BASE].filter(Boolean);
+  let lastError = null;
+  for (const base of bases) {
+    const key = (base || '').toLowerCase();
+    if (tried.has(key)) continue;
+    tried.add(key);
+    try {
+      return await runQueryV1(base, statement);
+    } catch (e1) {
+      lastError = e1;
+      console.warn("[leaderboard] v1 SQL failed, trying platform run on", base, ":", e1?.message || e1);
+      try {
+        return await runQueryPlatform(base, statement);
+      } catch (e2) {
+        lastError = e2;
+        console.warn("[leaderboard] platform run failed on", base, ":", e2?.message || e2);
+      }
+    }
   }
+  throw lastError || new Error("All SQL endpoints failed");
 }
 
 // ---------- RPC FALLBACK (when SQL returns no rows or is unavailable) ----------
@@ -412,7 +435,18 @@ export default async function handler(req, res) {
         items = fallback;
       }
     }
-    const enriched = await enrichWithProfiles(items);
+    const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
+    const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
+    const enriched = shouldEnrich ? await enrichWithProfiles(items) : items.map((it, i) => ({
+      rank: i + 1,
+      player: it.player,
+      playerAddress: it.player,
+      highScore: it.highScore,
+      totalScore: toNumericScore(it.highScore) ?? null,
+      lastUpdate: it.lastUpdate,
+      lastUpdatedAt: toIsoTimestamp(it.lastUpdate),
+      profile: null
+    }));
 
     return res.status(200).json({
       source: "cdp-sql-api",
