@@ -57,6 +57,13 @@ await Promise.all(
   })
 );
 
+// Runtime public env injection for browser (NEXT_PUBLIC_* only)
+app.get('/__env.js', (req, res) => {
+  const entries = Object.entries(process.env || {}).filter(([k]) => k.startsWith('NEXT_PUBLIC_'));
+  const obj = Object.fromEntries(entries);
+  res.type('application/javascript').send(`window.__ENV = ${JSON.stringify(obj)};`);
+});
+
 // Static files (serve repo root) — allow dotfiles for .well-known
 app.use(express.static(ROOT, { dotfiles: 'allow' }));
 

@@ -7,6 +7,8 @@ const ALT_SQL_BASE = "https://api.developer.coinbase.com";
 // keccak256("ScoreSubmitted(address,uint256,uint256)")
 const SCORE_EVENT_TOPIC = "0xb7f20d0949b6a8bc59d005af4a52f7ff5d0cfcde9056fa556adb0e4b24dcb6d2";
 const SQL_API_KEY = process.env.CDP_SQL_API_KEY || "";
+const DISABLE_FLAG = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
+const LEADERBOARD_DISABLED = ["1","true","yes","on"].includes(DISABLE_FLAG);
 const SQL_BASE_URL = (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, "");
 const SQL_TIMEOUT_MS = Number.parseInt(process.env.CDP_SQL_QUERY_TIMEOUT_MS || "15000", 10);
 const SQL_POLL_INTERVAL_MS = 750;
@@ -411,8 +413,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Allow disabling the leaderboard in local/dev to avoid noisy logs
+  if (LEADERBOARD_DISABLED) {
+    return res.status(200).json({
+      source: "disabled",
+      limit: sanitizeLimit(req.query.limit),
+      count: 0,
+      items: [],
+      updatedAt: new Date().toISOString()
+    });
+  }
+
   if (!SQL_API_KEY) {
-    return res.status(500).json({ error: "CDP_SQL_API_KEY is not configured" });
+    return res.status(200).json({ source: "no-sql-key", limit: sanitizeLimit(req.query.limit), count: 0, items: [], updatedAt: new Date().toISOString() });
   }
 
   try {

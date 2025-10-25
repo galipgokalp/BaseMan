@@ -189,22 +189,7 @@ var homeState = (function(){
             renderer.clearMapFrame();
             renderer.beginMapClip();
             renderer.renderFunc(menu.draw,menu);
-            if (!walletReady) {
-                renderer.renderFunc(function(ctx) {
-                    var centerX = mapWidth / 2;
-                    var baseY = mapHeight - 3 * tileSize;
-                    ctx.save();
-                    ctx.fillStyle = "#EEE";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.font = tileSize + "px ArcadeR";
-                    ctx.fillText("Farcaster cüzdanı gerekli", centerX, baseY);
-                    ctx.font = (tileSize * 0.6) + "px ArcadeR";
-                    var message = walletError || "Lütfen Farcaster istemcisinden cüzdanınıza bağlanın.";
-                    ctx.fillText(message, centerX, baseY + 1.2 * tileSize);
-                    ctx.restore();
-                });
-            }
+            // Removed wallet requirement banner to avoid distracting overlay on the menu screen.
             renderer.endMapClip();
         },
         update: function() {

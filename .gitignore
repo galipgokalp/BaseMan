@@ -23,5 +23,9 @@ docs-local/
 .devserver.log
 .tmp_*
 .tmp*.json
-\n+# Ignore local ops directory
+
+# Ignore local ops directory
 ops/
+
+# Ignore UI bundle artifacts
+vendor/onchainkit/
