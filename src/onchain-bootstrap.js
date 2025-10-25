@@ -17,7 +17,7 @@ window.__showModuleFailure = function (message) {
   warn.style.zIndex = "99999";
   warn.style.whiteSpace = "pre-wrap";
   warn.textContent =
-    "Mini app modülü yüklenemedi. Lütfen bağlantınızı kontrol edin veya destekle iletişime geçin.\n" +
+    "Mini app module failed to load. Please check your connection or contact support.\n" +
     (message || "");
 
   if (document.body) {
@@ -36,8 +36,7 @@ window.__showModuleFailure = function (message) {
 window.addEventListener("load", function () {
   setTimeout(function () {
     if (!window.BaseManModuleLoaded) {
-      window.__showModuleFailure("On-chain modülü yüklenmedi.");
+      window.__showModuleFailure("On-chain module did not load.");
     }
   }, 1500);
 });
-

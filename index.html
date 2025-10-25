@@ -32,9 +32,9 @@
       <section id="leaderboard-panel" class="leaderboard-panel" data-limit="100">
         <header class="leaderboard-header">
           <span class="leaderboard-title">PAC-BOARD</span>
-          <button type="button" class="leaderboard-refresh" data-refresh>Yenile</button>
+          <button type="button" class="leaderboard-refresh" data-refresh>Refresh</button>
         </header>
-        <div class="leaderboard-status" data-status>Skor tablosu yükleniyor…</div>
+        <div class="leaderboard-status" data-status>Loading leaderboard…</div>
         <ol class="leaderboard-list leaderboard-list-top" data-list-top></ol>
         <div class="leaderboard-scroll" data-scroll-wrapper>
           <ol class="leaderboard-list leaderboard-list-rest" data-list-rest></ol>
@@ -48,5 +48,10 @@
     <script defer src="src/onchain-bootstrap.js"></script>
     <script defer src="src/onchain-client.js"></script>
     <script defer src="src/leaderboard-panel.js"></script>
+    <!-- OnchainKit React island mount point + bundle -->
+    <div id="onchainkit-root"></div>
+    <!-- Inject NEXT_PUBLIC_* vars at runtime for the bundle -->
+    <script defer src="/__env.js"></script>
+    <script defer src="vendor/onchainkit/onchainkit.bundle.js"></script>
   </body>
 </html>

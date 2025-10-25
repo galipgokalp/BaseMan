@@ -71,11 +71,11 @@
 
     if (attempts >= MAX_ATTEMPTS) {
       if (!sdk) {
-        showFailure("Farcaster Mini App SDK yüklenemedi.");
+        showFailure("Farcaster Mini App SDK not found.");
       } else if (!ethers) {
-        showFailure("ethers.js kütüphanesi yüklenemedi.");
+        showFailure("ethers.js library not loaded.");
       } else {
-        showFailure("On-chain yapılandırması bulunamadı.");
+        showFailure("On-chain configuration not found.");
       }
       return;
     }
@@ -86,7 +86,7 @@
   function initialize(sdk, ethers, config) {
     window.sdk = sdk;
     window.BaseManModuleLoaded = true;
-    debug("SDK ve ethers bulundu, on-chain entegrasyon başlatılıyor.");
+    debug("SDK and ethers found, initializing on-chain integration.");
 
     window.addEventListener("error", (event) => {
       debug(`Error: ${(event && event.message) || event}`);
@@ -142,12 +142,12 @@
           })
         );
       } catch (eventError) {
-        debug(`wallet-status event hatası: ${eventError?.message || eventError}`);
+        debug(`wallet-status event error: ${eventError?.message || eventError}`);
       }
     }
 
     sdk.actions.ready();
-    debug("sdk.actions.ready() çağrıldı");
+    debug("sdk.actions.ready() called");
 
     async function ensureWallet() {
       if (state.contract) {
@@ -158,17 +158,17 @@
         await sdk.actions.signIn({
           acceptAuthAddress: true
         });
-        debug("sdk.actions.signIn() tamamlandı");
+        debug("sdk.actions.signIn() completed");
       } catch (error) {
-        debug(`signIn hatası: ${error?.message || error}`);
+        debug(`signIn error: ${error?.message || error}`);
       }
 
       try {
         const provider = await sdk.wallet.getEthereumProvider();
         if (!provider) {
-          throw new Error("Ethereum sağlayıcısı alınamadı.");
+          throw new Error("Ethereum provider not available.");
         }
-        debug("sdk.wallet.getEthereumProvider() döndü");
+        debug("sdk.wallet.getEthereumProvider() returned");
         await ensureChain(provider, config.chainId);
 
         const browserProvider = new ethers.BrowserProvider(provider);
@@ -179,7 +179,7 @@
         state.address = ethers.getAddress(address);
         state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
         state.provider = provider;
-        debug(`Cüzdan hazır: ${state.address}`);
+        debug(`Wallet ready: ${state.address}`);
 
         emitWalletStatus(true, null);
         return state;
@@ -188,7 +188,7 @@
         state.address = null;
         state.contract = null;
         state.provider = null;
-        const message = error?.message || error || "Cüzdan hazırlanamadı";
+        const message = error?.message || error || "Wallet initialization failed";
         emitWalletStatus(false, message);
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -208,9 +208,9 @@
         if (typeof chainId === "string" && chainId.trim() !== "") {
           return ethers.toBeHex(BigInt(chainId));
         }
-        throw new Error("chainId boş olamaz");
+        throw new Error("chainId cannot be empty");
       } catch (error) {
-        throw new Error(`Geçersiz chainId: ${chainId} (${error?.message || error})`);
+        throw new Error(`Invalid chainId: ${chainId} (${error?.message || error})`);
       }
     }
 
@@ -238,9 +238,9 @@
               }
             ]
           });
-          debug(`wallet_addEthereumChain ile ${chainId} eklendi`);
+          debug(`wallet_addEthereumChain added ${chainId}`);
         } else {
-          debug(`wallet_switchEthereumChain hatası: ${error?.message || error}`);
+          debug(`wallet_switchEthereumChain error: ${error?.message || error}`);
         }
       }
     }
@@ -250,12 +250,12 @@
       try {
         playerAddress = ethers.getAddress(playerAddress);
       } catch (error) {
-        debug(`score-sign adres normalize edilemedi: ${error?.message || error}`);
-        throw new Error("Geçersiz cüzdan adresi");
+        debug(`score-sign address normalization failed: ${error?.message || error}`);
+        throw new Error("Invalid wallet address");
       }
 
       debug(
-        `score-sign isteği hazırlanıyor: skor=${score.toString()} duration=${durationMs}ms`
+        `Preparing score-sign request: score=${score.toString()} duration=${durationMs}ms`
       );
 
       const response = await fetch(config.scoreEndpoint, {
@@ -271,11 +271,11 @@
 
       const payload = await response.json();
       if (!response.ok) {
-        const message = payload?.error || "Skor imzası alınamadı";
-        debug(`score-sign başarısız: ${message}`);
+        const message = payload?.error || "Failed to obtain score signature";
+        debug(`score-sign failed: ${message}`);
         throw new Error(message);
       }
-      debug(`score-sign başarılı: ${score} (süre ${durationMs}ms)`);
+      debug(`score-sign succeeded: ${score} (duration ${durationMs}ms)`);
       return payload;
     }
 
@@ -289,7 +289,7 @@
         }
         return new URL(url, window.location.origin).toString();
       } catch (error) {
-        debug(`paymaster URL çözümlenemedi: ${error?.message || error}`);
+        debug(`paymaster URL could not be resolved: ${error?.message || error}`);
         return null;
       }
     }
@@ -299,13 +299,13 @@
         return null;
       }
       if (!state.provider || typeof state.provider.request !== "function") {
-        debug("paymaster isteği için provider bulunamadı.");
+        debug("No provider available for paymaster request.");
         return null;
       }
 
       const capabilityUrl = resolveCapabilityUrl(config.paymasterUrl);
       if (!capabilityUrl) {
-        debug("Paymaster capability URL çözümlenemedi.");
+        debug("Paymaster capability URL could not be resolved.");
         return null;
       }
 
@@ -313,7 +313,7 @@
         try {
           return ethers.toBeHex(config.chainId);
         } catch (error) {
-          debug(`chainId hex dönüştürme hatası: ${error?.message || error}`);
+          debug(`chainId hex conversion error: ${error?.message || error}`);
           return null;
         }
       })();
@@ -340,7 +340,7 @@
       };
 
       try {
-        debug("wallet_sendCalls (paymaster) isteği gönderiliyor.");
+        debug("Sending wallet_sendCalls (paymaster) request.");
         const result = await state.provider.request({
           method: "wallet_sendCalls",
           params: [payload]
@@ -348,18 +348,18 @@
 
         if (result && typeof result === "object") {
           if (result.id) {
-            debug(`wallet_sendCalls isteği gönderildi. id=${result.id}`);
+            debug(`wallet_sendCalls request sent. id=${result.id}`);
           } else {
-            debug(`wallet_sendCalls yanıtı: ${JSON.stringify(result)}`);
+            debug(`wallet_sendCalls response: ${JSON.stringify(result)}`);
           }
         } else {
-          debug("wallet_sendCalls yanıtı beklenenden farklı.");
+          debug("wallet_sendCalls response unexpected.");
         }
 
         return result;
       } catch (error) {
         const message = error?.message || error;
-        debug(`wallet_sendCalls başarısız: ${message}`);
+        debug(`wallet_sendCalls failed: ${message}`);
         return null;
       }
     }
@@ -381,7 +381,7 @@
 
         await ensureWallet();
         if (!state.address) {
-          throw new Error("Cüzdan bağlantısı gerekli");
+          throw new Error("Wallet connection required");
         }
 
         const { signature, deadline, score: signedScore } = await requestScoreSignature(
@@ -416,7 +416,7 @@
 
             if (identifier) {
               paymasterHandled = true;
-              debug(`Paymaster destekli gönderim başlatıldı (id: ${identifier}).`);
+              debug(`Paymaster-backed submission started (id: ${identifier}).`);
               if (
                 typeof paymasterResult === "object" &&
                 typeof paymasterResult.id === "string"
@@ -430,14 +430,14 @@
                     })
                     .then((status) => {
                       debug(
-                        `wallet_getCallsStatus yanıtı: ${
-                          status ? JSON.stringify(status) : "boş yanıt"
+                        `wallet_getCallsStatus response: ${
+                          status ? JSON.stringify(status) : "empty response"
                         }`
                       );
                     })
                     .catch((statusError) => {
                       debug(
-                        `wallet_getCallsStatus hatası: ${
+                        `wallet_getCallsStatus error: ${
                           statusError?.message || statusError
                         }`
                       );
@@ -451,7 +451,7 @@
         if (paymasterHandled) {
           return;
         } else if (config.paymasterUrl) {
-          debug("Paymaster gönderimi tamamlanamadı, standart işlem gönderiliyor.");
+          debug("Paymaster submission not completed, sending standard transaction.");
         }
 
         const tx = await state.contract.submitScore(
@@ -463,7 +463,7 @@
 
         debug(`submitScore tx: ${tx.hash}`);
       } catch (error) {
-        debug(`submitScore hatası: ${error?.message || error}`);
+        debug(`submitScore error: ${error?.message || error}`);
       } finally {
         state.submitting = false;
         state.runStartedAt = null;
@@ -472,7 +472,7 @@
 
     function handleRunStart() {
       state.runStartedAt = performance.now();
-      debug("Oyun başlangıcı yakalandı");
+      debug("Game start detected");
     }
 
     function patchStateHooks(attempt = 0) {
@@ -491,7 +491,7 @@
           try {
             hook?.apply(this, args);
           } catch (error) {
-            debug(`${label} hook hatası: ${error?.message || error}`);
+            debug(`${label} hook error: ${error?.message || error}`);
           }
           return original(...args);
         };
@@ -544,11 +544,23 @@
     };
 
     ensureWallet().catch((error) => {
-      debug(`Otomatik cüzdan hazırlığı başarısız: ${error?.message || error}`);
+      debug(`Automatic wallet preparation failed: ${error?.message || error}`);
     });
   }
 
   function createDebugOverlay() {
+    // Disabled by default. Enable only if NEXT_PUBLIC_DEBUG_OVERLAY=1 or ?debug present.
+    try {
+      const enabledByEnv =
+        (window.__ENV && String(window.__ENV.NEXT_PUBLIC_DEBUG_OVERLAY) === '1') ||
+        new URLSearchParams(window.location.search).has('debug');
+      if (!enabledByEnv) {
+        return function () {};
+      }
+    } catch (_) {
+      // no-op
+      return function () {};
+    }
     const containerId = "baseman-debug";
     const existing = document.getElementById(containerId);
     if (existing) existing.remove();

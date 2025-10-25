@@ -11,7 +11,16 @@
 
   let loading = false;
   let timerId = null;
-  let visible = true;
+  // Default: visible. Allow hiding when NEXT_PUBLIC_SHOW_LEADERBOARD is set to 0/false.
+  let visible = (() => {
+    try {
+      const v = window.__ENV && String(window.__ENV.NEXT_PUBLIC_SHOW_LEADERBOARD || '').toLowerCase();
+      if (v === '0' || v === 'false') return false;
+      return true;
+    } catch (_) {
+      return true;
+    }
+  })();
 
   const abbreviateAddress = (address) => {
     if (typeof address !== "string") return "";
@@ -48,13 +57,13 @@
       return "";
     }
     const minutes = Math.floor(diffMs / (60 * 1000));
-    if (minutes < 1) return "Az önce";
-    if (minutes < 60) return `${minutes} dk önce`;
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} min ago`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} sa önce`;
+    if (hours < 24) return `${hours} hr ago`;
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days} g önce`;
-    return date.toLocaleDateString("tr-TR", {
+    if (days < 7) return `${days} d ago`;
+    return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric"
     });
@@ -62,7 +71,7 @@
 
   const formatScore = (value, fallback) => {
     if (typeof value === "number" && Number.isFinite(value)) {
-      return value.toLocaleString("tr-TR");
+      return value.toLocaleString("en-US");
     }
     if (typeof fallback === "string") {
       return fallback;
@@ -153,7 +162,7 @@
 
     const scoreLabel = document.createElement("span");
     scoreLabel.className = "leaderboard-score-label";
-    scoreLabel.textContent = "Toplam puan";
+    scoreLabel.textContent = "Total score";
     scoreWrap.appendChild(scoreLabel);
 
     const updateLabel = document.createElement("span");
@@ -162,7 +171,7 @@
       ? formatRelativeTime(entry.lastUpdatedAt)
       : formatTimestamp(entry.lastUpdate ?? entry.updatedAt);
     if (relative) {
-      updateLabel.textContent = `Son güncelleme: ${relative}`;
+      updateLabel.textContent = `Last update: ${relative}`;
       scoreWrap.appendChild(updateLabel);
     }
 
@@ -181,7 +190,7 @@
       scrollWrapper.hidden = true;
     }
     if (!items.length) {
-      statusEl.textContent = "Henüz skor kaydı bulunmuyor.";
+      statusEl.textContent = "No scores yet.";
       return null;
     }
 
@@ -231,7 +240,7 @@
     if (loading) return;
     if (!visible) return;
     loading = true;
-    statusEl.textContent = "Skor tablosu güncelleniyor…";
+    statusEl.textContent = "Updating leaderboard…";
 
     try {
       const response = await fetch(`/api/leaderboard?limit=${limit}`, {
@@ -253,13 +262,13 @@
         const updateText =
           (payload?.updatedAt && (formatRelativeTime(payload.updatedAt) || formatTimestamp(payload.updatedAt))) ||
           "-";
-        statusEl.textContent = `Toplam kayıt: ${total} • İlk ${pinned} sabit${
-          scrollable ? ` • ${scrollable} kaydırılabilir` : ""
-        } • Güncelleme: ${updateText}`;
+        statusEl.textContent = `Total: ${total} • Top ${pinned} pinned${
+          scrollable ? ` • ${scrollable} scrollable` : ""
+        } • Updated: ${updateText}`;
       }
     } catch (error) {
       console.error("[leaderboard-panel] load failed", error);
-      renderError("Skor tablosu şu anda yüklenemiyor.");
+      renderError("Leaderboard is currently unavailable.");
     } finally {
       loading = false;
     }
