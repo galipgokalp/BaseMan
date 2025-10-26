@@ -49,12 +49,13 @@
     <script defer src="src/onchain-client.js"></script>
     <script defer src="src/leaderboard-panel.js"></script>
     <!-- Minimal fallback wallet button for miniapps -->
-    <button id="wallet-fallback-btn" style="position:fixed;top:12px;right:12px;z-index:10001;display:none;cursor:pointer;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.6);color:#fff;font:600 12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif;">Connect Wallet</button>
+    <button id="wallet-fallback-btn" class="wallet-fallback-btn">Connect Wallet</button>
     <script defer src="src/wallet-fallback.js"></script>
     <!-- OnchainKit React island mount point + bundle -->
     <div id="onchainkit-root"></div>
     <!-- Inject NEXT_PUBLIC_* vars at runtime for the bundle (works in dev and prod) -->
     <script defer src="/api/env.js"></script>
-    <script defer src="vendor/onchainkit/onchainkit.bundle.js"></script>
+    <!-- Load OnchainKit bundle only in web (not inside mini-app containers) -->
+    <script defer src="src/load-onchainkit.js"></script>
   </body>
 </html>

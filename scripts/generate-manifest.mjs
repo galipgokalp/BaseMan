@@ -40,11 +40,40 @@ function ensureAccountAssociation(manifest) {
   }
 }
 
+function ensureRequiredChains(manifest) {
+  const raw = (process.env.MANIFEST_REQUIRED_CHAINS || "").trim();
+  if (!raw) {
+    // keep whatever exists in source manifest
+    if (!manifest.miniapp || !Array.isArray(manifest.miniapp.requiredChains) || !manifest.miniapp.requiredChains.length) {
+      throw new Error(
+        "miniapp.requiredChains boş; ya kaynak manifestte tanımlayın ya da MANIFEST_REQUIRED_CHAINS ile belirtin."
+      );
+    }
+    return;
+  }
+  const parts = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!parts.length) {
+    throw new Error("MANIFEST_REQUIRED_CHAINS boş olamaz.");
+  }
+  const caip2 = /^eip155:\d+$/;
+  for (const v of parts) {
+    if (!caip2.test(v)) {
+      throw new Error(`Geçersiz CAIP-2 chain tanımı: ${v} (örnek: eip155:84532,eip155:8453)`);
+    }
+  }
+  manifest.miniapp = manifest.miniapp || {};
+  manifest.miniapp.requiredChains = parts;
+}
+
 async function main() {
   const manifest = readJson(MANIFEST_SOURCE);
 
   ensureAccountAssociation(manifest);
   ensureBaseBuilder(manifest);
+  ensureRequiredChains(manifest);
 
   fs.mkdirSync(WELL_KNOWN_DIR, { recursive: true });
   fs.writeFileSync(MANIFEST_OUTPUT, JSON.stringify(manifest, null, 2) + "\n", "utf8");
