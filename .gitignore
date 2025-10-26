@@ -3,8 +3,6 @@
 .idea
 .next
 node_modules/
-public
-pages
 .env
 .env.*
 !.env.example
@@ -14,10 +12,7 @@ pages
 artifacts/
 cache/
 .codex/
-AGENTS.md
-docs/webhooks/latest-subscription.md
 tmp/
-docs-local/
 .server.log
 .server.pid
 .devserver.log
@@ -29,3 +24,28 @@ ops/
 
 # Ignore UI bundle artifacts
 vendor/onchainkit/
+
+# ---- Additional ignores (safe) ----
+# Editors / OS
+.vscode/
+.eslintcache
+*.swp
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage
+coverage/
+coverage.json
+
+# Vendor bundles (built/copied locally)
+vendor/miniapp-sdk/
+vendor/ethers/
+
+# Ignore docs directory (keep `doc/` if present)
+docs/
