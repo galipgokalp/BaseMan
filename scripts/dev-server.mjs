@@ -40,6 +40,7 @@ function wrap(handler) {
 
 // API routes (Vercel/Next-style handlers)
 const apiMap = [
+  ['/api/env.js', path.join(ROOT, 'api', 'env.js')],
   ['/api/score-sign', path.join(ROOT, 'api', 'score-sign.js')],
   ['/api/quest-sign', path.join(ROOT, 'api', 'quest-sign.js')],
   ['/api/paymaster-proxy', path.join(ROOT, 'api', 'paymaster-proxy.js')],

@@ -97,8 +97,8 @@
     });
 
     const CONTRACT_ABI = [
-      "function submitScore(address player,uint256 score,uint256 deadline,bytes signature)",
-      "function completeQuest(address player,uint256 questId,uint256 deadline,bytes signature)",
+      "function submitScore(address player,uint256 score,uint256 deadline,uint256 nonce,bytes signature)",
+      "function completeQuest(address player,uint256 questId,uint256 deadline,uint256 nonce,bytes signature)",
       "function getScore(address player) view returns (tuple(uint256 highScore,uint256 lastUpdatedAt))"
     ];
 
@@ -149,38 +149,83 @@
     sdk.actions.ready();
     debug("sdk.actions.ready() called");
 
+    function isMiniAppEnv() {
+      try {
+        return Boolean(
+          (window.fc && window.fc.miniapp) ||
+          (window.farcaster && window.farcaster.miniapp) ||
+          window.MiniApp ||
+          (window.miniapp && (window.miniapp.default || window.miniapp.sdk))
+        );
+      } catch (_) {
+        return false;
+      }
+    }
+
     async function ensureWallet() {
       if (state.contract) {
         return state;
       }
 
-      try {
-        await sdk.actions.signIn({
-          acceptAuthAddress: true
-        });
-        debug("sdk.actions.signIn() completed");
-      } catch (error) {
-        debug(`signIn error: ${error?.message || error}`);
+      // Mini‑app: programmatic sign‑in + SDK EIP‑1193 provider (smart wallet)
+      if (isMiniAppEnv()) {
+        try {
+          await sdk.actions.signIn({ acceptAuthAddress: true });
+          debug("sdk.actions.signIn() completed");
+        } catch (error) {
+          debug(`signIn error: ${error?.message || error}`);
+        }
+
+        try {
+          const provider = await sdk.wallet.getEthereumProvider();
+          if (!provider) throw new Error("Ethereum provider not available.");
+          debug("sdk.wallet.getEthereumProvider() returned");
+          await ensureChain(provider, config.chainId);
+
+          const browserProvider = new ethers.BrowserProvider(provider);
+          const signer = await browserProvider.getSigner();
+          const address = await signer.getAddress();
+
+          state.signer = signer;
+          state.address = ethers.getAddress(address);
+          state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
+          state.provider = provider;
+          debug(`Wallet ready (mini‑app): ${state.address}`);
+
+          try { await discoverPaymasterUrl(provider, config.chainId); } catch (_) {}
+          emitWalletStatus(true, null);
+          return state;
+        } catch (error) {
+          state.signer = null;
+          state.address = null;
+          state.contract = null;
+          state.provider = null;
+          const message = error?.message || error || "Wallet initialization failed";
+          emitWalletStatus(false, message);
+          throw error instanceof Error ? error : new Error(String(error));
+        }
       }
 
+      // Web: injected EOA (OnchainKit UI handles UX). No paymaster in this mode.
       try {
-        const provider = await sdk.wallet.getEthereumProvider();
-        if (!provider) {
-          throw new Error("Ethereum provider not available.");
+        const eth = window.ethereum;
+        if (!eth || typeof eth.request !== "function") {
+          throw new Error("No injected wallet provider. Use Connect Wallet in UI.");
         }
-        debug("sdk.wallet.getEthereumProvider() returned");
-        await ensureChain(provider, config.chainId);
+        try { await eth.request({ method: "eth_requestAccounts" }); } catch (reqErr) {
+          throw reqErr instanceof Error ? reqErr : new Error(String(reqErr));
+        }
+        await ensureChain(eth, config.chainId);
 
-        const browserProvider = new ethers.BrowserProvider(provider);
+        const browserProvider = new ethers.BrowserProvider(eth);
         const signer = await browserProvider.getSigner();
         const address = await signer.getAddress();
 
         state.signer = signer;
         state.address = ethers.getAddress(address);
         state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
-        state.provider = provider;
-        debug(`Wallet ready: ${state.address}`);
-
+        state.provider = eth;
+        debug(`Wallet ready (web EOA): ${state.address}`);
         emitWalletStatus(true, null);
         return state;
       } catch (error) {
@@ -189,6 +234,36 @@
         state.contract = null;
         state.provider = null;
         const message = error?.message || error || "Wallet initialization failed";
+        emitWalletStatus(false, message);
+        throw error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
+    async function reconfigureNetwork(next) {
+      try {
+        const nextChainId = Number(next?.chainId || config.chainId);
+        const nextRegistry = next?.registryAddress || config.registryAddress;
+        if (!nextRegistry) throw new Error("Missing registryAddress for selected network");
+
+        if (!state.provider) {
+          // Will be initialized by ensureWallet
+        } else {
+          await ensureChain(state.provider, nextChainId);
+        }
+
+        // Update live config object
+        config.chainId = nextChainId;
+        config.registryAddress = nextRegistry;
+
+        // Force rebuild of signer/contract with new network
+        state.contract = null;
+        await ensureWallet();
+
+        debug(`Reconfigured network to chainId=${config.chainId}, registry=${config.registryAddress}`);
+        emitWalletStatus(true, null);
+        return { chainId: config.chainId, registryAddress: config.registryAddress };
+      } catch (error) {
+        const message = error?.message || error || "Network reconfiguration failed";
         emitWalletStatus(false, message);
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -254,8 +329,11 @@
         throw new Error("Invalid wallet address");
       }
 
+      // Derive chain key for backend (matches server-side targets in api/_lib/registry.js)
+      const chainKey = config.chainId === 8453 ? 'base' : (config.chainId === 84532 ? 'base-sepolia' : 'base');
+
       debug(
-        `Preparing score-sign request: score=${score.toString()} duration=${durationMs}ms`
+        `Preparing score-sign request: score=${score.toString()} duration=${durationMs}ms chain=${chainKey}`
       );
 
       const response = await fetch(config.scoreEndpoint, {
@@ -265,7 +343,8 @@
           playerAddress,
           score: score.toString(),
           durationMs,
-          level: window.level ?? 1
+          level: window.level ?? 1,
+          chain: chainKey
         })
       });
 
@@ -276,6 +355,37 @@
         throw new Error(message);
       }
       debug(`score-sign succeeded: ${score} (duration ${durationMs}ms)`);
+      return payload;
+    }
+
+    async function requestQuestSignature(questId) {
+      let playerAddress = state.address;
+      try {
+        playerAddress = ethers.getAddress(playerAddress);
+      } catch (error) {
+        debug(`quest-sign address normalization failed: ${error?.message || error}`);
+        throw new Error("Invalid wallet address");
+      }
+
+      const chainKey = config.chainId === 8453 ? 'base' : (config.chainId === 84532 ? 'base-sepolia' : 'base');
+
+      const response = await fetch(config.questEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerAddress,
+          questId: String(questId),
+          chain: chainKey
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        const message = payload?.error || "Failed to obtain quest signature";
+        debug(`quest-sign failed: ${message}`);
+        throw new Error(message);
+      }
+      debug(`quest-sign succeeded: questId=${questId}`);
       return payload;
     }
 
@@ -318,6 +428,11 @@
         }
       })();
       if (!hexChainId) return null;
+
+      // Paymaster sadece smart wallet (mini‑app) ile kullanılmalı
+      if (!isMiniAppEnv()) {
+        return null;
+      }
 
       const payload = {
         version: "1.0.0",
@@ -384,13 +499,14 @@
           throw new Error("Wallet connection required");
         }
 
-        const { signature, deadline, score: signedScore } = await requestScoreSignature(
+        const { signature, deadline, score: signedScore, nonce } = await requestScoreSignature(
           score,
           durationMs
         );
 
         const scoreValue = signedScore ? BigInt(signedScore) : score;
         const deadlineValue = BigInt(deadline);
+        const nonceValue = (() => { try { return BigInt(nonce); } catch { return 0n; } })();
 
         let paymasterHandled = false;
         const contractInterface = state.contract && state.contract.interface;
@@ -399,6 +515,7 @@
             state.address,
             scoreValue,
             deadlineValue,
+            nonceValue,
             signature
           ]);
           const paymasterResult = await submitScoreWithPaymaster(callData);
@@ -458,6 +575,7 @@
           state.address,
           scoreValue,
           deadlineValue,
+          nonceValue,
           signature
         );
 
@@ -467,6 +585,59 @@
       } finally {
         state.submitting = false;
         state.runStartedAt = null;
+      }
+    }
+
+    async function completeQuest(questId) {
+      if (state.submitting) return;
+      try {
+        state.submitting = true;
+        await ensureWallet();
+        if (!state.address) {
+          throw new Error("Wallet connection required");
+        }
+
+        const { signature, deadline, questId: signedQuestId, nonce } = await requestQuestSignature(
+          questId
+        );
+
+        const qid = signedQuestId ? BigInt(signedQuestId) : BigInt(questId);
+        const deadlineValue = BigInt(deadline);
+        const nonceValue = (() => { try { return BigInt(nonce); } catch { return 0n; } })();
+
+        let paymasterHandled = false;
+        const contractInterface = state.contract && state.contract.interface;
+        if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
+          const callData = contractInterface.encodeFunctionData("completeQuest", [
+            state.address,
+            qid,
+            deadlineValue,
+            nonceValue,
+            signature
+          ]);
+          const paymasterResult = await submitScoreWithPaymaster(callData);
+          if (paymasterResult) {
+            paymasterHandled = true;
+            debug("Paymaster-backed quest completion started.");
+          }
+        }
+
+        if (paymasterHandled) {
+          return;
+        }
+
+        const tx = await state.contract.completeQuest(
+          state.address,
+          qid,
+          deadlineValue,
+          nonceValue,
+          signature
+        );
+        debug(`completeQuest tx: ${tx.hash}`);
+      } catch (error) {
+        debug(`completeQuest error: ${error?.message || error}`);
+      } finally {
+        state.submitting = false;
       }
     }
 
@@ -536,11 +707,14 @@
 
     window.BaseManOnchain = {
       ensureWallet,
+      setNetwork: reconfigureNetwork,
       submitScore,
+      completeQuest,
       handleRunStart,
       log: debug,
       isWalletReady: () => state.walletReady,
-      getWalletError: () => state.walletError
+      getWalletError: () => state.walletError,
+      getWalletAddress: () => state.address
     };
 
     ensureWallet().catch((error) => {
@@ -613,3 +787,68 @@
 
   tryInitialize();
 })();
+    async function discoverPaymasterUrl(provider, chainId) {
+      try {
+        if (!provider || typeof provider.request !== 'function') return null;
+        // Try capabilities discovery (EIP-5792 style). Some providers accept no params; some accept [address].
+        let caps = null;
+        try {
+          caps = await provider.request({ method: 'wallet_getCapabilities' });
+        } catch (_) {
+          // ignore
+        }
+        if (!caps) {
+          try {
+            const addr = state.address || null;
+            if (addr) {
+              caps = await provider.request({ method: 'wallet_getCapabilities', params: [addr] });
+            }
+          } catch (_) {
+            // ignore
+          }
+        }
+
+        // Heuristic paths where paymaster capability might live
+        const candidates = [
+          'paymasterService',
+          'org.cdp.paymaster',
+          'capabilities.paymasterService',
+          'capabilities.org.cdp.paymaster'
+        ];
+
+        function pickUrl(obj) {
+          if (!obj || typeof obj !== 'object') return null;
+          // common shape: { url: "https://...", optional: boolean }
+          if (typeof obj.url === 'string' && obj.url.length) return obj.url;
+          // nested or array forms (best effort)
+          for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (val && typeof val === 'object' && typeof val.url === 'string') return val.url;
+          }
+          return null;
+        }
+
+        let url = null;
+        if (caps && typeof caps === 'object') {
+          for (const path of candidates) {
+            try {
+              const parts = path.split('.');
+              let cur = caps;
+              for (const p of parts) cur = cur?.[p];
+              const maybe = pickUrl(cur);
+              if (maybe) { url = maybe; break; }
+            } catch (_) { /* noop */ }
+          }
+        }
+
+        if (url) {
+          config.paymasterUrl = url;
+          debug(`Discovered paymaster capability url: ${url}`);
+          return url;
+        }
+        return null;
+      } catch (error) {
+        debug(`discoverPaymasterUrl error: ${error?.message || error}`);
+        return null;
+      }
+    }
