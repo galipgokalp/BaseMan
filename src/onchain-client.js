@@ -97,8 +97,8 @@
     });
 
     const CONTRACT_ABI = [
-      "function submitScore(address player,uint256 score,uint256 deadline,uint256 nonce,bytes signature)",
-      "function completeQuest(address player,uint256 questId,uint256 deadline,uint256 nonce,bytes signature)",
+      "function submitScore(address player,uint256 score,uint256 deadline,bytes signature)",
+      "function completeQuest(address player,uint256 questId,uint256 deadline,bytes signature)",
       "function getScore(address player) view returns (tuple(uint256 highScore,uint256 lastUpdatedAt))"
     ];
 
@@ -506,7 +506,6 @@
 
         const scoreValue = signedScore ? BigInt(signedScore) : score;
         const deadlineValue = BigInt(deadline);
-        const nonceValue = (() => { try { return BigInt(nonce); } catch { return 0n; } })();
 
         let paymasterHandled = false;
         const contractInterface = state.contract && state.contract.interface;
@@ -515,7 +514,6 @@
             state.address,
             scoreValue,
             deadlineValue,
-            nonceValue,
             signature
           ]);
           const paymasterResult = await submitScoreWithPaymaster(callData);
@@ -571,13 +569,7 @@
           debug("Paymaster submission not completed, sending standard transaction.");
         }
 
-        const tx = await state.contract.submitScore(
-          state.address,
-          scoreValue,
-          deadlineValue,
-          nonceValue,
-          signature
-        );
+        const tx = await state.contract.submitScore(state.address, scoreValue, deadlineValue, signature);
 
         debug(`submitScore tx: ${tx.hash}`);
       } catch (error) {
@@ -603,7 +595,6 @@
 
         const qid = signedQuestId ? BigInt(signedQuestId) : BigInt(questId);
         const deadlineValue = BigInt(deadline);
-        const nonceValue = (() => { try { return BigInt(nonce); } catch { return 0n; } })();
 
         let paymasterHandled = false;
         const contractInterface = state.contract && state.contract.interface;
@@ -612,7 +603,6 @@
             state.address,
             qid,
             deadlineValue,
-            nonceValue,
             signature
           ]);
           const paymasterResult = await submitScoreWithPaymaster(callData);
@@ -626,13 +616,7 @@
           return;
         }
 
-        const tx = await state.contract.completeQuest(
-          state.address,
-          qid,
-          deadlineValue,
-          nonceValue,
-          signature
-        );
+        const tx = await state.contract.completeQuest(state.address, qid, deadlineValue, signature);
         debug(`completeQuest tx: ${tx.hash}`);
       } catch (error) {
         debug(`completeQuest error: ${error?.message || error}`);
