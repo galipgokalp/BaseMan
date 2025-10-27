@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,4 +70,9 @@ app.use(express.static(ROOT, { dotfiles: 'allow' }));
 
 app.listen(PORT, () => {
   console.log(`[dev] Server running at http://127.0.0.1:${PORT}`);
+  try {
+    console.log('[dev] env PAYMASTER_SERVICE_URL set:', Boolean(process.env.PAYMASTER_SERVICE_URL));
+    console.log('[dev] env CDP_API_KEY_ID set:', Boolean(process.env.CDP_API_KEY_ID));
+    console.log('[dev] env CDP_API_KEY_SECRET set:', Boolean(process.env.CDP_API_KEY_SECRET));
+  } catch (_) {}
 });

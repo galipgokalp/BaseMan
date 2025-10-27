@@ -1,15 +1,12 @@
 import { ethers } from "ethers";
+import { Buffer } from "buffer";
 import { z } from "zod";
 import { registryAddress, registryChainId } from "./_lib/registry.js";
 
-const PAYMASTER_SERVICE_URL =
-  process.env.PAYMASTER_SERVICE_URL?.trim() || process.env.PAYMASTER_URL?.trim() || "";
-
-const PAYMASTER_API_KEY = process.env.PAYMASTER_API_KEY?.trim() || "";
-const PAYMASTER_API_KEY_HEADER =
-  process.env.PAYMASTER_API_KEY_HEADER?.trim() || "Authorization";
-const PAYMASTER_API_KEY_SCHEME =
-  process.env.PAYMASTER_API_KEY_SCHEME?.trim() || "Bearer";
+function env(key, fallback = "") {
+  const v = process?.env?.[key];
+  return typeof v === "string" ? v.trim() : fallback;
+}
 
 const MAX_CALLS = (() => {
   const raw = process.env.PAYMASTER_MAX_CALLS ?? "1";
@@ -218,35 +215,120 @@ function validateTargetsFromCallData(callData) {
   return { ok: true };
 }
 
-async function forwardToPaymaster(payload) {
+async function forwardToPaymaster(payload, authMode, overrideHeaders) {
+  const PAYMASTER_SERVICE_URL = env('PAYMASTER_SERVICE_URL') || env('PAYMASTER_URL');
   if (!PAYMASTER_SERVICE_URL) {
     throw new Error("Paymaster proxy is missing PAYMASTER_SERVICE_URL configuration.");
   }
 
-  const headers = {
-    "Content-Type": "application/json"
-  };
+  // Birden fazla kimlik doğrulama modu deneyebilmek için aday başlık setleri oluştur.
+  const authHeaderCandidates = (() => {
+    if (overrideHeaders && typeof overrideHeaders === 'object') {
+      return [Object.assign({ "Content-Type": "application/json" }, overrideHeaders)];
+    }
+    const list = [];
+    const PAYMASTER_API_KEY = env('PAYMASTER_API_KEY');
+    const PAYMASTER_API_KEY_HEADER = env('PAYMASTER_API_KEY_HEADER', 'Authorization') || 'Authorization';
+    const PAYMASTER_API_KEY_SCHEME = env('PAYMASTER_API_KEY_SCHEME', 'Bearer');
+    const CDP_API_KEY_SECRET = env('CDP_API_KEY_SECRET');
+    const CDP_API_KEY_ID = env('CDP_API_KEY_ID');
+    const addAuth = (name, scheme, value) => {
+      if (!name || !value) return;
+      const headers = { "Content-Type": "application/json" };
+      const prefix = scheme && scheme.length ? `${scheme} ` : "";
+      headers[name] = `${prefix}${value}`;
+      list.push(headers);
+    };
 
-  if (PAYMASTER_API_KEY) {
-    const headerName = PAYMASTER_API_KEY_HEADER;
-    const scheme = PAYMASTER_API_KEY_SCHEME.length ? `${PAYMASTER_API_KEY_SCHEME} ` : "";
-    headers[headerName] = `${scheme}${PAYMASTER_API_KEY}`;
+    // 1) Basic <base64(id:secret)> — CDP RPC için en yaygın mod (öncelik ver ve tek mod seçeneği olarak dön)
+    if (CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+      try {
+        const token = Buffer.from(`${CDP_API_KEY_ID}:${CDP_API_KEY_SECRET}`).toString('base64');
+        const headers = { "Content-Type": "application/json", Authorization: `Basic ${token}`, 'User-Agent': 'BaseManProxy/1.0' };
+        return [headers];
+      } catch (_) {}
+    }
+
+    // 2) x-api-key + Bearer — bazı projeler ikisini bir arada ister
+    if (CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+      const headers = { "Content-Type": "application/json", "x-api-key": CDP_API_KEY_ID, Authorization: `Bearer ${CDP_API_KEY_SECRET}` };
+      list.push(headers);
+    }
+
+    // 3) Authorization: Bearer <CDP_API_KEY_SECRET>
+    if (CDP_API_KEY_SECRET) addAuth("Authorization", "Bearer", CDP_API_KEY_SECRET);
+
+    // 4) ENV’de açıkça belirtilen header/scheme + PAYMASTER_API_KEY
+    if (PAYMASTER_API_KEY) addAuth(PAYMASTER_API_KEY_HEADER, PAYMASTER_API_KEY_SCHEME, PAYMASTER_API_KEY);
+
+    // 5) x-api-key: <PAYMASTER_API_KEY>
+    if (PAYMASTER_API_KEY) addAuth("x-api-key", "", PAYMASTER_API_KEY);
+
+    // 6) x-api-key: <CDP_API_KEY_SECRET>
+    if (CDP_API_KEY_SECRET) addAuth("x-api-key", "", CDP_API_KEY_SECRET);
+
+    // 7) Headersız (bazı path‑param’lı endpointler için)
+    list.push({ "Content-Type": "application/json" });
+
+    // Tekrarlı kombinasyonları ele
+    const serialized = new Set();
+    const unique = [];
+    for (const h of list) {
+      const key = JSON.stringify(h);
+      if (!serialized.has(key)) {
+        serialized.add(key);
+        unique.push(h);
+      }
+    }
+    let out = unique;
+    // Force mode for diagnostics: 'basic', 'both', 'bearer', 'x-api-key', 'none'
+    const mode = (authMode || "").toString().toLowerCase();
+    if (mode === 'basic' && (CDP_API_KEY_ID && CDP_API_KEY_SECRET)) {
+      try {
+        const token = Buffer.from(`${CDP_API_KEY_ID}:${CDP_API_KEY_SECRET}`).toString('base64');
+        out = [{ "Content-Type": "application/json", Authorization: `Basic ${token}` }];
+      } catch (_) {}
+    } else if (mode === 'both' && (CDP_API_KEY_ID && CDP_API_KEY_SECRET)) {
+      out = [{ "Content-Type": "application/json", "x-api-key": CDP_API_KEY_ID, Authorization: `Bearer ${CDP_API_KEY_SECRET}` }];
+    } else if (mode === 'bearer' && CDP_API_KEY_SECRET) {
+      out = [{ "Content-Type": "application/json", Authorization: `Bearer ${CDP_API_KEY_SECRET}` }];
+    } else if (mode === 'x-api-key' && PAYMASTER_API_KEY) {
+      out = [{ "Content-Type": "application/json", "x-api-key": PAYMASTER_API_KEY }];
+    } else if (mode === 'none') {
+      out = [{ "Content-Type": "application/json" }];
+    }
+    return out;
+  })();
+
+  let lastResponse = null;
+  let lastHeaderNames = [];
+  for (let i = 0; i < authHeaderCandidates.length; i++) {
+    const headers = authHeaderCandidates[i];
+    let headerNames = [];
+    try { headerNames = Object.keys(headers).filter(k => k.toLowerCase() !== 'content-type'); } catch (_) {}
+    const response = await fetch(PAYMASTER_SERVICE_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    });
+    // Başarılı veya 401/403 dışındaki durumlarda denemeyi sonlandır
+    if (response.status !== 401 && response.status !== 403) {
+      const text = await response.text();
+      const contentType = response.headers.get("content-type") || "application/json";
+      return { status: response.status, body: text, contentType, debug: headerNames };
+    }
+    lastResponse = response;
+    lastHeaderNames = headerNames;
   }
 
-  const response = await fetch(PAYMASTER_SERVICE_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload)
-  });
+  if (lastResponse) {
+    const text = await lastResponse.text();
+    const contentType = lastResponse.headers.get("content-type") || "application/json";
+    return { status: lastResponse.status, body: text, contentType, debug: lastHeaderNames };
+  }
 
-  const text = await response.text();
-  const contentType = response.headers.get("content-type") || "application/json";
-
-  return {
-    status: response.status,
-    body: text,
-    contentType
-  };
+  // Güvenli varsayılan: hiç deneme yapılamadıysa 502 dön
+  return { status: 502, body: JSON.stringify({ error: "No attempt performed" }), contentType: "application/json" };
 }
 
 export default async function handler(req, res) {
@@ -255,7 +337,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!PAYMASTER_SERVICE_URL) {
+  if (!env('PAYMASTER_SERVICE_URL') && !env('PAYMASTER_URL')) {
     return res.status(500).json({ error: "Paymaster proxy is not configured." });
   }
 
@@ -300,9 +382,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const upstream = await forwardToPaymaster(jsonRpc);
+    const override = {};
+    if (req.headers && typeof req.headers === 'object') {
+      if (req.headers['authorization']) override['Authorization'] = String(req.headers['authorization']);
+      if (req.headers['x-api-key']) override['x-api-key'] = String(req.headers['x-api-key']);
+    }
+    const upstream = await forwardToPaymaster(jsonRpc, req.query?.auth, Object.keys(override).length ? override : null);
     res.status(upstream.status);
     res.setHeader("Content-Type", upstream.contentType);
+    const isProd = String(process?.env?.NODE_ENV || '').toLowerCase() === 'production';
+    if (!isProd) {
+      try { res.setHeader('X-Env-Has-PSU', String(Boolean(process?.env?.PAYMASTER_SERVICE_URL))); } catch (_) {}
+      try { if (Array.isArray(upstream.debug)) res.setHeader('X-Auth-Debug', upstream.debug.join(',')); } catch (_) {}
+      try { const u = new URL(env('PAYMASTER_SERVICE_URL') || env('PAYMASTER_URL')); res.setHeader('X-Target-Host', u.host); res.setHeader('X-Target-Path', u.pathname); } catch (_) {}
+    }
     return res.send(upstream.body);
   } catch (error) {
     console.error("[PaymasterProxy] upstream error:", error);
