@@ -41,8 +41,7 @@
         "'self'"
       ],
       "styleSrc": [
-        "'self'",
-        "'unsafe-inline'"
+        "'self'"
       ],
       "imgSrc": [
         "'self'",
@@ -60,18 +59,16 @@
         "https://base-man.vercel.app",
         "https://pulse.walletconnect.org",
         "https://explorer-api.walletconnect.com",
-        "https://explorer.walletconnect.com",
         "https://relay.walletconnect.com",
-        "wss://relay.walletconnect.com",
         "https://rpc.walletconnect.com",
-        "https://cloud.reown.com",
         "https://api.base.org",
         "https://api.developer.coinbase.com",
         "https://ipfs.decentralized-content.com"
       ]
     },
     "requiredChains": [
-      "eip155:84532"
+      "eip155:84532",
+      "eip155:8453"
     ],
     "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook"
   }

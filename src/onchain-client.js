@@ -404,6 +404,66 @@
       }
     }
 
+    // Discover paymaster capability URL via provider (EIP-5792 style)
+    async function discoverPaymasterUrl(provider, chainId) {
+      try {
+        if (!provider || typeof provider.request !== 'function') return null;
+        // Try capabilities discovery. Some providers accept no params; some accept [address].
+        let caps = null;
+        try {
+          caps = await provider.request({ method: 'wallet_getCapabilities' });
+        } catch (_) {}
+        if (!caps) {
+          try {
+            const addr = state.address || null;
+            if (addr) {
+              caps = await provider.request({ method: 'wallet_getCapabilities', params: [addr] });
+            }
+          } catch (_) {}
+        }
+
+        const candidates = [
+          'paymasterService',
+          'org.cdp.paymaster',
+          'capabilities.paymasterService',
+          'capabilities.org.cdp.paymaster'
+        ];
+
+        function pickUrl(obj) {
+          if (!obj || typeof obj !== 'object') return null;
+          if (typeof obj.url === 'string' && obj.url.length) return obj.url;
+          for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (val && typeof val === 'object' && typeof val.url === 'string') return val.url;
+          }
+          return null;
+        }
+
+        let url = null;
+        if (caps && typeof caps === 'object') {
+          for (const path of candidates) {
+            try {
+              const parts = path.split('.');
+              let cur = caps;
+              for (const p of parts) cur = cur?.[p];
+              const maybe = pickUrl(cur);
+              if (maybe) { url = maybe; break; }
+            } catch (_) {}
+          }
+        }
+
+        if (url) {
+          config.paymasterUrl = url;
+          debug(`Discovered paymaster capability url: ${url}`);
+          return url;
+        }
+        return null;
+      } catch (error) {
+        debug(`discoverPaymasterUrl error: ${error?.message || error}`);
+        return null;
+      }
+    }
+
     async function submitScoreWithPaymaster(callData) {
       if (!config.paymasterUrl) {
         return null;
@@ -771,68 +831,5 @@
 
   tryInitialize();
 })();
-    async function discoverPaymasterUrl(provider, chainId) {
-      try {
-        if (!provider || typeof provider.request !== 'function') return null;
-        // Try capabilities discovery (EIP-5792 style). Some providers accept no params; some accept [address].
-        let caps = null;
-        try {
-          caps = await provider.request({ method: 'wallet_getCapabilities' });
-        } catch (_) {
-          // ignore
-        }
-        if (!caps) {
-          try {
-            const addr = state.address || null;
-            if (addr) {
-              caps = await provider.request({ method: 'wallet_getCapabilities', params: [addr] });
-            }
-          } catch (_) {
-            // ignore
-          }
-        }
 
-        // Heuristic paths where paymaster capability might live
-        const candidates = [
-          'paymasterService',
-          'org.cdp.paymaster',
-          'capabilities.paymasterService',
-          'capabilities.org.cdp.paymaster'
-        ];
-
-        function pickUrl(obj) {
-          if (!obj || typeof obj !== 'object') return null;
-          // common shape: { url: "https://...", optional: boolean }
-          if (typeof obj.url === 'string' && obj.url.length) return obj.url;
-          // nested or array forms (best effort)
-          for (const key of Object.keys(obj)) {
-            const val = obj[key];
-            if (val && typeof val === 'object' && typeof val.url === 'string') return val.url;
-          }
-          return null;
-        }
-
-        let url = null;
-        if (caps && typeof caps === 'object') {
-          for (const path of candidates) {
-            try {
-              const parts = path.split('.');
-              let cur = caps;
-              for (const p of parts) cur = cur?.[p];
-              const maybe = pickUrl(cur);
-              if (maybe) { url = maybe; break; }
-            } catch (_) { /* noop */ }
-          }
-        }
-
-        if (url) {
-          config.paymasterUrl = url;
-          debug(`Discovered paymaster capability url: ${url}`);
-          return url;
-        }
-        return null;
-      } catch (error) {
-        debug(`discoverPaymasterUrl error: ${error?.message || error}`);
-        return null;
-      }
-    }
+    
