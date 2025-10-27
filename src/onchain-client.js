@@ -464,14 +464,50 @@
       }
     }
 
+    async function getCapabilities(provider, address) {
+      if (!provider || typeof provider.request !== 'function') return null;
+      let caps = null;
+      try {
+        caps = await provider.request({ method: 'wallet_getCapabilities' });
+      } catch (_) {}
+      if (!caps && address) {
+        try {
+          caps = await provider.request({ method: 'wallet_getCapabilities', params: [address] });
+        } catch (_) {}
+      }
+      return caps || null;
+    }
+
+    function isPaymasterSupported(caps, chainId) {
+      try {
+        if (!caps || typeof caps !== 'object') return false;
+        const byFlat = caps?.paymasterService?.supported === true || caps?.org?.cdp?.paymaster?.supported === true;
+        const byCaps = caps?.capabilities?.paymasterService?.supported === true || caps?.capabilities?.['org.cdp.paymaster']?.supported === true;
+        const byChain = caps?.[chainId]?.paymasterService?.supported === true;
+        return Boolean(byFlat || byCaps || byChain);
+      } catch (_) {
+        return false;
+      }
+    }
+
     async function submitScoreWithPaymaster(callData) {
       if (!config.paymasterUrl) {
+        debug('Paymaster URL not configured');
         return null;
       }
       if (!state.provider || typeof state.provider.request !== "function") {
         debug("No provider available for paymaster request.");
         return null;
       }
+      // Gate by capability support
+      try {
+        const caps = await getCapabilities(state.provider, state.address);
+        const supported = isPaymasterSupported(caps, config.chainId);
+        if (!supported) {
+          debug('paymasterService not supported by wallet, skipping wallet_sendCalls');
+          return null;
+        }
+      } catch (_) {}
 
       const capabilityUrl = resolveCapabilityUrl(config.paymasterUrl);
       if (!capabilityUrl) {
