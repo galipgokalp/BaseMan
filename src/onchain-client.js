@@ -483,8 +483,16 @@
         if (!caps || typeof caps !== 'object') return false;
         const byFlat = caps?.paymasterService?.supported === true || caps?.org?.cdp?.paymaster?.supported === true;
         const byCaps = caps?.capabilities?.paymasterService?.supported === true || caps?.capabilities?.['org.cdp.paymaster']?.supported === true;
-        const byChain = caps?.[chainId]?.paymasterService?.supported === true;
-        return Boolean(byFlat || byCaps || byChain);
+        const hex = (() => { try { return ethers.toBeHex(chainId); } catch (_) { return null; } })();
+        const caip = `eip155:${chainId}`;
+        const byChainLoose =
+          caps?.[String(chainId)]?.paymasterService?.supported === true ||
+          (hex && caps?.[hex]?.paymasterService?.supported === true) ||
+          caps?.[caip]?.paymasterService?.supported === true ||
+          caps?.chains?.[caip]?.paymasterService?.supported === true ||
+          caps?.chains?.[String(chainId)]?.paymasterService?.supported === true ||
+          (hex && caps?.chains?.[hex]?.paymasterService?.supported === true);
+        return Boolean(byFlat || byCaps || byChainLoose);
       } catch (_) {
         return false;
       }
@@ -499,15 +507,12 @@
         debug("No provider available for paymaster request.");
         return null;
       }
-      // Gate by capability support
+      // Soft‑gate: kontrol et ama başarısızsa yine de dene (cüzdanlar capability bilgisini eksik döndürebilir)
       try {
         const caps = await getCapabilities(state.provider, state.address);
         const supported = isPaymasterSupported(caps, config.chainId);
-        if (!supported) {
-          debug('paymasterService not supported by wallet, skipping wallet_sendCalls');
-          return null;
-        }
-      } catch (_) {}
+        debug(`paymaster capability support: ${supported ? 'yes' : 'unknown/no'}`);
+      } catch (_) { debug('wallet_getCapabilities failed; proceeding to try wallet_sendCalls'); }
 
       const capabilityUrl = resolveCapabilityUrl(config.paymasterUrl);
       if (!capabilityUrl) {
