@@ -44,18 +44,18 @@
     <canvas id='atlas' class="atlas-hidden"></canvas>
     <script defer src="vendor/miniapp-sdk/index.min.js"></script>
     <script defer src="vendor/ethers/ethers.umd.min.js"></script>
-    <script defer src="src/onchain-config.js"></script>
-    <script defer src="src/onchain-bootstrap.js"></script>
-    <script defer src="src/onchain-client.js"></script>
-    <script defer src="src/leaderboard-panel.js"></script>
+    <script defer src="src/onchain-config.js?v=20251028b"></script>
+    <script defer src="src/onchain-bootstrap.js?v=20251028b"></script>
+    <script defer src="src/onchain-client.js?v=20251028b"></script>
+    <script defer src="src/leaderboard-panel.js?v=20251028b"></script>
     <!-- Minimal fallback wallet button for miniapps -->
     <button id="wallet-fallback-btn" class="wallet-fallback-btn">Connect Wallet</button>
     <script defer src="src/wallet-fallback.js"></script>
     <!-- OnchainKit React island mount point + bundle -->
     <div id="onchainkit-root"></div>
     <!-- Inject NEXT_PUBLIC_* vars at runtime for the bundle (works in dev and prod) -->
-    <script defer src="/api/env.js"></script>
+    <script defer src="/api/env.js?v=20251028b"></script>
     <!-- Load OnchainKit bundle only in web (not inside mini-app containers) -->
-    <script defer src="src/load-onchainkit.js"></script>
+    <script defer src="src/load-onchainkit.js?v=20251028b"></script>
   </body>
 </html>
