@@ -409,6 +409,11 @@
     // Discover paymaster capability URL via provider (EIP-5792 style)
     async function discoverPaymasterUrl(provider, chainId) {
       try {
+        // If a paymaster URL is already configured (e.g., our proxy), do not override.
+        if (config.paymasterUrl && String(config.paymasterUrl).trim().length > 0) {
+          debug('paymasterUrl preset; skipping capability discovery');
+          return null;
+        }
         if (!provider || typeof provider.request !== 'function') return null;
         // Try capabilities discovery. Some providers accept no params; some accept [address].
         let caps = null;
