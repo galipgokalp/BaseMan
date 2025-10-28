@@ -765,12 +765,15 @@
         "readyRestartState.init"
       );
       patchInit(window.overState, "_patchedForOnchain", submitScore, "overState.init");
+      patchInit(window.finishState, "_patchedForOnchainFinish", submitScore, "finishState.init");
 
       const shouldRetry =
         !window.newGameState ||
         !window.newGameState._patchedForOnchain ||
         !window.overState ||
         !window.overState._patchedForOnchain ||
+        !window.finishState ||
+        !window.finishState._patchedForOnchainFinish ||
         !window.readyState ||
         !window.readyState._patchedForOnchainReady ||
         !window.readyNewState ||
