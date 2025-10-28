@@ -762,6 +762,7 @@
           } catch (error) {
             debug(`${label} hook error: ${error?.message || error}`);
           }
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init', meta: { label } }) }).catch(()=>{});} catch(_) {}
           return original(...args);
         };
         target[flagKey] = true;
