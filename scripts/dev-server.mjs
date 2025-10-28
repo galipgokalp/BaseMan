@@ -44,6 +44,7 @@ const apiMap = [
   ['/api/score-sign', path.join(ROOT, 'api', 'score-sign.js')],
   ['/api/quest-sign', path.join(ROOT, 'api', 'quest-sign.js')],
   ['/api/paymaster-proxy', path.join(ROOT, 'api', 'paymaster-proxy.js')],
+  ['/api/app-log', path.join(ROOT, 'api', 'app-log.js')],
   ['/api/leaderboard', path.join(ROOT, 'api', 'leaderboard.js')],
   ['/api/address-history', path.join(ROOT, 'api', 'address-history.js')],
   ['/api/token-balances', path.join(ROOT, 'api', 'token-balances.js')],

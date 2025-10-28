@@ -387,6 +387,7 @@ export default async function handler(req, res) {
       if (req.headers['authorization']) override['Authorization'] = String(req.headers['authorization']);
       if (req.headers['x-api-key']) override['x-api-key'] = String(req.headers['x-api-key']);
     }
+    const method = jsonRpc.method || 'unknown';
     const upstream = await forwardToPaymaster(jsonRpc, req.query?.auth, Object.keys(override).length ? override : null);
     res.status(upstream.status);
     res.setHeader("Content-Type", upstream.contentType);
@@ -396,6 +397,7 @@ export default async function handler(req, res) {
       try { if (Array.isArray(upstream.debug)) res.setHeader('X-Auth-Debug', upstream.debug.join(',')); } catch (_) {}
       try { const u = new URL(env('PAYMASTER_SERVICE_URL') || env('PAYMASTER_URL')); res.setHeader('X-Target-Host', u.host); res.setHeader('X-Target-Path', u.pathname); } catch (_) {}
     }
+    try { console.log(`[PaymasterProxy] method=${method} status=${upstream.status}`); } catch (_) {}
     return res.send(upstream.body);
   } catch (error) {
     console.error("[PaymasterProxy] upstream error:", error);

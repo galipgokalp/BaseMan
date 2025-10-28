@@ -352,9 +352,11 @@
       if (!response.ok) {
         const message = payload?.error || "Failed to obtain score signature";
         debug(`score-sign failed: ${message}`);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score-sign:error', meta: { message: String(message), durationMs } }) }).catch(()=>{});} catch(_) {}
         throw new Error(message);
       }
       debug(`score-sign succeeded: ${score} (duration ${durationMs}ms)`);
+      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score-sign:ok', meta: { score: score.toString(), durationMs } }) }).catch(()=>{});} catch(_) {}
       return payload;
     }
 
@@ -557,6 +559,7 @@
 
       try {
         debug("Sending wallet_sendCalls (paymaster) request.");
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:start', meta: { chainId: hexChainId, url: capabilityUrl } }) }).catch(()=>{});} catch(_) {}
         const result = await state.provider.request({
           method: "wallet_sendCalls",
           params: [payload]
@@ -565,17 +568,21 @@
         if (result && typeof result === "object") {
           if (result.id) {
             debug(`wallet_sendCalls request sent. id=${result.id}`);
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:sent', meta: { id: result.id } }) }).catch(()=>{});} catch(_) {}
           } else {
             debug(`wallet_sendCalls response: ${JSON.stringify(result)}`);
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:response' }) }).catch(()=>{});} catch(_) {}
           }
         } else {
           debug("wallet_sendCalls response unexpected.");
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:unexpected' }) }).catch(()=>{});} catch(_) {}
         }
 
         return result;
       } catch (error) {
         const message = error?.message || error;
         debug(`wallet_sendCalls failed: ${message}`);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:error', meta: { message: String(message) } }) }).catch(()=>{});} catch(_) {}
         return null;
       }
     }
@@ -673,6 +680,7 @@
         const tx = await state.contract.submitScore(state.address, scoreValue, deadlineValue, signature);
 
         debug(`submitScore tx: ${tx.hash}`);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'fallback:tx', meta: { hash: tx.hash } }) }).catch(()=>{});} catch(_) {}
       } catch (error) {
         debug(`submitScore error: ${error?.message || error}`);
       } finally {
