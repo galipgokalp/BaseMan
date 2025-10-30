@@ -54,8 +54,9 @@ function resolveChainKey(target) {
 
 function readFirstEnv(keys = []) {
   for (const key of keys) {
-    if (key && process.env[key]) {
-      return process.env[key];
+    if (key && typeof process.env[key] === 'string') {
+      const v = process.env[key];
+      try { return v.trim(); } catch (_) { return v; }
     }
   }
   return undefined;
