@@ -41,8 +41,8 @@ module.exports = {
           }
         }
       },
-      "contracts/BaseManRegistry.sol": {
-        version: "0.8.21",
+      "contracts/BaseManRegistryV2.sol": {
+        version: "0.8.28",
         settings: {
           optimizer: {
             enabled: true,

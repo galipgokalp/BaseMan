@@ -7,6 +7,7 @@ import {
   normalizeAddress,
   questTypes
 } from "./_lib/registry.js";
+import { extractQuickAuthToken, isMiniAppAuthRequired, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
 
 const SIGNATURE_TTL_SECONDS = Number(process.env.QUEST_SIGNATURE_TTL_SECONDS ?? "300");
 const DEFAULT_CHAIN = process.env.REGISTRY_DEFAULT_TARGET || "base-sepolia";
@@ -66,6 +67,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid JSON body" });
   }
 
+  // Enforce Quick Auth if configured
+  if (isMiniAppAuthRequired('quest')) {
+    const token = extractQuickAuthToken(req, payload);
+    if (!token) {
+      return res.status(401).json({ error: 'Mini App auth token missing' });
+    }
+    try {
+      await verifyQuickAuthToken({ token, req });
+    } catch (error) {
+      const status = Number(error?.statusCode || 401);
+      return res.status(status).json({ error: 'Mini App auth invalid', details: error?.message || String(error) });
+    }
+  }
+
   const parsed = QuestPayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return res.status(400).json({
@@ -104,11 +119,15 @@ export default async function handler(req, res) {
   const deadlineSeconds = Math.floor(Date.now() / 1000) + Math.max(SIGNATURE_TTL_SECONDS, 60);
   const deadline = BigInt(deadlineSeconds);
 
-  const value = {
-    player,
-    questId,
-    deadline
-  };
+  const isV2 = (process.env.REGISTRY_EIP712_VERSION || "2").toString() === "2";
+  let nonce = undefined;
+  if (isV2) {
+    nonce = BigInt(Date.now());
+  }
+
+  const value = isV2
+    ? { player, questId, deadline, nonce }
+    : { player, questId, deadline };
 
   const signerKeyMap = {
     appchain: "APPCHAIN_QUEST_SIGNER_PRIVATE_KEY",
@@ -118,12 +137,14 @@ export default async function handler(req, res) {
   const signer = getSigner(signerKey);
   const signature = await signer.signTypedData(registryContext.domain, questTypes, value);
 
-  return res.status(200).json({
+  const response = {
     signature,
     deadline: deadlineSeconds,
     contractAddress: registryContext.address,
     chainId: registryContext.chainIdNumber,
     questId: questId.toString(),
     chain: registryContext.target
-  });
+  };
+  if (isV2) response.nonce = nonce?.toString?.() || String(nonce);
+  return res.status(200).json(response);
 }

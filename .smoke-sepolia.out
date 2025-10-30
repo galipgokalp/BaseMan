@@ -1,0 +1,9 @@
+[OK]  / -> 200
+[OK]  manifest requiredChains includes eip155:84532 (status 200)
+[OK]  __env.js exposes NEXT_PUBLIC_REGISTRY_ADDRESS
+[OK]  __env.js paymaster url is proxy
+[OK]  score-sign -> status 200, chainId=84532, contract=0xb64Ec4F79b8C6859712879748e5533A60ba050e7
+[OK]  paymaster-proxy rejects non-allowlisted target (status 403)
+[OK]  paymaster-proxy forwards allowlisted call (status 200)
+---
+PASS=6 FAIL=0

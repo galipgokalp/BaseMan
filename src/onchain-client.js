@@ -20,6 +20,7 @@
       () => window.sdk,
       () => window.fc && window.fc.miniapp,
       () => window.farcaster && window.farcaster.miniapp,
+      () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
       () => window.MiniAppSDK,
       () => window.FarcasterMiniAppSDK,
       () => window.MiniApp && window.MiniApp.sdk,
@@ -97,8 +98,13 @@
     });
 
     const CONTRACT_ABI = [
+      // V1
       "function submitScore(address player,uint256 score,uint256 deadline,bytes signature)",
       "function completeQuest(address player,uint256 questId,uint256 deadline,bytes signature)",
+      // V2 (adds nonce)
+      "function submitScore(address player,uint256 score,uint256 deadline,uint256 nonce,bytes signature)",
+      "function completeQuest(address player,uint256 questId,uint256 deadline,uint256 nonce,bytes signature)",
+      // Views
       "function getScore(address player) view returns (tuple(uint256 highScore,uint256 lastUpdatedAt))"
     ];
 
@@ -160,6 +166,24 @@
       } catch (_) {
         return false;
       }
+    }
+
+    async function getMiniAppAuthToken() {
+      try {
+        if (typeof window.__MINIAPP_AUTH_TOKEN__ === 'string' && window.__MINIAPP_AUTH_TOKEN__.length > 8) {
+          return window.__MINIAPP_AUTH_TOKEN__;
+        }
+        // Best-effort: try to get a fresh token via SDK if available
+        const fn = sdk?.quickAuth && (sdk.quickAuth.getToken || sdk.quickAuth.token);
+        if (typeof fn === 'function') {
+          const t = await fn();
+          if (typeof t === 'string' && t.length > 8) {
+            try { window.__MINIAPP_AUTH_TOKEN__ = t; } catch (_) {}
+            return t;
+          }
+        }
+      } catch (_) {}
+      return null;
     }
 
     async function ensureWallet() {
@@ -336,9 +360,17 @@
         `Preparing score-sign request: score=${score.toString()} duration=${durationMs}ms chain=${chainKey}`
       );
 
+      const headers = { "Content-Type": "application/json" };
+      if (isMiniAppEnv()) {
+        try {
+          const t = await getMiniAppAuthToken();
+          if (t) { headers['Authorization'] = `Bearer ${t}`; headers['X-MiniApp-Auth-Token'] = t; }
+        } catch (_) {}
+      }
+
       const response = await fetch(config.scoreEndpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           playerAddress,
           score: score.toString(),
@@ -371,9 +403,16 @@
 
       const chainKey = config.chainId === 8453 ? 'base' : (config.chainId === 84532 ? 'base-sepolia' : 'base');
 
+      const headers2 = { "Content-Type": "application/json" };
+      if (isMiniAppEnv()) {
+        try {
+          const t = await getMiniAppAuthToken();
+          if (t) { headers2['Authorization'] = `Bearer ${t}`; headers2['X-MiniApp-Auth-Token'] = t; }
+        } catch (_) {}
+      }
       const response = await fetch(config.questEndpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers2,
         body: JSON.stringify({
           playerAddress,
           questId: String(questId),
@@ -623,12 +662,45 @@
         let paymasterHandled = false;
         const contractInterface = state.contract && state.contract.interface;
         if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
-          const callData = contractInterface.encodeFunctionData("submitScore", [
-            state.address,
-            scoreValue,
-            deadlineValue,
-            signature
-          ]);
+          // Decide EIP-712 version at runtime (prefer env, else introspect contract.eip712Version())
+          let eip712v = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) || '';
+          let isV2 = eip712v === '2';
+          if (!isV2 && eip712v !== '1') {
+            try {
+              if (typeof state.contract.eip712Version === 'function') {
+                const v = await state.contract.eip712Version();
+                if (typeof v === 'string' && v.trim() === '2') {
+                  isV2 = true;
+                  debug('Detected EIP-712 version from contract: 2');
+                }
+              }
+            } catch (detectErr) {
+              debug(`EIP-712 version autodetect failed: ${detectErr?.message || detectErr}`);
+            }
+          }
+          let callData;
+          if (isV2) {
+            let nonceValue = null;
+            try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
+            if (nonceValue === null) {
+              debug('V2 requires nonce but none was provided; aborting');
+              throw new Error('Missing nonce for V2 signature');
+            }
+            callData = contractInterface.encodeFunctionData("submitScore", [
+              state.address,
+              scoreValue,
+              deadlineValue,
+              nonceValue,
+              signature
+            ]);
+          } else {
+            callData = contractInterface.encodeFunctionData("submitScore", [
+              state.address,
+              scoreValue,
+              deadlineValue,
+              signature
+            ]);
+          }
           const paymasterResult = await submitScoreWithPaymaster(callData);
           if (paymasterResult) {
             let identifier = null;
@@ -682,7 +754,29 @@
           debug("Paymaster submission not completed, sending standard transaction.");
         }
 
-        const tx = await state.contract.submitScore(state.address, scoreValue, deadlineValue, signature);
+        // Fallback standard transaction; detect V2 and include nonce if required
+        let eip712v2 = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) === '2';
+        if (!eip712v2) {
+          try {
+            if (state.contract && typeof state.contract.eip712Version === 'function') {
+              const v = await state.contract.eip712Version();
+              eip712v2 = (typeof v === 'string' && v.trim() === '2');
+              if (eip712v2) debug('Detected EIP-712 version from contract for submitScore fallback: 2');
+            }
+          } catch (detectErr) {
+            debug(`EIP-712 version autodetect (submit fallback) failed: ${detectErr?.message || detectErr}`);
+          }
+        }
+
+        let tx;
+        if (eip712v2) {
+          let nonceValue = null;
+          try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
+          if (nonceValue === null) throw new Error('Missing nonce for V2 signature');
+          tx = await state.contract.submitScore(state.address, scoreValue, deadlineValue, nonceValue, signature);
+        } else {
+          tx = await state.contract.submitScore(state.address, scoreValue, deadlineValue, signature);
+        }
 
         debug(`submitScore tx: ${tx.hash}`);
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'fallback:tx', meta: { hash: tx.hash } }) }).catch(()=>{});} catch(_) {}
@@ -713,12 +807,31 @@
         let paymasterHandled = false;
         const contractInterface = state.contract && state.contract.interface;
         if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
-          const callData = contractInterface.encodeFunctionData("completeQuest", [
-            state.address,
-            qid,
-            deadlineValue,
-            signature
-          ]);
+          const eip712v = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) || '';
+          const isV2 = eip712v === '2';
+          let callData;
+          if (isV2) {
+            let nonceValue = null;
+            try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
+            if (nonceValue === null) {
+              debug('V2 requires nonce for quest but none was provided; aborting');
+              throw new Error('Missing nonce for V2 quest signature');
+            }
+            callData = contractInterface.encodeFunctionData("completeQuest", [
+              state.address,
+              qid,
+              deadlineValue,
+              nonceValue,
+              signature
+            ]);
+          } else {
+            callData = contractInterface.encodeFunctionData("completeQuest", [
+              state.address,
+              qid,
+              deadlineValue,
+              signature
+            ]);
+          }
           const paymasterResult = await submitScoreWithPaymaster(callData);
           if (paymasterResult) {
             paymasterHandled = true;
@@ -730,7 +843,27 @@
           return;
         }
 
-        const tx = await state.contract.completeQuest(state.address, qid, deadlineValue, signature);
+        let eip712v2 = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) === '2';
+        if (!eip712v2) {
+          try {
+            if (state.contract && typeof state.contract.eip712Version === 'function') {
+              const v = await state.contract.eip712Version();
+              eip712v2 = (typeof v === 'string' && v.trim() === '2');
+              if (eip712v2) debug('Detected EIP-712 version from contract for quest: 2');
+            }
+          } catch (detectErr) {
+            debug(`EIP-712 version autodetect (quest) failed: ${detectErr?.message || detectErr}`);
+          }
+        }
+        let tx;
+        if (eip712v2) {
+          let nonceValue = null;
+          try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
+          if (nonceValue === null) throw new Error('Missing nonce for V2 quest signature');
+          tx = await state.contract.completeQuest(state.address, qid, deadlineValue, nonceValue, signature);
+        } else {
+          tx = await state.contract.completeQuest(state.address, qid, deadlineValue, signature);
+        }
         debug(`completeQuest tx: ${tx.hash}`);
       } catch (error) {
         debug(`completeQuest error: ${error?.message || error}`);

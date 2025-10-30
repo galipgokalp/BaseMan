@@ -1,4 +1,13 @@
 const RING_SIZE = 200;
+const FORWARD_URL = process.env.CDP_WEBHOOK_LOG_ENDPOINT || process.env.LOG_FORWARD_URL || '';
+let FORWARD_HEADERS = {};
+try {
+  const raw = process.env.CDP_WEBHOOK_LOG_HEADERS || process.env.LOG_FORWARD_HEADERS || '';
+  if (raw && typeof raw === 'string') {
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj === 'object') FORWARD_HEADERS = obj;
+  }
+} catch (_) {}
 globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
 
 export default async function handler(req, res) {
@@ -32,6 +41,14 @@ export default async function handler(req, res) {
     } catch (_) {}
     // Avoid logging secrets
     try { console.log('[app-log]', JSON.stringify({ event: entry.event, message: entry.message })); } catch (_) {}
+    // Optional forward to external log/alert endpoint
+    if (FORWARD_URL) {
+      try {
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, FORWARD_HEADERS);
+        // Fire-and-forget; do not block response on failures
+        fetch(FORWARD_URL, { method: 'POST', headers, body: JSON.stringify(entry) }).catch(() => {});
+      } catch (_) {}
+    }
     return res.status(200).json({ ok: true });
   } catch (error) {
     try { console.error('[app-log] error', error?.message || error); } catch (_) {}

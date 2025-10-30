@@ -4,7 +4,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-dotenv.config({ override: true });
+// Allow custom env file via ENV_FILE; fallback to default behavior.
+// Setting ENV_FILE=/dev/null (or a non-existent path) prevents .env overrides
+// and preserves inline env vars passed at process start.
+const dotenvPath = process.env.ENV_FILE && process.env.ENV_FILE.length ? process.env.ENV_FILE : undefined;
+dotenv.config({ path: dotenvPath, override: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +48,9 @@ const apiMap = [
   ['/api/score-sign', path.join(ROOT, 'api', 'score-sign.js')],
   ['/api/quest-sign', path.join(ROOT, 'api', 'quest-sign.js')],
   ['/api/paymaster-proxy', path.join(ROOT, 'api', 'paymaster-proxy.js')],
+  ['/api/miniapp-auth', path.join(ROOT, 'api', 'miniapp-auth.js')],
+  ['/api/_test-verify', path.join(ROOT, 'api', '_test-verify.js')],
+  ['/api/debug-env', path.join(ROOT, 'api', 'debug-env.js')],
   ['/api/app-log', path.join(ROOT, 'api', 'app-log.js')],
   ['/api/leaderboard', path.join(ROOT, 'api', 'leaderboard.js')],
   ['/api/address-history', path.join(ROOT, 'api', 'address-history.js')],

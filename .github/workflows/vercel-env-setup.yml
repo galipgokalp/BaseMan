@@ -1,0 +1,49 @@
+name: Vercel Env Setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Push env vars to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # Public
+          NEXT_PUBLIC_REGISTRY_ADDRESS: ${{ secrets.NEXT_PUBLIC_REGISTRY_ADDRESS }}
+          NEXT_PUBLIC_PAYMASTER_URL: ${{ secrets.NEXT_PUBLIC_PAYMASTER_URL }}
+          NEXT_PUBLIC_BUNDLER_URL: ${{ secrets.NEXT_PUBLIC_BUNDLER_URL }}
+          NEXT_PUBLIC_REGISTRY_EIP712_VERSION: ${{ secrets.NEXT_PUBLIC_REGISTRY_EIP712_VERSION }}
+          # Server
+          REGISTRY_DEFAULT_TARGET: ${{ secrets.REGISTRY_DEFAULT_TARGET }}
+          REGISTRY_CHAIN_ID: ${{ secrets.REGISTRY_CHAIN_ID }}
+          SCORE_SIGNER_PRIVATE_KEY: ${{ secrets.SCORE_SIGNER_PRIVATE_KEY }}
+          PAYMASTER_SERVICE_URL: ${{ secrets.PAYMASTER_SERVICE_URL }}
+          PAYMASTER_ENFORCE_ALLOWLIST: ${{ secrets.PAYMASTER_ENFORCE_ALLOWLIST }}
+          PAYMASTER_ALLOWED_TARGETS: ${{ secrets.PAYMASTER_ALLOWED_TARGETS }}
+          PAYMASTER_ALLOWED_SELECTORS: ${{ secrets.PAYMASTER_ALLOWED_SELECTORS }}
+          CDP_API_KEY_ID: ${{ secrets.CDP_API_KEY_ID }}
+          CDP_API_KEY_SECRET: ${{ secrets.CDP_API_KEY_SECRET }}
+          CDP_SQL_API_KEY: ${{ secrets.CDP_SQL_API_KEY }}
+          MINIAPP_AUTH_MODE: ${{ secrets.MINIAPP_AUTH_MODE }}
+          MINIAPP_AUTH_DOMAIN: ${{ secrets.MINIAPP_AUTH_DOMAIN }}
+          MINIAPP_AUTH_VERIFY_URL: ${{ secrets.MINIAPP_AUTH_VERIFY_URL }}
+          MINIAPP_AUTH_VERIFY_HEADERS: ${{ secrets.MINIAPP_AUTH_VERIFY_HEADERS }}
+          CDP_WEBHOOK_LOG_ENDPOINT: ${{ secrets.CDP_WEBHOOK_LOG_ENDPOINT }}
+          CDP_WEBHOOK_LOG_HEADERS: ${{ secrets.CDP_WEBHOOK_LOG_HEADERS }}
+        run: bash ops/vercel/set-env.sh
+

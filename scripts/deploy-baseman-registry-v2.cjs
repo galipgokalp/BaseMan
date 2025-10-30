@@ -2,12 +2,11 @@ const hre = require("hardhat");
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
-  console.log("Deploying with:", deployer.address);
+  console.log("Deploying V2 with:", deployer.address);
 
   const authorizer = process.env.INITIAL_AUTHORIZER || deployer.address;
   console.log("Authorizer:", authorizer);
 
-  // V2 default: deploy BaseManRegistryV2
   const Factory = await hre.ethers.getContractFactory("BaseManRegistryV2");
   const contract = await Factory.deploy(authorizer);
   await contract.waitForDeployment();
@@ -22,3 +21,4 @@ main()
     console.error(error);
     process.exit(1);
   });
+

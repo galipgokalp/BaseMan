@@ -22,10 +22,14 @@
   "homepage": "https://github.com/masonicGIT/pacman#readme",
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
+    "smoke:sepolia": "node scripts/smoke-sepolia.mjs",
+    "e2e:sponsor": "node scripts/e2e-sponsor.mjs",
+    "e2e:bundler": "node scripts/e2e-bundler.mjs",
     "ui:build": "node scripts/build-onchainkit.mjs",
-    "sdk:bundle": "mkdir -p vendor/miniapp-sdk && cp node_modules/@farcaster/miniapp-sdk/dist/index.min.js vendor/miniapp-sdk/index.min.js",
+    "sdk:bundle": "node scripts/bundle-minikit.mjs",
     "game:build": "node scripts/build-pacman.mjs",
     "healthcheck": "node scripts/healthcheck.mjs",
+    "self:check": "node scripts/self-check.mjs",
     "manifest:generate": "node scripts/generate-manifest.mjs",
     "contracts:compile": "npx hardhat compile",
     "contracts:test": "npx hardhat test",
@@ -42,6 +46,7 @@
     "@coinbase/cdp-sdk": "^1.38.4",
     "@coinbase/onchainkit": "^0.38.19",
     "@farcaster/miniapp-sdk": "^0.2.1",
+    "@farcaster/quick-auth": "^0.0.8",
     "aes-js": "^4.0.0-beta.5",
     "ethers": "^6.13.0",
     "prompts": "^2.4.2",
@@ -52,8 +57,8 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^5.0.2",
-    "esbuild": "^0.21.5",
     "dotenv": "^16.6.1",
+    "esbuild": "^0.21.5",
     "express": "^5.1.0",
     "hardhat": "^2.22.5"
   },

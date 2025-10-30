@@ -43,10 +43,15 @@
     </div>
     <canvas id='atlas' class="atlas-hidden"></canvas>
     <script defer src="vendor/miniapp-sdk/index.min.js"></script>
+    <!-- Debug/mock: inject a minimal Mini App SDK + provider in web for local e2e -->
+    <script defer src="src/mock-miniapp-provider.js"></script>
+    <script defer src="src/miniapp-auth.js"></script>
     <script defer src="vendor/ethers/ethers.umd.min.js"></script>
     <script defer src="src/onchain-config.js?v=20251028b"></script>
     <script defer src="src/onchain-bootstrap.js?v=20251028b"></script>
     <script defer src="src/onchain-client.js?v=20251028b"></script>
+    <!-- Optional auto submit for e2e: set ?mock-miniapp=1&auto=1 to trigger a score submission -->
+    <script defer src="src/debug-autosubmit.js"></script>
     <script defer src="src/leaderboard-panel.js?v=20251028b"></script>
     <!-- Minimal fallback wallet button for miniapps -->
     <button id="wallet-fallback-btn" class="wallet-fallback-btn">Connect Wallet</button>

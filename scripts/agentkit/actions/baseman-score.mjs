@@ -97,8 +97,8 @@ function resolveChainConfig(target) {
 }
 
 const REGISTRY_ABI = [
-  "function getScore(address player) view returns (tuple(uint256 highScore,uint256 lastUpdatedAt))",
-  "function submitScore(address player,uint256 score,uint256 deadline,bytes signature)"
+  // Read-only ABI is sufficient for verification action
+  "function getScore(address player) view returns (tuple(uint256 highScore,uint256 lastUpdatedAt))"
 ];
 
 export const verifyScoreAction = {

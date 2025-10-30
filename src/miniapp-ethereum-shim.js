@@ -11,6 +11,7 @@
       const sdk =
         (window.fc && window.fc.miniapp) ||
         (window.farcaster && window.farcaster.miniapp) ||
+        (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
         (window.miniapp && (window.miniapp.default || window.miniapp.sdk)) ||
         window.MiniAppSDK ||
         window.MiniApp?.sdk ||
@@ -51,4 +52,3 @@
     ensureEthereum();
   }
 })();
-

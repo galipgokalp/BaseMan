@@ -51,6 +51,41 @@ const smartWalletInterface = new ethers.Interface([
   "function executeBatch(tuple(address target,uint256 value,bytes data)[] calls)"
 ]);
 
+// Registry function allowlist (selectors)
+const normalizedRegistryAddress = (() => {
+  try {
+    return ethers.getAddress(registryAddress);
+  } catch (error) {
+    throw new Error(
+      `Unable to normalize registryAddress: ${error?.message || error}`
+    );
+  }
+})();
+
+function parseAllowedSelectorsFromEnv() {
+  const raw = (process.env.PAYMASTER_ALLOWED_SELECTORS || "").trim();
+  if (!raw) return null;
+  const items = raw
+    .split(",")
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean)
+    .map((v) => (v.startsWith("0x") ? v : `0x${v}`))
+    .map((v) => v.slice(0, 10));
+  const out = new Set();
+  for (const sel of items) {
+    if (sel.length === 10) out.add(sel);
+  }
+  return out.size ? out : null;
+}
+
+const defaultAllowedSelectors = new Set([
+  // V2 only (recommended)
+  ethers.id("submitScore(address,uint256,uint256,uint256,bytes)").slice(0, 10).toLowerCase(),
+  ethers.id("completeQuest(address,uint256,uint256,uint256,bytes)").slice(0, 10).toLowerCase()
+]);
+
+const allowedFunctionSelectors = parseAllowedSelectorsFromEnv() || defaultAllowedSelectors;
+
 const JsonRpcRequestSchema = z
   .object({
     id: z.union([z.number(), z.string()]).optional(),
@@ -157,8 +192,8 @@ function validateTargetsFromCallData(callData) {
   const targets = [];
 
   if (parsed.name === "execute") {
-    const [target, value] = parsed.args;
-    targets.push({ target, value });
+    const [target, value, data] = parsed.args;
+    targets.push({ target, value, data });
   } else if (parsed.name === "executeBatch") {
     const [calls] = parsed.args;
     if (!Array.isArray(calls)) {
@@ -171,7 +206,7 @@ function validateTargetsFromCallData(callData) {
       };
     }
     for (const call of calls) {
-      targets.push({ target: call.target, value: call.value });
+      targets.push({ target: call.target, value: call.value, data: call.data });
     }
   } else {
     return {
@@ -180,7 +215,7 @@ function validateTargetsFromCallData(callData) {
     };
   }
 
-  for (const { target, value } of targets) {
+  for (const { target, value, data } of targets) {
     if (!ethers.isAddress(target)) {
       return { ok: false, error: `Invalid call target: ${target}` };
     }
@@ -209,6 +244,20 @@ function validateTargetsFromCallData(callData) {
         ok: false,
         error: `Sponsored calls must have zero value (found ${amount} for ${normalizedTarget})`
       };
+    }
+
+    // Function-level allowlist only for registry calls
+    if (ENFORCE_ALLOWLIST && normalizedTarget === normalizedRegistryAddress) {
+      if (typeof data !== "string" || !data.startsWith("0x") || data.length < 10) {
+        return { ok: false, error: "Missing or invalid call data for registry target" };
+      }
+      const selector = data.slice(0, 10).toLowerCase();
+      if (!allowedFunctionSelectors.has(selector)) {
+        return {
+          ok: false,
+          error: `Function selector ${selector} is not allowlisted for sponsorship`
+        };
+      }
     }
   }
 

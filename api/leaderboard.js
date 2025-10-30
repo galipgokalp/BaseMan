@@ -12,6 +12,28 @@ const LEADERBOARD_DISABLED = ["1","true","yes","on"].includes(DISABLE_FLAG);
 const SQL_BASE_URL = (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, "");
 const SQL_TIMEOUT_MS = Number.parseInt(process.env.CDP_SQL_QUERY_TIMEOUT_MS || "15000", 10);
 const SQL_POLL_INTERVAL_MS = 750;
+
+// Basic in-memory rate limit for the leaderboard endpoint (prod-friendly defaults low)
+const RL_WINDOW_MS = Number.parseInt(process.env.LEADERBOARD_RATE_WINDOW_MS || "10000", 10);
+const RL_MAX = Number.parseInt(process.env.LEADERBOARD_RATE_MAX || "5", 10);
+const __rlBuckets = new Map();
+function clientIp(req) {
+  try {
+    const xf = (req.headers?.["x-forwarded-for"] || req.headers?.["X-Forwarded-For"]) ?? "";
+    if (typeof xf === "string" && xf.length) return xf.split(",")[0].trim();
+    return req.socket?.remoteAddress || req.connection?.remoteAddress || "";
+  } catch { return ""; }
+}
+function rlCheck(key) {
+  if (!RL_WINDOW_MS || !RL_MAX || RL_MAX <= 0) return false;
+  const now = Date.now();
+  const windowStart = now - RL_WINDOW_MS;
+  let bucket = __rlBuckets.get(key);
+  if (!Array.isArray(bucket)) bucket = [];
+  const fresh = bucket.filter((ts) => Number.isFinite(ts) && ts >= windowStart);
+  if (fresh.length >= RL_MAX) { __rlBuckets.set(key, fresh); return true; }
+  fresh.push(now); __rlBuckets.set(key, fresh); return false;
+}
 function endpointsFor(baseUrl) {
   const base = (baseUrl || DEFAULT_SQL_BASE).replace(/\/$/, "");
   return {
@@ -412,6 +434,13 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  try {
+    const ip = clientIp(req);
+    if (rlCheck(ip)) {
+      return res.status(429).json({ error: "Rate limit exceeded" });
+    }
+  } catch (_) {}
 
   // Allow disabling the leaderboard in local/dev to avoid noisy logs
   if (LEADERBOARD_DISABLED) {

@@ -97,8 +97,8 @@ function resolveChainConfig(target) {
 }
 
 const REGISTRY_ABI = [
-  "function isQuestCompleted(address player,uint256 questId) view returns (bool)",
-  "function completeQuest(address player,uint256 questId,uint256 deadline,bytes signature)"
+  // Read-only ABI is sufficient for verification action
+  "function isQuestCompleted(address player,uint256 questId) view returns (bool)"
 ];
 
 export const verifyQuestAction = {

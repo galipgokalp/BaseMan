@@ -1,7 +1,9 @@
 import { ethers } from "ethers";
 
 const CONTRACT_NAME = "BaseManRegistry";
-const CONTRACT_VERSION = "1";
+// EIP-712 domain version (matches on-chain EIP712 constructor). Default: 1
+// Default to V2 for latest contract; can be forced via REGISTRY_EIP712_VERSION
+const CONTRACT_VERSION = (process.env.REGISTRY_EIP712_VERSION || "2").toString();
 
 function normalizeTarget(raw) {
   return (raw || "").trim().toLowerCase().replace(/_/g, "-");
@@ -126,7 +128,7 @@ export const registryChainId = defaultContext.chainId;
 export const registryChainIdNumber = defaultContext.chainIdNumber;
 export const registryDomain = defaultContext.domain;
 
-export const scoreTypes = {
+const V1_scoreTypes = {
   Score: [
     { name: "player", type: "address" },
     { name: "score", type: "uint256" },
@@ -134,13 +136,34 @@ export const scoreTypes = {
   ]
 };
 
-export const questTypes = {
+const V1_questTypes = {
   Quest: [
     { name: "player", type: "address" },
     { name: "questId", type: "uint256" },
     { name: "deadline", type: "uint256" }
   ]
 };
+
+const V2_scoreTypes = {
+  Score: [
+    { name: "player", type: "address" },
+    { name: "score", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+    { name: "nonce", type: "uint256" }
+  ]
+};
+
+const V2_questTypes = {
+  Quest: [
+    { name: "player", type: "address" },
+    { name: "questId", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+    { name: "nonce", type: "uint256" }
+  ]
+};
+
+export const scoreTypes = CONTRACT_VERSION === "2" ? V2_scoreTypes : V1_scoreTypes;
+export const questTypes = CONTRACT_VERSION === "2" ? V2_questTypes : V1_questTypes;
 
 export function getSigner(envKey = "SCORE_SIGNER_PRIVATE_KEY") {
   const fallback = process.env.SCORE_SIGNER_PRIVATE_KEY;

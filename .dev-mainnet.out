@@ -1,0 +1,9 @@
+
+> pacman@1.0.0 dev
+> node scripts/dev-server.mjs
+
+[dev] Server running at http://127.0.0.1:5181
+[dev] env PAYMASTER_SERVICE_URL set: true
+[dev] env CDP_API_KEY_ID set: false
+[dev] env CDP_API_KEY_SECRET set: false
+[PaymasterProxy] method=eth_sendUserOperation status=200

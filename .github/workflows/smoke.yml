@@ -1,0 +1,43 @@
+name: Smoke Tests (Deployed URL)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL of deployed app (e.g., https://your-app.vercel.app)"
+        required: true
+        type: string
+      network:
+        description: "Network to test"
+        required: true
+        default: sepolia
+        type: choice
+        options:
+          - sepolia
+          - mainnet
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run smoke tests
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+        run: |
+          if [ "${{ inputs.network }}" = "sepolia" ]; then \
+            node scripts/smoke-sepolia.mjs ; \
+          else \
+            node scripts/smoke-mainnet.mjs ; \
+          fi
+
