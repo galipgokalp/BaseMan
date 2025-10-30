@@ -156,16 +156,12 @@
     debug("sdk.actions.ready() called");
 
     function isMiniAppEnv() {
+      // Be strict: only treat as mini‑app inside Farcaster/Base containers
       try {
-        return Boolean(
-          (window.fc && window.fc.miniapp) ||
-          (window.farcaster && window.farcaster.miniapp) ||
-          window.MiniApp ||
-          (window.miniapp && (window.miniapp.default || window.miniapp.sdk))
-        );
-      } catch (_) {
-        return false;
-      }
+        const hasFC = Boolean((window.fc && window.fc.miniapp) || (window.farcaster && window.farcaster.miniapp));
+        const rnHint = Boolean(window.ReactNativeWebView);
+        return hasFC || rnHint;
+      } catch (_) { return false; }
     }
 
     async function getMiniAppAuthToken() {
@@ -204,7 +200,7 @@
           const provider = await sdk.wallet.getEthereumProvider();
           if (!provider) throw new Error("Ethereum provider not available.");
           debug("sdk.wallet.getEthereumProvider() returned");
-          await ensureChain(provider, config.chainId);
+          // Mini‑app providers may not support wallet_switchEthereumChain; skip enforcing switch
 
           const browserProvider = new ethers.BrowserProvider(provider);
           const signer = await browserProvider.getSigner();
