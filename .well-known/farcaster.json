@@ -6,7 +6,8 @@
   },
   "baseBuilder": {
     "allowedAddresses": [
-      "0x8132C74c2774935e4CCa5c9B709E381c143b98f7"
+      "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
+      "0x21bC5c525E93B34d28d3CA70E171E4a2C0a41B72"
     ]
   },
   "miniapp": {
