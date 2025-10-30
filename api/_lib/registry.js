@@ -168,7 +168,10 @@ export const questTypes = CONTRACT_VERSION === "2" ? V2_questTypes : V1_questTyp
 
 export function getSigner(envKey = "SCORE_SIGNER_PRIVATE_KEY") {
   const fallback = process.env.SCORE_SIGNER_PRIVATE_KEY;
-  const privateKey = process.env[envKey] || fallback;
+  let privateKey = process.env[envKey] || fallback;
+  if (typeof privateKey === 'string') {
+    try { privateKey = privateKey.trim(); } catch (_) {}
+  }
   assert(privateKey, `Missing ${envKey} env variable`);
   return new ethers.Wallet(privateKey);
 }
