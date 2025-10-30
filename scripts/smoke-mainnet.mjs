@@ -35,6 +35,21 @@ async function getJson(path) {
   }
 }
 
+async function getRuntimeEnv() {
+  let r = await get('/__env.js');
+  let txt = await r.text();
+  try {
+    const env = JSON.parse((txt.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, ''));
+    return { ok: r.status === 200 && Object.keys(env).length > 0, env, status: r.status };
+  } catch (_) {}
+  r = await get('/api/env.js');
+  txt = await r.text();
+  try {
+    const env = JSON.parse((txt.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, ''));
+    return { ok: r.status === 200 && Object.keys(env).length > 0, env, status: r.status };
+  } catch (_) { return { ok: false, env: {}, status: r.status }; }
+}
+
 function parseEnvFromScriptTag(text) {
   // __env.js returns: window.__ENV = {...};
   const jsonStr = (text.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, '');
@@ -68,16 +83,13 @@ async function main() {
   // 3) __env.js has NEXT_PUBLIC_REGISTRY_ADDRESS and proxy url
   let env = {};
   try {
-    const r = await get('/__env.js');
-    const txt = await r.text();
-    env = parseEnvFromScriptTag(txt);
+    const rt = await getRuntimeEnv();
+    env = rt.env || {};
     const a = typeof env.NEXT_PUBLIC_REGISTRY_ADDRESS === 'string' && env.NEXT_PUBLIC_REGISTRY_ADDRESS.startsWith('0x');
     const b = env.NEXT_PUBLIC_PAYMASTER_URL === '/api/paymaster-proxy';
-    log(a, '__env.js exposes NEXT_PUBLIC_REGISTRY_ADDRESS'); if (!a) fail++;
-    log(b, '__env.js paymaster url is proxy'); if (!b) fail++;
-  } catch (e) {
-    log(false, `__env.js error: ${e.message}`); fail++;
-  }
+    log(a, '__env exposes NEXT_PUBLIC_REGISTRY_ADDRESS'); if (!a) fail++;
+    log(b, '__env paymaster url is proxy'); if (!b) fail++;
+  } catch (e) { log(false, `__env error: ${e.message}`); fail++; }
 
   // 4) score-sign for base (8453)
   try {
@@ -151,4 +163,3 @@ async function main() {
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
-

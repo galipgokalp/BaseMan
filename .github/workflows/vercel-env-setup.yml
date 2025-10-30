@@ -19,6 +19,7 @@ jobs:
         run: npm i -g vercel
 
       - name: Push env vars to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -47,3 +48,7 @@ jobs:
           CDP_WEBHOOK_LOG_HEADERS: ${{ secrets.CDP_WEBHOOK_LOG_HEADERS }}
         run: bash ops/vercel/set-env.sh
 
+      - name: Skip notice (no Vercel token)
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        run: |
+          echo "VERCEL_TOKEN not set in repo secrets; skipping env push."

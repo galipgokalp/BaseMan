@@ -35,6 +35,24 @@ async function getJson(path) {
   }
 }
 
+async function getRuntimeEnv() {
+  // Prefer dev helper /__env.js; fall back to serverless /api/env.js
+  let r = await get('/__env.js');
+  let txt = await r.text();
+  try {
+    const jsonStr = (txt.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, '');
+    const env = JSON.parse(jsonStr);
+    return { ok: r.status === 200 && Object.keys(env).length > 0, env, status: r.status };
+  } catch (_) {}
+  r = await get('/api/env.js');
+  txt = await r.text();
+  try {
+    const jsonStr = (txt.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, '');
+    const env = JSON.parse(jsonStr);
+    return { ok: r.status === 200 && Object.keys(env).length > 0, env, status: r.status };
+  } catch (_) { return { ok: false, env: {}, status: r.status }; }
+}
+
 async function main() {
   let fail = 0;
 
@@ -61,17 +79,12 @@ async function main() {
 
   // 3) __env.js
   try {
-    const r = await get('/__env.js');
-    const txt = await r.text();
-    const jsonStr = (txt.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, '');
-    const env = JSON.parse(jsonStr);
-    const a = typeof env.NEXT_PUBLIC_REGISTRY_ADDRESS === 'string' && env.NEXT_PUBLIC_REGISTRY_ADDRESS.startsWith('0x');
-    const b = env.NEXT_PUBLIC_PAYMASTER_URL === '/api/paymaster-proxy';
-    log(a, '__env.js exposes NEXT_PUBLIC_REGISTRY_ADDRESS'); if (!a) fail++;
-    log(b, '__env.js paymaster url is proxy'); if (!b) fail++;
-  } catch (e) {
-    log(false, `__env.js error: ${e.message}`); fail++;
-  }
+    const rt = await getRuntimeEnv();
+    const a = typeof rt.env.NEXT_PUBLIC_REGISTRY_ADDRESS === 'string' && rt.env.NEXT_PUBLIC_REGISTRY_ADDRESS.startsWith('0x');
+    const b = rt.env.NEXT_PUBLIC_PAYMASTER_URL === '/api/paymaster-proxy';
+    log(a, '__env exposes NEXT_PUBLIC_REGISTRY_ADDRESS'); if (!a) fail++;
+    log(b, '__env paymaster url is proxy'); if (!b) fail++;
+  } catch (e) { log(false, `__env error: ${e.message}`); fail++; }
 
   // 4) score-sign
   try {
