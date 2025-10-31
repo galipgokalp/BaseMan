@@ -202,13 +202,26 @@
           debug("sdk.wallet.getEthereumProvider() returned");
           // Mini‑app providers may not support wallet_switchEthereumChain; skip enforcing switch
 
-          const browserProvider = new ethers.BrowserProvider(provider);
-          const signer = await browserProvider.getSigner();
-          const address = await signer.getAddress();
+          let address = null;
+          try {
+            const accounts = await provider.request({ method: 'eth_accounts' });
+            if (Array.isArray(accounts) && accounts.length) address = accounts[0];
+          } catch (eaErr) {
+            debug(`eth_accounts error: ${eaErr?.message || eaErr}`);
+          }
+          if (!address) {
+            try {
+              const req = await provider.request({ method: 'eth_requestAccounts' });
+              if (Array.isArray(req) && req.length) address = req[0];
+            } catch (reqErr) {
+              debug(`eth_requestAccounts error: ${reqErr?.message || reqErr}`);
+            }
+          }
+          if (!address) throw new Error('Wallet address unavailable');
 
-          state.signer = signer;
+          state.signer = null;
           state.address = ethers.getAddress(address);
-          state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
+          state.contract = { interface: new ethers.Interface(CONTRACT_ABI) };
           state.provider = provider;
           debug(`Wallet ready (mini‑app): ${state.address}`);
 
