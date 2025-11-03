@@ -164,11 +164,11 @@
             const browser = new window.ethers.BrowserProvider(provider);
             const signer = await browser.getSigner();
             const contract = new window.ethers.Contract(reg, [
-              'function getScore(address player) view returns (tuple(uint256 highScore,uint256 lastUpdatedAt))'
+              'function getScore(address player) view returns (tuple(uint256 highScore,uint256 totalScore,uint256 lastUpdatedAt))'
             ], signer);
             const result = await contract.getScore(effectiveAddress);
-            const high = result?.highScore ? BigInt(result.highScore).toString() : '0';
-            scoreEl.textContent = high;
+            const total = result?.totalScore ? BigInt(result.totalScore).toString() : '0';
+            scoreEl.textContent = total;
           }
         }
       } catch (_) {

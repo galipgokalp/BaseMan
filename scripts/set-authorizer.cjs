@@ -44,8 +44,8 @@ async function main() {
   console.log("Registry:", ethers.getAddress(registryAddress));
   console.log("New authorizer:", ethers.getAddress(newAuthorizer));
 
-  // Use V2 contract ABI/name for setAuthorizer
-  const registry = await hre.ethers.getContractAt("BaseManRegistryV2", registryAddress);
+  // Use BaseManRegistry contract name for setAuthorizer
+  const registry = await hre.ethers.getContractAt("BaseManRegistry", registryAddress);
 
   const owner = await registry.owner();
   if (owner.toLowerCase() !== signerAddr.toLowerCase()) {

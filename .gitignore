@@ -13,8 +13,13 @@ artifacts/
 cache/
 .codex/
 tmp/
+# Legacy runtime files (dot-prefixed)
 .server.log
 .server.pid
+
+# Dev server runtime files (non-dot)
+server.log
+server.pid
 .devserver.log
 .tmp_*
 .tmp*.json
@@ -47,5 +52,4 @@ coverage.json
 vendor/miniapp-sdk/
 vendor/ethers/
 
-# Ignore docs directory (keep `doc/` if present)
-docs/
+# (docs/ is tracked for the canonical guide)

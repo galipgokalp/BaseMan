@@ -23,7 +23,7 @@ async function main() {
   let fail = 0;
   let env = {};
   try {
-    const r = await fetch(`${BASE}/__env.js`);
+    const r = await fetch(`${BASE}/api/env.js`);
     env = parseEnvFromScriptTag(await r.text());
     log(true, '__env.js loaded');
   } catch (e) {
@@ -67,4 +67,3 @@ async function main() {
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
-

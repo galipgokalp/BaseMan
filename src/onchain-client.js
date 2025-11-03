@@ -105,7 +105,7 @@
       "function submitScore(address player,uint256 score,uint256 deadline,uint256 nonce,bytes signature)",
       "function completeQuest(address player,uint256 questId,uint256 deadline,uint256 nonce,bytes signature)",
       // Views
-      "function getScore(address player) view returns (tuple(uint256 highScore,uint256 lastUpdatedAt))"
+      "function getScore(address player) view returns (tuple(uint256 highScore,uint256 totalScore,uint256 lastUpdatedAt))"
     ];
 
     const CHAIN_METADATA = {
@@ -149,6 +149,30 @@
         );
       } catch (eventError) {
         debug(`wallet-status event error: ${eventError?.message || eventError}`);
+      }
+    }
+
+    function attachProviderEvents(provider) {
+      if (!provider || typeof provider !== 'object') return;
+      const on = provider.on || provider.addListener;
+      if (typeof on === 'function') {
+        try {
+          on.call(provider, 'accountsChanged', (accounts) => {
+            try {
+              const next = Array.isArray(accounts) && accounts.length ? ethers.getAddress(accounts[0]) : null;
+              if (next && next !== state.address) {
+                state.address = next;
+                debug(`accountsChanged -> ${state.address}`);
+                emitWalletStatus(true, null);
+              }
+            } catch (_) {}
+          });
+        } catch (_) {}
+        try {
+          on.call(provider, 'chainChanged', (chainId) => {
+            debug(`chainChanged -> ${String(chainId)}`);
+          });
+        } catch (_) {}
       }
     }
 
@@ -223,6 +247,7 @@
           state.address = ethers.getAddress(address);
           state.contract = { interface: new ethers.Interface(CONTRACT_ABI) };
           state.provider = provider;
+          attachProviderEvents(provider);
           debug(`Wallet ready (mini‑app): ${state.address}`);
 
           try { await discoverPaymasterUrl(provider, config.chainId); } catch (_) {}
@@ -258,6 +283,7 @@
         state.address = ethers.getAddress(address);
         state.contract = new ethers.Contract(config.registryAddress, CONTRACT_ABI, signer);
         state.provider = eth;
+        attachProviderEvents(eth);
         debug(`Wallet ready (web EOA): ${state.address}`);
         emitWalletStatus(true, null);
         return state;

@@ -43,23 +43,31 @@
     </div>
     <canvas id='atlas' class="atlas-hidden"></canvas>
     <script defer src="vendor/miniapp-sdk/index.min.js"></script>
+    <!-- Expose Mini App EIP-1193 provider as window.ethereum for libs expecting injected provider -->
+    <script defer src="src/miniapp-ethereum-shim.js"></script>
     <!-- Debug/mock: inject a minimal Mini App SDK + provider in web for local e2e -->
     <script defer src="src/mock-miniapp-provider.js"></script>
     <script defer src="src/miniapp-auth.js"></script>
     <script defer src="vendor/ethers/ethers.umd.min.js"></script>
+    <!-- Inject NEXT_PUBLIC_* and safe runtime keys early -->
+    <script defer src="/api/env.js?v=20251028b"></script>
+    <!-- Base on-chain defaults (generated) -->
     <script defer src="src/onchain-config.js?v=20251028b"></script>
+    <!-- Override on-chain config from runtime env (chainId, registry, urls) -->
+    <script defer src="src/runtime-config-override.js?v=20251031"></script>
     <script defer src="src/onchain-bootstrap.js?v=20251028b"></script>
     <script defer src="src/onchain-client.js?v=20251028b"></script>
     <!-- Optional auto submit for e2e: set ?mock-miniapp=1&auto=1 to trigger a score submission -->
     <script defer src="src/debug-autosubmit.js"></script>
     <script defer src="src/leaderboard-panel.js?v=20251028b"></script>
+    <!-- Profile panel (in‑app) -->
+    <script defer src="src/profile-panel.js"></script>
     <!-- Minimal fallback wallet button for miniapps -->
     <button id="wallet-fallback-btn" class="wallet-fallback-btn">Connect Wallet</button>
     <script defer src="src/wallet-fallback.js"></script>
     <!-- OnchainKit React island mount point + bundle -->
     <div id="onchainkit-root"></div>
-    <!-- Inject NEXT_PUBLIC_* vars at runtime for the bundle (works in dev and prod) -->
-    <script defer src="/api/env.js?v=20251028b"></script>
+    <!-- __env already loaded above -->
     <!-- Load OnchainKit bundle only in web (not inside mini-app containers) -->
     <script defer src="src/load-onchainkit.js?v=20251028b"></script>
   </body>

@@ -41,7 +41,7 @@ module.exports = {
           }
         }
       },
-      "contracts/BaseManRegistryV2.sol": {
+      "contracts/BaseManRegistry.sol": {
         version: "0.8.28",
         settings: {
           optimizer: {
@@ -53,6 +53,9 @@ module.exports = {
     }
   },
   defaultNetwork: "hardhat",
+  sourcify: {
+    enabled: true
+  },
   networks: {
     hardhat: {},
     baseSepolia: {

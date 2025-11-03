@@ -4,8 +4,9 @@ import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
 
 const DEFAULT_SQL_BASE = "https://api.cdp.coinbase.com";
 const ALT_SQL_BASE = "https://api.developer.coinbase.com";
-// keccak256("ScoreSubmitted(address,uint256,uint256)")
-const SCORE_EVENT_TOPIC = "0xb7f20d0949b6a8bc59d005af4a52f7ff5d0cfcde9056fa556adb0e4b24dcb6d2";
+// Event topics (computed at runtime for safety)
+const SCORE_SUBMITTED_TOPIC = ethers.id("ScoreSubmitted(address,uint256,uint256)");
+const SCORE_ADDED_TOPIC = ethers.id("ScoreAdded(address,uint256,uint256,uint256)");
 const SQL_API_KEY = process.env.CDP_SQL_API_KEY || "";
 const DISABLE_FLAG = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
 const LEADERBOARD_DISABLED = ["1","true","yes","on"].includes(DISABLE_FLAG);
@@ -61,18 +62,18 @@ function buildQuery(limit) {
 WITH events AS (
   SELECT
     lower(CAST(parameters['player'] AS String)) AS player,
-    toFloat64OrNull(CAST(parameters['score'] AS String)) AS score,
+    toFloat64OrNull(CAST(parameters['newTotal'] AS String)) AS total,
     toInt64(toUnixTimestamp(block_timestamp)) AS block_ts
   FROM base.events
   WHERE lower(address) = lower('${registry}')
-    AND topics[1] = '${SCORE_EVENT_TOPIC}'
+    AND topics[1] IN ('${SCORE_ADDED_TOPIC}')
 )
 SELECT LOWER(player) AS player_address,
-       MAX(score) AS high_score,
+       MAX(total) AS total_score,
        MAX(block_ts) AS last_update
 FROM events
 GROUP BY player_address
-ORDER BY high_score DESC
+ORDER BY total_score DESC
 LIMIT ${limit};
 `.trim();
 }
@@ -147,8 +148,8 @@ function mapRow(row) {
     if (row[0] !== undefined && key === "player_address") {
       return row[0];
     }
-    if (row[1] !== undefined && key === "high_score") {
-      return row[1];
+    if (row[1] !== undefined) {
+      if (key === "high_score" || key === "total_score") return row[1];
     }
     if (row[2] !== undefined && key === "last_update") {
       return row[2];
@@ -157,7 +158,7 @@ function mapRow(row) {
   };
 
   const playerRaw = get("player_address");
-  const scoreRaw = get("high_score");
+  const scoreRaw = get("total_score") ?? get("high_score");
   const updatedRaw = get("last_update");
 
   let player = typeof playerRaw === "string" ? playerRaw : "";
@@ -170,12 +171,12 @@ function mapRow(row) {
     player = playerRaw;
   }
 
-  const highScore = scoreRaw !== undefined ? scoreRaw.toString() : "0";
+  const totalScore = scoreRaw !== undefined ? scoreRaw.toString() : "0";
   const lastUpdate = updatedRaw !== undefined ? Number(updatedRaw) : null;
 
   return {
     player,
-    highScore,
+    totalScore,
     lastUpdate
   };
 }
@@ -221,15 +222,15 @@ async function enrichWithProfiles(items) {
   return items.map((item, index) => {
     const key = typeof item.player === "string" ? item.player.toLowerCase() : null;
     const profile = key ? profileMap.get(key) ?? null : null;
-    const scoreNumeric = toNumericScore(item.highScore);
-    const totalScore = scoreNumeric ?? null;
+    const totalNumeric = toNumericScore(item.totalScore ?? item.highScore);
+    const totalScore = totalNumeric ?? null;
     const lastUpdatedAt = toIsoTimestamp(item.lastUpdate);
 
     return {
       rank: index + 1,
       player: item.player,
       playerAddress: item.player,
-      highScore: item.highScore,
+      highScore: item.highScore ?? null,
       totalScore,
       lastUpdate: item.lastUpdate,
       lastUpdatedAt,
@@ -383,19 +384,19 @@ async function fetchFromRpcFallback(limit) {
     if (!logs.length) return [];
 
     const iface = new ethers.Interface([
-      "event ScoreSubmitted(address indexed player,uint256 score,uint256 timestamp)"
+      "event ScoreAdded(address indexed player,uint256 added,uint256 newTotal,uint256 timestamp)"
     ]);
 
     const items = logs
       .map((log) => {
         try {
-          const parsed = iface.decodeEventLog("ScoreSubmitted", log.data, log.topics);
+          const parsed = iface.decodeEventLog("ScoreAdded", log.data, log.topics);
           const player = ethers.getAddress(parsed.player);
-          const score = parsed.score?.toString?.() || String(parsed.score);
+          const total = parsed.newTotal?.toString?.() || String(parsed.newTotal);
           const ts = parsed.timestamp ? Number(parsed.timestamp) : null;
           return {
             player,
-            highScore: score,
+            totalScore: total,
             lastUpdate: ts,
             blockNumber: log.blockNumber
           };
@@ -410,17 +411,15 @@ async function fetchFromRpcFallback(limit) {
     for (const it of items) {
       const key = it.player.toLowerCase();
       const prev = map.get(key);
-      const scoreNum = Number(it.highScore);
-      if (!prev || scoreNum > Number(prev.highScore)) {
+      const totalNum = Number(it.totalScore);
+      // Keep the latest observed total (assume monotonic increase)
+      if (!prev || totalNum > Number(prev.totalScore) || ((it.lastUpdate || 0) > (prev.lastUpdate || 0))) {
         map.set(key, { ...it });
-      } else if (prev && (it.lastUpdate || 0) > (prev.lastUpdate || 0)) {
-        prev.lastUpdate = it.lastUpdate;
-        prev.blockNumber = it.blockNumber;
       }
     }
 
     const list = Array.from(map.values())
-      .sort((a, b) => Number(b.highScore) - Number(a.highScore))
+      .sort((a, b) => Number(b.totalScore) - Number(a.totalScore))
       .slice(0, limit);
     return list;
   } catch (error) {
@@ -453,12 +452,20 @@ export default async function handler(req, res) {
     });
   }
 
+  // If no SQL key, fall back to RPC so the app still functions in dev
+  const limit = sanitizeLimit(req.query.limit);
   if (!SQL_API_KEY) {
-    return res.status(200).json({ source: "no-sql-key", limit: sanitizeLimit(req.query.limit), count: 0, items: [], updatedAt: new Date().toISOString() });
+    try {
+      const fallback = await fetchFromRpcFallback(limit);
+      const items = await enrichWithProfiles(fallback);
+      return res.status(200).json({ source: "rpc-fallback", limit, count: items.length, items, updatedAt: new Date().toISOString() });
+    } catch (_) {
+      return res.status(200).json({ source: "rpc-fallback", limit, count: 0, items: [], updatedAt: new Date().toISOString() });
+    }
   }
 
   try {
-    const limit = sanitizeLimit(req.query.limit);
+    
     const statement = buildQuery(limit);
     let rows = [];
     try {
@@ -483,8 +490,8 @@ export default async function handler(req, res) {
       rank: i + 1,
       player: it.player,
       playerAddress: it.player,
-      highScore: it.highScore,
-      totalScore: toNumericScore(it.highScore) ?? null,
+      highScore: it.highScore ?? null,
+      totalScore: toNumericScore(it.totalScore ?? it.highScore) ?? null,
       lastUpdate: it.lastUpdate,
       lastUpdatedAt: toIsoTimestamp(it.lastUpdate),
       profile: null

@@ -1,0 +1,10 @@
+{
+  "aliveStatusCodes": [200, 206, 302, 303, 307, 308, 429],
+  "timeout": "10s",
+  "retryOn429": true,
+  "ignorePatterns": [
+    { "pattern": "/localhost/" },
+    { "pattern": "/miniapps\\.farcaster\\.xyz/preview" }
+  ]
+}
+

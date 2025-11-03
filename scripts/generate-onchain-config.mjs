@@ -39,17 +39,25 @@ const resolveFirstNonEmpty = (...candidates) => {
   return "";
 };
 
+// Keep NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT in sync with NEXT_PUBLIC_PAYMASTER_URL
+// Preference:
+// 1) NEXT_PUBLIC_PAYMASTER_URL
+// 2) NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT (used by some OnchainKit examples)
+// 3) PAYMASTER_URL (server-provided fallback)
 const paymasterUrl = resolveFirstNonEmpty(
   process.env.NEXT_PUBLIC_PAYMASTER_URL,
+  process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT,
   process.env.PAYMASTER_URL
 );
 if (paymasterUrl) {
   config.paymasterUrl = paymasterUrl;
 }
 
+// Keep bundler in sync as well; if only the combined endpoint is present, use it
 const bundlerUrl = resolveFirstNonEmpty(
   process.env.NEXT_PUBLIC_BUNDLER_URL,
-  process.env.BUNDLER_URL
+  process.env.BUNDLER_URL,
+  process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT
 );
 if (bundlerUrl) {
   config.bundlerUrl = bundlerUrl;

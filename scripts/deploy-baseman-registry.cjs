@@ -7,13 +7,13 @@ async function main() {
   const authorizer = process.env.INITIAL_AUTHORIZER || deployer.address;
   console.log("Authorizer:", authorizer);
 
-  // V2 default: deploy BaseManRegistryV2
-  const Factory = await hre.ethers.getContractFactory("BaseManRegistryV2");
+  // Deploy BaseManRegistry
+  const Factory = await hre.ethers.getContractFactory("BaseManRegistry");
   const contract = await Factory.deploy(authorizer);
   await contract.waitForDeployment();
 
   const address = await contract.getAddress();
-  console.log("BaseManRegistryV2 deployed to:", address);
+  console.log("BaseManRegistry deployed to:", address);
 }
 
 main()

@@ -3,10 +3,10 @@ import pkg from "hardhat";
 
 const { ethers } = pkg;
 
-describe("BaseManRegistryV2", function () {
+describe("BaseManRegistry", function () {
   async function deployFixture() {
     const [owner, authorizer, player] = await ethers.getSigners();
-    const Factory = await ethers.getContractFactory("BaseManRegistryV2");
+    const Factory = await ethers.getContractFactory("BaseManRegistry");
     const contract = await Factory.deploy(authorizer.address);
     const network = await ethers.provider.getNetwork();
     return { owner, authorizer, player, contract, chainId: BigInt(network.chainId) };
@@ -89,6 +89,89 @@ describe("BaseManRegistryV2", function () {
 
     const score = await contract.getScore(player.address);
     expect(score.highScore).to.equal(12345);
+  });
+
+  it("accumulates totalScore and emits ScoreAdded with new total", async function () {
+    const { authorizer, player, contract, chainId } = await deployFixture();
+    const d1 = getDeadline();
+    const n1 = BigInt(1001);
+    const s1 = await signScore(authorizer, contract, chainId, player, 10, d1, n1);
+    const tx1 = await contract.connect(player).submitScore(player.address, 10, d1, n1, s1);
+    const r1 = await tx1.wait();
+    const e1 = r1.logs.map((l) => l).find(() => true); // ensure mined
+    const score1 = await contract.getScore(player.address);
+    expect(score1.totalScore).to.equal(10);
+
+    const d2 = getDeadline();
+    const n2 = BigInt(1002);
+    const s2 = await signScore(authorizer, contract, chainId, player, 7, d2, n2);
+    await expect(
+      contract.connect(player).submitScore(player.address, 7, d2, n2, s2)
+    ).to.emit(contract, "ScoreAdded");
+
+    const score2 = await contract.getScore(player.address);
+    expect(score2.totalScore).to.equal(17);
+  });
+
+  it("supports pause/unpause guards for player actions", async function () {
+    const { owner, authorizer, player, contract, chainId } = await deployFixture();
+    await contract.connect(owner).pause();
+
+    const deadline = getDeadline();
+    const nonce = BigInt(55);
+    const sig = await signScore(authorizer, contract, chainId, player, 5, deadline, nonce);
+    await expect(
+      contract.connect(player).submitScore(player.address, 5, deadline, nonce, sig)
+    ).to.be.revertedWithCustomError(contract, "PausedError");
+
+    await contract.connect(owner).unpause();
+    await expect(
+      contract.connect(player).submitScore(player.address, 5, deadline, nonce, sig)
+    ).to.emit(contract, "ScoreAdded");
+  });
+
+  it("owner can seed totals and getters reflect state", async function () {
+    const { owner, contract, player } = await deployFixture();
+    const now = Math.floor(Date.now() / 1000);
+    await expect(
+      contract.connect(owner).seedTotals(
+        [player.address],
+        [100],
+        [50],
+        [now]
+      )
+    ).to.emit(contract, "ScoreSeeded").withArgs(player.address, 100, 50, now);
+
+    const s = await contract.getScore(player.address);
+    expect(s.totalScore).to.equal(100);
+    expect(s.highScore).to.equal(50);
+    expect(s.lastUpdatedAt).to.equal(now);
+
+    expect(await contract.getTotalScore(player.address)).to.equal(100);
+    expect(await contract.getHighScore(player.address)).to.equal(50);
+    expect(await contract.getLastUpdated(player.address)).to.equal(now);
+  });
+
+  it("seedTotals validates inputs", async function () {
+    const { owner, contract } = await deployFixture();
+    const now = Math.floor(Date.now() / 1000);
+    await expect(
+      contract.connect(owner).seedTotals(
+        [ethers.ZeroAddress],
+        [1],
+        [1],
+        [now]
+      )
+    ).to.be.revertedWith("zero player");
+
+    await expect(
+      contract.connect(owner).seedTotals(
+        [ethers.Wallet.createRandom().address, ethers.Wallet.createRandom().address],
+        [1],
+        [1],
+        [now]
+      )
+    ).to.be.revertedWith("length mismatch");
   });
 
   it("rejects expired signatures", async function () {

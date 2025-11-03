@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en,tr",
+  "useGitignore": true,
+  "import": [
+    "@cspell/dict-tr-tr/cspell-ext.json"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.jpeg",
+    "**/*.gif"
+  ],
+  "words": [
+    "BaseMan",
+    "OnchainKit",
+    "Paymaster",
+    "Farcaster",
+    "Sepolia",
+    "Viem",
+    "Wagmi",
+    "cdp",
+    "userOp",
+    "userOps",
+    "minikit",
+    "Neynar",
+    "webhooks",
+    "Mermaid",
+    "Quickstart"
+  ]
+}

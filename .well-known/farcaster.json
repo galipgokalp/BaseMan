@@ -7,12 +7,11 @@
   "baseBuilder": {
     "allowedAddresses": [
       "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
-      "0x21bC5c525E93B34d28d3CA70E171E4a2C0a41B72",
-      "0x8D8f2E31Ba65e3A500522e41Ce3712d4b30fF3dB"
+      "0x3c52dEd86f9E56663cA680D773B64f8f62380cBc"
     ]
   },
   "miniapp": {
-    "version": "1",
+    "version": 1,
     "name": "BaseMan",
     "homeUrl": "https://base-man.vercel.app/",
     "iconUrl": "https://base-man.vercel.app/icon.png",
@@ -49,7 +48,8 @@
         "'self'",
         "data:",
         "https://base-man.vercel.app",
-        "https://ipfs.decentralized-content.com"
+        "https://ipfs.decentralized-content.com",
+        "https://effigy.im"
       ],
       "fontSrc": [
         "'self'",
@@ -64,14 +64,19 @@
         "https://relay.walletconnect.com",
         "https://rpc.walletconnect.com",
         "https://api.base.org",
-        "https://api.cdp.coinbase.com",
         "https://api.developer.coinbase.com",
+        "https://api.cdp.coinbase.com",
         "https://ipfs.decentralized-content.com"
       ]
     },
     "requiredChains": [
-      "eip155:84532",
-      "eip155:8453"
+      "eip155:8453",
+      "eip155:84532"
+    ],
+    "requiredCapabilities": [
+      "actions.ready",
+      "actions.signIn",
+      "wallet.getEthereumProvider"
     ],
     "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook"
   }

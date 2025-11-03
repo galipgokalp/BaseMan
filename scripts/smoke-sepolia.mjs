@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { ethers } from 'ethers';
 
-const BASE = process.env.BASE_URL || 'http://127.0.0.1:5180';
+const BASE = process.env.BASE_URL || 'http://127.0.0.1:5173';
 
 function log(ok, msg) {
   const tag = ok ? '[OK] ' : '[ERR]';

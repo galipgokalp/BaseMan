@@ -20,6 +20,15 @@ function getProjectId() {
   );
 }
 
+function getClientApiKey() {
+  // Optional OnchainKit client API key (enables additional features)
+  const v =
+    (window.__ENV && window.__ENV.NEXT_PUBLIC_ONCHAINKIT_API_KEY) ||
+    window.NEXT_PUBLIC_ONCHAINKIT_API_KEY ||
+    '';
+  return typeof v === 'string' ? v : '';
+}
+
 function OnchainWalletUI() {
   return (
     <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 10000 }}>
@@ -41,8 +50,9 @@ function OnchainWalletUI() {
 function App() {
   const chain = getChainFromConfig();
   const projectId = getProjectId();
+  const apiKey = getClientApiKey();
   return (
-    <OnchainKitProvider chain={chain} projectId={projectId}>
+    <OnchainKitProvider chain={chain} projectId={projectId} apiKey={apiKey || undefined}>
       <OnchainWalletUI />
     </OnchainKitProvider>
   );
@@ -60,4 +70,3 @@ if (document.readyState === 'loading') {
 } else {
   mount();
 }
-

@@ -50,10 +50,10 @@ async function main() {
     if (r.status !== 200) fail++;
   } catch (e) { log(false, `/ error: ${e.message}`); fail++; }
 
-  // 2) __env.js
+  // 2) env.js
   let env = {};
   try {
-    const r = await get('/__env.js');
+    const r = await get('/api/env.js');
     env = parseEnvFromScriptTag(await r.text());
     const hasAddr = typeof env.NEXT_PUBLIC_REGISTRY_ADDRESS === 'string' && env.NEXT_PUBLIC_REGISTRY_ADDRESS.startsWith('0x');
     log(hasAddr, `__env.js registry address present`);

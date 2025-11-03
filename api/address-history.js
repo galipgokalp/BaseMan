@@ -4,8 +4,9 @@ import { getRegistryContext } from "./_lib/registry.js";
 import { assertNetwork } from "./_lib/cdp.js";
 
 const ScoreEvent = "event ScoreSubmitted(address indexed player,uint256 score,uint256 timestamp)";
+const ScoreAddedEvent = "event ScoreAdded(address indexed player,uint256 added,uint256 newTotal,uint256 timestamp)";
 const QuestEvent = "event QuestCompleted(address indexed player,uint256 indexed questId,uint256 timestamp)";
-const iface = new ethers.Interface([ScoreEvent, QuestEvent]);
+const iface = new ethers.Interface([ScoreEvent, ScoreAddedEvent, QuestEvent]);
 
 const ADDRESS_HISTORY_API_KEY = process.env.CDP_ADDRESS_HISTORY_API_KEY?.trim();
 const ADDRESS_HISTORY_BASE_URL = (process.env.CDP_ADDRESS_HISTORY_BASE_URL || "https://api.cdp.coinbase.com").replace(
@@ -109,7 +110,7 @@ async function fetchLogs(provider, registryAddress, topics, fromBlock, toBlock) 
 
 function mapLogEvent(log, event) {
   const base = {
-    type: event.name === "ScoreSubmitted" ? "score" : "quest",
+    type: event.name && event.name.toLowerCase().includes('score') ? "score" : "quest",
     player: event.args.player,
     emittedAt: Number(event.args.timestamp),
     blockNumber: log.blockNumber,
@@ -121,6 +122,12 @@ function mapLogEvent(log, event) {
     return {
       ...base,
       score: event.args.score.toString()
+    };
+  } else if (event.name === "ScoreAdded") {
+    return {
+      ...base,
+      score: event.args.added.toString(),
+      total: event.args.newTotal.toString()
     };
   }
 
@@ -375,14 +382,16 @@ async function fetchFromLogs({
   toBlock
 }) {
   const scoreTopic = iface.getEvent("ScoreSubmitted").topicHash;
+  const scoreAddedTopic = iface.getEvent("ScoreAdded").topicHash;
   const questTopic = iface.getEvent("QuestCompleted").topicHash;
 
-  const [scoreLogs, questLogs] = await Promise.all([
+  const [scoreLogs, scoreAddedLogs, questLogs] = await Promise.all([
     fetchLogs(provider, registryAddress, [scoreTopic], fromBlock, toBlock),
+    fetchLogs(provider, registryAddress, [scoreAddedTopic], fromBlock, toBlock),
     fetchLogs(provider, registryAddress, [questTopic], fromBlock, toBlock)
   ]);
 
-  const events = [...scoreLogs, ...questLogs]
+  const events = [...scoreLogs, ...scoreAddedLogs, ...questLogs]
     .map((log) => {
       try {
         const parsedLog = iface.parseLog({ topics: log.topics, data: log.data });

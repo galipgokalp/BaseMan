@@ -10,10 +10,19 @@
 
     // ChainId override preference:
     // 1) NEXT_PUBLIC_REGISTRY_CHAIN_ID
-    // 2) If registry matches NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS ⇒ 8453
+    // 2) REGISTRY_CHAIN_ID (non-secret, exposed via /api/env.js)
+    // 3) REGISTRY_DEFAULT_TARGET ('base' | 'base-sepolia')
+    // 4) If registry matches NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS ⇒ 8453
     if (env.NEXT_PUBLIC_REGISTRY_CHAIN_ID) {
       const id = Number(env.NEXT_PUBLIC_REGISTRY_CHAIN_ID);
       if (Number.isFinite(id) && id > 0) cfg.chainId = id;
+    } else if (env.REGISTRY_CHAIN_ID) {
+      const id = Number(env.REGISTRY_CHAIN_ID);
+      if (Number.isFinite(id) && id > 0) cfg.chainId = id;
+    } else if (env.REGISTRY_DEFAULT_TARGET) {
+      const t = String(env.REGISTRY_DEFAULT_TARGET).toLowerCase();
+      if (t === 'base') cfg.chainId = 8453;
+      if (t === 'base-sepolia') cfg.chainId = 84532;
     } else if (
       env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS &&
       cfg.registryAddress &&
@@ -22,11 +31,16 @@
       cfg.chainId = 8453;
     }
 
-    // Optional Bundler/Paymaster overrides
+    // Optional Bundler/Paymaster overrides (keep in sync with combined endpoint)
     if (env.NEXT_PUBLIC_BUNDLER_URL) cfg.bundlerUrl = env.NEXT_PUBLIC_BUNDLER_URL;
     if (env.NEXT_PUBLIC_PAYMASTER_URL) cfg.paymasterUrl = env.NEXT_PUBLIC_PAYMASTER_URL;
+    // Fallback to combined endpoint if individual ones are missing
+    if (env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT) {
+      const url = env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT;
+      if (!cfg.paymasterUrl) cfg.paymasterUrl = url;
+      if (!cfg.bundlerUrl) cfg.bundlerUrl = url;
+    }
   } catch (_) {
     // no-op best effort
   }
 })();
-
