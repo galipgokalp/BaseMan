@@ -5,13 +5,14 @@
     "signature": "MHg0NDRiYTcwMTVlMjlkOWE0ZWNiNDAzNjhkYTY5YjAzN2YwZTFiZDk3OTVmYTEyYWVkZDJiYTgxYmU4YTM2ZDkxMTBlMWQwNGIyYmNiOGU4ZTBkNWE4NDBjM2Y5NTI4ZWYzYjIxMWUzNDYzZWE0Y2FhZmExZGFlZDRiMTVhZjI0MjFi"
   },
   "baseBuilder": {
+    "ownerAddress": "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
     "allowedAddresses": [
       "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
       "0x3c52dEd86f9E56663cA680D773B64f8f62380cBc"
     ]
   },
   "miniapp": {
-    "version": 1,
+    "version": "1",
     "name": "BaseMan",
     "homeUrl": "https://base-man.vercel.app/",
     "iconUrl": "https://base-man.vercel.app/icon.png",
