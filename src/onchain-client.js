@@ -179,6 +179,49 @@
     sdk.actions.ready();
     debug("sdk.actions.ready() called");
 
+    // Try to detect supported chains early and reconfigure if needed
+    (async () => {
+      try {
+        let supported = null;
+        if (typeof sdk.getChains === 'function') {
+          try { supported = await sdk.getChains(); } catch (_) {}
+        }
+        if (!supported && typeof sdk.getCapabilities === 'function') {
+          try {
+            const caps = await sdk.getCapabilities();
+            // Some hosts expose chains inside capabilities; normalize
+            if (caps && typeof caps === 'object') {
+              const list = [];
+              try { if (Array.isArray(caps.chains)) list.push(...caps.chains); } catch (_) {}
+              try { const c = caps?.chains && Object.keys(caps.chains).filter(k=>/^eip155:\d+$/.test(k)); list.push(...c); } catch (_) {}
+              supported = list.length ? list : null;
+            }
+          } catch (_) {}
+        }
+        const wantSepolia = 84532;
+        const wantMainnet = 8453;
+        const hasSepolia = Array.isArray(supported) && supported.some((c) => String(c).includes('84532'));
+        const hasMainnet = Array.isArray(supported) && supported.some((c) => String(c).includes('8453'));
+        if (!hasSepolia && hasMainnet && Number(config.chainId) !== wantMainnet) {
+          // Reconfigure to mainnet if we have an address configured at runtime
+          const env = (window.__ENV && typeof window.__ENV === 'object') ? window.__ENV : {};
+          const mainAddr = (env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS || '').trim();
+          if (mainAddr && mainAddr.startsWith('0x') && mainAddr.length === 42) {
+            debug('Host does not support Base Sepolia; switching to Base mainnet');
+            try {
+              await reconfigureNetwork({ chainId: wantMainnet, registryAddress: mainAddr });
+            } catch (err) {
+              debug(`reconfigure to mainnet failed: ${err?.message || err}`);
+            }
+          } else {
+            debug('Host lacks Sepolia and no mainnet registry configured; staying on Sepolia');
+          }
+        }
+      } catch (err) {
+        debug(`chain detection failed: ${err?.message || err}`);
+      }
+    })();
+
     function isMiniAppEnv() {
       // Be strict: only treat as mini‑app inside Farcaster/Base containers
       try {
@@ -581,8 +624,8 @@
 
     async function submitScoreWithPaymaster(callData) {
       if (!config.paymasterUrl) {
-        debug('Paymaster URL not configured');
-        return null;
+        debug('Paymaster URL not configured; attempting wallet_sendCalls without paymaster');
+        return await sendCalls(callData, null);
       }
       if (!state.provider || typeof state.provider.request !== "function") {
         debug("No provider available for paymaster request.");
@@ -597,8 +640,8 @@
 
       const capabilityUrl = resolveCapabilityUrl(config.paymasterUrl);
       if (!capabilityUrl) {
-        debug("Paymaster capability URL could not be resolved.");
-        return null;
+        debug("Paymaster capability URL could not be resolved; falling back to wallet_sendCalls without capabilities.");
+        return await sendCalls(callData, null);
       }
 
       const hexChainId = (() => {
@@ -616,33 +659,8 @@
         return null;
       }
 
-      const payload = {
-        version: "1.0.0",
-        from: state.address,
-        chainId: hexChainId,
-        atomicRequired: true,
-        calls: [
-          {
-            to: config.registryAddress,
-            data: callData,
-            value: "0x0"
-          }
-        ],
-        capabilities: {
-          paymasterService: {
-            url: capabilityUrl,
-            optional: false
-          }
-        }
-      };
-
       try {
-        debug("Sending wallet_sendCalls (paymaster) request.");
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:start', meta: { chainId: hexChainId, url: capabilityUrl } }) }).catch(()=>{});} catch(_) {}
-        const result = await state.provider.request({
-          method: "wallet_sendCalls",
-          params: [payload]
-        });
+        const result = await sendCalls(callData, capabilityUrl);
 
         if (result && typeof result === "object") {
           if (result.id) {
@@ -660,10 +678,30 @@
         return result;
       } catch (error) {
         const message = error?.message || error;
-        debug(`wallet_sendCalls failed: ${message}`);
+        debug(`wallet_sendCalls (paymaster) failed: ${message}; retrying without capabilities…`);
+        try { return await sendCalls(callData, null); } catch (_) {}
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:error', meta: { message: String(message) } }) }).catch(()=>{});} catch(_) {}
         return null;
       }
+    }
+
+    async function sendCalls(callData, paymasterUrl) {
+      const hexChainId = (() => { try { return ethers.toBeHex(config.chainId); } catch { return null; } })();
+      if (!hexChainId) throw new Error('invalid chainId');
+      const payload = {
+        version: "1.0.0",
+        from: state.address,
+        chainId: hexChainId,
+        atomicRequired: true,
+        calls: [ { to: config.registryAddress, data: callData, value: "0x0" } ]
+      };
+      if (paymasterUrl) {
+        payload.capabilities = { paymasterService: { url: paymasterUrl, optional: false } };
+      }
+      debug(`Sending wallet_sendCalls (${paymasterUrl ? 'with paymaster' : 'no paymaster'})`);
+      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:start', meta: { chainId: hexChainId, url: paymasterUrl || null } }) }).catch(()=>{});} catch(_) {}
+      const result = await state.provider.request({ method: 'wallet_sendCalls', params: [payload] });
+      return result;
     }
 
     async function submitScore() {
