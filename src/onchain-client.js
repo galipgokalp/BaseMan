@@ -694,6 +694,8 @@
         const message = error?.message || error;
         debug(`wallet_sendCalls (paymaster) failed: ${message}; retrying without capabilities…`);
         try { return await sendCalls(callData, null); } catch (_) {}
+        debug('wallet_sendCalls (no paymaster) failed; trying eth_sendTransaction fallback…');
+        try { return await sendEthTransaction(callData); } catch (_) {}
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:error', meta: { message: String(message) } }) }).catch(()=>{});} catch(_) {}
         return null;
       }
@@ -716,6 +718,19 @@
       try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:start', meta: { chainId: hexChainId, url: paymasterUrl || null } }) }).catch(()=>{});} catch(_) {}
       const result = await state.provider.request({ method: 'wallet_sendCalls', params: [payload] });
       return result;
+    }
+
+    // Last‑resort fallback for hosts without EIP‑5792: try eth_sendTransaction
+    async function sendEthTransaction(callData) {
+      if (!state.provider || typeof state.provider.request !== 'function') throw new Error('no provider');
+      const from = state.address;
+      if (!from) throw new Error('no from address');
+      const tx = { from, to: config.registryAddress, data: callData, value: '0x0' };
+      debug('Sending eth_sendTransaction fallback');
+      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'eth_sendTransaction:start' }) }).catch(()=>{});} catch(_) {}
+      const hash = await state.provider.request({ method: 'eth_sendTransaction', params: [tx] });
+      debug(`eth_sendTransaction hash: ${hash}`);
+      return { hash };
     }
 
     async function submitScore() {
