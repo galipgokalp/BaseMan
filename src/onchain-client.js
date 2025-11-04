@@ -223,12 +223,21 @@
     })();
 
     function isMiniAppEnv() {
-      // Be strict: only treat as mini‑app inside Farcaster/Base containers
+      // Treat as mini‑app if the SDK is present or known host hints are present
       try {
+        // 1) Reliable: if we resolved an SDK with wallet.getEthereumProvider
+        if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
+          return true;
+        }
+        // 2) Farcaster/Warpcast hints
         const hasFC = Boolean((window.fc && window.fc.miniapp) || (window.farcaster && window.farcaster.miniapp));
-        const rnHint = Boolean(window.ReactNativeWebView);
-        return hasFC || rnHint;
-      } catch (_) { return false; }
+        if (hasFC) return true;
+        // 3) React Native webview host (Base App and others)
+        if (Boolean(window.ReactNativeWebView)) return true;
+        // 4) MiniKit / MiniApp namespaces
+        if (window.MiniKit || window.MiniAppSDK || (window.MiniApp && window.MiniApp.sdk) || window.FarcasterMiniAppSDK) return true;
+      } catch (_) {}
+      return false;
     }
 
     async function getMiniAppAuthToken() {
