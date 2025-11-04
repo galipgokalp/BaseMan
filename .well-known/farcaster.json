@@ -71,12 +71,10 @@
       ]
     },
     "requiredChains": [
-      "eip155:8453",
-      "eip155:84532"
+      "eip155:8453"
     ],
     "requiredCapabilities": [
       "actions.ready",
-      "actions.signIn",
       "wallet.getEthereumProvider"
     ],
     "webhookUrl": "https://base-man.vercel.app/api/miniapp-webhook"
