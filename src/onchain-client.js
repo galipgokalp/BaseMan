@@ -1039,9 +1039,8 @@
       getWalletAddress: () => state.address
     };
 
-    ensureWallet().catch((error) => {
-      debug(`Automatic wallet preparation failed: ${error?.message || error}`);
-    });
+    // Do not automatically request wallet connection on load to avoid passkey prompts.
+    // Wallet will be prepared lazily on first on‑chain action (submitScore/completeQuest) or when user opens profile panel.
   }
 
   function createDebugOverlay() {

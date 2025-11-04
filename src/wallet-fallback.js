@@ -78,6 +78,12 @@
       setVisible(false);
       return;
     }
+    // In web fallback, only show if a browser wallet is injected
+    const hasInjected = Boolean(window.ethereum && typeof window.ethereum.request === 'function');
+    if (!hasInjected) {
+      setVisible(false);
+      return;
+    }
     if (window.BaseManOnchain) {
       const ready = typeof window.BaseManOnchain.isWalletReady === 'function' && window.BaseManOnchain.isWalletReady();
       const err = typeof window.BaseManOnchain.getWalletError === 'function' && window.BaseManOnchain.getWalletError();
@@ -86,6 +92,6 @@
       setVisible(true);
     }
   } catch (_) {
-    setVisible(true);
+    setVisible(false);
   }
 })();
