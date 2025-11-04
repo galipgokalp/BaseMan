@@ -321,7 +321,7 @@
         }
       }
 
-      // Web: injected EOA (OnchainKit UI handles UX). No paymaster in this mode.
+      // Web fallback: injected EOA (browser wallet). No paymaster in this mode.
       try {
         const eth = window.ethereum;
         if (!eth || typeof eth.request !== "function") {

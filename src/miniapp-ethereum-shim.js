@@ -1,6 +1,6 @@
 (() => {
   // Expose the Farcaster/Base Mini App EIP-1193 provider as window.ethereum
-  // so third-party wallet UIs (like OnchainKit) can detect an injected provider.
+  // so third-party wallet UIs can detect an injected provider when needed.
 
   const MAX_TRIES = 200; // ~20s at 100ms
   const DELAY = 100;
