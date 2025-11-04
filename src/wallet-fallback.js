@@ -2,6 +2,16 @@
   const btn = document.getElementById('wallet-fallback-btn');
   if (!btn) return;
 
+  function isMiniAppEnv() {
+    try {
+      if (window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') return true;
+      if ((window.fc && window.fc.miniapp) || (window.farcaster && window.farcaster.miniapp)) return true;
+      if (window.ReactNativeWebView) return true;
+      if (window.MiniKit || window.MiniAppSDK || (window.MiniApp && window.MiniApp.sdk) || (window.miniapp && (window.miniapp.default || window.miniapp.sdk))) return true;
+    } catch (_) {}
+    return false;
+  }
+
   let connected = false;
   let lastError = null;
 
@@ -63,6 +73,11 @@
   });
 
   try {
+    if (isMiniAppEnv()) {
+      // Never show fallback button inside mini‑app containers; host wallet will be used.
+      setVisible(false);
+      return;
+    }
     if (window.BaseManOnchain) {
       const ready = typeof window.BaseManOnchain.isWalletReady === 'function' && window.BaseManOnchain.isWalletReady();
       const err = typeof window.BaseManOnchain.getWalletError === 'function' && window.BaseManOnchain.getWalletError();
@@ -74,4 +89,3 @@
     setVisible(true);
   }
 })();
-

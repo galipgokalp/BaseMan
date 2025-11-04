@@ -263,11 +263,16 @@
         return state;
       }
 
-      // Mini‑app: programmatic sign‑in + SDK EIP‑1193 provider (smart wallet)
+      // Mini‑app: use SDK EIP‑1193 provider (smart wallet). Avoid proactive signIn to prevent passkey prompts.
       if (isMiniAppEnv()) {
         try {
-          await sdk.actions.signIn({ acceptAuthAddress: true });
-          debug("sdk.actions.signIn() completed");
+          // Do NOT call signIn proactively. Some hosts will prompt passkey on signIn.
+          // We rely on provider injection and request accounts. If strictly required, enable via env/flag.
+          const forceSignIn = Boolean((window.__ENV && String(window.__ENV.NEXT_PUBLIC_REQUIRE_SIGNIN || '') === '1') || new URLSearchParams(window.location.search).has('signin'));
+          if (forceSignIn && sdk.actions && typeof sdk.actions.signIn === 'function') {
+            await sdk.actions.signIn({ acceptAuthAddress: true });
+            debug("sdk.actions.signIn() completed");
+          }
         } catch (error) {
           debug(`signIn error: ${error?.message || error}`);
         }
