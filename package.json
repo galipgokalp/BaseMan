@@ -54,33 +54,39 @@
     "docs:spell": "cspell \"docs/**/*.md\"",
     "docs:format": "prettier -w \"docs/**/*.md\"",
     "docs:verify": "npm run docs:lint && npm run docs:links && npm run docs:spell",
-    "docs:fix": "node scripts/fix-docs.mjs"
+    "docs:fix": "node scripts/fix-docs.mjs",
+    "ui:build": "esbuild src/ui/connect-menu-v2.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV=\"production\" --outfile=vendor/connect-menu.js"
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",
     "@coinbase/cdp-sdk": "^1.38.4",
     "@farcaster/miniapp-sdk": "^0.2.1",
+    "@farcaster/miniapp-wagmi-connector": "^1.1.0",
     "@farcaster/quick-auth": "^0.0.8",
+    "@tanstack/react-query": "^5.90.6",
     "aes-js": "^4.0.0-beta.5",
+    "connectkit": "^1.9.1",
     "ethers": "^6.15.0",
     "prompts": "^2.4.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "viem": "^2.38.6",
+    "wagmi": "^2.19.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@cspell/dict-tr-tr": "^3.0.6",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^5.4.0",
+    "cspell": "^9.2.2",
+    "doctoc": "^2.2.0",
     "dotenv": "^16.6.1",
     "esbuild": "^0.25.12",
     "express": "^5.1.0",
     "hardhat": "^2.22.5",
-    "doctoc": "^2.2.0",
-    "cspell": "^9.2.2",
-    "markdownlint-cli": "^0.45.0",
     "markdown-link-check": "^3.12.3",
-    "prettier": "^3.3.3",
-    "@cspell/dict-tr-tr": "^3.0.6"
+    "markdownlint-cli": "^0.45.0",
+    "prettier": "^3.3.3"
   },
   "engines": {
     "node": ">=20.17.0"
