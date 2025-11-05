@@ -268,7 +268,15 @@
       }
     } catch (error) {
       console.error("[leaderboard-panel] load failed", error);
-      renderError("Leaderboard is currently unavailable.");
+      const errorMsg = error?.message || String(error);
+      // Provide more helpful error messages
+      if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+        renderError("Network error. Please check your connection and try again.");
+      } else if (errorMsg.includes('429')) {
+        renderError("Too many requests. Please wait a moment and refresh.");
+      } else {
+        renderError("Leaderboard is currently unavailable. Please try refreshing.");
+      }
     } finally {
       loading = false;
     }

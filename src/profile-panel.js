@@ -37,18 +37,26 @@
   }
 
   function ensureShell() {
+    // Ensure body exists before appending
+    if (!document.body) {
+      console.warn('[profile-panel] document.body not ready');
+      return null;
+    }
+
     let btn = document.getElementById(BTN_ID);
     if (!btn) {
       btn = el('button', 'profile-btn');
       btn.id = BTN_ID;
       btn.type = 'button';
       btn.textContent = 'Profile';
+      btn.setAttribute('aria-label', 'Open profile panel');
       document.body.appendChild(btn);
     }
     let panel = document.getElementById(PANEL_ID);
     if (!panel) {
       panel = el('section', 'profile-panel');
       panel.id = PANEL_ID;
+      panel.setAttribute('aria-hidden', 'true');
       panel.innerHTML = `
         <header class="profile-header">
           <h2 class="profile-title">Your Profile</h2>
@@ -200,9 +208,18 @@
   }
 
   function wire(panel, btn) {
+    if (!panel || !btn) {
+      console.error('[profile-panel] wire: panel or btn missing');
+      return;
+    }
+
     btn.addEventListener('click', () => {
+      const isOpen = panel.classList.contains('open');
       panel.classList.toggle('open');
-      if (panel.classList.contains('open')) refresh(panel);
+      panel.setAttribute('aria-hidden', String(!panel.classList.contains('open')));
+      if (!isOpen && panel.classList.contains('open')) {
+        refresh(panel);
+      }
     });
     // If not connected, clicking Profile triggers sign-in first
     btn.addEventListener('click', async () => {
@@ -216,6 +233,7 @@
     }, { once: true });
     panel.querySelector('[data-close]')?.addEventListener('click', () => {
       panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
     });
     panel.querySelectorAll('[data-switch]').forEach((el) => {
       el.addEventListener('click', async () => {
@@ -245,13 +263,26 @@
   }
 
   function init() {
-    const { btn, panel } = ensureShell();
-    wire(panel, btn);
+    try {
+      const shell = ensureShell();
+      if (!shell) {
+        // Retry after a short delay if body isn't ready
+        setTimeout(() => {
+          const retry = ensureShell();
+          if (retry) wire(retry.panel, retry.btn);
+        }, 100);
+        return;
+      }
+      wire(shell.panel, shell.btn);
+    } catch (error) {
+      console.error('[profile-panel] init error', error);
+    }
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
-    init();
+    // Use setTimeout to ensure body is fully available
+    setTimeout(init, 0);
   }
 })();
