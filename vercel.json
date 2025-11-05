@@ -1,5 +1,10 @@
 {
+  "version": 2,
   "buildCommand": "npm run manifest:generate",
+  "outputDirectory": ".",
+  "framework": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/.well-known/(.*)",
