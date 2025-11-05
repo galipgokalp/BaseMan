@@ -87,7 +87,7 @@
     "prettier": "^3.6.2"
   },
   "engines": {
-    "node": ">=20.17.0"
+    "node": "20.x"
   },
   "overrides": {
     "@walletconnect/core": "^2.23.0",
