@@ -198,6 +198,7 @@
 
     // Call ready asynchronously to hide splash screen
     // IMPORTANT: This must be called early to prevent infinite loading screen
+    // Also dispatch an event when ready() completes so the game can start
     (async () => {
       try {
         // Wait a bit for SDK to fully initialize (especially on mobile)
@@ -221,11 +222,28 @@
           if (isReady) {
             await sdk.actions.ready({ disableNativeGestures: true });
             debug("sdk.actions.ready() called successfully");
+            // Dispatch event to signal that SDK is ready and splash screen is hidden
+            try {
+              window.__basemanSDKReadyFired = true;
+              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk } }));
+            } catch (eventError) {
+              debug(`Failed to dispatch sdk-ready event: ${eventError?.message || eventError}`);
+            }
           } else {
             debug("Warning: SDK detected but not in mini app context");
+            // Even if not in mini app, allow game to start
+            try {
+              window.__basemanSDKReadyFired = true;
+              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
+            } catch (eventError) {}
           }
         } else {
           debug("Warning: sdk.actions.ready is not available");
+          // If SDK not available, allow game to start anyway (web mode)
+          try {
+            window.__basemanSDKReadyFired = true;
+            window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
+          } catch (eventError) {}
         }
       } catch (error) {
         debug(`Error calling sdk.actions.ready: ${error?.message || error}`);
@@ -234,9 +252,28 @@
           try {
             await sdk.actions.ready({ disableNativeGestures: true });
             debug("sdk.actions.ready() called after error recovery");
+            try {
+              window.__basemanSDKReadyFired = true;
+              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk } }));
+            } catch (eventError) {}
           } catch (retryError) {
             debug(`Retry ready() failed: ${retryError?.message || retryError}`);
+            // Even on error, allow game to start after a delay
+            setTimeout(() => {
+              try {
+                window.__basemanSDKReadyFired = true;
+                window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
+              } catch (eventError) {}
+            }, 500);
           }
+        } else {
+          // No SDK available, allow game to start
+          setTimeout(() => {
+            try {
+              window.__basemanSDKReadyFired = true;
+              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
+            } catch (eventError) {}
+          }, 300);
         }
       }
     })();

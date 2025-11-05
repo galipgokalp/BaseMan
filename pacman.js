@@ -13609,7 +13609,7 @@ var vcr = (function() {
 //////////////////////////////////////////////////////////////////////////////////////
 // Entry Point
 
-window.addEventListener("load", function() {
+function startGame() {
     loadHighScores();
     initRenderer();
     atlas.create();
@@ -13631,6 +13631,53 @@ window.addEventListener("load", function() {
 		switchState(homeState);
 	}
     executive.init();
+}
+
+window.addEventListener("load", function() {
+    // Check if SDK ready event has already fired (for web mode or slow SDK)
+    var gameStarted = false;
+    
+    function tryStartGame() {
+        if (gameStarted) return;
+        gameStarted = true;
+        startGame();
+    }
+    
+    // Check if SDK ready event already fired (event might have fired before load event)
+    if (window.__basemanSDKReadyFired) {
+        tryStartGame();
+        return;
+    }
+    
+    // Listen for SDK ready event (mini app mode)
+    var sdkReadyHandler = function() {
+        window.__basemanSDKReadyFired = true;
+        tryStartGame();
+    };
+    window.addEventListener("baseman-sdk-ready", sdkReadyHandler);
+    
+    // Fallback: if SDK ready event doesn't fire within 2 seconds, start anyway (web mode or SDK not available)
+    setTimeout(function() {
+        if (!gameStarted) {
+            window.removeEventListener("baseman-sdk-ready", sdkReadyHandler);
+            tryStartGame();
+        }
+    }, 2000);
+    
+    // Also try to start immediately if we're not in a mini app environment
+    // Check for common indicators that we're NOT in a mini app
+    var isMiniApp = false;
+    try {
+        isMiniApp = !!(window.fc && window.fc.miniapp) || 
+                   !!(window.farcaster && window.farcaster.miniapp) ||
+                   !!(window.MiniKit) ||
+                   !!(window.ReactNativeWebView);
+    } catch (e) {}
+    
+    if (!isMiniApp) {
+        // Web mode - start immediately
+        tryStartGame();
+    }
 });
 
 })();
