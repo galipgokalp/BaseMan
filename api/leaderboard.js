@@ -55,6 +55,10 @@ function sanitizeLimit(value) {
 }
 
 function buildQuery(limit) {
+  // Handle missing registry address gracefully
+  if (!registryAddress) {
+    return ""; // Return empty string if registry not configured
+  }
   const registry = ethers.getAddress(registryAddress).toLowerCase();
   // Use normalized events table and parameters JSON.
   // On CDP SQL (ClickHouse), use JSONExtract* functions and 1-based array index for topics.
@@ -344,6 +348,11 @@ function pickRpcUrl(chain) {
 
 async function fetchFromRpcFallback(limit) {
   try {
+    // Handle missing registry address gracefully
+    if (!registryAddress) {
+      console.warn("[leaderboard] RPC fallback skipped: registry address not configured");
+      return [];
+    }
     const address = ethers.getAddress(registryAddress);
     const chain = Number.parseInt(process.env.REGISTRY_CHAIN_ID || process.env.BASE_SEPOLIA_REGISTRY_CHAIN_ID || "84532", 10);
     const rpcUrl = pickRpcUrl(chain);
@@ -468,10 +477,17 @@ export default async function handler(req, res) {
     
     const statement = buildQuery(limit);
     let rows = [];
-    try {
-      rows = await runQuery(statement);
-    } catch (sqlError) {
-      console.warn("[leaderboard] SQL query failed:", sqlError?.message || sqlError);
+    
+    // Skip SQL query if registry address is not configured
+    if (statement && statement.trim()) {
+      try {
+        rows = await runQuery(statement);
+      } catch (sqlError) {
+        console.warn("[leaderboard] SQL query failed:", sqlError?.message || sqlError);
+        rows = [];
+      }
+    } else {
+      console.warn("[leaderboard] SQL query skipped: registry address not configured");
       rows = [];
     }
 

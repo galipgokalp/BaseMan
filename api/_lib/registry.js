@@ -122,12 +122,56 @@ export function getRegistryTargets() {
   return Object.keys(CHAIN_SOURCES);
 }
 
-const defaultContext = getRegistryContext();
+// Lazy initialization to avoid errors when env vars are missing
+let _defaultContext = null;
+let _defaultContextError = null;
 
-export const registryAddress = defaultContext.address;
-export const registryChainId = defaultContext.chainId;
-export const registryChainIdNumber = defaultContext.chainIdNumber;
-export const registryDomain = defaultContext.domain;
+function getDefaultContext() {
+  if (_defaultContext) return _defaultContext;
+  if (_defaultContextError) throw _defaultContextError;
+  
+  try {
+    _defaultContext = getRegistryContext();
+    return _defaultContext;
+  } catch (error) {
+    _defaultContextError = error;
+    // Return a fallback context instead of throwing
+    // This allows the API to handle missing env vars gracefully
+    return {
+      target: DEFAULT_TARGET,
+      address: null,
+      chainId: null,
+      chainIdNumber: null,
+      domain: null
+    };
+  }
+}
+
+export function getRegistryAddress() {
+  const ctx = getDefaultContext();
+  return ctx.address;
+}
+
+export function getRegistryChainId() {
+  const ctx = getDefaultContext();
+  return ctx.chainId;
+}
+
+export function getRegistryChainIdNumber() {
+  const ctx = getDefaultContext();
+  return ctx.chainIdNumber;
+}
+
+export function getRegistryDomain() {
+  const ctx = getDefaultContext();
+  return ctx.domain;
+}
+
+// Legacy exports for backward compatibility (lazy)
+export const registryAddress = getDefaultContext().address;
+export const registryChainId = getDefaultContext().chainId;
+export const registryChainIdNumber = getDefaultContext().chainIdNumber;
+export const registryDomain = getDefaultContext().domain;
 
 const V1_scoreTypes = {
   Score: [
