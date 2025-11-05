@@ -219,7 +219,7 @@
           }
           
           if (isReady) {
-            await sdk.actions.ready();
+            await sdk.actions.ready({ disableNativeGestures: true });
             debug("sdk.actions.ready() called successfully");
           } else {
             debug("Warning: SDK detected but not in mini app context");
@@ -232,7 +232,7 @@
         // Try to call ready anyway if it's a timeout or minor error
         if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
           try {
-            await sdk.actions.ready();
+            await sdk.actions.ready({ disableNativeGestures: true });
             debug("sdk.actions.ready() called after error recovery");
           } catch (retryError) {
             debug(`Retry ready() failed: ${retryError?.message || retryError}`);
