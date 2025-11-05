@@ -1,9 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Terimler Sözlüğü](#terimler-s%C3%B6zl%C3%BC%C4%9F%C3%BC)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: Glossary
 version: 0.1.0
 updatedAt: 2025-11-02
 owner: BaseMan
 ---
+
+<!-- cspell:disable -->
 
 # Terimler Sözlüğü
 
@@ -19,4 +29,3 @@ owner: BaseMan
 - Embed: Mini App’in linklendiği sayfalara eklenen meta etiketleri.
 - Viem/Wagmi: Ethereum istemci ve React hook ekosistemi.
 - UserOp: userOperation nesnesi, ERC‑4337 işlem türü.
-

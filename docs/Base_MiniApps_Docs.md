@@ -1,3 +1,267 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Base — Resmi Doküman (Çalışma Kopyası)](#base--resmi-dok%C3%BCman-%C3%87al%C4%B1%C5%9Fma-kopyas%C4%B1)
+  - [Quick Start / Checklist](#quick-start--checklist)
+    - [Related Docs](#related-docs)
+    - [Env Checklist](#env-checklist)
+    - [Diagrams](#diagrams)
+  - [Table of Contents](#table-of-contents)
+  - [INTRODUCTION](#introduction)
+- [Base](#base)
+  - [Why Base?](#why-base)
+  - [Global Economy](#global-economy)
+  - [Creator Tools](#creator-tools)
+  - [Builder Experience](#builder-experience)
+  - [Distribution](#distribution)
+  - [Start Building](#start-building)
+- [Build an App](#build-an-app)
+  - [What You'll Achieve](#what-youll-achieve)
+  - [Set Up Your Development Environment](#set-up-your-development-environment)
+    - [Step: Bootstrap with OnchainKit](#step-bootstrap-with-onchainkit)
+      - [Command](#command)
+  - [Start building!](#start-building)
+- [Vite Installation · OnchainKit](#vite-installation-%C2%B7-onchainkit)
+    - [Step: Install Vite](#step-install-vite)
+    - [Step: Install OnchainKit](#step-install-onchainkit)
+    - [Step: Get A Client API Key](#step-get-a-client-api-key)
+      - [Env file```dotenv](#env-filedotenv)
+  - [Start building!](#start-building-1)
+- [Remix Installation · OnchainKit](#remix-installation-%C2%B7-onchainkit)
+    - [Step: Install Remix](#step-install-remix)
+      - [Command](#command-1)
+  - [Start building!](#start-building-2)
+- [Astro Installation · OnchainKit](#astro-installation-%C2%B7-onchainkit)
+    - [Step: Install Astro](#step-install-astro)
+    - [Step: Install React](#step-install-react)
+      - [Command```bash](#commandbash)
+  - [Start building!](#start-building-3)
+- [<OnchainKitProvider />](#onchainkitprovider-)
+  - [Usage](#usage)
+      - [Code](#code)
+  - [Props](#props)
+    - [Chain](#chain)
+    - [RPC URL](#rpc-url)
+    - [Project ID](#project-id)
+    - [Config`config`is an object that can be used to customize the appearance and behavior](#configconfigis-an-object-that-can-be-used-to-customize-the-appearance-and-behavior)
+      - [Appearance](#appearance)
+      - [Paymaster](#paymaster)
+      - [Wallet`wallet`configures the wallet connection experience and has the following properties:](#walletwalletconfigures-the-wallet-connection-experience-and-has-the-following-properties)
+    - [Address _\[Deprecation Pending]_`address`is no longer used and will be removed in a future version of](#address-_%5Cdeprecation-pending_addressis-no-longer-used-and-will-be-removed-in-a-future-version-of)
+    - [Schema ID _\[Deprecation Pending]_`schemaId`is no longer used as OnchainKit now defaults to using Coinbase](#schema-id-_%5Cdeprecation-pending_schemaidis-no-longer-used-as-onchainkit-now-defaults-to-using-coinbase)
+- [Supplemental Providers · OnchainKit](#supplemental-providers-%C2%B7-onchainkit)
+  - [Lifecycle Status with `<Swap />`](#lifecycle-status-with-swap-)
+    - [`amountChange`Any of the Swap Input fields have been updated.](#amountchangeany-of-the-swap-input-fields-have-been-updated)
+      - [Code```ts](#codets)
+      - [Code```ts](#codets-1)
+      - [Code```ts](#codets-2)
+      - [Code```ts](#codets-3)
+  - [Returns](#returns)
+  - [Parameters](#parameters)
+- [API types](#api-types)
+  - [`APIError`#### Code```ts](#apierror-codets)
+    - [Location Object](#location-object)
+      - [CastEmbedLocationContext](#castembedlocationcontext)
+      - [JSON](#json)
+  - [Schema](#schema)
+    - [Send Notification Request Schema](#send-notification-request-schema)
+    - [Send Notification Response Schema](#send-notification-response-schema)
+  - [Events](#events)
+    - [`miniapp_added`Sent when the user adds the Mini App to their Farcaster client (whether or not it was triggered by an`addMiniApp`prompt).](#miniapp_addedsent-when-the-user-adds-the-mini-app-to-their-farcaster-client-whether-or-not-it-was-triggered-by-anaddminiappprompt)
+      - [JSON```json](#jsonjson)
+      - [JSON```json](#jsonjson-1)
+      - [JSON](#json-1)
+- [Sign Your Manifest](#sign-your-manifest)
+    - [Prerequisites](#prerequisites)
+  - [Location](#location)
+  - [Sign Your Manifest](#sign-your-manifest-1)
+  - [Example Manifest](#example-manifest)
+      - [JSON```json](#jsonjson-2)
+      - [Ek Varyant 3](#ek-varyant-3)
+    - [Prerequisites](#prerequisites-1)
+  - [Location](#location-1)
+  - [Sign Your Manifest](#sign-your-manifest-2)
+  - [Example Manifest](#example-manifest-1)
+      - [JSON```json](#jsonjson-3)
+  - [Success Verification](#success-verification)
+  - [Getting Additional Help](#getting-additional-help)
+- [Base App Compatibility](#base-app-compatibility)
+  - [Currently Unsupported](#currently-unsupported)
+  - [Base app Mini App SDK Supported Features](#base-app-mini-app-sdk-supported-features)
+  - [Base App Client Detection](#base-app-client-detection)
+      - [Code```tsx](#codetsx)
+  - [Next steps](#next-steps)
+- [Mobile (React Native)](#mobile-react-native)
+  - [Before You Start](#before-you-start)
+  - [Step 1: Install Mobile Wallet Protocol Client](#step-1-install-mobile-wallet-protocol-client)
+  - [Step 2: Add Polyfills](#step-2-add-polyfills)
+    - [Install peer dependencies](#install-peer-dependencies)
+  - [Test on Base Sepolia](#test-on-base-sepolia)
+- [Accept Recurring Payments](#accept-recurring-payments)
+  - [Start accepting recurring payments with Base Pay Subscriptions](#start-accepting-recurring-payments-with-base-pay-subscriptions)
+  - [How It Works](#how-it-works)
+    - [Step: User Approves Subscription](#step-user-approves-subscription)
+    - [Step: Application Charges Periodically](#step-application-charges-periodically)
+    - [Step: Smart Period Management](#step-smart-period-management)
+    - [Step: User Maintains Control](#step-user-maintains-control)
+  - [Implementation Guide](#implementation-guide)
+    - [Architecture Overview](#architecture-overview)
+    - [Setup: Create Your Subscription Owner Wallet](#setup-create-your-subscription-owner-wallet)
+      - [Code```typescript](#codetypescript)
+      - [Code](#code-1)
+      - [Code](#code-2)
+    - [Add Owner Account](#add-owner-account)
+      - [Code](#code-3)
+  - [Example Use Case](#example-use-case)
+- [Use Coinbase Balances Onchain](#use-coinbase-balances-onchain)
+  - [Why it matters](#why-it-matters)
+      - [Code](#code-4)
+      - [Ek Varyant 2](#ek-varyant-2)
+- [Other Use Cases](#other-use-cases)
+  - [Prerequisites](#prerequisites-2)
+  - [Getting the Provider](#getting-the-provider)
+  - [Base Account Features](#base-account-features)
+  - [Available Use Cases](#available-use-cases)
+    - [Sub Accounts](#sub-accounts)
+    - [Spend Permissions](#spend-permissions)
+    - [Batch Transactions](#batch-transactions)
+    - [Gasless Transactions](#gasless-transactions)
+    - [Full list of provider methods and capabilities](#full-list-of-provider-methods-and-capabilities)
+- [Auth (Sign In With Base)](#auth-sign-in-with-base)
+  - [Overview](#overview)
+  - [Authentication Flow](#authentication-flow)
+  - [Custom Authentication](#custom-authentication)
+    - [Setup](#setup)
+    - [Frontend Component (Sign In With Base)](#frontend-component-sign-in-with-base)
+- [getPaymentStatus](#getpaymentstatus)
+  - [Parameters](#parameters-1)
+  - [Returns](#returns-1)
+  - [Returns](#returns-2)
+  - [Integration Examples](#integration-examples)
+    - [With Viem](#with-viem)
+      - [Code](#code-5)
+  - [Security Considerations](#security-considerations)
+- [getKeypair](#getkeypair)
+  - [Parameters](#parameters-2)
+  - [Returns](#returns-3)
+  - [Security Considerations](#security-considerations-1)
+- [getCryptoKeyAccount](#getcryptokeyaccount)
+  - [Parameters](#parameters-3)
+  - [Returns](#returns-4)
+  - [PROVIDER](#provider)
+- [Overview](#overview-1)
+  - [Specification](#specification)
+      - [Code```ts](#codets-4)
+  - [Request Handling](#request-handling)
+    - [1. Sent to the Wallet application](#1-sent-to-the-wallet-application)
+    - [2. Handled Locally by the SDK](#2-handled-locally-by-the-sdk)
+    - [3. Passed to RPC Provider](#3-passed-to-rpc-provider)
+      - [Ek Varyant 2](#ek-varyant-2-1)
+      - [Ek Varyant 3](#ek-varyant-3-1)
+  - [Prerequisites](#prerequisites-3)
+  - [Objectives](#objectives)
+- [wallet_connect](#wallet_connect)
+  - [Parameters](#parameters-4)
+  - [Returns](#returns-5)
+  - [Error Handling](#error-handling)
+  - [Usage with Capabilities](#usage-with-capabilities)
+- [wallet_sendCalls](#wallet_sendcalls)
+  - [Parameters](#parameters-5)
+  - [Returns](#returns-6)
+  - [Example Usage](#example-usage)
+  - [Error Handling](#error-handling-1)
+- [wallet_getCallsStatus](#wallet_getcallsstatus)
+  - [Parameters](#parameters-6)
+  - [Returns](#returns-7)
+  - [Example Usage](#example-usage-1)
+  - [Error Handling](#error-handling-2)
+  - [CAPABILITIES](#capabilities)
+- [Capabilities Overview](#capabilities-overview)
+  - [Core Concepts](#core-concepts)
+    - [Discovery Pattern](#discovery-pattern)
+      - [Code```typescript](#codetypescript-1)
+  - [Capability-Specific Guides](#capability-specific-guides)
+  - [Related Methods](#related-methods)
+- [signInWithEthereum](#signinwithethereum)
+  - [Parameters](#parameters-7)
+  - [Returns](#returns-8)
+  - [Usage with wallet_connect](#usage-with-wallet_connect)
+  - [Expected Benefits](#expected-benefits)
+  - [Development Status](#development-status)
+  - [Preparing for Flow Control](#preparing-for-flow-control)
+  - [Related Capabilities](#related-capabilities)
+- [paymasterService](#paymasterservice)
+  - [Parameters](#parameters-8)
+  - [Returns](#returns-9)
+  - [Example Usage](#example-usage-2)
+  - [Best Practices](#best-practices)
+- [auxiliaryFunds](#auxiliaryfunds)
+  - [Parameters](#parameters-9)
+  - [Returns](#returns-10)
+  - [Example Usage](#example-usage-3)
+  - [Get a basename for your agent](#get-a-basename-for-your-agent)
+  - [COOKBOOK](#cookbook)
+  - [Use Cases](#use-cases)
+- [Gasless Transactions on Base using a Paymaster](#gasless-transactions-on-base-using-a-paymaster)
+  - [Objectives](#objectives-1)
+  - [Prerequisites](#prerequisites-4)
+  - [Set Up a Base Paymaster & Bundler](#set-up-a-base-paymaster--bundler)
+    - [Screenshots](#screenshots)
+    - [Allowlist a Sponsorable Contract](#allowlist-a-sponsorable-contract)
+    - [Global & Per User Limits](#global--per-user-limits)
+  - [Test Your Paymaster Policy](#test-your-paymaster-policy)
+    - [Installing Foundry](#installing-foundry)
+      - [Command```bash](#commandbash-1)
+  - [Conclusion](#conclusion)
+  - [References](#references)
+  - [Foundations](#foundations)
+- [Introduction to Mini Apps](#introduction-to-mini-apps)
+      - [Ek Varyant 2](#ek-varyant-2-2)
+- [Vibe Coding a Mini App](#vibe-coding-a-mini-app)
+- [What is The Base App (TBA)?](#what-is-the-base-app-tba)
+- [Vibe Coding Fundamentals](#vibe-coding-fundamentals)
+- [Vibe Coding Mini Apps](#vibe-coding-mini-apps)
+  - [Vibe Coding Elements](#vibe-coding-elements)
+    - [Step: Plan](#step-plan)
+    - [Step: UX + Architecture](#step-ux--architecture)
+    - [Step: Build the Core Features](#step-build-the-core-features)
+    - [Step: Test & Refine](#step-test--refine)
+    - [Step: Deploy & Share](#step-deploy--share)
+- [Master Prompt Engineering](#master-prompt-engineering)
+  - [What makes a good prompt](#what-makes-a-good-prompt)
+  - [What makes a prompt effective](#what-makes-a-prompt-effective)
+  - [<paste your rough prompt>](#paste-your-rough-prompt)
+  - [(B) TEMPLATE:](#b-template)
+  - [<paste the prompt template>](#paste-the-prompt-template)
+  - [Additional Resources](#additional-resources)
+- [Essential Documentation Resources](#essential-documentation-resources)
+- [Developer Resources](#developer-resources)
+  - [Example Prompt for Understanding Key Tools](#example-prompt-for-understanding-key-tools)
+- [AI-Assisted Documentation Reading](#ai-assisted-documentation-reading)
+- [Techniques for understanding documentation](#techniques-for-understanding-documentation)
+    - [Used tailored prompts](#used-tailored-prompts)
+    - [Use Screenshots](#use-screenshots)
+    - [Use code snippets](#use-code-snippets)
+  - [Writing data to the blockchain](#writing-data-to-the-blockchain)
+  - [Interacting with smart contracts](#interacting-with-smart-contracts)
+- [null](#null)
+- [Gasless Transactions on Base using Base Paymaster](#gasless-transactions-on-base-using-base-paymaster)
+  - [Objectives](#objectives-2)
+  - [Prerequisites](#prerequisites-5)
+  - [Set Up a Base Paymaster & Bundler](#set-up-a-base-paymaster--bundler-1)
+    - [Screenshots](#screenshots-1)
+    - [Allowlist a Sponsorable Contract](#allowlist-a-sponsorable-contract-1)
+    - [Global & Per User Limits](#global--per-user-limits-1)
+  - [Test Your Paymaster Policy](#test-your-paymaster-policy-1)
+    - [Installing Foundry](#installing-foundry-1)
+      - [Command```bash](#commandbash-2)
+  - [Conclusion](#conclusion-1)
+  - [References](#references-1)
+- [Base — Mini Apps ve OnchainKit — Hazır (BaseMan)](#base--mini-apps-ve-onchainkit--haz%C4%B1r-baseman)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: Base — Resmi Doküman (Çalışma Kopyası)
 version: 0.1.0
@@ -5,35 +269,51 @@ updatedAt: 2025-11-02
 owner: BaseMan
 ---
 
+<!-- cspell:disable -->
+
 # Base — Resmi Doküman (Çalışma Kopyası)
+
 Kaynaklar:
+
 - https://docs.base.org/
 - https://github.com/base
 
 ---
+
 ## Quick Start / Checklist
+
 - Node >= 20.17 ve npm kurulu.
-- Bağımlılıklar: `npm install`- Yerel geliştirme:`npm run dev`- Sözleşmeleri derle:`npm run contracts:compile`- Sepolia’ya dağıt:`npm run contracts:deploy:sepolia`(gerekli env: RPC, PRIVATE_KEY)
-- Manifest üret:`npm run manifest:generate`ve onchain config:`npm run onchain:config`- TOC güncelle:`npm run docs:toc`### Related Docs
+- Bağımlılıklar: `npm install`
+- Yerel geliştirme: `npm run dev`
+- Sözleşmeleri derle: `npm run contracts:compile`
+- Sepolia’ya dağıt: `npm run contracts:deploy:sepolia` (gerekli env: RPC, PRIVATE_KEY)
+- Manifest üret: `npm run manifest:generate` ve onchain config: `npm run onchain:config`
+- TOC güncelle: `npm run docs:toc`
+
+### Related Docs
+
 - Farcaster Mini Apps: [Farcaster_MiniApps_Docs.md](Farcaster_MiniApps_Docs.md)
 - CDP Paymaster: [CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md](CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md)
- - Glossary: [glossary.md](glossary.md)
+- Glossary: [glossary.md](glossary.md)
 
 ### Env Checklist
+
 - RPC_URL_BASE_SEPOLIA, RPC_URL_BASE, PRIVATE_KEY
 - CDP_API_KEY, CDP_PAYMASTER_URL, CDP_BUNDLER_URL
 - FARCASTER_CLIENT_ID, FARCASTER_REDIRECT_URI
 - WALLETCONNECT_PROJECT_ID, NEXT_PUBLIC_ONCHAINKIT_API_KEY
 - Örnek dosya: [env.example](env.example)
 
-### Diagrams```mermaid
+### Diagrams
+
+```mermaid
 flowchart LR
- Dev[Developer] --> C[Compile Contracts (Foundry)]
- C --> D[Deploy to Base Sepolia]
- D --> V[Verify Deployment]
- V --> UI[UI integrates via OnchainKit]
- UI --> TX[User Interacts / Transactions]
- TX --> Base[Base Network]
+Dev[Developer] --> C[Compile Contracts (Foundry)]
+C --> D[Deploy to Base Sepolia]
+D --> V[Verify Deployment]
+V --> UI[UI integrates via OnchainKit]
+UI --> TX[User Interacts / Transactions]
+TX --> Base[Base Network]
 ```
 
 ---
@@ -1280,7 +1560,7 @@ npm run dev
 
  ![OnchainKit Template](https://mintcdn.com/base-a060aa97/-q4fo0uzIfxlH3Wn/images/onchainkit/quickstart.png?fit=max&auto=format&n=-q4fo0uzIfxlH3Wn&q=85&s=6946afe49fc15f2bac953a56a942c114)
  Once we've deployed our contracts, we'll add a button that lets us interact with our contracts.
- 
+
 ### Step: Install and initialize Foundry
 The total tally will be stored onchain in a smart contract. We'll use the Foundry framework to deploy our contract to the Base Sepolia testnet.
 
@@ -1294,12 +1574,12 @@ foundryup
 forge init --no-git
 ```Open the project and find the`Counter.sol`contract file in the`/contracts/src`folder. You'll find the simple logic for our tally app.
 
- 
+
 > Note:
 **--no-git**
 
  Because`contracts`is a folder in our project, we don't want to initialize a separate git repository for it, so we add the`--no-git`flag.
- 
+
 
 ### Step: Configure Foundry with Base
 To deploy your smart contracts to Base, you need two key components:
@@ -1320,7 +1600,7 @@ source .env
 **Base Sepolia**
 
  Base Sepolia is the test network for Base, which we will use for the rest of this guide. You can obtain free Base Sepolia ETH from one of the https://docs.base.org/base-chain/tools/network-faucets (/base-chain/tools/network-faucets).
- 
+
 
 ### Step: Secure your private key
 A private key with testnet funds is required to deploy the contract. You can generate a fresh private key https://visualkey.link/
@@ -1332,10 +1612,10 @@ cast wallet import deployer --interactive
 
  Your private key is stored in`~/.foundry/keystores`which is not tracked by git.
 
- 
+
 > Warning:
 Never share or commit your private key. Always keep it secure and handle with care.
- 
+
 
 ## Deploy Your Contracts
 
@@ -1347,7 +1627,7 @@ Now that your environment is set up, let's deploy your contracts to Base Sepolia
 #### Command```bash
 forge create ./src/Counter.sol:Counter --rpc-url $BASE_SEPOLIA_RPC_URL --account deployer
 ```Note the format of the contract being deployed is`<contract-path>:<contract-name>`.
- 
+
 ### Step: Save the contract address
 After successful deployment, the transaction hash will be printed to the console output
 
@@ -1365,7 +1645,7 @@ To ensure your contract was deployed successfully:
 #### Command```bash
 cast call $COUNTER_CONTRACT_ADDRESS "number(uint256)" --rpc-url $BASE_SEPOLIA_RPC_URL
 ```This will return the initial value of the Counter contract's`number`storage variable, which will be`0`.
- 
+
 **Congratulations! You've deployed your smart contract to Base Sepolia!**
 
 Now lets connect the frontend to interact with your recently deployed contract.
@@ -1415,7 +1695,7 @@ args: [],
 **Contract Address**
 
  The`calls.ts`file contains the details of the contract interaction, including the contract address, which we saved in the previous step.
- 
+
 
 ### Step: Testing the component
 Now, when you connect a wallet and click on the`Transact`button and approve the transaction, it will increment the tally onchain by one.
@@ -1424,7 +1704,7 @@ Now, when you connect a wallet and click on the`Transact`button and approve the 
 #### Command```bash
 cast call $COUNTER_CONTRACT_ADDRESS "number(uint256)" --rpc-url $BASE_SEPOLIA_RPC_URL
 ```If the transaction was successful, the tally should have incremented by one!
- 
+
 We now have a working onchain tally app! While the example is simple, it illustrates the end to end process of building on onchain app. We:
 
 * Configured a project with frontend and onchain infrastructure
@@ -1714,7 +1994,7 @@ Create a new Next.js project by using the Next.js CLI.
 npx create-next-app@14
 ```During the setup process you will encounter multiple prompts.
  Make sure you enable TypeScript, ESLint, and Tailwind CSS.
- 
+
 ### Step: Install OnchainKit
 Install OnchainKit in your project.
 
@@ -1728,7 +2008,7 @@ Install OnchainKit in your project.
 ```#### Command```bash
  bun add @coinbase/onchainkit
 ```</CodeGroup>
- 
+
 ### Step: Get Your Client API Key
 Get your [Client API Key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) from Coinbase Developer Platform.
 
@@ -1774,7 +2054,7 @@ export default function RootLayout({
  return (
 <html lang="en">
  <body>
-<Providers> 
+<Providers>
  {children}
 </Providers>
  </body>
@@ -1817,26 +2097,27 @@ headers.get('cookie')
 </html>
  );
 }
-```
- This ensures that the OnchainKit styles are loaded and applied to your entire application.
+````
 
- * For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+This ensures that the OnchainKit styles are loaded and applied to your entire application.
 
- * Update the appearance of components by using our built-in themes or crafting your own custom theme.
- Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
- 
+- For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+
+- Update the appearance of components by using our built-in themes or crafting your own custom theme.
+  Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
+
 ## Start building!
 
 Explore our ready-to-use onchain components:
 
-* [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
-* [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
-* [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
-* [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
-* [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
-* [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
-* [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
-* [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
+- [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
+- [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
+- [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
+- [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
+- [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
+- [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
+- [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
+- [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
 
 # Vite Installation · OnchainKit
 
@@ -1846,10 +2127,10 @@ Install and configure OnchainKit with Vite.
 If you are integrating OnchainKit into an existing project,
 skip to the [OnchainKit installation](#install-onchainkit).
 
-
 ### Step: Install Vite
+
 Create a new Vite project by using the Vite CLI.
- More information about Vite can be found [Guide](https://vite.dev/guide/#scaffolding-your-first-vite-project)
+More information about Vite can be found [Guide](https://vite.dev/guide/#scaffolding-your-first-vite-project)
 
  <CodeGroup>
 #### Command
@@ -1863,10 +2144,11 @@ Create a new Vite project by using the Vite CLI.
  bun create vite
 ```</CodeGroup>
 
- During the setup process you will encounter multiple prompts.
- Make sure you select React and TypeScript.
- 
+During the setup process you will encounter multiple prompts.
+Make sure you select React and TypeScript.
+
 ### Step: Install OnchainKit
+
 Add OnchainKit to your project by installing the`@coinbase/onchainkit`package.
 
  <CodeGroup>
@@ -1883,12 +2165,15 @@ Add OnchainKit to your project by installing the`@coinbase/onchainkit`package.
 ### Step: Get A Client API Key
 Get your [Client API Key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) from Coinbase Developer Platform.
 
- Create a`.env`file in your project's root directory.
+Create a`.env`file in your project's root directory.
 
- Add your Client API Key to the`.env`file:
+Add your Client API Key to the`.env`file:
+
 #### Env file```dotenv
+
 VITE_PUBLIC_ONCHAINKIT_API_KEY=YOUR_CLIENT_API_KEY
-```### Step: Add Providers
+
+````### Step: Add Providers
 Create a`providers.tsx`file. Add`OnchainKitProvider`with your desired config.
 
  Under the hood, OnchainKit will create our recommended Wagmi and QueryClient
@@ -1941,26 +2226,27 @@ export default function App {
 </AppProviders>
  );
 }
-```
- This ensures that the OnchainKit styles are loaded and applied to your entire application.
+````
 
- * For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+This ensures that the OnchainKit styles are loaded and applied to your entire application.
 
- * Update the appearance of components by using our built-in themes or crafting your own custom theme.
- Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
- 
+- For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+
+- Update the appearance of components by using our built-in themes or crafting your own custom theme.
+  Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
+
 ## Start building!
 
 Explore our ready-to-use onchain components:
 
-* [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
-* [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
-* [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
-* [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
-* [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
-* [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
-* [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
-* [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
+- [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
+- [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
+- [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
+- [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
+- [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
+- [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
+- [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
+- [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
 
 # Remix Installation · OnchainKit
 
@@ -1970,12 +2256,14 @@ Install and configure OnchainKit with Remix.
 If you are integrating OnchainKit into an existing project,
 skip to the [OnchainKit installation](#install-onchainkit).
 
-
 ### Step: Install Remix
+
 Create a new Remix project by using the Remix CLI.
- More information about Remix can be found [Quickstart](https://remix.run/docs/en/main/start/quickstart)
+More information about Remix can be found [Quickstart](https://remix.run/docs/en/main/start/quickstart)
+
 #### Command
-```bash
+
+````bash
 npx create-remix@latest
 ```### Step: Install OnchainKit
 Add OnchainKit to your project by installing the`@coinbase/onchainkit`package.
@@ -1990,7 +2278,7 @@ Add OnchainKit to your project by installing the`@coinbase/onchainkit`package.
 ```#### Command```bash
  bun add @coinbase/onchainkit
 ```</CodeGroup>
- 
+
 ### Step: Get A Client API Key
 Get your [Client API Key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) from Coinbase Developer Platform.
 
@@ -2105,26 +2393,27 @@ export default function App {
 </AppProviders>
  );
 }
-```
- This ensures that the OnchainKit styles are loaded and applied to your entire application.
+````
 
- * For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+This ensures that the OnchainKit styles are loaded and applied to your entire application.
 
- * Update the appearance of components by using our built-in themes or crafting your own custom theme.
- Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
- 
+- For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+
+- Update the appearance of components by using our built-in themes or crafting your own custom theme.
+  Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
+
 ## Start building!
 
 Explore our ready-to-use onchain components:
 
-* [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
-* [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
-* [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
-* [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
-* [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
-* [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
-* [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
-* [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
+- [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
+- [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
+- [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
+- [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
+- [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
+- [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
+- [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
+- [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
 
 # Astro Installation · OnchainKit
 
@@ -2134,10 +2423,10 @@ Install and configure OnchainKit with Astro.
 If you are integrating OnchainKit into an existing project,
 skip to the [OnchainKit installation](#install-onchainkit).
 
-
 ### Step: Install Astro
+
 Create a new Astro project by using the Astro CLI.
- More information about Astro can be found [Install And Setup](https://docs.astro.build/en/install-and-setup/#start-a-new-project)
+More information about Astro can be found [Install And Setup](https://docs.astro.build/en/install-and-setup/#start-a-new-project)
 
  <CodeGroup>
 #### Command
@@ -2171,15 +2460,15 @@ Add OnchainKit to your project by installing the`@coinbase/onchainkit`package.
 ### Step: Get A Client API Key
 Get your [Client API Key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) from Coinbase Developer Platform.
 
+Create a`.env`file in your project's root directory.
 
+Add your Client API Key to the`.env`file:
 
- Create a`.env`file in your project's root directory.
-
-
- Add your Client API Key to the`.env`file:
 #### Env file```dotenv
+
 PUBLIC_ONCHAINKIT_API_KEY=YOUR_CLIENT_API_KEY
-```### Step: Add Providers
+
+````### Step: Add Providers
 Create a`providers.tsx`file. Add`OnchainKitProvider`with your desired config.
 
  Under the hood, OnchainKit will create our recommended Wagmi and QueryClient
@@ -2241,7 +2530,7 @@ return (
 
  The advantage of individual wrappers is that you can use OnchainKit components anywhere in your app.
  The drawback is that you will have multiple providers if you use more than one OnchainKit component.
- 
+
 ### Step: Add OnchainKit Components to your App
 You can add OnchainKit components to your app by using the component(s) you
  created above into your`.astro`files.
@@ -2262,40 +2551,43 @@ import ReactIsland from '../components/ReactIsland';
 </Layout>
 ```Don't forget to add the`client:only="react"`directive to your OnchainKit component,
  as this is required for Astro to render React components.
- 
+
 ### Step: Import OnchainKit Styles
 OnchainKit components come with pre-configured styles.
  To include these styles in your project, add the following import
  statement at the top of the`Layout.astro`file:
 #### Code```tsx
 import '@coinbase/onchainkit/styles.css';
-```
- This ensures that the OnchainKit styles are loaded and applied to your entire application.
+````
 
- * For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+This ensures that the OnchainKit styles are loaded and applied to your entire application.
 
- * Update the appearance of components by using our built-in themes or crafting your own custom theme.
- Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
- 
+- For Tailwind CSS users, check out our [Tailwind Integration Guide](/onchainkit/guides/tailwind).
+
+- Update the appearance of components by using our built-in themes or crafting your own custom theme.
+  Explore the possibilities in our [Theming Guide](/onchainkit/guides/themes).
+
 ## Start building!
 
 Explore our ready-to-use onchain components:
 
-* [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
-* [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
-* [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
-* [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
-* [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
-* [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
-* [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
-* [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
+- [**`Identity`**](/onchainkit/identity/identity) – Show [Basenames](/onchainkit/identity/identity), [avatars](/onchainkit/identity/avatar), [badges](/onchainkit/identity/badge), and [addresses](/onchainkit/identity/address).
+- [**`Wallet`**](/onchainkit/wallet/wallet) – Create or connect wallets with [Connect Wallet](/onchainkit/wallet/wallet).
+- [**`Transaction`**](/onchainkit/transaction/transaction) – Handle [transactions](/onchainkit/transaction/transaction) using EOAs or Smart Wallets.
+- [**`Checkout`**](/onchainkit/checkout/checkout) – Integrate USDC [checkout](/onchainkit/checkout/checkout) flows with ease.
+- [**`Fund`**](/onchainkit/fund/fund-button) – Create a [funding](/onchainkit/fund/fund-button) flow to onboard users.
+- [**`Tokens`**](/onchainkit/token/token-chip) – Search and display [tokens](/onchainkit/token/token-chip) with various components.
+- [**`Swap`**](/onchainkit/swap/swap) – Enable [token swaps](/onchainkit/swap/swap) in your app.
+- [**`Mint`**](/onchainkit/mint/nft-mint-card) – [View](/onchainkit/mint/nft-mint-card) and [Mint](/onchainkit/mint/nft-mint-card) NFTs in your app.
 
 # <OnchainKitProvider />
 
 Provides the OnchainKit React Context to the app.
 
 ## Usage
+
 #### Code
+
 ```tsx
 // @noErrors: 2304 - Cannot find name 'MyComponent'
 import { base } from 'viem/chains';
@@ -2319,19 +2611,20 @@ appearance: {
  );
 };
 ```
+
 ## Props
 
 [`OnchainKitProviderReact`](/onchainkit/config/types#onchainkitproviderreact)
 
-| Prop | Description | Required |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| [`chain`](#chain) | The chain that your OnchainKit project supports. | Yes |
-| [`apiKey`](#apikey) | Client API Key from Coinbase Developer Platform. | No |
-| [`rpcUrl`](#rpc-url) | RPC URL for onchain requests. | No |
-| [`projectId`](#project-id) | Your Coinbase Developer Platform Project ID. | No |
-| [`config`](#config) | - `config.appearance`— Customize your OnchainKit project's appearance <br /> -`config.paymaster`— Paymaster URL for gas sponsorship <br /> -`config.wallet` — Wallet configuration options | No |
-| [`schemaId`](#schema-id) | *\[Deprecation Pending]* The schema ID for attestations from the Ethereum Attestation Service (EAS). | No |
-| [`address`](#address) | *\[Deprecation Pending]* This prop is no longer used. | No |
+| Prop                       | Description                                                                                                                                                                                | Required |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| [`chain`](#chain)          | The chain that your OnchainKit project supports.                                                                                                                                           | Yes      |
+| [`apiKey`](#apikey)        | Client API Key from Coinbase Developer Platform.                                                                                                                                           | No       |
+| [`rpcUrl`](#rpc-url)       | RPC URL for onchain requests.                                                                                                                                                              | No       |
+| [`projectId`](#project-id) | Your Coinbase Developer Platform Project ID.                                                                                                                                               | No       |
+| [`config`](#config)        | - `config.appearance`— Customize your OnchainKit project's appearance <br /> -`config.paymaster`— Paymaster URL for gas sponsorship <br /> -`config.wallet` — Wallet configuration options | No       |
+| [`schemaId`](#schema-id)   | _\[Deprecation Pending]_ The schema ID for attestations from the Ethereum Attestation Service (EAS).                                                                                       | No       |
+| [`address`](#address)      | _\[Deprecation Pending]_ This prop is no longer used.                                                                                                                                      | No       |
 
 ### Chain
 
@@ -2345,15 +2638,14 @@ We recommend importing chain data from [viem](https://viem.sh/docs/chains/introd
 
 This prop is required for most OnchainKit components, including:
 
-* [`<Checkout>`](/onchainkit/checkout/checkout)
-* [`<NFTCard>`](/onchainkit/mint/nft-card)
-* [`<NFTMintCard>`](/onchainkit/mint/nft-mint-card)
-* [`<Swap>`](/onchainkit/swap/swap)
-* [`<Transaction>`](/onchainkit/transaction/transaction)
+- [`<Checkout>`](/onchainkit/checkout/checkout)
+- [`<NFTCard>`](/onchainkit/mint/nft-card)
+- [`<NFTMintCard>`](/onchainkit/mint/nft-mint-card)
+- [`<Swap>`](/onchainkit/swap/swap)
+- [`<Transaction>`](/onchainkit/transaction/transaction)
 
 You can get a [Client API Key](https://portal.cdp.coinbase.com/projects/project-id/api-keys/client-key)
 from Coinbase Developer Platform.
-
 
 ### RPC URL
 
@@ -2373,6 +2665,7 @@ This prop is required for the`<FundButton />`component.
 You can obtain a Project ID from the [Coinbase Developer Platform](https://portal.cdp.coinbase.com/projects)
 
 ### Config`config`is an object that can be used to customize the appearance and behavior
+
 of the OnchainKit components.
 
 This prop has three keys:`appearance`, `paymaster`, and `wallet`.
@@ -2381,10 +2674,10 @@ This prop has three keys:`appearance`, `paymaster`, and `wallet`.
 
 `appearance`manages the appearance of the OnchainKit components and has the following properties:
 
-*`name`— The name of your OnchainKit project
-*`logo`— The URL of the logo for your OnchainKit project
-*`mode`— The mode of the OnchainKit components. Can be`auto`, `dark`, or `light`.
-* `theme`— The theme of the OnchainKit components. Can be`base`, `cyberpunk`, `default`, `hacker`, or a custom theme.
+_`name`— The name of your OnchainKit project
+_`logo`— The URL of the logo for your OnchainKit project \*`mode`— The mode of the OnchainKit components. Can be`auto`, `dark`, or `light`.
+
+- `theme`— The theme of the OnchainKit components. Can be`base`, `cyberpunk`, `default`, `hacker`, or a custom theme.
 
 Explore appearance options in the [OnchainKit Playground](https://onchainkit.xyz/playground)
 
@@ -2397,16 +2690,17 @@ You can configure your Paymaster and obtain your Paymaster URL from the
 
 #### Wallet`wallet`configures the wallet connection experience and has the following properties:
 
-*`display`— The display mode for the wallet interface. Can be either:
- *`'modal'`— Shows wallet connection in a modal overlay with wallet aggregation
- *`'classic'`— Shows wallet connection in the traditional inline style
-*`termsUrl`— URL to your terms of service
-*`privacyUrl`— URL to your privacy policy
+_`display`— The display mode for the wallet interface. Can be either:
+_`'modal'`— Shows wallet connection in a modal overlay with wallet aggregation
+_`'classic'`— Shows wallet connection in the traditional inline style
+_`termsUrl`— URL to your terms of service \*`privacyUrl`— URL to your privacy policy
 
-### Address *\[Deprecation Pending]*`address`is no longer used and will be removed in a future version of
+### Address _\[Deprecation Pending]_`address`is no longer used and will be removed in a future version of
+
 OnchainKit.
 
-### Schema ID *\[Deprecation Pending]*`schemaId`is no longer used as OnchainKit now defaults to using Coinbase
+### Schema ID _\[Deprecation Pending]_`schemaId`is no longer used as OnchainKit now defaults to using Coinbase
+
 attestations for the`<Badge />`component.
 
 This prop will be removed in a future version of OnchainKit.
@@ -2428,66 +2722,67 @@ For example, the following code creates custom Wagmi and QueryClient providers:
  import { base } from 'wagmi/chains'; // add baseSepolia for testing // [!code ++]
  import { coinbaseWallet } from 'wagmi/connectors';
 
- export function getConfig {
+export function getConfig {
 return createConfig({
- chains: [base], // add baseSepolia for testing // [!code ++]
- connectors: [
+chains: [base], // add baseSepolia for testing // [!code ++]
+connectors: [
 coinbaseWallet({
- appName: 'OnchainKit',
- preference: 'smartWalletOnly',
- version: '4',
+appName: 'OnchainKit',
+preference: 'smartWalletOnly',
+version: '4',
 }),
- ],
- storage: createStorage({
+],
+storage: createStorage({
 storage: cookieStorage,
- }),
- ssr: true,
- transports: {
+}),
+ssr: true,
+transports: {
 [base.id]: http, // add baseSepolia for testing // [!code ++]
- },
+},
 });
- }
-
- declare module 'wagmi' {
-interface Register {
- config: ReturnType<typeof getConfig>;
 }
- }
-```#### Code```tsx
- // @noErrors: 2307 2580 2339 2554 - cannot find 'process', cannot find './wagmi', cannot find 'import.meta'
- import { OnchainKitProvider } from '@coinbase/onchainkit';
- import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
- import { base } from 'wagmi/chains'; // add baseSepolia for testing // [!code ++]
- import { type ReactNode, useState } from 'react';
- import { type State, WagmiProvider } from 'wagmi';
 
- import { getConfig } from '@/wagmi'; // your import path may vary // [!code ++]
+declare module 'wagmi' {
+interface Register {
+config: ReturnType<typeof getConfig>;
+}
+}
+`#### Code`tsx
+// @noErrors: 2307 2580 2339 2554 - cannot find 'process', cannot find './wagmi', cannot find 'import.meta'
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { base } from 'wagmi/chains'; // add baseSepolia for testing // [!code ++]
+import { type ReactNode, useState } from 'react';
+import { type State, WagmiProvider } from 'wagmi';
 
- export function Providers(props: {
+import { getConfig } from '@/wagmi'; // your import path may vary // [!code ++]
+
+export function Providers(props: {
 children: ReactNode;
 initialState?: State;
- }) {
+}) {
 const [config] = useState( => getConfig);
 const [queryClient] = useState( => new QueryClient);
 const apiKey = // [!code ++]
- typeof window !== 'undefined' // [!code ++]
+typeof window !== 'undefined' // [!code ++]
 ? window.ENV?.PUBLIC_ONCHAINKIT_API_KEY // [!code ++]
 : undefined; // [!code ++]
 
 return (
- <WagmiProvider config={config} initialState={props.initialState}>
+<WagmiProvider config={config} initialState={props.initialState}>
 <QueryClientProvider client={queryClient}>
- <OnchainKitProvider
+<OnchainKitProvider
 apiKey={apiKey} // [!code ++]
 chain={base} // add baseSepolia for testing // [!code ++]
- >
-{props.children}
- </OnchainKitProvider>
-</QueryClientProvider>
- </WagmiProvider>
-);
- }
-```
+
+> {props.children}
+> </OnchainKitProvider>
+> </QueryClientProvider>
+> </WagmiProvider>
+> );
+> }
+
+````
 </CodeGroup>
 
 ## Start building!
@@ -2556,49 +2851,59 @@ error: string; // The error message providing developer details
 message: string; // The error message providing user-facing details
  };
 }
-```
+````
+
 Each component brings its own unique experience, and we have explored both the swap and transaction processes.
 
 ## Lifecycle Status with [`<Swap />`](/onchainkit/swap/swap)
 
 ### `amountChange`Any of the Swap Input fields have been updated.
+
 #### Code```ts
+
 {
- statusName: 'amountChange';
- statusData: {
+statusName: 'amountChange';
+statusData: {
 amountFrom: string;
 amountTo: string;
 tokenFrom?: Token;
 tokenTo?: Token;
 isMissingRequiredField: boolean;
- };
+};
 }
 ```###`transactionPending`The transaction has been submitted to the network but has not yet been confirmed to be included in a block.
 During this pending state, the transaction is waiting to be validated by the network's consensus mechanism.
+
 #### Code```ts
+
 {
- statusName: 'transactionPending';
- statusData: null;
+statusName: 'transactionPending';
+statusData: null;
 }
 ```###`transactionApproved`The transaction has been verified to be valid and it has been included in a block
 however the transaction is not yet finalized.
+
 #### Code```ts
+
 {
- statusName: 'transactionApproved';
- statusData: {
+statusName: 'transactionApproved';
+statusData: {
 transactionHash: Hex;
 transactionType: 'Batched' | 'ERC20' | 'Permit2' | 'Swap';
- };
+};
 }
 ```###`success`The transaction has been added to the blockchain and the transaction is considered final.
+
 #### Code```ts
+
 {
- statusName: 'success';
- statusData: {
+statusName: 'success';
+statusData: {
 transactionReceipt: TransactionReceipt;
- };
+};
 }
-```
+
+````
 ## Lifecycle Status with [`<Transaction />`](/onchainkit/transaction/transaction)
 
 ### `transactionIdle`The transaction component is waiting for the user to take action.
@@ -2811,10 +3116,10 @@ You can integrate [Basenames](https://www.base.org/names) into your app with the
 
 ### Step: New to OnchainKit?
 Follow the [Getting Started](/onchainkit/getting-started) guide to install the package.
- 
+
 ### Step: Already using OnchainKit?
 Update to the latest version and choose from the following steps: a React component approach, a React hook, or a pure TypeScript utility function.
- 
+
 ## React components with`<Avatar>`and`<Name>`
 
 Use the [`<Avatar>`](/onchainkit/identity/avatar) and [`<Name>`](/onchainkit/identity/name) components to display Basenames associated with Ethereum addresses.
@@ -3310,8 +3615,9 @@ Check out [the full documentation](https://onchaintestkit.xyz/) for detailed gui
  D -- interacts --> C
  B -- configures --> C
  B -- automates --> D
-```
-```mermaid
+````
+
+````mermaid
  flowchart TD
  subgraph Test Environment
  A[Playwright Test]
@@ -3447,7 +3753,8 @@ console.log('The sender address is not a valid smart wallet proxy.');
  }
 ```#### Code```ts
  true;
-```
+````
+
 </CodeGroup>
 
 ## Returns
@@ -3458,93 +3765,94 @@ console.log('The sender address is not a valid smart wallet proxy.');
 
 [`isWalletACoinbaseSmartWalletOptions`](/onchainkit/wallet/types#iswalletacoinbasesmartwalletoptions)
 
-
 # API types
 
 > Glossary of Types in APIs.
 
 ## `APIError`#### Code```ts
+
 type APIError = {
- code: string; // The Error code
- error: string; // The Error long message
- message: string; // The Error short message
+code: string; // The Error code
+error: string; // The Error long message
+message: string; // The Error short message
 };
-```##`BuildPayTransactionParams`#### Code```ts
+``##`BuildPayTransactionParams`#### Code``ts
 type BuildPayTransactionParams = {
- address: Address; // The address of the wallet paying
- chainId: number; // The Chain ID of the payment Network (only Base is supported)
- chargeId: string; // The ID of the Commerce Charge to be paid
+address: Address; // The address of the wallet paying
+chainId: number; // The Chain ID of the payment Network (only Base is supported)
+chargeId: string; // The ID of the Commerce Charge to be paid
 };
-```##`BuildPayTransactionResponse`#### Code```ts
+``##`BuildPayTransactionResponse`#### Code``ts
 type BuildPayTransactionResponse = PayTransaction | APIError;
-```##`BuildSwapTransaction`#### Code```ts
+``##`BuildSwapTransaction`#### Code``ts
 type BuildSwapTransaction = {
- approveTransaction?: Transaction; // ERC20 approve transaction which allows token holders to authorize spending
- fee: Fee; // The fee for the swap
- quote: SwapQuote; // The quote for the swap
- transaction: Transaction; // The object developers should pass into Wagmi's signTransaction
- warning?: QuoteWarning; // The warning associated with the swap
+approveTransaction?: Transaction; // ERC20 approve transaction which allows token holders to authorize spending
+fee: Fee; // The fee for the swap
+quote: SwapQuote; // The quote for the swap
+transaction: Transaction; // The object developers should pass into Wagmi's signTransaction
+warning?: QuoteWarning; // The warning associated with the swap
 };
-```##`BuildSwapTransactionParams`#### Code```ts
+``##`BuildSwapTransactionParams`#### Code``ts
 type BuildSwapTransactionParams = GetSwapQuoteParams & {
- fromAddress: Address; // The address of the user
+fromAddress: Address; // The address of the user
 };
-```##`BuildSwapTransactionResponse`#### Code```ts
+``##`BuildSwapTransactionResponse`#### Code``ts
 type BuildSwapTransactionResponse = BuildSwapTransaction | APIError;
-```##`GetSwapQuoteParams`#### Code```ts
+``##`GetSwapQuoteParams`#### Code``ts
 type GetSwapQuoteParams = {
- amount: string; // The amount to be swapped
- amountReference?: string; // The reference amount for the swap
- from: Token; // The source token for the swap
- isAmountInDecimals?: boolean; // Whether the amount is in decimals
- maxSlippage?: string; // The slippage of the swap
- to: Token; // The destination token for the swap
- useAggregator: boolean; // Whether to use a DEX aggregator
+amount: string; // The amount to be swapped
+amountReference?: string; // The reference amount for the swap
+from: Token; // The source token for the swap
+isAmountInDecimals?: boolean; // Whether the amount is in decimals
+maxSlippage?: string; // The slippage of the swap
+to: Token; // The destination token for the swap
+useAggregator: boolean; // Whether to use a DEX aggregator
 };
-```##`GetSwapQuoteResponse`#### Code```ts
+``##`GetSwapQuoteResponse`#### Code``ts
 type GetSwapQuoteResponse = SwapQuote | APIError;
-```##`GetTokensOptions`#### Code```ts
+``##`GetTokensOptions`#### Code``ts
 type GetTokensOptions = {
- limit?: string; // The maximum number of tokens to return (default: 50)
- page?: string; // The page number to return (default: 1)
- search?: string; // A string to search for in the token name, symbol or address
+limit?: string; // The maximum number of tokens to return (default: 50)
+page?: string; // The page number to return (default: 1)
+search?: string; // A string to search for in the token name, symbol or address
 };
-```##`GetTokensResponse`#### Code```ts
+``##`GetTokensResponse`#### Code``ts
 type GetTokensResponse = Token[] | APIError;
-```##`GetTokenDetailsParams`#### Code```ts
+``##`GetTokenDetailsParams`#### Code``ts
 type GetTokenDetailsParams = {
- contractAddress: Address;
- tokenId?: string;
+contractAddress: Address;
+tokenId?: string;
 };
-```##`GetTokenDetailsResponse`#### Code```ts
+``##`GetTokenDetailsResponse`#### Code``ts
 type GetTokenDetailsResponse = TokenDetails | APIError;
-```##`GetMintDetailsParams`#### Code```ts
+``##`GetMintDetailsParams`#### Code``ts
 type GetMintDetailsParams = {
- contractAddress: Address;
- takerAddress?: Address;
- tokenId?: string;
+contractAddress: Address;
+takerAddress?: Address;
+tokenId?: string;
 };
-```##`GetMintDetailsResponse`#### Code```ts
+``##`GetMintDetailsResponse`#### Code``ts
 type GetMintDetailsResponse = MintDetails | APIError;
-```##`BuildMintTransactionParams`#### Code```ts
+``##`BuildMintTransactionParams`#### Code``ts
 type BuildMintTransactionParams = {
- mintAddress: Address;
- takerAddress: Address;
- tokenId?: string;
- quantity: number;
- network?: string;
+mintAddress: Address;
+takerAddress: Address;
+tokenId?: string;
+quantity: number;
+network?: string;
 };
-```##`BuildMintTransactionResponse`#### Code```ts
+``##`BuildMintTransactionResponse`#### Code``ts
 type BuildMintTransactionResponse = MintTransaction | APIError;
-```##`GetPortfoliosParams`#### Code```ts
+``##`GetPortfoliosParams`#### Code``ts
 type GetPortfoliosParams = {
- addresses: Address[] | null | undefined;
+addresses: Address[] | null | undefined;
 };
-```##`GetPortfoliosResponse`#### Code```ts
+``##`GetPortfoliosResponse`#### Code``ts
 type GetPortfoliosResponse = {
- portfolios: Portfolio[];
+portfolios: Portfolio[];
 };
-```# Identity components & utilities Types
+
+````# Identity components & utilities Types
 
 > Glossary of Types in Identity components & utilities.
 
@@ -4055,7 +4363,7 @@ Have a component in mind that we are not supporting yet? You can submit a featur
 ```#### Command```bash
  yarn add @farcaster/miniapp-sdk
 ```</CodeGroup>
- 
+
 ### Step: Trigger App Display
 Once your app has loaded, call`sdk.actions.ready`to hide the loading splash screen and display your app.
 
@@ -4084,7 +4392,7 @@ return(...your app content goes here...)
 export default App;
 ```</Tab>
  </Tabs>
- 
+
 ### Step: Host the Manifest
 Create a file available at`https://www.your-domain.com/.well-known/farcaster.json`.
 
@@ -4109,7 +4417,7 @@ return Response.json(paste_manifest_json_object_here); // see the next step for 
 }
 ```</Tab>
  </Tabs>
- 
+
 ### Step: Update the Manifest
 Copy the example manifest below and add it to the file created in the previous step. Update each field in the`miniapp`.
 
@@ -4169,7 +4477,7 @@ The`accountAssociation`fields in the manifest are used to verify ownership of yo
 <Info>
  Note: Because you are signing with your Base Account, the `signature`field will be significantly longer than if you were to sign directly with your Farcaster custody wallet.
 </Info>
- 
+
 ### Step: Add Embed Metadata
 Update your index.html file to include the`fc:miniapp`metadata. This is used to generate the rich embeds when your app is shared and is required for your app to display.
 
@@ -4216,10 +4524,10 @@ Use the`generateMetadata`function to add the`fc:miniapp`metadata.
  }
 ```</Tab>
 </Tabs>
- 
+
 ### Step: Push to Production
 Ensure all changes are live.
- 
+
 ### Step: Preview Your App
 Use the Base Build [Preview tool](https://www.base.dev/preview) to validate your app.
 
@@ -4228,7 +4536,7 @@ Use the Base Build [Preview tool](https://www.base.dev/preview) to validate your
 3. Use the "Metadata" to see the metadata added from the manifest and identify any missing fields.
 
 <video autoPlay muted loop playsInline src="https://mintcdn.com/base-a060aa97/hlNNNlUJtlshvXQM/videos/mini-apps/basebuildpreview.mp4?fit=max&auto=format&n=hlNNNlUJtlshvXQM&q=85&s=65a4cb8ce13c9940cba6aee73b8ececb data-path="videos/mini-apps/basebuildpreview.mp4" />
- 
+
 ### Step: Post to Publish
 To publish your app, create a post in the Base app with your app's URL.
 
@@ -4242,7 +4550,7 @@ To publish your app, create a post in the Base app with your app's URL.
 * [Vercel](https://vercel.com/) account for hosting the application
 
 <Panel>
- 
+
 Video: https://www.youtube-nocookie.com/embed/vLnugincHAg?si=I_jyZxSzVe32nuC5
 
 </Panel>
@@ -4254,7 +4562,7 @@ Click the button below and follow the prompts to deploy the quickstart template 
 
 - [Deploy to Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbase%2Fdemos%2Ftree%2Fmaster%2Fmini-apps%2Ftemplates%2Fminikit%2Fnew-mini-app-quickstart&project-name=new-mini-app-quickstart&repository-name=new-mini-app-quickstart&env=NEXT_PUBLIC_PROJECT_NAME&demo-title=New%20Mini%20App&demo-description=Quickstart%20waitlist%20mini%20app%20with%20MiniKit%20on%20Base)
 
- 
+
 ### Step: Clone your repository
 Clone the repo created by Vercel to make local edits.
 
@@ -4279,8 +4587,8 @@ For details on each field, see the [field reference](/mini-apps/features/manifes
  },
  miniapp: {
  version: "1",
- name: "Cubey", 
- subtitle: "Your AI Ad Companion", 
+ name: "Cubey",
+ subtitle: "Your AI Ad Companion",
  description: "Ads",
  screenshotUrls: [`${ROOT_URL}/screenshot-portrait.png`],
  iconUrl: `${ROOT_URL}/blue-icon.png`,
@@ -4290,7 +4598,7 @@ For details on each field, see the [field reference](/mini-apps/features/manifes
  webhookUrl: `${ROOT_URL}/api/webhook`,
  primaryCategory: "social",
  tags: ["marketing", "ads", "quickstart", "waitlist"],
- heroImageUrl: `${ROOT_URL}/blue-hero.png`, 
+ heroImageUrl: `${ROOT_URL}/blue-hero.png`,
  tagline: "",
  ogTitle: "",
  ogDescription: "",
@@ -4301,15 +4609,15 @@ For details on each field, see the [field reference](/mini-apps/features/manifes
 Now that you have a public domain for your application, you are ready to associate your mini app with your Farcaster account.
 
 1. Ensure all changes are live by pushing changes to the`main`branch.
- 
+
 > Note:
-Ensure that Vercel's **Deployment Protection** is off by going to the Vercel dashboard for your project and navigating to Settings -> Deployment Protection and toggling "Vercel Authentication" to off and click save. 
+Ensure that Vercel's **Deployment Protection** is off by going to the Vercel dashboard for your project and navigating to Settings -> Deployment Protection and toggling "Vercel Authentication" to off and click save.
 2. Navigate to the Base Build [Account association tool](https://www.base.dev/preview?tab=account)
 
 3. Paste your domain in the`App URL`field (ex: sample-url.vercel.app) and click "Submit"
 4. Click on the "Verify" button that appears and follow the instructions to generate the`accountAssociation`fields.
 5. Copy the`accountAssociation`object
- 
+
 ### Step: Update`minikit.config.ts`Update your`minikit.config.ts`file to include the`accountAssociation`object you copied in the previous step.
 #### Code```ts
  export const minikitConfig = {
@@ -4318,10 +4626,10 @@ Ensure that Vercel's **Deployment Protection** is off by going to the Vercel das
  "payload": "eyJkb21haW4iOiJ4BWl0bGlzdC1xcy52ZXJjZWwuYXBwIn7",
  "signature":
 
- 
+
 ### Step: Push updates to production
 Push all changes to the `main`branch. Vercel will automatically deploy the changes to your production environment.
- 
+
 ### Step: Preview Your App
 Go to [base.dev/preview](https://base.dev/preview) to validate your app.
 
@@ -4329,7 +4637,7 @@ Go to [base.dev/preview](https://base.dev/preview) to validate your app.
  2. Use the "Account association" tab to verify the association credentials were created correctly.
  3. Use the "Metadata" tab to see the metadata added from the manifest and identify any missing fields.
 
- 
+
 ### Step: Post to Publish
 To publish your app, create a post in the Base app with your app's URL.
 
@@ -4398,11 +4706,11 @@ Re‑engage saved users with relevant, rate‑limited notifications at the right
 Build for compact, touch‑first contexts: respect safe areas, keep interfaces concise, and emphasize clear primary actions.
 
 
- 
+
 - [Design patterns](/mini-apps/featured-guidelines/design-guidelines)
 
 
- 
+
 - [OnchainKit](/mini-apps/featured-guidelines/product-guidelines/foundations)
 
 
@@ -4412,11 +4720,11 @@ Build for compact, touch‑first contexts: respect safe areas, keep interfaces c
 Follow best practices to improve user engagement and retention.
 
 
- 
+
 - [Optimize Onboarding](/mini-apps/growth/optimize-onboarding)
 
 
- 
+
 - [Build Viral Mini Apps](/mini-apps/growth/build-viral-mini-apps)
 
 
@@ -4434,10 +4742,10 @@ The best apps are **simple, focused, and easy to understand.**
  * Why would someone **use it every day**?
 
  * Why and when would someone **share it with a friend**?
- 
+
 ### Step: Audience fit
 Base users are social, onchain-native, and interested in **creating, earning, trading, and connecting**.
- 
+
 ### Step: Successful apps
 * Help people **earn** (e.g. rewards, yield, creator income)
 
@@ -4452,28 +4760,28 @@ Base users are social, onchain-native, and interested in **creating, earning, tr
  * Collecting personal info (address, phone number, etc.)
 
  * Requiring upfront deposits or complex setup steps
- 
+
 ### Step: Group chat focus
 We’re especially excited about mini apps that make group chats more fun, functional, or rewarding — from games with onchain buy-ins, to tools like dinner-bill splitting with USDC.
- 
+
 ### Featured Guidelines
 
 When building mini apps for the Base app, follow the [Featured Guidelines](/mini-apps/featured-guidelines/overview):
 
 
- 
+
 - [Product Guidelines](/mini-apps/featured-guidelines/product-guidelines)
 
 
- 
+
 - [Design Guidelines](/mini-apps/featured-guidelines/design-guidelines)
 
 
- 
+
 - [Technical Guidelines](/mini-apps/featured-guidelines/technical-guidelines)
 
 
- 
+
 - [Notification Guidelines](/mini-apps/featured-guidelines/notification-guidelines)
 
 
@@ -4491,7 +4799,7 @@ When building mini apps for the Base app, follow the [Featured Guidelines](/mini
  "signature": "MHgxMGQwZGU4ZGYwZDUwZTdmMGIxN2YxMTU2NDI1MjRmZTY0MTUyZGU4ZGU1MWU0MThiYjU4ZjVmZmQxYjRjNDBiNGVlZTRhNDcwNmVmNjhlMzQ0ZGQ5MDBkYmQyMmNlMmVlZGY5ZGQ0N2JlNWRmNzMwYzUxNjE4OWVjZDJjY2Y0MDFj"
 },
 "baseBuilder": {
- "ownerAddress": "0x..." 
+ "ownerAddress": "0x..."
 },
 "miniapp": {
  "version": "1",
@@ -4520,7 +4828,7 @@ When building mini apps for the Base app, follow the [Featured Guidelines](/mini
  }
 ```> Note:
 Set`"noindex": true`for development or staging environments to prevent search indexing.
- 
+
 </Panel>
 
 ## Implementation
@@ -4680,7 +4988,7 @@ Configures how your Mini App appears when shared in feeds or on social platforms
 ## Related Concepts
 
 
- 
+
 - [Embeds and Previews](/mini-apps/core-concepts/embeds-and-previews)
 
 
@@ -4700,7 +5008,7 @@ When your app is opened as a mini app,`sdk.context`provides 4 data objects:
 #### Code
 ```ts
  export type MiniAppPlatformType = 'web' | 'mobile';
- 
+
  export type MiniAppContext = {
 user: {
  fid: number;
@@ -4733,7 +5041,7 @@ import { useEffect, useState } from "react";
 
 export default function Profile {
  const [user, setUser] = useState(null);
- const [isInMiniApp, setIsInMiniApp] = useState(false); 
+ const [isInMiniApp, setIsInMiniApp] = useState(false);
 
  useEffect( => {
 const loadUserData = async => {
@@ -4772,11 +5080,11 @@ return (
 <p>FID: {user.fid}</p>
 <p>Username: @{user.username}</p>
 {user.pfpUrl && (
- <img 
-src={user.pfpUrl} 
-alt="Profile" 
-width={64} 
-height={64} 
+ <img
+src={user.pfpUrl}
+alt="Profile"
+width={64}
+height={64}
 style={{ borderRadius: '50%' }}
  />
 )}
@@ -4837,22 +5145,22 @@ Contains the user's profile information. This data shouldn't be used for authent
 "description": "Austin, TX, USA"
  }
 }
-```
+````
+
 ### Location Object
 
 Contains information about the context from which the Mini App was launched. This helps you understand how users discovered and accessed your app.
 
 **Location Types:**
 
-* **`cast_embed`**: Launched from a cast where your app is embedded
-* **`cast_share`**: Launched when a user shared a cast to your app
-* **`notification`**: Launched from a notification triggered by your app
-* **`launcher`**: Launched directly from the client app catalog
-* **`channel`**: Launched from within a specific Farcaster channel
-* **`open_miniapp`**: Launched from another Mini App
+- **`cast_embed`**: Launched from a cast where your app is embedded
+- **`cast_share`**: Launched when a user shared a cast to your app
+- **`notification`**: Launched from a notification triggered by your app
+- **`launcher`**: Launched directly from the client app catalog
+- **`channel`**: Launched from within a specific Farcaster channel
+- **`open_miniapp`**: Launched from another Mini App
 
 #### CastEmbedLocationContext
-
 
  <ParamField path="type" type="'cast_embed'" required>
  Indicates the Mini App was launched from a cast where it is an embed.
@@ -4867,7 +5175,8 @@ Contains information about the context from which the Mini App was launched. Thi
  </ParamField>
 
 #### JSON
-```json
+
+````json
 {
  "type": "cast_embed",
  "embed": "https://myapp.example.com
@@ -5195,11 +5504,11 @@ Specifies what happens when the embed button is clicked.
 ## Related Concepts
 
 
- 
+
 - [Search and Discovery](/mini-apps/technical-guides/search-and-discovery)
 
 
- 
+
 - [Sharing and Social Graph](/mini-apps/technical-guides/sharing-and-social-graph)
 
 
@@ -5231,7 +5540,7 @@ Base Accounts offer enhanced features that traditional wallets don't support.
  </Check>
 
  Learn More: [Base Account Capabilities Overview](/base-account/reference/core/capabilities/overview)
- 
+
 ### Step: Implement Sponsored Gas Transactions
 Enable sponsored gas transactions where your Mini App pays gas fees for users.
 
@@ -5244,7 +5553,7 @@ Enable sponsored gas transactions where your Mini App pays gas fees for users.
  </Check>
 
  Learn More: [Paymaster Service](/base-account/reference/core/capabilities/paymasterService)
- 
+
 ### Step: Optimize Transaction Patterns
 Base Accounts can batch multiple operations into single transactions.
 
@@ -5252,12 +5561,12 @@ Base Accounts can batch multiple operations into single transactions.
  * Implement`wallet_sendCalls`for complex workflows
  * Show one confirmation instead of multiple prompts
 
- 
+
 > Note:
 Consider transaction batching for multi-step operations like approve + transfer + mint.
- 
+
 Learn More: [Batch Transactions Guide](/base-account/improve-ux/batch-transactions)
- 
+
 ## Base Account Benefits for Mini Apps
 
 | Feature | What It Does | Mini App Benefit |
@@ -5271,14 +5580,14 @@ Learn More: [Batch Transactions Guide](/base-account/improve-ux/batch-transactio
 ### Capability Detection```javascript
 function useBaseAccountCapabilities(address) {
  const [capabilities, setCapabilities] = useState({});
- 
+
  useEffect( => {
 async function detect {
  const caps = await publicClient.request({
 method: 'wallet_getCapabilities',
 params: [address]
  });
- 
+
  setCapabilities({
 atomicBatch: caps['0x2105']?.atomicBatch?.supported,
 paymasterService: caps['0x2105']?.paymasterService?.supported,
@@ -5288,7 +5597,7 @@ auxiliaryFunds: caps['0x2105']?.auxiliaryFunds?.supported
 
 if (address) detect;
  }, [address]);
- 
+
  return capabilities;
 }
 ```### Sponsored Gas Implementation```javascript
@@ -5300,7 +5609,7 @@ function SponsoredTransactionButton {
  const { data: availableCapabilities } = useCapabilities({
 account: account.address,
  })
- 
+
  const capabilities = useMemo( => {
 if (!availableCapabilities || !account.chainId) return {}
 const capabilitiesForChain = availableCapabilities[account.chainId]
@@ -5333,12 +5642,12 @@ args: [account.address],
 function MiniAppWorkflow {
  const { address } = useAccount;
  const { atomicBatch } = useBaseAccountCapabilities(address);
- 
+
  if (atomicBatch) {
 // Base Account: One-click workflow
 return <OneClickPurchaseFlow />;
  } else {
-// Traditional wallet: Multi-step workflow 
+// Traditional wallet: Multi-step workflow
 return <MultiStepPurchaseFlow />;
  }
 }
@@ -5347,15 +5656,15 @@ return <MultiStepPurchaseFlow />;
 For detailed implementation of Base Account features:
 
 
- 
+
 - [User Authentication](https://docs.base.org/base-account/guides/authenticate-users)
 
 
- 
+
 - [Base Pay Guide](https://docs.base.org/base-account/guides/accept-payments)
 
 
- 
+
 - [Sign and Verify Signatures](https://docs.base.org/base-account/guides/sign-and-verify-typed-data)
 
 
@@ -5402,7 +5711,7 @@ Install the`@farcaster/miniapp-node`package in your project:
 #### Command```bash
  npm install @farcaster/miniapp-node
 ```Get a free API key from [neynar](https://dev.neynar.com/) and set`NEYNAR_API_KEY`in your environment variables.
- 
+
 ### Step: Create a webhook server
 Create a webhook server to handle webhook events.
 
@@ -5485,7 +5794,7 @@ case "notifications_disabled":
  console.error("Error processing webhook:", error);
 }
 
-return response; 
+return response;
 ```### Step: Add the Webhook URL to your manifest
 Add the Webhook URL to your manifest file
 #### JSON```json
@@ -5510,7 +5819,7 @@ Add the Webhook URL to your manifest file
 ```### Step: Prompt users to add your Mini App
 Use the`addMiniApp`hook to prompt users to add your Mini App
 
- 
+
 > Warning:
 **Important: Webhook Response Timing**
  Webhooks must respond within 10 seconds to avoid timeouts from the Base app. If you encounter a "Failed to add mini app" error, your webhook may be taking too long to respond.
@@ -5526,7 +5835,7 @@ export default function AddMiniApp {
  const handleAddMiniApp = useCallback(async => {
 try {
  const response = await sdk.actions.addMiniApp;
- 
+
  if (response.notificationDetails) {
 setResult("Mini App added with notifications enabled!");
  } else {
@@ -5608,11 +5917,11 @@ return { state: "success" };
 return { state: "error", error: responseJson };
  }
 }
-```
+````
+
 ## Schema
 
 ### Send Notification Request Schema
-
 
  <ParamField path="notificationId" type="string" required>
  Identifier that is combined with the FID to form an idempotency key. When the user opens the Mini App from the notification this ID will be included in the context object. **Maximum length of 128 characters.**
@@ -5635,9 +5944,7 @@ return { state: "error", error: responseJson };
  Array of notification tokens to send to. **Max 100 tokens.**
  </ParamField>
 
-
 ### Send Notification Response Schema
-
 
  <ParamField path="successfulTokens" type="string[]" required>
  Tokens for which the notification succeeded.
@@ -5651,34 +5958,39 @@ return { state: "error", error: responseJson };
  Tokens for which the rate limit was exceeded. The Mini App server can try later.
  </ParamField>
 
-
 ## Events
 
 Mini App events use the following object structure:
 
-* **`type`**: notification event type
-* **`notificationDetails.url`**: URL that the app should call to send a notification.
-* **`notificationDetails.token`**: A secret token generated by the Base app and shared with the Notification Server. A token is unique for each (Farcaster Client, Mini App, user Fid) tuple.
+- **`type`**: notification event type
+- **`notificationDetails.url`**: URL that the app should call to send a notification.
+- **`notificationDetails.token`**: A secret token generated by the Base app and shared with the Notification Server. A token is unique for each (Farcaster Client, Mini App, user Fid) tuple.
 
 <Note>If users are not seeing the option to enable notifications when they call `addMiniApp`, verify that your manifest file contains a valid `webhookUrl`.</Note>
 
 ### `miniapp_added`Sent when the user adds the Mini App to their Farcaster client (whether or not it was triggered by an`addMiniApp`prompt).
+
 #### JSON```json
+
 {
- "event": "miniapp_added",
- "notificationDetails": {
+"event": "miniapp_added",
+"notificationDetails": {
 "url": "https://docs.neynar.com/reference/publish-frame-notifications
 "token": "a05059ef2415c67b08ecceb539201cbc6"
- }
+}
 }
 ```###`miniapp_removed`Sent when a user removes the Mini App, which means that any notification tokens for that FID and client app (based on signer requester) should be considered invalid:
+
 #### JSON```json
+
 {
- "event": "miniapp_removed"
+"event": "miniapp_removed"
 }
 ```###`notifications_enabled`Sent when a user enables notifications (e.g. after disabling them). The payload includes a new`token`and`url`:
+
 #### JSON
-```json
+
+````json
 {
  "event": "notifications_enabled",
  "notificationDetails": {
@@ -5722,12 +6034,12 @@ export function App {
  try {
  const { token } = await sdk.quickAuth.getToken;
  setToken(token);
- 
+
  // Use the token to authenticate the user and fetch authenticated user data
  const response = await sdk.quickAuth.fetch(`${BACKEND_ORIGIN}/auth`, {
  headers: { "Authorization": `Bearer ${token}`}
  });
- 
+
  const data = await response.json;
  setUserData(data);
  } catch (error) {
@@ -5768,7 +6080,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const domain = 'your-domain.com'; // Must match your mini app's deployment domain
 const client = createClient;
 
-// This endpoint returns the authenticated user's FID 
+// This endpoint returns the authenticated user's FID
 export async function GET(request: NextRequest) {
  const authorization = request.headers.get('Authorization');
  if (!authorization?.startsWith('Bearer ')) {
@@ -5799,11 +6111,11 @@ throw e;
  "iss": "https://auth.farcaster.xyz
  "exp": 1747768419,
  "sub": 6841,
- "aud": "your-domain.com" 
+ "aud": "your-domain.com"
 }
-```
-Payload fields:
+````
 
+Payload fields:
 
  <ParamField path="iat" type="number">
  Issued at timestamp
@@ -5825,16 +6137,9 @@ Payload fields:
  Your mini app's domain
  </ParamField>
 
-
-
- 
 - [useAuthenticate](/onchainkit/latest/components/minikit/hooks/useAuthenticate)
 
-
- 
 - [Context](/mini-apps/core-concepts/context)
-
-
 
 # Sign Your Manifest
 
@@ -5844,14 +6149,15 @@ Every Mini App needs a **manifest** (`farcaster.json`) file to be recognized by 
 
 ### Prerequisites
 
-* A deployed App, accessible via HTTPS
-* A Base app account
+- A deployed App, accessible via HTTPS
+- A Base app account
 
 ## Location
 
 Your manifest file must be publicly accessible at:\
 `https://your-domain.com/.well-known/farcaster.json`> Note:
 Want to learn more about manifests? 👉 Check out our [Manifest guide](/mini-apps/features/manifest).
+
 ## Sign Your Manifest
 
 There are two supported ways to sign and generate your manifest:
@@ -5860,61 +6166,60 @@ There are two supported ways to sign and generate your manifest:
  <Tab title="Base Build" icon="star">
  ## Option 1: Base Build Preview Tool
 
- 1. Visit **[Base.dev](https://base.dev* and sign in with your Base account.
- 2. Open **Preview → Account Association**.
- 3. Enter your Mini App domain in the App URL field.
- 4. Click **Submit**. You should see a notification that you should verify your app ownership. Click **Verify → Sign**.
- 5. Follow the on-screen instructions to sign the message in your wallet.
- 6. Click **Copy** to copy the generated`accountAssociation`object.
- 7. Paste it into your project’s`farcaster.json`under`accountAssociation`.
- 8. Redeploy your application to production.
+1.  Visit [base.org](https://base.org) and sign in with your Base account.
+2.  Open **Preview → Account Association**.
+3.  Enter your Mini App domain in the App URL field.
+4.  Click **Submit**. You should see a notification that you should verify your app ownership. Click **Verify → Sign**.
+5.  Follow the on-screen instructions to sign the message in your wallet.
+6.  Click **Copy** to copy the generated`accountAssociation`object.
+7.  Paste it into your project’s`farcaster.json`under`accountAssociation`.
+8.  Redeploy your application to production.
 
- You should now see three green check marks indicating successful signing.
-
-
+You should now see three green check marks indicating successful signing.
 
  <Tab title="Farcaster">
  ## Option 2: Farcaster Manifest Tool
 
- 1. Go to **[farcaster.xyz](https://farcaster.xyz* and log in.
- 2. Navigate to **Developers → Manifest Tool**.
- 3. Enter your domain (exclude `https://`and trailing slashes).
- 4. Click **Refresh** to fetch your app.
- 5. Select **Generate Account Association**.
- 6. Copy the generated object.
- 7. Paste it into your project’s`farcaster.json`under`accountAssociation`.
- 8. Redeploy your application to production.
+1.  Go to [farcaster.xyz](https://farcaster.xyz) and log in.
+2.  Navigate to **Developers → Manifest Tool**.
+3.  Enter your domain (exclude `https://`and trailing slashes).
+4.  Click **Refresh** to fetch your app.
+5.  Select **Generate Account Association**.
+6.  Copy the generated object.
+7.  Paste it into your project’s`farcaster.json`under`accountAssociation`.
+8.  Redeploy your application to production.
 
- You should now see green check marks indicating successful signing.
-
-
+You should now see green check marks indicating successful signing.
 
 ## Example Manifest
 
 Here’s a simplified example of what a `farcaster.json`could look like from the [Base Camp Mini App](https://basecamp25.app/.well-known/farcaster.json)
+
 #### JSON```json
+
 {
- "accountAssociation": {
+"accountAssociation": {
 "header": "<generated-header>",
 "payload": "<generated-payload>",
 "signature": "<generated-signature>"
- },
- "miniapp": {
+},
+"miniapp": {
 "version": "1",
 "name": "Basecamp 2025", // App name
-"description": "Access and manage your experience @ Basecamp", 
+"description": "Access and manage your experience @ Basecamp",
 "iconUrl": "https://basecamp25.app/icon.png // App icon
 "homeUrl": "https://basecamp25.app // Landing page
 "canonicalDomain": "basecamp25.app", // Must match your domain
 "requiredChains": ["eip155:8453"], // Chains your app supports
 "tags": ["basecamp", "miniapp"], // Optional tags
 "requiredCapabilities": [ // Capabilities your app needs
- "actions.ready",
- "actions.signIn"
+"actions.ready",
+"actions.signIn"
 ]
- }
 }
-```
+}
+
+````
 
 
 
@@ -5986,7 +6291,7 @@ Here’s a simplified example of what a `farcaster.json`could look like from the
  "miniapp": {
 "version": "1",
 "name": "Basecamp 2025", // App name
-"description": "Access and manage your experience @ Basecamp", 
+"description": "Access and manage your experience @ Basecamp",
 "iconUrl": "https://basecamp25.app/icon.png // App icon
 "homeUrl": "https://basecamp25.app // Landing page
 "canonicalDomain": "basecamp25.app", // Must match your domain
@@ -5998,14 +6303,9 @@ Here’s a simplified example of what a `farcaster.json`could look like from the
 ]
  }
 }
-```
-
-
-
+````
 
 #### Ek Varyant 3
-
-
 
 > Learn what a Mini App manifest is, why signing it matters, and how to generate and add an account association to your app.
 
@@ -6013,14 +6313,15 @@ Every Mini App needs a **manifest** (`farcaster.json`) file to be recognized by 
 
 ### Prerequisites
 
-* A deployed App, accessible via HTTPS
-* A Base app account
+- A deployed App, accessible via HTTPS
+- A Base app account
 
 ## Location
 
 Your manifest file must be publicly accessible at:\
 `https://your-domain.com/.well-known/farcaster.json`> Note:
 Want to learn more about manifests? 👉 Check out our [Manifest guide](/mini-apps/features/manifest).
+
 ## Sign Your Manifest
 
 There are two supported ways to sign and generate your manifest:
@@ -6029,61 +6330,60 @@ There are two supported ways to sign and generate your manifest:
  <Tab title="Base Build" icon="star">
  ## Option 1: Base Build Preview Tool
 
- 1. Visit **[Base.dev](https://base.dev* and sign in with your Base account.
- 2. Open **Preview → Account Association**.
- 3. Enter your Mini App domain in the App URL field.
- 4. Click **Submit**. You should see a notification that you should verify your app ownership. Click **Verify → Sign**.
- 5. Follow the on-screen instructions to sign the message in your wallet.
- 6. Click **Copy** to copy the generated`accountAssociation`object.
- 7. Paste it into your project’s`farcaster.json`under`accountAssociation`.
- 8. Redeploy your application to production.
+1.  Visit [base.org](https://base.org) and sign in with your Base account.
+2.  Open **Preview → Account Association**.
+3.  Enter your Mini App domain in the App URL field.
+4.  Click **Submit**. You should see a notification that you should verify your app ownership. Click **Verify → Sign**.
+5.  Follow the on-screen instructions to sign the message in your wallet.
+6.  Click **Copy** to copy the generated`accountAssociation`object.
+7.  Paste it into your project’s`farcaster.json`under`accountAssociation`.
+8.  Redeploy your application to production.
 
- You should now see three green check marks indicating successful signing.
-
-
+You should now see three green check marks indicating successful signing.
 
  <Tab title="Farcaster">
  ## Option 2: Farcaster Manifest Tool
 
- 1. Go to **[farcaster.xyz](https://farcaster.xyz* and log in.
- 2. Navigate to **Developers → Manifest Tool**.
- 3. Enter your domain (exclude `https://`and trailing slashes).
- 4. Click **Refresh** to fetch your app.
- 5. Select **Generate Account Association**.
- 6. Copy the generated object.
- 7. Paste it into your project’s`farcaster.json`under`accountAssociation`.
- 8. Redeploy your application to production.
+1.  Go to [farcaster.xyz](https://farcaster.xyz) and log in.
+2.  Navigate to **Developers → Manifest Tool**.
+3.  Enter your domain (exclude `https://`and trailing slashes).
+4.  Click **Refresh** to fetch your app.
+5.  Select **Generate Account Association**.
+6.  Copy the generated object.
+7.  Paste it into your project’s`farcaster.json`under`accountAssociation`.
+8.  Redeploy your application to production.
 
- You should now see green check marks indicating successful signing.
-
- 
+You should now see green check marks indicating successful signing.
 
 ## Example Manifest
 
 Here’s a simplified example of what a `farcaster.json`could look like from the [Base Camp Mini App](https://basecamp25.app/.well-known/farcaster.json)
+
 #### JSON```json
+
 {
- "accountAssociation": {
+"accountAssociation": {
 "header": "<generated-header>",
 "payload": "<generated-payload>",
 "signature": "<generated-signature>"
- },
- "miniapp": {
+},
+"miniapp": {
 "version": "1",
 "name": "Basecamp 2025", // App name
-"description": "Access and manage your experience @ Basecamp", 
+"description": "Access and manage your experience @ Basecamp",
 "iconUrl": "https://basecamp25.app/icon.png // App icon
 "homeUrl": "https://basecamp25.app // Landing page
 "canonicalDomain": "basecamp25.app", // Must match your domain
 "requiredChains": ["eip155:8453"], // Chains your app supports
 "tags": ["basecamp", "miniapp"], // Optional tags
 "requiredCapabilities": [ // Capabilities your app needs
- "actions.ready",
- "actions.signIn"
+"actions.ready",
+"actions.signIn"
 ]
- }
 }
-```# Design Guidelines
+}
+
+````# Design Guidelines
 
 > Build a mini app that is intuitive and delightful to use.
 
@@ -6296,7 +6596,7 @@ export async function GET(
  flexWrap: 'nowrap',
  }}
 >
- Hello {username} 
+ Hello {username}
 </div>
 ),
 {
@@ -6307,10 +6607,10 @@ export async function GET(
 }
 ```This endpoint generates a unique image for each username:`/api/og/alice`, `/api/og/bob`, etc.
 
- 
+
 > Warning:
 `<div>`elements must have`display: "flex"`or`display: "none"`. If you see a 500 error when accessing `/share/[username]`, check your ImageResponse JSX structure.
- 
+
 
 ### Step: Create shareable page with dynamic metadata
 Build a page route that uses the username to generate `fc:miniapp`metadata pointing to your image endpoint.
@@ -6344,11 +6644,11 @@ return {
 };
  } catch (e) {
 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-console.log(JSON.stringify({ 
- timestamp: new Date.toISOString, 
- level: 'error', 
- message: 'Failed to generate metadata', 
- error: errorMessage 
+console.log(JSON.stringify({
+ timestamp: new Date.toISOString,
+ level: 'error',
+ message: 'Failed to generate metadata',
+ error: errorMessage
 }));
 
 return {
@@ -6370,7 +6670,7 @@ export default async function SharePage(
  );
 }
 ```When someone visits`/share/alice`, the metadata points to `/api/og/alice`for the embed image.
- 
+
 ### Step: Add share button with composeCast
 Create a button that opens Farcaster's compose window with the user's personalized share link.
 #### Code```tsx
@@ -6399,7 +6699,7 @@ Share Mini App
  );
 }
 ```When you click the button, it opens the compose window with`/share/alice`as the embed. The embed displays the dynamic image from`/api/og/alice`.
- 
+
 ### Step: Test the flow
 Verify the complete sharing flow works.
 #### Command
@@ -6414,11 +6714,11 @@ open test.png
 # Visit the share page to verify metadata
 curl http://localhost:3000/share/testuser | grep "fc:miniapp"
 ```Click the share button in your app to test the full experience. You should see the compose window open with your personalized share link, and the embed should display your custom generated image.
- 
+
 ## Related Concepts
 
 
- 
+
 - [Troubleshooting](/mini-apps/troubleshooting/how-search-works)
 
 
@@ -6455,7 +6755,7 @@ The Neynar mini app events webhook URL is on the Neynar app page.
  Copy the url under **Mini app Notifications**.
 
  ![](https://mintcdn.com/base-a060aa97/7Lsdarakb-9Agcjf/images/miniapps/neynar-notification-webhook.png?fit=max&auto=format&n=7Lsdarakb-9Agcjf&q=85&s=c23e17eac0255b752581673a06025398)
- 
+
 ### Step: Add Webhook URL to Manifest
 Paste the url you copied from the **Mini app Notifications** field in the step above into the`webhookUrl`field in the`miniapp`object inside your manifest.
 
@@ -6479,10 +6779,10 @@ Paste the url you copied from the **Mini app Notifications** field in the step a
 }
 ```> Warning:
 Caching: The Base App might have your mini app manifest cached. To make sure all changes have taken effect, repost your application to the Base App.
- 
+
 > Note:
 Test your Mini App in [Base Build](https://base.dev/preview) using the Preview tool. Once signed in, paste your app's URL in the`App URL`field and click the`Submit`button.
- 
+
 
 ## Prompt Users to Add Your App
 
@@ -6600,7 +6900,7 @@ if (result.success) {
 }
 ```> Note:
 The`target_fids`parameter is the starting point for all filtering. Pass an empty array to target all users with notifications enabled, or specify FIDs to target specific users.
- 
+
 
 ### Option 2: Neynar UI
 
@@ -6609,10 +6909,10 @@ The [Neynar dev portal](https://dev.neynar.com) offers the same functionality as
 
 ### Step: Log in to the Neynar Dev Portal
 [https://dev.neynar.com/home
- 
+
 ### Step: Click the Broadcast button
 Once you have filled in the notification details and applied any filtering, broadcast your notification by clicking the broadcast button at the bottom of the page.
- 
+
 Additional documentation on the API and its body parameters can be found at [publish-miniapp-notifications](https://docs.neynar.com/reference/publish-frame-notifications)
 
 # Featured Checklist
@@ -6626,59 +6926,59 @@ Your app must meet all product, design, and technical guidelines outlined below.
 </Note>
 
 <Steps titleSize="h3">
- 
+
 ### Step: Authentication
 * In-app authentication stays within the Base app with no external redirects
  * Wallet connection happens automatically
  * No email or phone verification inside the app
- 
+
 ### Step: Onboarding Flow
 * Explain the purpose of the app and how to get started, with clear onboarding instructions either on the home page or as a a pop-up window.
  * App only requests essential personal information, with clear context
  * Display user's avatar and username **(no 0x addresses)**
- 
+
 ### Step: Base Compatibility
 * App is client-agnostic, with no hard-coded Farcaster text or links, or other client-specific behavior
  * Transactions are sponsored
- 
+
 ### Step: Layout
 * Call to actions are visible and centered on page
  * App has a bottom navigation bar or side menu to easily access core flow
  * All buttons are accessible and not cut off
  * Navigation bar items have clear, understandable labels
- 
+
 ### Step: Load Time
 * App loads within **3 seconds**
 
  * In-app actions complete within **1 second**
 
  * Loading indicators are shown during actions
- 
+
 ### Step: Usability
 * App supports **light and dark modes** consistently
  * App has minimum **44px touch targets**
- 
+
 ### Step: App Metadata
 * App description is clear, concise, and user-focused
  * App icon is **1024×1024 px**, PNG, **no transparency**, readable at small sizes
  * App cover photo is **high quality** and does not contain Base logo or team photos
- 
+
 ## Next Steps
 
 
- 
+
 - [Product Guidelines](/mini-apps/featured-guidelines/product-guidelines)
 
 
- 
+
 - [Design Guidelines](/mini-apps/featured-guidelines/design-guidelines)
 
 
- 
+
 - [Technical Guidelines](/mini-apps/featured-guidelines/technical-guidelines)
 
 
- 
+
 - [Notification Guidelines](/mini-apps/featured-guidelines/notification-guidelines)
 
 
@@ -6895,11 +7195,11 @@ The next evolution of digital experiences extends beyond app stores into social 
 Traditional apps face costly user acquisition because they're buried among millions of competitors in app stores, require separate iOS and Android development with ongoing maintenance across platforms, and create commitment friction through installation requirements. Mini Apps eliminate these barriers entirely by running as lightweight web applications that work instantly across all devices, deploy with zero installation friction, and spread organically through social feeds where users naturally discover content—turning every interaction into potential viral distribution that no app store algorithm can match.
 
 
- 
+
 - Traditional Apps
 
 
- 
+
 - Mini Apps
 
 
@@ -7003,10 +7303,10 @@ The development path is streamlined and permissionless:
 
 ### Step: Build your Mini App
 Use [MiniKit](/mini-apps/quickstart/new-apps/install) or the [Farcaster SDK](https://miniapps.farcaster.xyz/docs/getting-started) to create your application.
- 
+
 ### Step: Deploy directly
 Deploy your Mini App without waiting for approval processes or store reviews.
- 
+
 ### Step: Get discovered automatically
 Post your Mini App to Base App and it gets automatically indexed for discovery. No special permissions or approval processes required to show up in the Base App.
 
@@ -7015,20 +7315,20 @@ Post your Mini App to Base App and it gets automatically indexed for discovery. 
  * Base App search results
  * The broader Farcaster ecosystem
  * User social feeds through organic sharing
- 
+
 ### Step: Iterate based on real usage
 Monitor actual usage patterns and iterate based on real user feedback rather than building in isolation.
- 
+
 ## Start Building Today
 
 Mini Apps represent a fundamental shift toward social-native digital experiences. The advantage goes to builders who understand that in a social-first world, distribution and engagement are built into the platform itself.
 
 
- 
+
 - [Quick Start Guide](/mini-apps/quickstart/new-apps/install)
 
 
- 
+
 - [Existing App Integration](/mini-apps/quickstart/existing-apps/install)
 
 
@@ -7057,16 +7357,16 @@ Deliver value instantly and avoid blocking actions.
 * Show immediate value (demo content, sample state, or read-only mode)
  * Personalize instantly with [`context`](/onchainkit/latest/components/minikit/provider-and-initialization) of the user's profile to instantly personalize
  * Display one clear CTA that leads to a meaningful action (e.g. "Post a message", "Buy a token", "Follow a user")
- 
+
 ### Step: User initiates a protected action
 * Trigger Sign In with Farcaster (SIWF) / Quick Auth only when needed per [Authentication](/mini-apps/features/Authentication)
  * For onchain actions, use the Base Account automatically. Eliminate explicit wallet connect flows
  * Alternate wallets: offer a non-blocking connect/switch option without gating exploration
- 
+
 ### Step: Celebrate and amplify
 * After success, prompt social actions via [SDK actions](/mini-apps/features/links) and [Sharing & Social Graph](/mini-apps/features/sharing-and-social-graph)
  * Offer next step: save, follow, or share — optimize with [Search & Discovery](/mini-apps/troubleshooting/how-search-works)
- 
+
 ### UX patterns that work
 
 
@@ -7133,29 +7433,29 @@ Learn how to implement them with [SDK actions](/mini-apps/features/links).
 ### Further reading
 
 
- 
+
 - [Authentication](/mini-apps/features/Authentication)
 
 
- 
+
 - [Links & SDK Actions](/mini-apps/features/links)
 
 
- 
+
 - [Search & Discovery](/mini-apps/technical-guides/search-discovery)
 
 
 
 
- 
+
 - [Sharing & Social Graph](/mini-apps/features/sharing-and-social-graph)
 
 
- 
+
 - [Provider & Initialization](/onchainkit/latest/components/minikit/provider-and-initialization)
 
 
- 
+
 - [useAuthenticate](/onchainkit/latest/components/minikit/hooks/useAuthenticate)
 
 
@@ -7174,15 +7474,15 @@ Social mini apps live or die based on how they make people feel: seen, connected
 If you're designing for feed-based platforms (like Farcaster, Threads, or anything with posts, reactions, and reply chains), this guide will help you:
 
 
- 
+
 - Challenge your idea early
 
 
- 
+
 - Apply the right social patterns
 
 
- 
+
 - Build for behaviors, not just features
 
 
@@ -7194,19 +7494,19 @@ Welcome to your blueprint for designing social mini‑apps that people love to r
 
 ### Step: Pressure‑Test Your Idea
 Before writing a single line of code or sketching UI, use our four diagnostic questions to see if your concept naturally supports social behavior. Drop your one‑line idea into the supplied prompt to get clear insights on post frequency, social lift, content momentum, and emotional payoff.
- 
+
 ### Step: Interpret Feedback & Choose Dimensions
 Analyze the responses. Identify which one or two social dimensions resonate
  most with your concept—whether it's habit formation, community spark, content
  growth, or emotional reward. The guide shows you how to validate and
  prioritize those dimensions before moving forward.
- 
+
 ### Step: Apply a Case Study Flow
 See a worked example that demonstrates how to translate test results into a
  prototype feature. This mini case study will illustrate rapid iteration,
  metric considerations, and how to decide when you're ready to scale social
  elements.
- 
+
 ### Step: Explore Three Core Patterns
 Dive into the heart of the guide—three social patterns designed to deepen engagement:
 
@@ -7215,10 +7515,10 @@ Dive into the heart of the guide—three social patterns designed to deepen enga
  * **Long‑Term Rituals:** Scheduled, shared activities that foster habit and community
 
  Each pattern includes explanations, real‑world examples, and copy‑and‑paste prompts to spark your own brainstorming.
- 
+
 ### Step: Next Steps & Reflection
 Finish with a set of reflective questions and practical advice on measuring success. Use the closing prompts to refine your roadmap, plan experiments, and define key metrics for daily, weekly, and monthly engagement.
- 
+
 > Note:
 **Tips for Getting the Most Out of This Guide:**
 
@@ -7288,28 +7588,28 @@ After you get back raw answers to the four pressure‑test questions, look for t
 ### Step: Spot your top dimensions
 Scan your AI responses for signs of strength in these four key areas:
 
- 
- 
+
+
 - Repeat‑posting potential
 
 
- 
+
 - Social lift
 
 
- 
+
 - Content momentum
 
 
- 
+
 - Emotional payoff
 
- 
 
- 
+
+
 > Note:
 Focus on the dimensions where the AI feedback was most enthusiastic and specific. Vague responses usually indicate weak social potential.
- 
+
 
 ### Step: Validate your winners
 For each dimension that scored well, confirm the feedback includes clear, actionable examples:
@@ -7363,7 +7663,7 @@ For each dimension that scored well, confirm the feedback includes clear, action
  **Red flag:** Emotional benefits are unclear or generic
  </Accordion>
  </AccordionGroup>
- 
+
 ### Step: Decide your next move
 Now that you've identified your strongest dimensions, here's how to proceed:
 
@@ -7387,10 +7687,10 @@ Now that you've identified your strongest dimensions, here's how to proceed:
  * **Include a habit prompt** (what brings people back?)
  * **Create emotional stakes** (why should users care?)
 
- 
+
 > Warning:
 Don't force social features onto an inherently solo experience. Consider if your idea needs to evolve.
- 
+
 </Tab>
  </Tabs>
 
@@ -7405,7 +7705,7 @@ Don't force social features onto an inherently solo experience. Consider if your
  <Info>
  This focused approach prevents feature bloat and ensures you build social mechanics that actually work for your specific concept.
  </Info>
- 
+
 ## Closing note
 
 The mini apps that thrive aren't the most complex — they're the ones that understand how people connect.
@@ -7435,10 +7735,10 @@ So — what will your app make people feel?
 
 ### Step: Verify your Mini App
 Submit your Mini App to be verified on [Base.dev](https://www.base.dev/ This process validates your ownership of the mini app by adding Base builder address in the manifest.
- 
+
 ### Step: Access earning opportunities
 Participate in partner programs, competitions, and special campaigns to unlock additional revenue streams beyond standard rewards.
- 
+
 
 - [Submit for Verification](/mini-apps/featured-guidelines/overview)
 
@@ -7564,11 +7864,11 @@ import { useAccount } from 'wagmi';
 
 function MyComponent {
  const { address, isConnected } = useAccount;
- 
+
  const walletConnected = isConnected;
- 
+
  const userAddress = address; // Cryptographically verified
- 
+
  return (
 <div>
  {walletConnected && (
@@ -7594,8 +7894,8 @@ import { useEffect } from 'react';
 export default function App {
  useEffect( => {
 // Only load Eruda in development and not on localhost
-if (typeof window !== 'undefined' && 
-process.env.NODE_ENV === 'development' && 
+if (typeof window !== 'undefined' &&
+process.env.NODE_ENV === 'development' &&
 !window.location.hostname.includes('localhost')) {
  import('eruda').then((eruda) => eruda.default.init);
 }
@@ -7634,7 +7934,7 @@ Use the Coinbase Wallet validator for Base App compatibility analysis. This AI-p
 {
  "accountAssociation": {
 "header": "your-farcaster-header",
-"payload": "your-farcaster-payload", 
+"payload": "your-farcaster-payload",
 "signature": "your-farcaster-signature"
  },
 "baseBuilder": {
@@ -7645,24 +7945,24 @@ Use the Coinbase Wallet validator for Base App compatibility analysis. This AI-p
 "iconUrl": "https://yourapp.com/icon.png
 "homeUrl": "https://yourapp.com
 "imageUrl": "https://yourapp.com/og.png
-"buttonTitle": "Launch App", 
+"buttonTitle": "Launch App",
 "description": "Your app description under 130 characters",
 "primaryCategory": "social",
 "tags": ["tag1", "tag2"]
  }
 }
-```
+````
+
 ## Success Verification
 
 Basic functionality and discovery/sharing checklists: confirm load, images, wallet, manifest endpoint, embed rendering, and search presence.
 
 ## Getting Additional Help
 
-* [Base Build Preview Tool](https://base.dev/preview)
-* JSONLint
-* [Eruda](https://github.com/liriliri/eruda)
-* Base Discord — #minikit channel
-
+- [Base Build Preview Tool](https://base.dev/preview)
+- JSONLint
+- [Eruda](https://github.com/liriliri/eruda)
+- Base Discord — #minikit channel
 
 # Base App Compatibility
 
@@ -7672,44 +7972,47 @@ Base App is working towards full compatibility with the Farcaster Mini App SDK. 
 
 ## Currently Unsupported
 
-* [`signManifest`(experimental)](https://miniapps.farcaster.xyz/docs/sdk/actions/sign-manifest)
+- [`signManifest`(experimental)](https://miniapps.farcaster.xyz/docs/sdk/actions/sign-manifest)
 
 ## Base app Mini App SDK Supported Features
 
-* [Quick Auth](https://miniapps.farcaster.xyz/docs/sdk/actions/quick-auth)
-* [addMiniApp](https://miniapps.farcaster.xyz/docs/sdk/actions/add-miniapp)
-* [close](https://miniapps.farcaster.xyz/docs/sdk/actions/close)
-* [composeCast](https://miniapps.farcaster.xyz/docs/sdk/actions/compose-cast)
-* [ready](https://miniapps.farcaster.xyz/docs/sdk/actions/ready)
-* [openUrl](https://miniapps.farcaster.xyz/docs/sdk/actions/open-url)
-* [openMiniApp](https://miniapps.farcaster.xyz/docs/sdk/actions/open-miniapp)
-* [signIn](https://miniapps.farcaster.xyz/docs/sdk/actions/sign-in)
-* [viewProfile](https://miniapps.farcaster.xyz/docs/sdk/actions/view-profile)
-* [viewCast](https://miniapps.farcaster.xyz/docs/sdk/actions/view-cast)
-* [swapToken](https://miniapps.farcaster.xyz/docs/sdk/actions/swap-token)
-* [sendToken](https://miniapps.farcaster.xyz/docs/sdk/actions/send-token)
-* [viewToken](https://miniapps.farcaster.xyz/docs/sdk/actions/view-token)
-* [requestCameraAndMicrophoneAccess](https://miniapps.farcaster.xyz/docs/sdk/actions/request-camera-and-microphone-access)
-* [Haptics](https://miniapps.farcaster.xyz/docs/sdk/haptics)
+- [Quick Auth](https://miniapps.farcaster.xyz/docs/sdk/actions/quick-auth)
+- [addMiniApp](https://miniapps.farcaster.xyz/docs/sdk/actions/add-miniapp)
+- [close](https://miniapps.farcaster.xyz/docs/sdk/actions/close)
+- [composeCast](https://miniapps.farcaster.xyz/docs/sdk/actions/compose-cast)
+- [ready](https://miniapps.farcaster.xyz/docs/sdk/actions/ready)
+- [openUrl](https://miniapps.farcaster.xyz/docs/sdk/actions/open-url)
+- [openMiniApp](https://miniapps.farcaster.xyz/docs/sdk/actions/open-miniapp)
+- [signIn](https://miniapps.farcaster.xyz/docs/sdk/actions/sign-in)
+- [viewProfile](https://miniapps.farcaster.xyz/docs/sdk/actions/view-profile)
+- [viewCast](https://miniapps.farcaster.xyz/docs/sdk/actions/view-cast)
+- [swapToken](https://miniapps.farcaster.xyz/docs/sdk/actions/swap-token)
+- [sendToken](https://miniapps.farcaster.xyz/docs/sdk/actions/send-token)
+- [viewToken](https://miniapps.farcaster.xyz/docs/sdk/actions/view-token)
+- [requestCameraAndMicrophoneAccess](https://miniapps.farcaster.xyz/docs/sdk/actions/request-camera-and-microphone-access)
+- [Haptics](https://miniapps.farcaster.xyz/docs/sdk/haptics)
 
 ## Base App Client Detection
 
 To detect if the app is running in the Base App, you can use the`clientFid`property of the`context`object.
+
 #### Code```tsx
+
 import { useMiniKit } from '@coinbase/onchainkit/minikit';
 
 function MyComponent {
- const { context } = useMiniKit;
- const isBaseApp = context.client.clientFid === 309857;
+const { context } = useMiniKit;
+const isBaseApp = context.client.clientFid === 309857;
 
- if (isBaseApp) {
+if (isBaseApp) {
 // Use Base App-specific features
 console.log('Running in Base App');
- }
- 
- return <div>{/* Your component */}</div>;
 }
-```## Supported Chains
+
+return <div>{/_ Your component _/}</div>;
+}
+
+````## Supported Chains
 
 * Base
 * Mainnet
@@ -7741,18 +8044,18 @@ Understanding the indexing process helps you diagnose why your Mini App may not 
 
 ### Step: Share your Mini App URL
 Share your URL to the feed.
- 
+
 ### Step: The Base app validates your manifest
 The Base app fetches and validates your manifest file.
 
- 
+
 > Warning:
 Invalid or unreachable manifests will fail indexing.
- 
+
 
 ### Step: Your app enters the directory
 Your Mini App is recorded and becomes searchable within 10 minutes.
- 
+
 ## How search works
 
 The Base App's search queries your Mini App's`name`field from the catalog. Both exact and partial matches appear in results. Search displays your Mini App based on information you provided in your manifest.
@@ -7785,15 +8088,15 @@ When users share your Mini App URL in a direct message, it displays as an intera
 ## Related
 
 
- 
+
 - [Manifest Configuration](/mini-apps/core-concepts/manifest)
 
 
- 
+
 - [Embeds & Previews](/mini-apps/core-concepts/embeds-and-previews)
 
 
- 
+
 - [Troubleshooting](/mini-apps/troubleshooting/common-issues)
 
 
@@ -7808,11 +8111,11 @@ When users share your Mini App URL in a direct message, it displays as an intera
 Production-ready code repositories that you can clone and deploy immediately.
 
 
- 
+
 - [Full Mini Demo - MiniKit](https://github.com/base/demos/tree/master/mini-apps/templates/minikit/mini-app-full-demo-minikit)
 
 
- 
+
 - [Full Mini Demo - Farcaster sdk](https://github.com/base/demos/tree/master/mini-apps/templates/farcaster-sdk/mini-app-full-demo)
 
 
@@ -7835,25 +8138,25 @@ A comprehensive showcase demonstrating the complete range of mini appcapabilitie
 
 ### Step: Choose your template
 Select the template that best matches your Mini App concept and requirements.
- 
+
 ### Step: Fork or clone
 Use the provided links to fork the interactive templates or clone the GitHub repositories.
- 
+
 ### Step: Customize and deploy
 Modify the templates to match your specific use case and deploy using your preferred hosting solution.
- 
+
 ### More Mini App Resources
 
 
- 
+
 - [Viral Mini Apps](/mini-apps/growth/build-viral-mini-apps)
 
 
- 
+
 - [Data Driven Growth](/mini-apps/technical-guides/data-driven-growth)
 
 
- 
+
 - [Optimize Onboarding](/mini-apps/growth/optimize-onboarding)
 
 
@@ -8192,34 +8495,34 @@ return window.crypto.randomUUID.replace(/-/g, '');
  document.getElementById("signin").onclick = async => {
 try {
  showStatus("Connecting to Base Account...", 'success');
- 
+
  // Generate a fresh nonce
  const nonce = generateNonce;
- 
+
  // Connect and authenticate using the new wallet_connect method
  const { accounts } = await provider.request({
 method: 'wallet_connect',
 params: [{
  version: '1',
  capabilities: {
- signInWithEthereum: { 
- nonce, 
+ signInWithEthereum: {
+ nonce,
  chainId: '0x2105' // Base Mainnet - 8453
  }
  }
 }]
  });
- 
+
  const { address } = accounts[0];
  const { message, signature } = accounts[0].capabilities.signInWithEthereum;
- 
+
  userAddress = address;
- 
+
  showStatus(`✅ Successfully signed in! Address: ${address.slice(0, 6)}...${address.slice(-4)}`);
- 
+
  // In a real app, you would send the message and signature to your backend for verification
  console.log('Authentication data:', { address, message, signature });
- 
+
 } catch (error) {
  console.error('Sign-in error:', error);
  showStatus(`❌ Sign-in failed: ${error.message}`, 'error');
@@ -8230,7 +8533,7 @@ params: [{
  document.getElementById("pay").onclick = async => {
 try {
  showStatus("Processing payment...", 'success');
- 
+
  const result = await window.base.pay({
 amount: "5.00", // USD – SDK quotes equivalent USDC
 to: "0x2211d1D0020DAEA8039E46Cf1367962070d77DA9",
@@ -8241,7 +8544,7 @@ testnet: true // set to false or omit for Mainnet
 id: result.id,
 testnet: true
  });
- 
+
  showStatus(`🎉 Payment completed! Status: ${status.status}`);
 } catch (error) {
  showStatus(`❌ Payment failed: ${error.message}`, 'error');
@@ -8423,33 +8726,33 @@ signInStatus: { marginTop: '8px', fontSize: '14px', color: dark ? '#0f0' : '#060
  <button onClick={toggleTheme} style={styles.themeToggle}>
 {theme === 'light' ? '🌙' : '☀️'}
  </button>
- 
+
  <div style={styles.card}>
 <h1 style={styles.title}>Base Account</h1>
 <p style={styles.subtitle}>Experience seamless crypto payments</p>
 
 <div style={styles.buttonGroup}>
- <SignInWithBaseButton 
+ <SignInWithBaseButton
 align="center"
 variant="solid"
 colorScheme={theme}
 size="medium"
 onClick={handleSignIn}
  />
- 
+
  {isSignedIn && (
 <div style={styles.signInStatus}>
  ✅ Connected to Base Account
 </div>
  )}
- 
- <BasePayButton 
+
+ <BasePayButton
 colorScheme={theme}
 onClick={handlePayment}
  />
- 
+
  {paymentId && (
-<button 
+<button
  onClick={handleCheckStatus}
  style={{
  padding: '12px 24px',
@@ -8490,28 +8793,29 @@ onClick={handlePayment}
 ## 4. Start your app
 #### Command```bash
 npm run dev
-```
+````
+
 Open http://localhost:3000, click **Sign in with Base** (optional) and then **Pay**, approve the transaction, and you've sent 5 USDC on Base Sepolia—done! 🎉
 
 **Note:** If you have an existing Next.js app, just install the SDK (`npm install @base-org/account @base-org/account-ui`) and add the component above to your project. For other React frameworks, you can adapt this component as needed.
 
 ## Next steps
 
-* **[Authenticate Users](/base-account/guides/authenticate-users)** - strong authentication by setting up Sign in with Base with backend verification
-* **[Accept Payments](/base-account/guides/accept-payments)** explore all the features of Base Pay
-* **[Sign in with Base Button](/base-account/reference/ui-elements/sign-in-with-base-button)** – use the Sign in with Base Button component to quickly add authentication to your app
-* **[Base Pay Button](/base-account/reference/ui-elements/base-pay-button)** – use the Base Pay Button component to quickly add payments to your app
-
+- **[Authenticate Users](/base-account/guides/authenticate-users)** - strong authentication by setting up Sign in with Base with backend verification
+- **[Accept Payments](/base-account/guides/accept-payments)** explore all the features of Base Pay
+- **[Sign in with Base Button](/base-account/reference/ui-elements/sign-in-with-base-button)** – use the Sign in with Base Button component to quickly add authentication to your app
+- **[Base Pay Button](/base-account/reference/ui-elements/base-pay-button)** – use the Base Pay Button component to quickly add payments to your app
 
 > Warning:
-**Please Follow the Brand Guidelines**
+> **Please Follow the Brand Guidelines**
 
- If you intend on using the `SignInWithBaseButton`or`BasePayButton`, please follow the [Brand Guidelines](/base-account/reference/ui-elements/brand-guidelines) to ensure consistency across your application.
+If you intend on using the `SignInWithBaseButton`or`BasePayButton`, please follow the [Brand Guidelines](/base-account/reference/ui-elements/brand-guidelines) to ensure consistency across your application.
 
 # Mobile (React Native)
 
 export const GithubRepoCard = ({title, githubUrl}) => {
- return <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="mb-4 flex items-center rounded-lg bg-zinc-900 p-4 text-white transition-all hover:bg-zinc-800">
+return <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="mb-4 flex items-center rounded-lg bg-zinc-900 p-4 text-white transition-all hover:bg-zinc-800">
+
  <div className="flex w-full items-center gap-3">
  <svg height="24" width="24" className="flex-shrink-0 dark:fill-white" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg>
  <path fill="currentColor" fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
@@ -8530,7 +8834,8 @@ export const GithubRepoCard = ({title, githubUrl}) => {
 };
 
 export const Danger = ({children}) => {
- return <div class="my-4 px-5 py-4 overflow-hidden rounded-2xl flex gap-3 border danger-admonition dark:danger-admonition">
+return <div class="my-4 px-5 py-4 overflow-hidden rounded-2xl flex gap-3 border danger-admonition dark:danger-admonition">
+
  <div class="mt-0.5 w-4">
  <svg width="14" height="14" viewBox="0 0 14 14" fill="rgb(239, 68, 68)" xmlns="http://www.w3.org/2000/svg class="w-4 h-4 text-sky-500" aria-label="Danger">
  <path fill-rule="evenodd" clip-rule="evenodd" d="M7 1.3C10.14 1.3 12.7 3.86 12.7 7C12.7 10.14 10.14 12.7 7 12.7C5.48908 12.6974 4.0408 12.096 2.97241 11.0276C1.90403 9.9592 1.30264 8.51092 1.3 7C1.3 3.86 3.86 1.3 7 1.3ZM7 0C3.14 0 0 3.14 0 7C0 10.86 3.14 14 7 14C10.86 14 14 10.86 14 7C14 3.14 10.86 0 7 0ZM8 3H6V8H8V3ZM8 9H6V11H8V9Z"></path>
@@ -8552,8 +8857,8 @@ by integrating the
 <Danger>
  **Deep Link Handling**
 
- Breaking change in v1.0.0: Universal Links and App Links requirements are
- removed in favor of custom schemes (e.g.`myapp://`).
+Breaking change in v1.0.0: Universal Links and App Links requirements are
+removed in favor of custom schemes (e.g.`myapp://`).
 </Danger>
 
 ## Before You Start
@@ -8586,8 +8891,9 @@ The Mobile Wallet Protocol Client library requires the [Expo WebBrowser](https:/
 Follow the instructions on the respective pages for any additional setup.
 
 <CodeGroup>```zsh
- npm i expo expo-web-browser @react-native-async-storage/async-storage
-```
+npm i expo expo-web-browser @react-native-async-storage/async-storage
+
+````
 ```zsh
  yarn add expo expo-web-browser @react-native-async-storage/async-storage
 ```</CodeGroup>
@@ -8600,8 +8906,9 @@ Below is an example of how to polyfill these functions in your app using the [ex
 
 <CodeGroup>```zsh
  npm i expo-crypto expo-standard-web-crypto react-native-url-polyfill
-```
-```zsh
+````
+
+````zsh
  yarn add expo-crypto expo-standard-web-crypto react-native-url-polyfill
 ```</CodeGroup>
 
@@ -8666,8 +8973,9 @@ Add the latest version of Mobile Wallet Protocol wagmi-connectors to your projec
 
 <CodeGroup>```zsh
  npm i @mobile-wallet-protocol/wagmi-connectors@latest
-```
-```zsh
+````
+
+````zsh
  yarn add @mobile-wallet-protocol/wagmi-connectors@latest
 ```</CodeGroup>
 
@@ -8866,8 +9174,8 @@ const { accounts } = await provider.request({
  params: [{
 version: '1',
 capabilities: {
- signInWithEthereum: { 
-nonce, 
+ signInWithEthereum: {
+nonce,
 chainId: '0x2105' // Base Mainnet - 8453
  }
 }
@@ -9055,14 +9363,14 @@ amount: '1.00', // USD amount (USDC used internally)
 to: '0xRecipient', // your address
 testnet: true // set false for Mainnet
  });
- 
+
  // Option 1: Poll until mined
- const { status } = await getPaymentStatus({ 
+ const { status } = await getPaymentStatus({
 id: payment.id,
 testnet: true // MUST match the testnet setting used in pay
  });
  if (status === 'completed') console.log('🎉 payment settled');
- 
+
 } catch (error) {
  console.error(`Payment failed: ${error.message}`);
 }
@@ -9093,9 +9401,9 @@ payerInfo: {
  callbackURL: 'https://your-api.com/validate // Optional - for server-side validation
 }
  });
- 
+
  console.log(`Payment sent! Transaction ID: ${payment.id}`);
- 
+
  // Log the collected user information
  if (payment.payerInfoResponses) {
 if (payment.payerInfoResponses.email) {
@@ -9138,7 +9446,7 @@ Required by default — set <code>optional: true</code> to avoid aborting the pa
 import { getPaymentStatus } from '@base-org/account';
 
 export async function checkPayment(txId, testnet = false) {
- const status = await getPaymentStatus({ 
+ const status = await getPaymentStatus({
 id: txId,
 testnet // Must match the testnet setting from the original pay call
  });
@@ -9170,67 +9478,66 @@ try {
 />
  );
 }
-```
+````
+
 See full props and theming options in the [Button Reference](/base-account/reference/ui-elements/base-pay-button) and [Brand Guidelines](/base-account/reference/ui-elements/brand-guidelines).
 
-
 > Warning:
-**Please Follow the Brand Guidelines**
+> **Please Follow the Brand Guidelines**
 
- If you intend on using the BasePayButton, please follow the [Brand Guidelines](/base-account/reference/ui-elements/brand-guidelines) to ensure consistency across your application.
+If you intend on using the BasePayButton, please follow the [Brand Guidelines](/base-account/reference/ui-elements/brand-guidelines) to ensure consistency across your application.
 
 ## Test on Base Sepolia
 
-1. Get test USDC from the <a href="https://faucet.circle.com target="_blank">Circle Faucet</a> (select "Base Sepolia").
+1. Get test USDC from the <a href="https://faucet.circle.com target="\_blank">Circle Faucet</a> (select "Base Sepolia").
 
 2. Pass <code>testnet: true</code> in your <code>pay</code> and <code>getPaymentStatus</code> calls.
 
-3. Use <a href="https://sepolia.basescan.org target="_blank">Sepolia BaseScan</a> to watch the transaction.
-
-
+3. Use <a href="https://sepolia.basescan.org target="\_blank">Sepolia BaseScan</a> to watch the transaction.
 
 # Accept Recurring Payments
 
 > Enable subscription-based revenue models with automatic USDC payments
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -9243,8 +9550,8 @@ export const BaseBanner = ({content = null, id, dismissable = true}) => {
 };
 
 export const SignInWithBaseButton = ({colorScheme = 'light'}) => {
- const isLight = colorScheme === 'light';
- return <button type="button" style={{
+const isLight = colorScheme === 'light';
+return <button type="button" style={{
  display: 'flex',
  alignItems: 'center',
  justifyContent: 'center',
@@ -9261,6 +9568,7 @@ export const SignInWithBaseButton = ({colorScheme = 'light'}) => {
  minWidth: '180px',
  height: '44px'
  }}>
+
  <div style={{
  width: '16px',
  height: '16px',
@@ -9273,8 +9581,8 @@ export const SignInWithBaseButton = ({colorScheme = 'light'}) => {
 };
 
 export const BasePayButton = ({colorScheme = 'light'}) => {
- const isLight = colorScheme === 'light';
- return <button type="button" style={{
+const isLight = colorScheme === 'light';
+return <button type="button" style={{
  display: 'flex',
  alignItems: 'center',
  justifyContent: 'center',
@@ -9287,11 +9595,11 @@ export const BasePayButton = ({colorScheme = 'light'}) => {
  minWidth: '180px',
  height: '44px'
  }}>
- <img src={isLight ? '/images/base-account/BasePayBlueLogo.png' : '/images/base-account/BasePayWhiteLogo.png'} alt="Base Pay" style={{
+<img src={isLight ? '/images/base-account/BasePayBlueLogo.png' : '/images/base-account/BasePayWhiteLogo.png'} alt="Base Pay" style={{
  height: '20px',
  width: 'auto'
  }} />
- </button>;
+</button>;
 };
 
 ## Start accepting recurring payments with Base Pay Subscriptions
@@ -9304,59 +9612,62 @@ Base Subscriptions enable you to build predictable, recurring revenue streams by
  <Accordion title="Flexible Billing Periods">
  Support any billing cycle that fits your business model:
 
- * Daily subscriptions for short-term services
- * Weekly for regular deliveries or services
- * Monthly for standard SaaS subscriptions
- * Annual for discounted long-term commitments
- * Custom periods (e.g., 14 days, 90 days) for unique models
- </Accordion>
+- Daily subscriptions for short-term services
+- Weekly for regular deliveries or services
+- Monthly for standard SaaS subscriptions
+- Annual for discounted long-term commitments
+- Custom periods (e.g., 14 days, 90 days) for unique models
+  </Accordion>
 
  <Accordion title="Partial and Usage-Based Charging">
  Charge any amount up to the permitted limit:
 
- * Fixed recurring amounts for predictable billing
- * Variable usage-based charges within a cap
- * Tiered pricing with different charge amounts
- * Prorated charges for mid-cycle changes
- </Accordion>
+- Fixed recurring amounts for predictable billing
+- Variable usage-based charges within a cap
+- Tiered pricing with different charge amounts
+- Prorated charges for mid-cycle changes
+  </Accordion>
 
  <Accordion title="Subscription Management">
  Full control over the subscription lifecycle:
 
- * Real-time status checking to verify active subscriptions
- * Remaining charge amount for the current period
- * Next period start date for planning
- * Cancellation detection for immediate updates
- </Accordion>
+- Real-time status checking to verify active subscriptions
+- Remaining charge amount for the current period
+- Next period start date for planning
+- Cancellation detection for immediate updates
+  </Accordion>
 
  <Accordion title="Enterprise-Ready Features">
  Built for production use cases:
 
- * No transaction fees or platform cuts
- * Instant settlement in USDC stablecoin
- * Testnet support for development and testing
- * Detailed transaction history for accounting
- * Programmatic access via SDK
- </Accordion>
-</AccordionGroup>
+- No transaction fees or platform cuts
+- Instant settlement in USDC stablecoin
+- Testnet support for development and testing
+- Detailed transaction history for accounting
+- Programmatic access via SDK
+  </Accordion>
+  </AccordionGroup>
 
 ## How It Works
 
 Base Subscriptions leverage **Spend Permissions** – a powerful onchain primitive that allows users to grant revocable spending rights to applications. Here's the complete flow:
 
-
 ### Step: User Approves Subscription
+
 Your customer grants your application permission to charge their wallet up to a specified amount each billing period. This is a one-time approval that remains active until cancelled.
- 
+
 ### Step: Application Charges Periodically
+
 Your backend service charges the subscription when payment is due, without requiring any user interaction. You can charge up to the approved amount per period.
- 
+
 ### Step: Smart Period Management
+
 The spending limit automatically resets at the start of each new period. If you don't charge the full amount in one period, it doesn't roll over.
- 
+
 ### Step: User Maintains Control
+
 Customers can view and cancel their subscriptions anytime through their wallet, ensuring transparency and trust.
- 
+
 ## Implementation Guide
 
 ### Architecture Overview
@@ -9365,45 +9676,46 @@ A complete subscription implementation requires both client and server component
 
 **Client-Side (Frontend):**
 
-* User interface for subscription creation
-* Create wallet requests and handle user responses
+- User interface for subscription creation
+- Create wallet requests and handle user responses
 
 **Server-Side (Backend - Node.js):**
 
-* CDP smart wallet for executing charges and revocations
-* Scheduled jobs for periodic billing
-* Database for subscription tracking
-* Handlers for status updates
-* Retry logic for failed charges
+- CDP smart wallet for executing charges and revocations
+- Scheduled jobs for periodic billing
+- Database for subscription tracking
+- Handlers for status updates
+- Retry logic for failed charges
 
 <Note>
  **CDP-Powered Backend**
 
- Base Subscriptions use **CDP (Coinbase Developer Platform) server wallets** for effortless backend management. The `charge`and`revoke`functions handle all transaction details automatically:
+Base Subscriptions use **CDP (Coinbase Developer Platform) server wallets** for effortless backend management. The `charge`and`revoke`functions handle all transaction details automatically:
 
- * ✅ Automatic wallet management
- * ✅ Built-in transaction signing
- * ✅ Gas estimation and nonce handling
- * ✅ Optional paymaster support for gasless transactions
+- ✅ Automatic wallet management
+- ✅ Built-in transaction signing
+- ✅ Gas estimation and nonce handling
+- ✅ Optional paymaster support for gasless transactions
 
- Get CDP credentials from [CDP Portal](https://portal.cdp.coinbase.com/projects/api-keys)
+Get CDP credentials from [CDP Portal](https://portal.cdp.coinbase.com/projects/api-keys)
 </Note>
 
-
 > Warning:
-**Security Requirements**
+> **Security Requirements**
 
- To accept recurring payments, you need:
+To accept recurring payments, you need:
 
- 1. CDP credentials (API key ID, secret, and wallet secret)
- 2. Backend infrastructure (Node.js) to execute charges securely
- 3. Database to store and manage subscription IDs
- 4. Never expose CDP credentials in client-side code
+1.  CDP credentials (API key ID, secret, and wallet secret)
+2.  Backend infrastructure (Node.js) to execute charges securely
+3.  Database to store and manage subscription IDs
+4.  Never expose CDP credentials in client-side code
 
 ### Setup: Create Your Subscription Owner Wallet
 
 First, set up your CDP smart wallet that will act as the subscription owner:
+
 #### Code```typescript
+
 import { base } from '@base-org/account/node';
 
 // Backend setup (Node.js only)
@@ -9412,10 +9724,10 @@ import { base } from '@base-org/account/node';
 // PAYMASTER_URL (recommended for gasless transactions)
 
 async function setupSubscriptionWallet {
- try {
+try {
 // Create or retrieve your subscription owner wallet (CDP smart wallet)
 const wallet = await base.subscription.getOrCreateSubscriptionOwnerWallet({
- walletName: 'my-app-subscriptions' // Optional: customize wallet name
+walletName: 'my-app-subscriptions' // Optional: customize wallet name
 });
 
 console.log('✅ Subscription owner wallet ready!');
@@ -9428,10 +9740,10 @@ console.log(`Wallet Name: ${wallet.walletName}`);
 // Option 3: Set as public environment variable (e.g., NEXT_PUBLIC_SUBSCRIPTION_OWNER)
 
 return wallet;
- } catch (error) {
+} catch (error) {
 console.error('Failed to setup wallet:', error.message);
 throw error;
- }
+}
 }
 
 // Run once at application startup
@@ -9439,10 +9751,11 @@ setupSubscriptionWallet;
 
 // Optional: Provide an API endpoint for the frontend to fetch the address
 export async function getSubscriptionOwnerAddress {
- const wallet = await base.subscription.getOrCreateSubscriptionOwnerWallet;
- return wallet.address;
+const wallet = await base.subscription.getOrCreateSubscriptionOwnerWallet;
+return wallet.address;
 }
-```<Note>
+
+````<Note>
  **Backend Only**: This setup runs in your Node.js backend with CDP credentials. The resulting wallet address is public and safe to share with your frontend for use in`subscribe`calls.
 </Note>
 
@@ -9465,7 +9778,7 @@ export function SubscriptionButton {
  const [loading, setLoading] = useState(false);
  const [subscribed, setSubscribed] = useState(false);
  const [subscriptionId, setSubscriptionId] = useState('');
- 
+
  const handleSubscribe = async => {
 setLoading(true);
 
@@ -9477,19 +9790,19 @@ subscriptionOwner: SUBSCRIPTION_OWNER_ADDRESS, // Address from your backend CDP 
 periodInDays: 30,
 testnet: false
  });
- 
+
  // Store subscription ID for future reference
  setSubscriptionId(subscription.id);
  console.log('Subscription created:', subscription.id);
  console.log('Payer:', subscription.subscriptionPayer);
  console.log('Amount:', subscription.recurringCharge);
  console.log('Period:', subscription.periodInDays, 'days');
- 
+
  // Send subscription ID to your backend
  await saveSubscriptionToBackend(subscription.id, subscription.subscriptionPayer);
- 
+
  setSubscribed(true);
- 
+
 } catch (error) {
  console.error('Subscription failed:', error);
  alert('Failed to create subscription: ' + error.message);
@@ -9497,7 +9810,7 @@ testnet: false
  setLoading(false);
 }
  };
- 
+
  const saveSubscriptionToBackend = async (id: string, payer: string) => {
 // Example API call to store subscription in your database
 const response = await fetch('/api/subscriptions', {
@@ -9510,7 +9823,7 @@ if (!response.ok) {
  throw new Error('Failed to save subscription');
 }
  };
- 
+
  if (subscribed) {
 return (
  <div className="subscription-status">
@@ -9519,10 +9832,10 @@ return (
  </div>
 );
  }
- 
+
  return (
-<button 
- onClick={handleSubscribe} 
+<button
+ onClick={handleSubscribe}
  disabled={loading}
  className="subscribe-button"
 >
@@ -9674,7 +9987,7 @@ premium: '0xPremiumTreasuryAddress',
 basic: '0xBasicTreasuryAddress',
 enterprise: '0xEnterpriseTreasuryAddress'
  };
- 
+
  return await base.subscription.charge({
 id: subscriptionId,
 amount: 'max-remaining-charge',
@@ -9753,9 +10066,10 @@ const chargeCalls = await base.subscription.prepareCharge({
 
 // Execute with your own wallet infrastructure
 // (requires custom wallet client setup)
-```
- See [`prepareCharge`reference](/base-account/reference/base-pay/prepareCharge) for details.
- </Accordion>
+````
+
+See [`prepareCharge`reference](/base-account/reference/base-pay/prepareCharge) for details.
+</Accordion>
 
  <Accordion title="prepareRevoke - Manual Revoke Execution">
  Similarly,`prepareRevoke`provides revocation call data:
@@ -9764,12 +10078,13 @@ import { base } from '@base-org/account';
 
 // Prepare revoke call data
 const revokeCall = await base.subscription.prepareRevoke({
- id: subscriptionId,
- testnet: false
+id: subscriptionId,
+testnet: false
 });
 
 // Execute with your own wallet infrastructure
-```
+
+````
  See [`prepareRevoke`reference](/base-account/reference/base-pay/prepareRevoke) for details.
  </Accordion>
 </AccordionGroup>
@@ -9777,39 +10092,39 @@ const revokeCall = await base.subscription.prepareRevoke({
 ## API Reference
 
 
- 
+
 - [subscribe](/base-account/reference/base-pay/subscribe)
 
 
- 
+
 - [getStatus](/base-account/reference/base-pay/getStatus)
 
 
- 
+
 - [charge](/base-account/reference/base-pay/charge)
 
 
- 
+
 - [revoke](/base-account/reference/base-pay/revoke)
 
 
- 
+
 - [Setup Owner Wallet](/base-account/reference/base-pay/getOrCreateSubscriptionOwnerWallet)
 
 
- 
+
 - [prepareCharge](/base-account/reference/base-pay/prepareCharge)
 
 
- 
+
 - [prepareRevoke](/base-account/reference/base-pay/prepareRevoke)
 
 
- 
+
 - [Spend Permissions](/base-account/improve-ux/spend-permissions)
 
 
- 
+
 - [One-Time Payments](/base-account/guides/accept-payments)
 
 
@@ -9901,7 +10216,7 @@ data: '0x', // Empty data for simple transfer
  },
  {
 to: '0x742d35Cc6634C0532925a3b844Bc9e7595f6E456',
-value: numberToHex(parseEther('0.001')), // 0.001 ETH 
+value: numberToHex(parseEther('0.001')), // 0.001 ETH
 data: '0x', // Empty data for simple transfer
  }
 ];
@@ -9948,7 +10263,7 @@ outputs: [{ name: '', type: 'bool' }]
  },
  {
 name: 'transfer',
-type: 'function', 
+type: 'function',
 stateMutability: 'nonpayable',
 inputs: [
  { name: 'to', type: 'address' },
@@ -9985,7 +10300,7 @@ args: [spenderAddress, amount]
 },
 {
  to: tokenAddress,
- value: '0x0', 
+ value: '0x0',
  data: encodeFunctionData({
 abi: erc20Abi,
 functionName: 'transfer',
@@ -10015,7 +10330,7 @@ Before sending batch transactions, you can check if the wallet supports atomic b
 #### Code```tsx
 async function checkCapabilities {
  const provider = sdk.getProvider;
- 
+
  try {
 const cryptoAccount = await getCryptoKeyAccount;
 const address = cryptoAccount?.account?.address;
@@ -10108,12 +10423,12 @@ As a prerequisite, you'll need to obtain a Paymaster service URL from a Paymaste
  We'll use [Coinbase Developer Platform](https://www.coinbase.com/developer-platform) as a Paymaster service provider,
  currently offering up to \$15k in gas credits as part of the [Base Gasless Campaign](/base-account/more/base-gasless-campaign).
 
- 
+
 > Warning:
 **ERC-7677-Compliant Paymaster Providers**
 
  If you choose to use a different Paymaster service provider, ensure they are [ERC-7677-compliant](https://www.erc7677.xyz/ecosystem/paymasters)
- 
+
 Once you have signed up for [Coinbase Developer Platform](https://www.coinbase.com/developer-platform you get your Paymaster service URL by navigating to **Onchain Tools > Paymaster** as shown below:
 
  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -10121,14 +10436,14 @@ Once you have signed up for [Coinbase Developer Platform](https://www.coinbase.c
  <em>How to get your Paymaster service URL</em>
  </div>
 
- 
+
 > Warning:
 **Should you create a proxy for your Paymaster service?**
 
  We recommend using a proxy to protect the Paymaster service URL to prevent it from being exposed/leaked on a frontend client.
 
  For local development, you can use the same URL for the Paymaster service and the proxy.
- 
+
 Once you have your Paymaster service URL, you can proceed to setting up your contracts allowlist.
  This is a list of contracts and function calls that you want to be sponsored by the Paymaster.
 
@@ -10146,7 +10461,7 @@ Once you have your Paymaster service URL, you can proceed to setting up your con
  You can create a`willSponsor`function to add some extra validation if you need more control over the policy enforcement.`willSponsor`is most likely not needed if you are using [Coinbase Developer Platform](https://www.coinbase.com/developer-platform) as it has built-in policy enforcement features,
  but know that this is still possible if you need it.
  </Check>
- 
+
 ### Step: Setup Base Account SDK
 Install and initialize the Base Account SDK to interact with Base Account:
 
@@ -10207,7 +10522,7 @@ appChainIds: [base.constants.CHAIN_IDS.baseSepolia],
  });
 
  const provider = sdk.getProvider;
- 
+
  try {
 // Get the user's account
 const cryptoAccount = await getCryptoKeyAccount;
@@ -10340,7 +10655,7 @@ return false;
 }
 ```That's it! Base Account will handle the rest. If your Paymaster service is able to sponsor the transaction,
  in the UI Base Account will indicate to your user that the transaction is sponsored.
- 
+
 # Use Sub Accounts
 
 > Learn how to create and use Sub Accounts using Base Account SDK
@@ -10525,11 +10840,14 @@ const [universalAddress, subAccountAddress] = await provider.request({
  method: "eth_requestAccounts", // or "eth_accounts" if already connected
  params: []
 })
-```
+````
+
 Then, send the transaction from the sub account:
 
 **`wallet_sendCalls`**
+
 #### Code
+
 ```tsx
 const callsId = await provider.request({
  method: 'wallet_sendCalls',
@@ -10551,9 +10869,12 @@ capabilities: {
 
 console.log('Calls sent:', callsId);
 ```
+
 **`eth_sendTransaction`**
+
 #### Code
-```tsx
+
+````tsx
 const tx = await provider.request({
  method: 'eth_sendTransaction',
  params: [{
@@ -10587,21 +10908,24 @@ chainId: 8453 // the chain the account is deployed on
 });
 
 console.log('Sub Account added:', subAccount.address);
-```
+````
+
 <Note>
  Before the Sub Account is imported, you will need to add the Base Account address as an owner of the Sub Account. This currently needs to be done manually
  by calling the [`addOwnerAddress`](https://github.com/coinbase/smart-wallet/blob/a8c6456f3a6d5d2dea08d6336b3be13395cacd42/src/MultiOwnable.sol#L101) or [`addOwnerPublicKey`](https://github.com/coinbase/smart-wallet/blob/a8c6456f3a6d5d2dea08d6336b3be13395cacd42/src/MultiOwnable.sol#L109) functions on the Smart Contract of the Sub Account that was imported and setting the Base Account address as the owner.
 
- Additionally, only Coinbase Smart Wallet contracts are currently supported for importing as a Sub Account into your Base Account.
+Additionally, only Coinbase Smart Wallet contracts are currently supported for importing as a Sub Account into your Base Account.
 
- The Coinbase Smart Wallet contract ABI can be found on [GitHub](https://github.com/base/account-sdk/blob/master/packages/account-sdk/src/sign/base-account/utils/constants.ts#L8)
+The Coinbase Smart Wallet contract ABI can be found on [GitHub](https://github.com/base/account-sdk/blob/master/packages/account-sdk/src/sign/base-account/utils/constants.ts#L8)
 </Note>
 
 ### Add Owner Account
 
 Sub Accounts automatically detect when an ownership update is needed when a signature is required and will prompt the user to approve the update before signing. However, you can also add an owner to a Sub Account manually using the SDK convenience method:
+
 #### Code
-```tsx
+
+````tsx
 const ownerAccount = await sdk.subAccount.addOwner({
  address: subAccount?.address,
  publicKey: cryptoAccount?.account?.publicKey,
@@ -11301,27 +11625,19 @@ await provider.request({
 },
  ],
 });
-```
+````
+
 ## Example Use Case
 
 Let's say you're building an AI agent that can autonomously purchase [Zora Creator Coins](https://docs.zora.co/coins) using secure [Spend Permissions](/base-account/improve-ux/spend-permissions) on Base.
 
 This example demonstrates how to combine Base Account's [Spend Permissions](/base-account/improve-ux/spend-permissions) with Coinbase Developer Platform (CDP) [Server Wallets](https://docs.cdp.coinbase.com/server-wallets/v2/introduction/quickstart) and [Trade API](https://docs.cdp.coinbase.com/trade-api/quickstart) for seamless, gas-free AI agent transactions.
 
-
-
- 
 - [Live Demo](https://base-agent-spend-permissions.vercel.app)
 
-
- 
 - [Source Code](https://github.com/base/demos/tree/master/base-account/agent-spend-permissions)
 
-
-
 **Learn more:** [AI Agent with Spend Permissions](https://docs.base.org/cookbook/spend-permissions-ai-agent)
-
-
 
 # Use Coinbase Balances Onchain
 
@@ -11335,13 +11651,15 @@ If your app supports Base Account, it should not assume it knows the full balanc
 
 ## Why it matters
 
-MagicSpend makes onboarding smoother by letting users pay gas or send funds even when their onchain wallet balance is **zero**. Your interface should therefore *never* disable an action just because the onchain balance is insufficient.
+MagicSpend makes onboarding smoother by letting users pay gas or send funds even when their onchain wallet balance is **zero**. Your interface should therefore _never_ disable an action just because the onchain balance is insufficient.
 
 1. Ensure you have the user’s`address` stored in your component state (from your wallet connection flow).
 
 2. Drop the component below into your UI. It will check whether MagicSpend (`auxiliaryFunds`) is available for that address on Base and if not, disable the send button accordingly.
+
 #### Code
-```tsx
+
+````tsx
 import { useEffect, useState } from "react";
 import { createBaseAccountSDK, base } from "@base-org/account";
 
@@ -11512,10 +11830,10 @@ const signature = await provider.request({
 const response = await fetch('/typed-data/verify', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ 
-typedData, 
-signature, 
-address: accounts[0] 
+ body: JSON.stringify({
+typedData,
+signature,
+address: accounts[0]
  })
 });
 
@@ -11528,9 +11846,9 @@ console.error('Signing failed:', err);
  import { createPublicClient, http } from 'viem';
  import { base } from 'viem/chains';
 
- const client = createPublicClient({ 
-chain: base, 
-transport: http 
+ const client = createPublicClient({
+chain: base,
+transport: http
  });
 
  export async function verifyTypedData(req, res) {
@@ -11559,10 +11877,10 @@ return res.status(401).json({ error: 'Signature expired' });
  }
 
  // Process the verified typed data
- res.json({ 
-valid: true, 
+ res.json({
+valid: true,
 message: 'Signature verified successfully',
-data: typedData.message 
+data: typedData.message
  });
 } catch (error) {
  console.error('Verification error:', error);
@@ -11580,9 +11898,9 @@ import { base } from 'viem/chains';
 const app = express;
 app.use(express.json);
 
-const client = createPublicClient({ 
- chain: base, 
- transport: http 
+const client = createPublicClient({
+ chain: base,
+ transport: http
 });
 
 // Simple nonce store (use Redis/DB in production)
@@ -11590,20 +11908,20 @@ const usedNonces = new Set<string>;
 
 app.get('/typed-data/prepare', (req, res) => {
  const { userAddress, action, resource } = req.query;
- 
+
  const nonce = Math.floor(Math.random * 1000000);
  const expiry = Math.floor(Date.now / 1000) + 3600; // 1 hour
- 
+
  const typedData = {
 // YOUR TYPED DATA HERE
  }
- 
+
  res.json(typedData);
 });
 
 app.post('/typed-data/verify', async (req, res) => {
  const { typedData, signature, address } = req.body;
- 
+
  try {
 // 1. Check nonce hasn't been reused
 const nonceKey = `${address}-${typedData.message.nonce}`;
@@ -11635,7 +11953,7 @@ if (!valid) {
 usedNonces.add(nonceKey);
 
 // 5. Process the verified action
-res.json({ 
+res.json({
  valid: true,
  message: 'Typed data verified successfully',
  action: typedData.message.action,
@@ -12190,7 +12508,7 @@ Base × Privy Demo
  </div>
 </section>
  )}
- 
+
  <ToastContainer
 position="top-center"
 autoClose={5000}
@@ -12320,8 +12638,8 @@ const authResult = await provider.request({
  params: [{
 version: '1',
 capabilities: {
- signInWithEthereum: { 
- nonce, 
+ signInWithEthereum: {
+ nonce,
  chainId: '0x2105' // Base Mainnet - 8453
  }
 }
@@ -12408,8 +12726,8 @@ method: 'wallet_connect',
 params: [{
  version: '1',
  capabilities: {
-signInWithEthereum: { 
- nonce, 
+signInWithEthereum: {
+ nonce,
  chainId: '0x2105'
 }
  }
@@ -12528,30 +12846,23 @@ const name = await client.getEnsName({
  address: '0x179A862703a4adfb29896552DF9e307980D19285',
  coinType: toCoinType(base.id),
 })
-```
-> Note:
-It is necessary to use a private RPC provider (`YOUR_PRIVATE_RPC_URL`) due to the computational demands associated with some of the ENSIP-19 resolution steps.
+````
 
+> Note:
+> It is necessary to use a private RPC provider (`YOUR_PRIVATE_RPC_URL`) due to the computational demands associated with some of the ENSIP-19 resolution steps.
 
 > Warning:
-There may be some latency between the initial registration of a Basename and the ability to resolve this name via ENSIP-19 due to the slow production of state proofs necessary for trustless resolution.
+> There may be some latency between the initial registration of a Basename and the ability to resolve this name via ENSIP-19 due to the slow production of state proofs necessary for trustless resolution.
 
 [Learn more about getEnsName →](https://viem.sh/docs/ens/actions/getEnsName)
 
-
-
-
-
-
-
 #### Ek Varyant 2
-
-
 
 > Decentralized naming system that allows users to register human-readable names (like 'alice.base.eth') on Base.
 
 export const GithubRepoCard = ({title, githubUrl}) => {
- return <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="mb-4 flex items-center rounded-lg bg-zinc-900 p-4 text-white transition-all hover:bg-zinc-800">
+return <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="mb-4 flex items-center rounded-lg bg-zinc-900 p-4 text-white transition-all hover:bg-zinc-800">
+
  <div className="flex w-full items-center gap-3">
  <svg height="24" width="24" className="flex-shrink-0 dark:fill-white" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg>
  <path fill="currentColor" fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
@@ -12572,7 +12883,6 @@ export const GithubRepoCard = ({title, githubUrl}) => {
 You can find further documentation in the README of the repository below:
 
 <GithubRepoCard title="Base Basenames" githubUrl="https://github.com/base/basenames />
-
 
 # Other Use Cases
 
@@ -12596,58 +12906,59 @@ The key to accessing advanced Base Account functionality is getting the provider
  import { useEffect, useState } from 'react'
  import { EIP1193Provider } from 'viem'
 
- export function useBaseAccountProvider {
+export function useBaseAccountProvider {
 const connections = useConnections
 const [provider, setProvider] = useState<EIP1193Provider | null>(null)
 
 useEffect( => {
- const connection = connections[0]
+const connection = connections[0]
 
- if (!connection) {
+if (!connection) {
 setProvider(null)
 return
- }
+}
 
- connection.connector.getProvider.then((provider) => {
+connection.connector.getProvider.then((provider) => {
 setProvider(provider as EIP1193Provider)
- })
+})
 }, [connections])
 
 return provider
- }
-```#### Code```tsx
- // components/BaseAccountFeatures.tsx
- import { useBaseAccountProvider } from '../hooks/useBaseAccountProvider'
- import { useAccount } from 'wagmi'
+}
+`#### Code`tsx
+// components/BaseAccountFeatures.tsx
+import { useBaseAccountProvider } from '../hooks/useBaseAccountProvider'
+import { useAccount } from 'wagmi'
 
- export function BaseAccountFeatures {
+export function BaseAccountFeatures {
 const { address, isConnected } = useAccount
 const provider = useBaseAccountProvider
 
 const callProviderMethod = async (method: string, params: any[]) => {
- if (!provider) {
+if (!provider) {
 console.error('Provider not available')
 return
- }
+}
 
- try {
+try {
 const result = await provider.request({
- method,
- params
+method,
+params
 })
 console.log(`${method} result:`, result)
 return result
- } catch (error) {
+} catch (error) {
 console.error(`${method} error:`, error)
 throw error
- }
+}
 }
 
 if (!isConnected) {
- return <p>Please connect your wallet to access Base Account features</p>
+return <p>Please connect your wallet to access Base Account features</p>
 }
 
 return (
+
  <div className="space-y-4">
 <h2 className="text-xl font-bold">Base Account Features</h2>
 <p className="text-gray-600">
@@ -12693,8 +13004,6 @@ Access the full list of Base Account provider methods and capabilities.
 
 **Learn more:** [Provider RPC Methods](/base-account/reference/core/provider-rpc-methods/request-overview) | [Capabilities](/base-account/reference/core/capabilities/overview)
 
-
-
 Privy:
 
 # Auth (Sign In With Base)
@@ -12702,7 +13011,8 @@ Privy:
 > Manage user authentication with Privy and Base Account
 
 export const GithubRepoCard = ({title, githubUrl}) => {
- return <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="mb-4 flex items-center rounded-lg bg-zinc-900 p-4 text-white transition-all hover:bg-zinc-800">
+return <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="mb-4 flex items-center rounded-lg bg-zinc-900 p-4 text-white transition-all hover:bg-zinc-800">
+
  <div className="flex w-full items-center gap-3">
  <svg height="24" width="24" className="flex-shrink-0 dark:fill-white" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg>
  <path fill="currentColor" fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
@@ -12756,11 +13066,11 @@ we are following the brand guidelines.
 #### Code```tsx
  "use client";
 
- import { useState } from "react";
- import { useBaseAccountSdk } from "@privy-io/react-auth";
- import { SignInWithBaseButton } from "@base-org/account-ui/react";
+import { useState } from "react";
+import { useBaseAccountSdk } from "@privy-io/react-auth";
+import { SignInWithBaseButton } from "@base-org/account-ui/react";
 
- export const Authentication = => {
+export const Authentication = => {
 const { baseAccountSdk } = useBaseAccountSdk;
 const [loading, setLoading] = useState(false);
 const [verificationResult, setVerificationResult] = useState<any>(null);
@@ -12768,9 +13078,9 @@ const [verificationResult, setVerificationResult] = useState<any>(null);
 const provider = baseAccountSdk?.getProvider;
 
 const handleSignInWithBase = async => {
- if (!provider) return;
+if (!provider) return;
 
- try {
+try {
 setLoading(true);
 
 // Get a fresh nonce from backend
@@ -12779,29 +13089,29 @@ const { nonce } = await nonceResponse.json;
 
 // Switch to Base Chain
 await provider.request({
- method: "wallet_switchEthereumChain",
- params: [{ chainId: "0x2105" }],
+method: "wallet_switchEthereumChain",
+params: [{ chainId: "0x2105" }],
 });
 
 // Connect and authenticate with SIWE
 const response = (await provider.request({
- method: "wallet_connect",
- params: [{
+method: "wallet_connect",
+params: [{
 version: "1",
 capabilities: {
- signInWithEthereum: {
- nonce,
- chainId: "0x2105",
- },
+signInWithEthereum: {
+nonce,
+chainId: "0x2105",
 },
- }],
+},
+}],
 })) as {
- accounts: {
+accounts: {
 address: string;
 capabilities: {
- signInWithEthereum: { signature: string; message: string };
+signInWithEthereum: { signature: string; message: string };
 };
- }[];
+}[];
 };
 
 const { address } = response.accounts[0];
@@ -12809,21 +13119,22 @@ const { message, signature } = response.accounts[0].capabilities.signInWithEther
 
 // Verify with backend
 const verifyResponse = await fetch("/api/auth/verify", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ address, message, signature }),
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ address, message, signature }),
 });
 
 const result = await verifyResponse.json;
 setVerificationResult(result);
- } catch (error) {
+} catch (error) {
 console.error("Sign in error:", error);
- } finally {
+} finally {
 setLoading(false);
- }
+}
 };
 
 return (
+
  <div>
 <SignInWithBaseButton onClick={handleSignInWithBase} />
 {verificationResult && (
@@ -12833,8 +13144,9 @@ return (
 );
  };
 
- export default Authentication;
-```</CodeGroup>
+export default Authentication;
+
+````</CodeGroup>
 
 ### Using the Authentication Component
 
@@ -12851,7 +13163,7 @@ return (
  <h1 className="text-4xl font-bold text-center mb-8">
 Base Account with Privy
  </h1>
- 
+
  <div className="flex flex-col items-center space-y-4">
 <Authentication />
  </div>
@@ -12906,7 +13218,7 @@ return (
 try {
  const nonce = crypto.randomBytes(16).toString('hex');
  nonceStore.add(nonce);
- 
+
  return NextResponse.json({ nonce });
 } catch (error) {
  return NextResponse.json(
@@ -12921,9 +13233,9 @@ try {
  import { base } from 'viem/chains';
  import { nonceStore } from '@/lib/nonce-store';
 
- const client = createPublicClient({ 
-chain: base, 
-transport: http 
+ const client = createPublicClient({
+chain: base,
+transport: http
  });
 
  export async function POST(request: NextRequest) {
@@ -12932,7 +13244,7 @@ try {
 
  // Extract nonce from SIWE message
  const nonce = message.match(/Nonce: (\w+)/)?.[1];
- 
+
  if (!nonce || !nonceStore.consume(nonce)) {
 return NextResponse.json(
  { error: 'Invalid or reused nonce' },
@@ -12941,9 +13253,9 @@ return NextResponse.json(
  }
 
  // Verify signature using viem
- const valid = await client.verifyMessage({ 
-address: address as `0x${string}`, 
-message, 
+ const valid = await client.verifyMessage({
+address: address as `0x${string}`,
+message,
 signature: signature as `0x${string}`});
 
  if (!valid) {
@@ -12953,8 +13265,8 @@ return NextResponse.json(
 );
  }
 
- return NextResponse.json({ 
-success: true, 
+ return NextResponse.json({
+success: true,
 address,
 timestamp: new Date.toISOString
  });
@@ -13079,7 +13391,7 @@ setSelectedWallet(allWallets[0]);
 
 const handleSignMessage = async => {
  if (!selectedWallet) return;
- 
+
  try {
 const message = "Hello, world!";
 const { signature } = await signMessage(
@@ -13095,12 +13407,12 @@ console.error("Failed to sign message:", error);
 
 const handleSendTransaction = async => {
  if (!selectedWallet) return;
- 
+
  try {
 const transaction = await sendTransaction(
- { 
-to: "0xE3070d3e4309afA3bC9a6b057685743CF42da77C", 
-value: 10000 
+ {
+to: "0xE3070d3e4309afA3bC9a6b057685743CF42da77C",
+value: 10000
  },
  { address: selectedWallet.address }
 );
@@ -13112,7 +13424,7 @@ console.error("Failed to send transaction:", error);
 
 const handleSignTypedData = async => {
  if (!selectedWallet) return;
- 
+
  try {
 const typedData = {
  domain: {
@@ -13179,21 +13491,21 @@ className="w-full p-2 border rounded-md"
 
 {/* Action Buttons */}
 <div className="grid grid-cols-3 gap-4">
- <button 
+ <button
 onClick={handleSignMessage}
 disabled={!selectedWallet}
 className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
  >
 Sign Message
  </button>
- <button 
+ <button
 onClick={handleSignTypedData}
 disabled={!selectedWallet}
 className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
  >
 Sign Typed Data
  </button>
- <button 
+ <button
 onClick={handleSendTransaction}
 disabled={!selectedWallet}
 className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-50"
@@ -13287,8 +13599,8 @@ if (!selectedWallet) return;
 
 try {
  const transaction = await sendTransaction(
-{ 
- to: "0xE3070d3e4309afA3bC9a6b057685743CF42da77C", 
+{
+ to: "0xE3070d3e4309afA3bC9a6b057685743CF42da77C",
  value: 10000 // Wei
 },
 { address: selectedWallet.address }
@@ -13451,14 +13763,14 @@ setIsLoading(false);
 return (
  <div className="space-y-4">
 <div className="flex gap-4">
- <button 
+ <button
 onClick={handleGetSubAccounts}
 disabled={!baseAccount || isLoading}
 className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
  >
 Get Sub Accounts
  </button>
- <button 
+ <button
 onClick={handleAddSubAccount}
 disabled={!baseAccount || isLoading}
 className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
@@ -13625,7 +13937,7 @@ export default function RootLayout({
  return (
 <html lang="en">
  <body>
-<CDPHooksProvider 
+<CDPHooksProvider
  config={{
 projectId: process.env.NEXT_PUBLIC_CDP_PROJECT_ID!,
  }}
@@ -14463,19 +14775,19 @@ Switch to Mainnet
 Now that you have RainbowKit configured with Base Account, you can:
 
 
- 
+
 - [Explore Base Account Features](https://docs.base.org/base-account)
 
 
- 
+
 - [Explore RainbowKit Docs](https://www.rainbowkit.com/docs/introduction)
 
 
- 
+
 - [Explore Wagmi Docs](https://wagmi.sh/react/api/hooks)
 
 
- 
+
 - Join the Base Community
 
 
@@ -14718,8 +15030,8 @@ subAccounts: {
  creation: 'on-connect', // Auto-create sub-account on connection
  defaultAccount: 'sub', // Use sub-account by default
  funding: 'spend-permissions', // Auto-handle funding
- toOwnerAccount: async => ({ 
-account: cryptoAccount?.account || null 
+ toOwnerAccount: async => ({
+account: cryptoAccount?.account || null
  })
 },
 paymasterUrls: {
@@ -14903,11 +15215,11 @@ subAccounts: {
 
 The SDK is fully typed for TypeScript development:
 #### Code```typescript
-import type { 
- CreateProviderOptions, 
+import type {
+ CreateProviderOptions,
  BaseAccountSDK,
  ProviderInterface,
- ToOwnerAccountFn 
+ ToOwnerAccountFn
 } from '@base-org/account';
 import { LocalAccount } from 'viem';
 
@@ -15119,12 +15431,12 @@ console.log(`Payment sent! Transaction ID: ${payment.id}`);
 // Access collected user information
 if (payment.payerInfoResponses) {
  console.log('Email:', payment.payerInfoResponses.email);
- 
+
  if (payment.payerInfoResponses.phoneNumber) {
 console.log('Phone:', payment.payerInfoResponses.phoneNumber.number);
 console.log('Country:', payment.payerInfoResponses.phoneNumber.country);
  }
- 
+
  if (payment.payerInfoResponses.physicalAddress) {
 const address = payment.payerInfoResponses.physicalAddress;
 console.log('Address:', address.address1);
@@ -15193,11 +15505,13 @@ to: "0xRecipient"
  // Payment failed
  console.error(`Payment failed: ${error.message}`);
 }
-```
+````
+
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -15214,49 +15528,49 @@ to: "0xRecipient"
 )}
 />
 
-
 # getPaymentStatus
 
 > Check the status of a payment transaction
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -15273,7 +15587,7 @@ Defined in the [Base Account SDK](https://github.com/base/account-sdk)
 <Info>
  The `getPaymentStatus`function allows you to check the status of a payment transaction after it has been submitted. Use this to track whether a payment has been completed, is still pending, or has failed.
 
- **Try it out:** Test the`getPaymentStatus`function interactively in our [Base Pay SDK Playground](https://base.github.io/account-sdk/pay-playground)
+**Try it out:** Test the`getPaymentStatus`function interactively in our [Base Pay SDK Playground](https://base.github.io/account-sdk/pay-playground)
 </Info>
 
 ## Parameters
@@ -15281,7 +15595,7 @@ Defined in the [Base Account SDK](https://github.com/base/account-sdk)
 <ParamField body="id" type="string" required>
  Transaction hash from the pay result that you want to check the status of.
 
- **Pattern:**`^0x[0-9a-fA-F]{64}$`</ParamField>
+**Pattern:**`^0x[0-9a-fA-F]{64}$`</ParamField>
 
 <ParamField body="testnet" type="boolean">
  Must match the testnet setting used in the original pay call. Default: false
@@ -15296,13 +15610,14 @@ Defined in the [Base Account SDK](https://github.com/base/account-sdk)
  <ResponseField name="status" type="string">
  Current status of the payment.
 
- **Possible values:**
+**Possible values:**
 
- *`"completed"`: Payment successfully processed and confirmed
- * `"pending"`: Payment still being processed by the network
- * `"failed"`: Payment failed to process (funds not transferred)
- * `"not_found"`: Transaction ID not found or invalid
- </ResponseField>
+\*`"completed"`: Payment successfully processed and confirmed
+
+- `"pending"`: Payment still being processed by the network
+- `"failed"`: Payment failed to process (funds not transferred)
+- `"not_found"`: Transaction ID not found or invalid
+  </ResponseField>
 
  <ResponseField name="id" type="string">
  Original transaction hash that was queried.
@@ -15335,37 +15650,38 @@ Defined in the [Base Account SDK](https://github.com/base/account-sdk)
 ```typescript
  import { getPaymentStatus } from '@base-org/account';
 
- const status = await getPaymentStatus({
+const status = await getPaymentStatus({
 id: "0xabcd1234...",
 testnet: false
- });
+});
 
- console.log("Payment status:", status.status);
-```#### Code```typescript
- import { pay, getPaymentStatus } from '@base-org/account';
+console.log("Payment status:", status.status);
+`#### Code`typescript
+import { pay, getPaymentStatus } from '@base-org/account';
 
- try {
+try {
 // Send payment
 const payment = await pay({
- amount: "10.50",
- to: "0x1234567890123456789012345678901234567890"
+amount: "10.50",
+to: "0x1234567890123456789012345678901234567890"
 });
- } catch (error) {
+} catch (error) {
 console.error(`Payment failed: ${error.message}`);
- }
+}
 
- try {
+try {
 // Check status
 const status = await getPaymentStatus({
- id: payment.id,
- testnet: false
+id: payment.id,
+testnet: false
 });
 
 console.log("Status:", status.status);
 catch (error) {
 console.error(`Get status Failed: ${error.message}`);
- }
-```</RequestExample>
+}
+
+````</RequestExample>
 
 <ResponseExample>
 #### Code```typescript
@@ -15448,22 +15764,25 @@ const sdk = createBaseAccountSDK({
 });
 
 const provider = sdk.getProvider;
-```
+````
+
 ## Returns
 
 An EIP-1193 compliant Ethereum provider that supports:
 
-* Standard RPC methods (`eth_requestAccounts`, `eth_sendTransaction`, `wallet_sendCalls` etc.)
-* Custom Wallet methods (`coinbase_fetchPermissions`)
-* Event subscription (`accountsChanged`, `chainChanged`, etc.)
+- Standard RPC methods (`eth_requestAccounts`, `eth_sendTransaction`, `wallet_sendCalls` etc.)
+- Custom Wallet methods (`coinbase_fetchPermissions`)
+- Event subscription (`accountsChanged`, `chainChanged`, etc.)
 
 For a full list of supported methods, see the [Provider Section](/base-account/reference/core/provider-rpc-methods/request-overview)
 
 ## Integration Examples
 
 ### With Viem
+
 #### Code
-```tsx
+
+````tsx
 import { createWalletClient, custom } from 'viem';
 import { base } from 'viem/chains';
 
@@ -15497,8 +15816,8 @@ const config = createConfig({
 ```### Direct Provider Usage
 #### Code```tsx
 // Request accounts
-const accounts = await provider.request({ 
- method: 'eth_requestAccounts' 
+const accounts = await provider.request({
+ method: 'eth_requestAccounts'
 });
 
 // Send transaction
@@ -15556,8 +15875,8 @@ provider.on('disconnect', (error) => {
 Handle provider errors gracefully:
 #### Code```tsx
 try {
- const accounts = await provider.request({ 
-method: 'eth_requestAccounts' 
+ const accounts = await provider.request({
+method: 'eth_requestAccounts'
  });
 } catch (error) {
  if (error.code === 4001) {
@@ -15724,7 +16043,7 @@ appChainIds: [8453], // Base mainnet
 
  // Generate new key pair for sub account
  const keyPair = await generateKeyPair;
- 
+
  // Create sub account with the generated keys
  const subAccount = await sdk.subAccount.create({
 type: 'create',
@@ -15733,7 +16052,7 @@ keys: [{
  publicKey: keyPair.publicKey,
 }],
  });
- 
+
  return { subAccount, keyPair };
 }
 ```## Error Handling
@@ -15756,24 +16075,25 @@ console.error('Browser does not support key generation');
 console.error('Key generation failed:', error);
  }
 }
-```
+````
+
 ## Security Considerations
 
-
 > Warning:
-**Private Key Security**
+> **Private Key Security**
 
- Never expose private keys in client-side code or transmit them over insecure channels. Store them securely using appropriate key management systems.
+Never expose private keys in client-side code or transmit them over insecure channels. Store them securely using appropriate key management systems.
 
-* Store private keys using secure storage mechanisms
-* Never log private keys to console in production
-* Consider using hardware security modules for production applications
-* Implement proper key rotation policies
+- Store private keys using secure storage mechanisms
+- Never log private keys to console in production
+- Consider using hardware security modules for production applications
+- Implement proper key rotation policies
 
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -15790,49 +16110,49 @@ console.error('Key generation failed:', error);
 )}
 />
 
-
 # getKeypair
 
 > Retrieve an existing P256 key pair from storage
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -15874,20 +16194,21 @@ This function takes no parameters.
 #### Code```typescript
  import { getKeypair } from '@base-org/account';
 
- const existingKeyPair = await getKeypair;
- if (existingKeyPair) {
+const existingKeyPair = await getKeypair;
+if (existingKeyPair) {
 console.log('Found existing key pair');
- } else {
+} else {
 console.log('No existing key pair found');
- }
-```#### Code```typescript
- import { getKeypair, generateKeyPair } from '@base-org/account';
+}
+`#### Code`typescript
+import { getKeypair, generateKeyPair } from '@base-org/account';
 
- let keyPair = await getKeypair;
- if (!keyPair) {
+let keyPair = await getKeypair;
+if (!keyPair) {
 keyPair = await generateKeyPair;
- }
-```</RequestExample>
+}
+
+````</RequestExample>
 
 <ResponseExample>
 #### Code```typescript
@@ -15914,7 +16235,7 @@ import { getKeypair, generateKeyPair } from '@base-org/account';
 async function getOrCreateKeyPair {
  // Try to get existing key pair first
  let keyPair = await getKeypair;
- 
+
  if (!keyPair) {
 // Generate new key pair if none exists
 console.log('No existing key pair, generating new one...');
@@ -15922,7 +16243,7 @@ keyPair = await generateKeyPair;
  } else {
 console.log('Using existing key pair');
  }
- 
+
  return keyPair;
 }
 ```## Storage Behavior
@@ -15962,29 +16283,29 @@ try {
 #### Code```typescript
 class KeyManager {
  private keyPair: P256KeyPair | null = null;
- 
+
  async initialize {
 try {
  // Load existing keys
  this.keyPair = await getKeypair;
- 
+
  if (this.keyPair) {
 console.log('Loaded existing key pair');
  } else {
 console.log('No stored keys found');
  }
- 
+
  return !!this.keyPair;
 } catch (error) {
  console.error('Failed to initialize key manager:', error);
  return false;
 }
  }
- 
+
  hasKeys: boolean {
 return !!this.keyPair;
  }
- 
+
  async ensureKeys: Promise<P256KeyPair> {
 if (!this.keyPair) {
  console.log('Generating new key pair...');
@@ -15992,28 +16313,29 @@ if (!this.keyPair) {
 }
 return this.keyPair;
  }
- 
+
  getPublicKey: string | null {
 return this.keyPair?.publicKey || null;
  }
 }
-```
+````
+
 ## Security Considerations
 
-
 > Warning:
-**Private Key Access**
+> **Private Key Access**
 
- The retrieved private keys should be handled with the same security considerations as newly generated keys.
+The retrieved private keys should be handled with the same security considerations as newly generated keys.
 
-* Always verify key integrity before use
-* Implement proper access controls
-* Consider re-generating keys periodically for enhanced security
+- Always verify key integrity before use
+- Implement proper access controls
+- Consider re-generating keys periodically for enhanced security
 
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -16030,49 +16352,49 @@ return this.keyPair?.publicKey || null;
 )}
 />
 
-
 # getCryptoKeyAccount
 
 > Retrieve the current crypto key account associated with the user's session
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -16131,21 +16453,22 @@ This function takes no parameters.
 ```typescript
  import { getCryptoKeyAccount } from '@base-org/account';
 
- const cryptoAccount = await getCryptoKeyAccount;
- if (cryptoAccount?.account) {
+const cryptoAccount = await getCryptoKeyAccount;
+if (cryptoAccount?.account) {
 console.log('Account address:', cryptoAccount.account.address);
- }
-```#### Code```typescript
- const cryptoAccount = await getCryptoKeyAccount;
+}
+`#### Code`typescript
+const cryptoAccount = await getCryptoKeyAccount;
 
- if (!cryptoAccount?.account) {
+if (!cryptoAccount?.account) {
 console.log('No account found - user needs to sign in');
 return null;
- }
+}
 
- const { account } = cryptoAccount;
- console.log('Account type:', account.type);
-```</RequestExample>
+const { account } = cryptoAccount;
+console.log('Account type:', account.type);
+
+````</RequestExample>
 
 <ResponseExample>
 #### Code```typescript
@@ -16189,26 +16512,26 @@ import { getCryptoKeyAccount } from '@base-org/account';
 
 class AccountManager {
  private currentAccount: WebAuthnAccount | LocalAccount | null = null;
- 
+
  async initialize {
 const cryptoAccount = await getCryptoKeyAccount;
 this.currentAccount = cryptoAccount?.account || null;
 
 return this.isConnected;
  }
- 
+
  isConnected: boolean {
 return !!this.currentAccount;
  }
- 
+
  getAddress: string | null {
 return this.currentAccount?.address || null;
  }
- 
+
  getAccountType: 'webauthn' | 'local' | null {
 return this.currentAccount?.type || null;
  }
- 
+
  async refresh {
 const cryptoAccount = await getCryptoKeyAccount;
 const newAccount = cryptoAccount?.account;
@@ -16233,10 +16556,10 @@ appName: 'My App',
 appLogoUrl: 'https://example.com/logo.png
 appChainIds: [8453], // Base mainnet
  });
- 
+
  // Check current account status
  const cryptoAccount = await getCryptoKeyAccount;
- 
+
  if (cryptoAccount?.account) {
 console.log('User is already connected:', cryptoAccount.account.address);
 
@@ -16264,30 +16587,32 @@ return {
 #### Code```typescript
 async function verifyAccountAccess {
  const cryptoAccount = await getCryptoKeyAccount;
- 
+
  if (!cryptoAccount?.account) {
 throw new Error('No account available');
  }
- 
+
  const { account } = cryptoAccount;
- 
+
  // Verify account has required properties
  if (!account.address || !account.publicKey) {
 throw new Error('Invalid account data');
  }
- 
+
  // Verify address format
  if (!/^0x[a-fA-F0-9]{40}$/.test(account.address)) {
 throw new Error('Invalid address format');
  }
- 
+
  return account;
 }
-```
+````
+
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -16304,10 +16629,6 @@ throw new Error('Invalid address format');
 )}
 />
 
-
-
-
-
 ## PROVIDER
 
 Methods:
@@ -16317,43 +16638,44 @@ Overview:
 # Overview
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -16368,46 +16690,50 @@ export const BaseBanner = ({content = null, id, dismissable = true}) => {
 The `request`method allows apps to make Ethereum RPC requests to the wallet.
 
 ## Specification
+
 #### Code```ts
+
 interface RequestArguments {
- readonly method: string;
- readonly params?: readonly unknown[] | object;
+readonly method: string;
+readonly params?: readonly unknown[] | object;
 }
 
 interface ProviderRpcError extends Error {
- message: string;
- code: number;
- data?: unknown;
+message: string;
+code: number;
+data?: unknown;
 }
 
 interface ProviderInterface {
- /**
- * @param {RequestArguments} args request arguments.
- * @returns A promise that resolves with the result.
- * @throws {ProviderRpcError} in case of error.
- */
- request(args: RequestArguments): Promise<unknown>;
- disconnect: Promise<void>;
- emit<K extends keyof ProviderEventMap>(event: K, ...args: [ProviderEventMap[K]]): boolean;
- on<K extends keyof ProviderEventMap>(event: K, listener: (_: ProviderEventMap[K]) => void): this;
-}
+/\*\*
+
+- @param {RequestArguments} args request arguments.
+- @returns A promise that resolves with the result.
+- @throws {ProviderRpcError} in case of error.
+  \*/
+  request(args: RequestArguments): Promise<unknown>;
+  disconnect: Promise<void>;
+  emit<K extends keyof ProviderEventMap>(event: K, ...args: [ProviderEventMap[K]]): boolean;
+  on<K extends keyof ProviderEventMap>(event: K, listener: (\_: ProviderEventMap[K]) => void): this;
+  }
 
 type CreateProviderOptions = Partial<AppMetadata> & {
- preference?: Preference;
- subAccounts?: SubAccountOptions;
- paymasterUrls?: Record<number, string>;
+preference?: Preference;
+subAccounts?: SubAccountOptions;
+paymasterUrls?: Record<number, string>;
 };
 
 interface BaseAccountSDK {
- getProvider: ProviderInterface;
- subAccount: {
+getProvider: ProviderInterface;
+subAccount: {
 create(account: AddSubAccountAccount): Promise<SubAccount>;
 get: Promise<SubAccount | null>;
 addOwner(params: { address?: `0x${string}`; publicKey?: `0x${string}`; chainId: number }): Promise<string>;
 setToOwnerAccount(toSubAccountOwner: ToOwnerAccountFn): void;
- };
+};
 }
-```### Example
+
+````### Example
 
 <CodeGroup>
 #### Code```ts
@@ -16430,7 +16756,8 @@ appChainIds: [baseSepoliaChainId]
  });
 
  const provider = sdk.getProvider;
-```
+````
+
 </CodeGroup>
 
 ## Request Handling
@@ -16445,62 +16772,63 @@ Requests are handled in one of three ways
 
 The following RPC requests are sent to the Wallet application:
 
-* [`personal_sign`](/base-account/reference/core/provider-rpc-methods/personal_sign)
-* [`eth_sendTransaction`](/base-account/reference/core/provider-rpc-methods/eth_sendTransaction)
-* [`eth_sendRawTransaction`](/base-account/reference/core/provider-rpc-methods/eth_sendRawTransaction)
-* [`eth_signTypedData_v4`](/base-account/reference/core/provider-rpc-methods/eth_signTypedData_v4)
-* [`wallet_addEthereumChain`](/base-account/reference/core/provider-rpc-methods/wallet_addEthereumChain)
-* [`wallet_watchAsset`](/base-account/reference/core/provider-rpc-methods/wallet_watchAsset)
-* [`wallet_sendCalls`](/base-account/reference/core/provider-rpc-methods/wallet_sendCalls)
-* [`wallet_getCallsStatus`](/base-account/reference/core/provider-rpc-methods/wallet_getCallsStatus)
-* [`wallet_connect`](/base-account/reference/core/provider-rpc-methods/wallet_connect)
-* [`wallet_getCapabilities`](/base-account/reference/core/provider-rpc-methods/wallet_getCapabilities)
-* [`wallet_switchEthereumChain`](/base-account/reference/core/provider-rpc-methods/wallet_switchEthereumChain)
-* [`wallet_addSubAccount`](/base-account/reference/core/provider-rpc-methods/wallet_addSubAccount)
-* [`wallet_getSubAccounts`](/base-account/reference/core/provider-rpc-methods/wallet_getSubAccounts)
-* [`coinbase_fetchPermissions`](/base-account/reference/core/provider-rpc-methods/coinbase_fetchPermissions)
-* [`coinbase_fetchPermission`](/base-account/reference/core/provider-rpc-methods/coinbase_fetchPermission)
+- [`personal_sign`](/base-account/reference/core/provider-rpc-methods/personal_sign)
+- [`eth_sendTransaction`](/base-account/reference/core/provider-rpc-methods/eth_sendTransaction)
+- [`eth_sendRawTransaction`](/base-account/reference/core/provider-rpc-methods/eth_sendRawTransaction)
+- [`eth_signTypedData_v4`](/base-account/reference/core/provider-rpc-methods/eth_signTypedData_v4)
+- [`wallet_addEthereumChain`](/base-account/reference/core/provider-rpc-methods/wallet_addEthereumChain)
+- [`wallet_watchAsset`](/base-account/reference/core/provider-rpc-methods/wallet_watchAsset)
+- [`wallet_sendCalls`](/base-account/reference/core/provider-rpc-methods/wallet_sendCalls)
+- [`wallet_getCallsStatus`](/base-account/reference/core/provider-rpc-methods/wallet_getCallsStatus)
+- [`wallet_connect`](/base-account/reference/core/provider-rpc-methods/wallet_connect)
+- [`wallet_getCapabilities`](/base-account/reference/core/provider-rpc-methods/wallet_getCapabilities)
+- [`wallet_switchEthereumChain`](/base-account/reference/core/provider-rpc-methods/wallet_switchEthereumChain)
+- [`wallet_addSubAccount`](/base-account/reference/core/provider-rpc-methods/wallet_addSubAccount)
+- [`wallet_getSubAccounts`](/base-account/reference/core/provider-rpc-methods/wallet_getSubAccounts)
+- [`coinbase_fetchPermissions`](/base-account/reference/core/provider-rpc-methods/coinbase_fetchPermissions)
+- [`coinbase_fetchPermission`](/base-account/reference/core/provider-rpc-methods/coinbase_fetchPermission)
 
 ### 2. Handled Locally by the SDK
 
 The following requests are handled locally by the SDK, with no external calls:
 
-* [`eth_requestAccounts`](/base-account/reference/core/provider-rpc-methods/eth_requestAccounts)
-* [`eth_accounts`](/base-account/reference/core/provider-rpc-methods/eth_accounts)
-* [`eth_coinbase`](/base-account/reference/core/provider-rpc-methods/eth_coinbase)
-* [`eth_chainId`](/base-account/reference/core/provider-rpc-methods/eth_chainId)
-* [`web3_clientVersion`](/base-account/reference/core/provider-rpc-methods/web3_clientVersion)
+- [`eth_requestAccounts`](/base-account/reference/core/provider-rpc-methods/eth_requestAccounts)
+- [`eth_accounts`](/base-account/reference/core/provider-rpc-methods/eth_accounts)
+- [`eth_coinbase`](/base-account/reference/core/provider-rpc-methods/eth_coinbase)
+- [`eth_chainId`](/base-account/reference/core/provider-rpc-methods/eth_chainId)
+- [`web3_clientVersion`](/base-account/reference/core/provider-rpc-methods/web3_clientVersion)
 
 ### 3. Passed to RPC Provider
 
 Standard Ethereum RPC methods are passed to the configured RPC provider for the current chain, including:
 
-* [`eth_getBalance`](/base-account/reference/core/provider-rpc-methods/eth_getBalance)
-* [`eth_blockNumber`](/base-account/reference/core/provider-rpc-methods/eth_blockNumber)
-* [`eth_gasPrice`](/base-account/reference/core/provider-rpc-methods/eth_gasPrice)
-* [`eth_estimateGas`](/base-account/reference/core/provider-rpc-methods/eth_estimateGas)
-* [`eth_feeHistory`](/base-account/reference/core/provider-rpc-methods/eth_feeHistory)
-* [`eth_getBlockByNumber`](/base-account/reference/core/provider-rpc-methods/eth_getBlockByNumber)
-* [`eth_getBlockByHash`](/base-account/reference/core/provider-rpc-methods/eth_getBlockByHash)
-* [`eth_getTransactionByHash`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByHash)
-* [`eth_getTransactionReceipt`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionReceipt)
-* [`eth_getTransactionCount`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionCount)
-* [`eth_getTransactionByBlockHashAndIndex`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByBlockHashAndIndex)
-* [`eth_getTransactionByBlockNumberAndIndex`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByBlockNumberAndIndex)
-* [`eth_getBlockTransactionCountByHash`](/base-account/reference/core/provider-rpc-methods/eth_getBlockTransactionCountByHash)
-* [`eth_getBlockTransactionCountByNumber`](/base-account/reference/core/provider-rpc-methods/eth_getBlockTransactionCountByNumber)
-* [`eth_getCode`](/base-account/reference/core/provider-rpc-methods/eth_getCode)
-* [`eth_getStorageAt`](/base-account/reference/core/provider-rpc-methods/eth_getStorageAt)
-* [`eth_getLogs`](/base-account/reference/core/provider-rpc-methods/eth_getLogs)
-* [`eth_getProof`](/base-account/reference/core/provider-rpc-methods/eth_getProof)
-* [`eth_getUncleCountByBlockHash`](/base-account/reference/core/provider-rpc-methods/eth_getUncleCountByBlockHash)
-* [`eth_getUncleCountByBlockNumber`](/base-account/reference/core/provider-rpc-methods/eth_getUncleCountByBlockNumber)
-* [`eth_sendRawTransaction`](/base-account/reference/core/provider-rpc-methods/eth_sendRawTransaction)
+- [`eth_getBalance`](/base-account/reference/core/provider-rpc-methods/eth_getBalance)
+- [`eth_blockNumber`](/base-account/reference/core/provider-rpc-methods/eth_blockNumber)
+- [`eth_gasPrice`](/base-account/reference/core/provider-rpc-methods/eth_gasPrice)
+- [`eth_estimateGas`](/base-account/reference/core/provider-rpc-methods/eth_estimateGas)
+- [`eth_feeHistory`](/base-account/reference/core/provider-rpc-methods/eth_feeHistory)
+- [`eth_getBlockByNumber`](/base-account/reference/core/provider-rpc-methods/eth_getBlockByNumber)
+- [`eth_getBlockByHash`](/base-account/reference/core/provider-rpc-methods/eth_getBlockByHash)
+- [`eth_getTransactionByHash`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByHash)
+- [`eth_getTransactionReceipt`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionReceipt)
+- [`eth_getTransactionCount`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionCount)
+- [`eth_getTransactionByBlockHashAndIndex`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByBlockHashAndIndex)
+- [`eth_getTransactionByBlockNumberAndIndex`](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByBlockNumberAndIndex)
+- [`eth_getBlockTransactionCountByHash`](/base-account/reference/core/provider-rpc-methods/eth_getBlockTransactionCountByHash)
+- [`eth_getBlockTransactionCountByNumber`](/base-account/reference/core/provider-rpc-methods/eth_getBlockTransactionCountByNumber)
+- [`eth_getCode`](/base-account/reference/core/provider-rpc-methods/eth_getCode)
+- [`eth_getStorageAt`](/base-account/reference/core/provider-rpc-methods/eth_getStorageAt)
+- [`eth_getLogs`](/base-account/reference/core/provider-rpc-methods/eth_getLogs)
+- [`eth_getProof`](/base-account/reference/core/provider-rpc-methods/eth_getProof)
+- [`eth_getUncleCountByBlockHash`](/base-account/reference/core/provider-rpc-methods/eth_getUncleCountByBlockHash)
+- [`eth_getUncleCountByBlockNumber`](/base-account/reference/core/provider-rpc-methods/eth_getUncleCountByBlockNumber)
+- [`eth_sendRawTransaction`](/base-account/reference/core/provider-rpc-methods/eth_sendRawTransaction)
 
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -16517,25 +16845,11 @@ Standard Ethereum RPC methods are passed to the configured RPC provider for the 
 )}
 />
 
-
-
-
-
-
-
 #### Ek Varyant 2
-
-
 
 > An overview of this course.
 
-
-
-
-
 #### Ek Varyant 3
-
-
 
 Welcome! The course you are about to begin will rapidly introduce you to frontend web development for onchain apps and enable you to write websites that can call your smart contract functions in a similar way to how traditional sites interact with APIs.
 
@@ -16543,87 +16857,87 @@ Welcome! The course you are about to begin will rapidly introduce you to fronten
 
 Before these lessons, you should:
 
-* Be comfortable with traditional frontend development using React, ideally with NextJS
-* Possess a general understanding of the EVM and smart contracts
+- Be comfortable with traditional frontend development using React, ideally with NextJS
+- Possess a general understanding of the EVM and smart contracts
 
-***
+---
 
 ## Objectives
 
 By the end of this course, you should be able to:
 
-* **Frontend Setup**
- * Identify the role of a wallet aggregator in an onchain app
- * Debate the pros and cons of using a template
- * Scaffold a new onchain app with RainbowKit
- * Add a wallet connection to a standard template app
-* **Connecting to the Blockchain**
- * Compare and contrast public providers vs. vendor providers vs. wallet providers
- * Select the appropriate provider for several use cases
- * Set up a provider in wagmi and use it to connect a wallet
- * Protect API keys that will be exposed to the front end
-* **Reading and Displaying Data**
- * Implement the `useAccount`hook to show the user's address, connection state, network, and balance
- * Implement an`isMounted`hook to prevent hydration errors
- * Implement wagmi's`useReadContract`hook to fetch data from a smart contract
- * Convert data fetched from a smart contract to information displayed to the user
- * Identify the caveats of reading data from automatically-generated getters
- * Enable the`watch`feature of`useReadContract`to automatically fetch updates from the blockchain
- * Describe the costs of using the`watch`feature, and methods to reduce those costs
- * Configure arguments to be passed with a call to a`pure`or`view`smart contract function
- * Call an instance of`useReadContract`on demand
- * Utilize`isLoading`and`isFetching`to improve user experience
-* **Writing to Contracts**
- * Implement wagmi's`useWriteContract`hook to send transactions to a smart contract
- * Configure the options in`useWriteContract`* Display the execution, success, or failure of a function with button state changes, and data display
- * Implement Wagmi's`usePrepareContractWrite`and`useWriteContract`to send transactions to a smart contract
- * Configure the options in`useSimulateContract`and`useWriteContract`* Call a smart contract function on-demand using the write function from`useWriteContract`, with arguments and a value
+- **Frontend Setup**
+- Identify the role of a wallet aggregator in an onchain app
+- Debate the pros and cons of using a template
+- Scaffold a new onchain app with RainbowKit
+- Add a wallet connection to a standard template app
+- **Connecting to the Blockchain**
+- Compare and contrast public providers vs. vendor providers vs. wallet providers
+- Select the appropriate provider for several use cases
+- Set up a provider in wagmi and use it to connect a wallet
+- Protect API keys that will be exposed to the front end
+- **Reading and Displaying Data**
+- Implement the `useAccount`hook to show the user's address, connection state, network, and balance
+- Implement an`isMounted`hook to prevent hydration errors
+- Implement wagmi's`useReadContract`hook to fetch data from a smart contract
+- Convert data fetched from a smart contract to information displayed to the user
+- Identify the caveats of reading data from automatically-generated getters
+- Enable the`watch`feature of`useReadContract`to automatically fetch updates from the blockchain
+- Describe the costs of using the`watch`feature, and methods to reduce those costs
+- Configure arguments to be passed with a call to a`pure`or`view`smart contract function
+- Call an instance of`useReadContract`on demand
+- Utilize`isLoading`and`isFetching`to improve user experience
+- **Writing to Contracts**
+- Implement wagmi's`useWriteContract`hook to send transactions to a smart contract
+- Configure the options in`useWriteContract`\* Display the execution, success, or failure of a function with button state changes, and data display
+- Implement Wagmi's`usePrepareContractWrite`and`useWriteContract`to send transactions to a smart contract
+- Configure the options in`useSimulateContract`and`useWriteContract`\* Call a smart contract function on-demand using the write function from`useWriteContract`, with arguments and a value
 
-***
-
+---
 
 # wallet_connect
 
 > Connect wallet and request account access
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -16793,33 +17107,32 @@ Custom Coinbase Wallet method for establishing connection
 
 ## Error Handling
 
-| Code | Message | Description |
+| Code   | Message                        | Description                                               |
 | ------ | ------------------------------ | --------------------------------------------------------- |
-| 4001 | User rejected the request | User denied the connection request |
-| 4100 | Requested method not supported | The method is not supported by the wallet |
-| 4200 | Wallet not available | The wallet is not installed or available |
-| -32602 | Invalid params | Invalid nonce or chainId in signInWithEthereum capability |
-
+| 4001   | User rejected the request      | User denied the connection request                        |
+| 4100   | Requested method not supported | The method is not supported by the wallet                 |
+| 4200   | Wallet not available           | The wallet is not installed or available                  |
+| -32602 | Invalid params                 | Invalid nonce or chainId in signInWithEthereum capability |
 
 > Warning:
-This is a Coinbase Wallet-specific method and may not be available in other wallets.
+> This is a Coinbase Wallet-specific method and may not be available in other wallets.
 
 <Info>
  After successful connection, the wallet will emit connection events and provide access to account information.
 </Info>
 
-
 > Note:
-When using the`signInWithEthereum`capability, always generate a fresh, unique nonce for each authentication attempt to prevent replay attacks. The signature can be verified on your backend using libraries like viem.
+> When using the`signInWithEthereum`capability, always generate a fresh, unique nonce for each authentication attempt to prevent replay attacks. The signature can be verified on your backend using libraries like viem.
 
 ## Usage with Capabilities
 
 You can use the`wallet_connect` with the [`signInWithEthereum`](/base-account/reference/core/capabilities/signInWithEthereum.mdx) capability to authenticate the user.
 
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -16835,8 +17148,6 @@ You can use the`wallet_connect` with the [`signInWithEthereum`](/base-account/re
  </div>
 )}
 />
-
-
 
 # wallet_sendCalls
 
@@ -16946,67 +17257,67 @@ Defined in [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
  Human-readable error message describing what went wrong.
 </ResponseField>
 
-| Code | Message | Description |
+| Code   | Message                                                                  | Description                 |
 | ------ | ------------------------------------------------------------------------ | --------------------------- |
-| -32602 | The wallet cannot parse the request | Invalid request format |
-| -32000 | Version not supported | API version not supported |
-| 4001 | User rejected the request | User denied the transaction |
-| 4100 | The requested account and/or method has not been authorized by the user | Authorization required |
-| 5700 | The wallet does not support a capability that was not marked as optional | Missing capability |
-| 5710 | EIP-7702 not supported on the specified chain ID | Chain not supported |
-| 5720 | There is already a batch submitted with the specified batch ID | Duplicate batch ID |
-| 5740 | The batch is too large for the wallet to process | Batch size limit exceeded |
-| 5750 | EIP-7702 upgrade rejected for this chain and account | Upgrade rejected |
-
+| -32602 | The wallet cannot parse the request                                      | Invalid request format      |
+| -32000 | Version not supported                                                    | API version not supported   |
+| 4001   | User rejected the request                                                | User denied the transaction |
+| 4100   | The requested account and/or method has not been authorized by the user  | Authorization required      |
+| 5700   | The wallet does not support a capability that was not marked as optional | Missing capability          |
+| 5710   | EIP-7702 not supported on the specified chain ID                         | Chain not supported         |
+| 5720   | There is already a batch submitted with the specified batch ID           | Duplicate batch ID          |
+| 5740   | The batch is too large for the wallet to process                         | Batch size limit exceeded   |
+| 5750   | EIP-7702 upgrade rejected for this chain and account                     | Upgrade rejected            |
 
 > Warning:
-Ensure that the`chainId`matches the currently selected network in the wallet to avoid transaction failures.
+> Ensure that the`chainId`matches the currently selected network in the wallet to avoid transaction failures.
 
 > Note:
-When`atomicRequired`is set to`false`, consider the implications of partial execution if some calls fail while others succeed.
+> When`atomicRequired`is set to`false`, consider the implications of partial execution if some calls fail while others succeed.
 
 # wallet_getCallsStatus
 
 > Get the status of a call batch sent via wallet_sendCalls
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -17051,12 +17362,12 @@ Defined in [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
  <ResponseField name="status" type="number">
  Status code indicating the current state of the batch:
 
- * **1xx (Pending)**: 100 = Batch received but not completed onchain
- * **2xx (Confirmed)**: 200 = Batch included onchain without reverts
- * **4xx (Offchain failures)**: 400 = Batch failed and wallet will not retry
- * **5xx (Chain failures)**: 500 = Batch reverted completely
- * **6xx (Partial failures)**: 600 = Batch reverted partially
- </ResponseField>
+- **1xx (Pending)**: 100 = Batch received but not completed onchain
+- **2xx (Confirmed)**: 200 = Batch included onchain without reverts
+- **4xx (Offchain failures)**: 400 = Batch failed and wallet will not retry
+- **5xx (Chain failures)**: 500 = Batch reverted completely
+- **6xx (Partial failures)**: 600 = Batch reverted partially
+  </ResponseField>
 
  <ResponseField name="atomic" type="boolean">
  Indicates whether the wallet executed calls atomically. If`true`, all calls were executed in a single transaction. If `false`, calls were executed in multiple transactions.
@@ -17065,8 +17376,8 @@ Defined in [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
  <ResponseField name="receipts" type="Receipt[]">
  Transaction receipts for the call batch. Structure depends on the `atomic`field:
 
- * If`atomic`is`true`: Single receipt or array of receipts for the batch transaction
- * If `atomic`is`false`: Array of receipts for all transactions containing batch calls
+- If`atomic`is`true`: Single receipt or array of receipts for the batch transaction
+- If `atomic`is`false`: Array of receipts for all transactions containing batch calls
 
  <Expandable title="Receipt properties">
  <ResponseField name="logs" type="Log[]">
@@ -17114,20 +17425,21 @@ Defined in [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
 ```#### Code```typescript
  import { createBaseAccountSDK } from '@base-org/account';
 
- const provider = createBaseAccountSDK.getProvider;
+const provider = createBaseAccountSDK.getProvider;
 
- // Get status of a batch sent via wallet_sendCalls
- const callsId = "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"; 
+// Get status of a batch sent via wallet_sendCalls
+const callsId = "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331";
 
- const status = await provider.request({
+const status = await provider.request({
 method: 'wallet_getCallsStatus',
 params: [callsId]
- });
+});
 
- console.log('Batch status:', status.status);
- console.log('Atomic execution:', status.atomic);
- console.log('Receipts:', status.receipts);
-```</RequestExample>
+console.log('Batch status:', status.status);
+console.log('Atomic execution:', status.atomic);
+console.log('Receipts:', status.receipts);
+
+````</RequestExample>
 
 <ResponseExample>
 #### JSON```json
@@ -17238,7 +17550,7 @@ const checkStatus = async => {
 method: 'wallet_getCallsStatus',
 params: [callsId]
  });
- 
+
  if (status.status === 200) {
 console.log('Batch completed successfully!');
 console.log('Transaction receipts:', status.receipts);
@@ -17542,7 +17854,7 @@ params: [userAddress]
  });
 
  const baseCapabilities = capabilities["0x2105"] || {};
- 
+
  const txParams: any = {
 version: '1.0',
 chainId: '0x2105',
@@ -17628,8 +17940,8 @@ const { accounts } = await provider.request({
  params: [{
 version: '1',
 capabilities: {
- signInWithEthereum: { 
-nonce: generateNonce, 
+ signInWithEthereum: {
+nonce: generateNonce,
 chainId: '0x2105'
  }
 }
@@ -17863,19 +18175,19 @@ Experimental RPC method for fetching sub accounts
  ]
 }
  }
-```
+````
+
 </ResponseExample>
 
 ## Error Handling
 
-| Code | Message | Description |
+| Code   | Message                        | Description                               |
 | ------ | ------------------------------ | ----------------------------------------- |
-| 4100 | Requested method not supported | The method is not supported by the wallet |
-| -32602 | Invalid params | Invalid account configuration |
-
+| 4100   | Requested method not supported | The method is not supported by the wallet |
+| -32602 | Invalid params                 | Invalid account configuration             |
 
 > Warning:
-This is an experimental feature and the API may change in future versions.
+> This is an experimental feature and the API may change in future versions.
 
 ## CAPABILITIES
 
@@ -17884,43 +18196,44 @@ This is an experimental feature and the API may change in future versions.
 > Understand how to use Base Account capabilities with wallet_connect and wallet_sendCalls
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -17939,16 +18252,19 @@ Base Account supports various capabilities that extend functionality beyond stan
 Capabilities are discovered using `wallet_getCapabilities`and utilized through`wallet_connect`and`wallet_sendCalls`methods. Each capability is chain-specific and may have different availability depending on the account type.
 
 ### Discovery Pattern
+
 #### Code```typescript
+
 // Check what capabilities are available
 const capabilities = await provider.request({
- method: 'wallet_getCapabilities',
- params: [userAddress]
+method: 'wallet_getCapabilities',
+params: [userAddress]
 });
 
 // Check specific capability for Base mainnet
 const baseCapabilities = capabilities["0x2105"]; // Base mainnet chain ID
-```## Available Capabilities
+
+````## Available Capabilities
 
 | Capability | Method | Description |
 | ---------------------------------------------------------------------------------- | ------------------ | ------------------------------------------ |
@@ -17982,8 +18298,8 @@ const { accounts } = await provider.request({
  params: [{
 version: '1',
 capabilities: {
- signInWithEthereum: { 
-nonce, 
+ signInWithEthereum: {
+nonce,
 chainId: '0x2105' // Base Mainnet
  }
 }
@@ -18097,26 +18413,28 @@ hasPaymaster: !!baseCapabilities.paymasterService?.supported,
 canAuthenticate: true // signInWithEthereum is always available with wallet_connect
  };
 }
-```
+````
+
 ## Capability-Specific Guides
 
 For detailed information on each capability:
 
-* [signInWithEthereum](/base-account/reference/core/capabilities/signInWithEthereum) - SIWE authentication
-* [auxiliaryFunds](/base-account/reference/core/capabilities/auxiliaryFunds) - MagicSpend integration
-* [atomic](/base-account/reference/core/capabilities/atomic) - Atomic batch transactions
-* [paymasterService](/base-account/reference/core/capabilities/paymasterService) - Gasless transactions
+- [signInWithEthereum](/base-account/reference/core/capabilities/signInWithEthereum) - SIWE authentication
+- [auxiliaryFunds](/base-account/reference/core/capabilities/auxiliaryFunds) - MagicSpend integration
+- [atomic](/base-account/reference/core/capabilities/atomic) - Atomic batch transactions
+- [paymasterService](/base-account/reference/core/capabilities/paymasterService) - Gasless transactions
 
 ## Related Methods
 
-* [`wallet_getCapabilities`](/base-account/reference/core/provider-rpc-methods/wallet_getCapabilities) - Discover available capabilities
-* [`wallet_connect`](/base-account/reference/core/provider-rpc-methods/wallet_connect) - Connect with capabilities
-* [`wallet_sendCalls`](/base-account/reference/core/provider-rpc-methods/wallet_sendCalls) - Execute transactions with capabilities
+- [`wallet_getCapabilities`](/base-account/reference/core/provider-rpc-methods/wallet_getCapabilities) - Discover available capabilities
+- [`wallet_connect`](/base-account/reference/core/provider-rpc-methods/wallet_connect) - Connect with capabilities
+- [`wallet_sendCalls`](/base-account/reference/core/provider-rpc-methods/wallet_sendCalls) - Execute transactions with capabilities
 
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -18133,49 +18451,49 @@ For detailed information on each capability:
 )}
 />
 
-
 # signInWithEthereum
 
 > Enable secure authentication using the Sign-In With Ethereum (SIWE) standard
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -18219,7 +18537,7 @@ Defined in [EIP-4361](https://eips.ethereum.org/EIPS/eip-4361)
  </Expandable>
 </ResponseField>
 
-## Usage with wallet\_connect
+## Usage with wallet_connect
 
 The`signInWithEthereum`capability must be used with the`wallet_connect`method:
 
@@ -18227,24 +18545,24 @@ The`signInWithEthereum`capability must be used with the`wallet_connect`method:
 #### Code```typescript
  import { createBaseAccountSDK } from '@base-org/account';
 
- const provider = createBaseAccountSDK.getProvider;
+const provider = createBaseAccountSDK.getProvider;
 
- // Generate a unique nonce
- const nonce = window.crypto.randomUUID.replace(/-/g, '');
+// Generate a unique nonce
+const nonce = window.crypto.randomUUID.replace(/-/g, '');
 
- try {
+try {
 // Connect with signInWithEthereum capability
 const { accounts } = await provider.request({
- method: 'wallet_connect',
- params: [{
+method: 'wallet_connect',
+params: [{
 version: '1',
 capabilities: {
- signInWithEthereum: { 
-nonce, 
+signInWithEthereum: {
+nonce,
 chainId: '0x2105' // Base Mainnet
- }
 }
- }]
+}
+}]
 });
 
 // Extract authentication data
@@ -18254,50 +18572,51 @@ const { message, signature } = accounts[0].capabilities.signInWithEthereum;
 console.log('User address:', address);
 console.log('Signed message:', message);
 console.log('Signature:', signature);
- } catch (error) {
+} catch (error) {
 console.error('Authentication failed:', error);
- }
-```#### Code```typescript
- import { createPublicClient, http } from 'viem';
- import { base } from 'viem/chains';
+}
+`#### Code`typescript
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
 
- const client = createPublicClient({ 
-chain: base, 
-transport: http 
- });
+const client = createPublicClient({
+chain: base,
+transport: http
+});
 
- export async function verifyAuthentication(req, res) {
+export async function verifyAuthentication(req, res) {
 const { address, message, signature } = req.body;
 
 try {
- // Verify the signature
- const isValid = await client.verifyMessage({ 
-address, 
-message, 
-signature 
- });
- 
- if (!isValid) {
-return res.status(401).json({ 
- error: 'Invalid signature' 
+// Verify the signature
+const isValid = await client.verifyMessage({
+address,
+message,
+signature
 });
- }
- 
- // Create session or JWT token
- const token = generateAuthToken(address);
- 
- res.json({ 
-success: true, 
-token 
- });
-} catch (error) {
- console.error('Verification failed:', error);
- res.status(500).json({ 
-error: 'Verification failed' 
- });
+
+if (!isValid) {
+return res.status(401).json({
+error: 'Invalid signature'
+});
 }
- }
-```</RequestExample>
+
+// Create session or JWT token
+const token = generateAuthToken(address);
+
+res.json({
+success: true,
+token
+});
+} catch (error) {
+console.error('Verification failed:', error);
+res.status(500).json({
+error: 'Verification failed'
+});
+}
+}
+
+````</RequestExample>
 
 <ResponseExample>
 #### JSON```json
@@ -18336,24 +18655,24 @@ const usedNonces = new Set;
 
 export async function verifyAuth(req, res) {
  const { address, message, signature } = req.body;
- 
+
  // Extract nonce from message
  const nonce = extractNonceFromMessage(message);
- 
+
  // Check if nonce has been used
  if (usedNonces.has(nonce)) {
-return res.status(400).json({ 
- error: 'Nonce already used' 
+return res.status(400).json({
+ error: 'Nonce already used'
 });
  }
- 
+
  // Verify signature
- const isValid = await client.verifyMessage({ 
-address, 
-message, 
-signature 
+ const isValid = await client.verifyMessage({
+address,
+message,
+signature
  });
- 
+
  if (isValid) {
 usedNonces.add(nonce);
 // Create session...
@@ -18384,28 +18703,28 @@ app.get('/auth/nonce', (_, res) => {
 // Verify authentication
 app.post('/auth/verify', async (req, res) => {
  const { address, message, signature } = req.body;
- 
+
  // Extract and validate nonce
  const nonce = message.match(/Nonce: (\w+)/)?.[1];
  if (!nonce || !nonces.delete(nonce)) {
-return res.status(400).json({ 
- error: 'Invalid or reused nonce' 
+return res.status(400).json({
+ error: 'Invalid or reused nonce'
 });
  }
- 
+
  // Verify signature
- const valid = await client.verifyMessage({ 
-address, 
-message, 
-signature 
+ const valid = await client.verifyMessage({
+address,
+message,
+signature
  });
- 
+
  if (!valid) {
-return res.status(401).json({ 
- error: 'Invalid signature' 
+return res.status(401).json({
+ error: 'Invalid signature'
 });
  }
- 
+
  // Success - create session
  res.json({ success: true });
 });
@@ -18424,34 +18743,34 @@ setLoading(true);
 
 try {
  const provider = createBaseAccountSDK.getProvider;
- 
+
  // Generate nonce
  const nonce = window.crypto.randomUUID.replace(/-/g, '');
- 
+
  // Authenticate with Base Account
  const { accounts } = await provider.request({
 method: 'wallet_connect',
 params: [{
  version: '1',
  capabilities: {
-signInWithEthereum: { 
- nonce, 
- chainId: '0x2105' 
+signInWithEthereum: {
+ nonce,
+ chainId: '0x2105'
 }
  }
 }]
  });
- 
+
  const { address } = accounts[0];
  const { message, signature } = accounts[0].capabilities.signInWithEthereum;
- 
+
  // Verify on backend
  const response = await fetch('/auth/verify', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({ address, message, signature })
  });
- 
+
  if (response.ok) {
 setUser({ address });
  }
@@ -18467,7 +18786,7 @@ setUser({ address });
  {user ? (
 <div>Welcome, {user.address}</div>
  ) : (
-<SignInWithBaseButton 
+<SignInWithBaseButton
  onClick={handleSignIn}
  disabled={loading}
 />
@@ -18777,7 +19096,7 @@ if (error.code === 4100) {
 
 The atomic capability works with EIP-7702 to enable EOA (Externally Owned Accounts) to upgrade to smart accounts that support atomic transaction execution:
 #### Code```typescript
-// Check if wallet can upgrade to atomic execution 
+// Check if wallet can upgrade to atomic execution
 const capabilities = await provider.request({
  method: 'wallet_getCapabilities',
  params: [eoaAddress]
@@ -19011,10 +19330,10 @@ value: "0x0",
 data: purchaseItem1CallData,
 flowControl: { onFailure: "continue" }
  },
- // Secondary item purchase 
+ // Secondary item purchase
  {
 to: marketplaceContract,
-value: "0x0", 
+value: "0x0",
 data: purchaseItem2CallData,
 flowControl: { onFailure: "continue" }
  },
@@ -19037,7 +19356,7 @@ const swapWithFallback = await provider.request({
  method: 'wallet_sendCalls',
  params: [{
 version: "1.0",
-chainId: "0x2105", 
+chainId: "0x2105",
 from: userAddress,
 calls: [
  // Primary DEX swap
@@ -19103,7 +19422,8 @@ console.error("Error checking flow control capability:", error);
 return false;
  }
 }
-```
+````
+
 ## Expected Benefits
 
 When implemented, flow control will provide:
@@ -19117,9 +19437,9 @@ When implemented, flow control will provide:
 
 This capability is actively being developed:
 
-* **ERC-7867**: Formal proposal for flow control capability
-* **Community Input**: Ongoing discussions about implementation details
-* **Wallet Integration**: Pending finalization of specification
+- **ERC-7867**: Formal proposal for flow control capability
+- **Community Input**: Ongoing discussions about implementation details
+- **Wallet Integration**: Pending finalization of specification
 
 ## Preparing for Flow Control
 
@@ -19134,22 +19454,22 @@ While waiting for implementation, developers can:
  Stay updated on ERC-7867 development to implement flow control as soon as it's available in production wallets.
 </Info>
 
-
 > Warning:
-The examples above are conceptual and may not reflect the final implementation. Always refer to the latest ERC-7867 specification for accurate details.
+> The examples above are conceptual and may not reflect the final implementation. Always refer to the latest ERC-7867 specification for accurate details.
 
 ## Related Capabilities
 
 Flow control works alongside other capabilities:
 
-* **[Atomic](/base-account/reference/core/capabilities/atomic)**: For strict all-or-nothing execution
-* **[Paymaster Service](/base-account/reference/core/capabilities/paymasterService)**: For sponsored transaction flows
-* **[Auxiliary Funds](/base-account/reference/core/capabilities/auxiliaryFunds)**: For flexible funding sources
+- **[Atomic](/base-account/reference/core/capabilities/atomic)**: For strict all-or-nothing execution
+- **[Paymaster Service](/base-account/reference/core/capabilities/paymasterService)**: For sponsored transaction flows
+- **[Auxiliary Funds](/base-account/reference/core/capabilities/auxiliaryFunds)**: For flexible funding sources
 
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -19166,50 +19486,49 @@ Flow control works alongside other capabilities:
 )}
 />
 
-
-
 # paymasterService
 
 > Enable sponsored transactions using ERC-4337 paymaster web services
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -19227,16 +19546,15 @@ Defined in [ERC-7677](https://eips.ethereum.org/EIPS/eip-7677)
  The paymasterService capability enables apps to sponsor user transactions using ERC-4337 paymaster web services. This allows users to execute transactions without paying gas fees directly.
 </Info>
 
-
 > Warning:
-This capability is not yet finalized and may change in future iterations.
+> This capability is not yet finalized and may change in future iterations.
 
 ## Parameters
 
 <ParamField body="url" type="string" required>
  The URL of the ERC-7677-compliant paymaster service that will sponsor the transactions.
 
- **Format:** Must be a valid HTTPS URL pointing to a paymaster service endpoint.
+**Format:** Must be a valid HTTPS URL pointing to a paymaster service endpoint.
 </ParamField>
 
 ## Returns
@@ -19261,27 +19579,28 @@ method: 'wallet_getCapabilities',
 params: [userAddress]
  });
 
- const paymasterSupport = capabilities["0x2105"]?.paymasterService;
-```#### Code```typescript
- const result = await provider.request({
+const paymasterSupport = capabilities["0x2105"]?.paymasterService;
+`#### Code`typescript
+const result = await provider.request({
 method: 'wallet_sendCalls',
 params: [{
- version: "1.0",
- chainId: "0x2105",
- from: userAddress,
- calls: [{
+version: "1.0",
+chainId: "0x2105",
+from: userAddress,
+calls: [{
 to: "0x1234567890123456789012345678901234567890",
 value: "0x0",
 data: "0xa9059cbb000000000000000000000000..."
- }],
- capabilities: {
+}],
+capabilities: {
 paymasterService: {
- url: "https://your-paymaster-service.xyz
+url: "https://your-paymaster-service.xyz
 }
- }
+}
 }]
- });
-```</RequestExample>
+});
+
+````</RequestExample>
 
 <ResponseExample>
 #### JSON```json
@@ -19337,7 +19656,7 @@ POST /rpc
 {
  "jsonrpc": "2.0",
  "id": 1,
- "method": "pm_getPaymasterData", 
+ "method": "pm_getPaymasterData",
  "params": [
 userOp, // User operation object
 entryPoint, // Entry point address
@@ -19351,7 +19670,7 @@ Here's a complete example of implementing sponsored transactions:
 #### Code```typescript
 class SponsoredTransactionManager {
  private paymasterUrl = "https://api.example.com/paymaster;
- 
+
  async executeSponsored(calls: any[]) {
 try {
  // 1. Check paymaster capability
@@ -19359,11 +19678,11 @@ try {
 method: 'wallet_getCapabilities',
 params: [userAddress]
  });
- 
+
  if (!capabilities["0x2105"]?.paymasterService?.supported) {
 throw new Error("Paymaster services not supported");
  }
- 
+
  // 2. Execute sponsored transaction
  const result = await provider.request({
 method: 'wallet_sendCalls',
@@ -19379,16 +19698,16 @@ paymasterService: {
  }
 }]
  });
- 
+
  console.log("Sponsored transaction submitted:", result);
  return result;
- 
+
 } catch (error) {
  console.error("Sponsored transaction failed:", error);
  throw error;
 }
  }
- 
+
  // Example: Sponsored token transfer
  async sponsoredTransfer(token: string, to: string, amount: string) {
 const calls = [{
@@ -19399,7 +19718,7 @@ const calls = [{
 
 return this.executeSponsored(calls);
  }
- 
+
  private encodeTransfer(to: string, amount: string): string {
 // Encode ERC-20 transfer function call
 // This is a simplified example
@@ -19483,7 +19802,7 @@ url: "https://game-paymaster.example.com
 const onboardingTx = await provider.request({
  method: 'wallet_sendCalls',
  params: [{
-version: "1.0", 
+version: "1.0",
 chainId: "0x2105",
 from: newUserAddress,
 calls: [
@@ -19501,7 +19820,8 @@ url: "https://defi-onboarding-paymaster.example.com
 }
  }]
 });
-```
+````
+
 ## Best Practices
 
 1. **Validate Paymaster URLs**: Ensure paymaster service URLs are trustworthy and ERC-7677 compliant
@@ -19514,9 +19834,10 @@ url: "https://defi-onboarding-paymaster.example.com
 </Info>
 
 <BaseBanner
- id="privacy-policy"
- dismissable={false}
- content={({ onDismiss }) => (
+id="privacy-policy"
+dismissable={false}
+content={({ onDismiss }) => (
+
  <div className="flex items-center">
  <div className="mr-2">
  We're updating the Base Privacy Policy, effective July 25, 2025, to reflect an expansion of Base services. Please review the updated policy here:{" "}
@@ -19533,50 +19854,49 @@ url: "https://defi-onboarding-paymaster.example.com
 )}
 />
 
-
-
 # auxiliaryFunds
 
 > Indicates wallet access to funds beyond on-chain balance verification
 
 export const Button = ({children, disabled, variant = "primary", size = "medium", iconName, roundedFull = false, className = '', fullWidth = false, onClick = undefined}) => {
- const variantStyles = {
- primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
- secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
- outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
- };
- const sizeStyles = {
- medium: 'text-md px-4 py-2 gap-3',
- large: 'text-lg px-6 py-4 gap-5'
- };
- const sizeIconRatio = {
- medium: '0.75rem',
- large: '1rem'
- };
- const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
- const buttonClasses = classes.filter(Boolean).join(' ');
- const iconSize = sizeIconRatio[size];
- return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
- <span>{children}</span>
- {iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
- </button>;
+const variantStyles = {
+primary: 'bg-blue text-black border border-blue hover:bg-blue-80 active:bg-[#06318E] dark:text-white',
+secondary: 'bg-white border border-white text-palette-foreground hover:bg-zinc-15 active:bg-zinc-30',
+outlined: 'bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#E3E7E9]'
+};
+const sizeStyles = {
+medium: 'text-md px-4 py-2 gap-3',
+large: 'text-lg px-6 py-4 gap-5'
+};
+const sizeIconRatio = {
+medium: '0.75rem',
+large: '1rem'
+};
+const classes = ['text-md px-4 py-2 whitespace-nowrap', 'flex items-center justify-center', 'disabled:opacity-40 disabled:pointer-events-none', 'transition-all', variantStyles[variant], sizeStyles[size], roundedFull ? 'rounded-full' : 'rounded-lg', fullWidth ? 'w-full' : 'w-auto', className];
+const buttonClasses = classes.filter(Boolean).join(' ');
+const iconSize = sizeIconRatio[size];
+return <button type="button" disabled={disabled} className={buttonClasses} onClick={onClick}>
+<span>{children}</span>
+{iconName && <Icon name={iconName} width={iconSize} height={iconSize} color="currentColor" />}
+</button>;
 };
 
 export const BaseBanner = ({content = null, id, dismissable = true}) => {
- const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
- const [isVisible, setIsVisible] = useState(false);
- const onDismiss = => {
- localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
- setIsVisible(false);
- };
- useEffect( => {
- const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
- setIsVisible(storedValue !== 'false');
- }, []);
- if (!isVisible) {
- return null;
- }
- return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+const LOCAL_STORAGE_KEY_PREFIX = 'cb-docs-banner';
+const [isVisible, setIsVisible] = useState(false);
+const onDismiss = => {
+localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`, 'false');
+setIsVisible(false);
+};
+useEffect( => {
+const storedValue = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}-${id}`);
+setIsVisible(storedValue !== 'false');
+}, []);
+if (!isVisible) {
+return null;
+}
+return <div className="fixed bottom-0 left-0 right-0 bg-white py-8 px-4 lg:px-12 z-50 text-black dark:bg-black dark:text-white border-t dark:border-gray-95">
+
  <div className="flex items-center max-w-8xl mx-auto">
  {typeof content === 'function' ? content({
  onDismiss
@@ -19594,9 +19914,8 @@ Defined in [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
  The auxiliaryFunds capability allows wallets to indicate they have access to funds beyond what can be directly verified on-chain by the wallet's address. This enables more flexible transaction execution and improved user experiences.
 </Info>
 
-
 > Warning:
-This capability is not yet finalized and may change in future iterations.
+> This capability is not yet finalized and may change in future iterations.
 
 ## Parameters
 
@@ -19624,19 +19943,20 @@ method: 'wallet_getCapabilities',
 params: [userAddress]
  });
 
- const auxiliaryFunds = capabilities["0x2105"]?.auxiliaryFunds;
-```#### Code```typescript
- if (auxiliaryFunds?.supported) {
+const auxiliaryFunds = capabilities["0x2105"]?.auxiliaryFunds;
+`#### Code`typescript
+if (auxiliaryFunds?.supported) {
 // Don't block transactions based on visible balance alone
 console.log("Wallet has access to auxiliary funds");
- } else {
+} else {
 // Check on-chain balance before allowing transactions
 const balance = await provider.request({
- method: 'eth_getBalance',
- params: [userAddress, 'latest']
+method: 'eth_getBalance',
+params: [userAddress, 'latest']
 });
- }
-```</RequestExample>
+}
+
+````</RequestExample>
 
 <ResponseExample>
 #### JSON```json
@@ -19688,11 +20008,11 @@ async function checkCanExecuteTransaction(amount: bigint) {
 method: 'eth_getBalance',
 params: [userAddress, 'latest']
  });
- 
+
  if (BigInt(balance) < amount) {
 throw new Error("Insufficient balance");
  }
- 
+
  return true;
 }
 ```### With Auxiliary Funds Support
@@ -19702,23 +20022,23 @@ async function checkCanExecuteTransaction(amount: bigint) {
 method: 'wallet_getCapabilities',
 params: [userAddress]
  });
- 
+
  if (capabilities["0x2105"]?.auxiliaryFunds?.supported) {
 // Wallet may have auxiliary funds, allow transaction
 console.log("Auxiliary funds available, proceeding with transaction");
 return true;
  }
- 
+
  // Check on-chain balance as fallback
  const balance = await provider.request({
-method: 'eth_getBalance', 
+method: 'eth_getBalance',
 params: [userAddress, 'latest']
  });
- 
+
  if (BigInt(balance) < amount) {
 throw new Error("Insufficient balance");
  }
- 
+
  return true;
 }
 ```## Use Cases
@@ -19759,12 +20079,12 @@ calls: [{
  }]
 });
  }
- 
+
  private async getTokenBalance(token: string, account: string): Promise<string> {
 // Implementation to check ERC-20 token balance
 return "0";
  }
- 
+
  private encodeSwap(from: string, to: string, amount: string): string {
 // Implementation to encode swap call data
 return "0x";
@@ -19784,20 +20104,20 @@ const capabilities = await provider.request({
 if (capabilities["0x2105"]?.auxiliaryFunds?.supported) {
  // Wallet may access funds through auxiliary sources
  console.log("Processing payment with auxiliary funds support");
- 
+
  return this.executePurchase(amount, currency);
 } else {
  // Check sufficient balance for regular wallets
  const balance = await this.getCurrencyBalance(currency, userAddress);
- 
+
  if (balance < amount) {
 throw new Error(`Insufficient ${currency} balance`);
  }
- 
+
  return this.executePurchase(amount, currency);
 }
  }
- 
+
  private async executePurchase(amount: bigint, currency: string) {
 return provider.request({
  method: 'wallet_sendCalls',
@@ -19813,7 +20133,7 @@ calls: [{
  }]
 });
  }
- 
+
  private async getCurrencyBalance(currency: string, account: string): Promise<bigint> {
 if (currency === "ETH") {
  const balance = await provider.request({
@@ -19827,12 +20147,12 @@ params: [account, 'latest']
  return BigInt(balance);
 }
  }
- 
+
  private encodeTokenTransfer(token: string, amount: bigint): string {
 // Implementation to encode token transfer
 return "0x";
  }
- 
+
  private async getTokenBalance(token: string, account: string): Promise<string> {
 // Implementation to check token balance
 return "0";
@@ -19867,7 +20187,7 @@ calls: [{
  }]
 });
  }
- 
+
  private async validateBalance(requiredAmount: bigint) {
 const balance = await provider.request({
  method: 'eth_getBalance',
@@ -19878,7 +20198,7 @@ if (BigInt(balance) < requiredAmount) {
  throw new Error("Insufficient balance for purchase");
 }
  }
- 
+
  private encodePurchaseItem(itemId: string, price: bigint): string {
 // Implementation to encode game item purchase
 return "0x";
@@ -19894,7 +20214,7 @@ const result = await provider.request({
  method: 'wallet_sendCalls',
  params: [{
 version: "1.0",
-chainId: "0x2105", 
+chainId: "0x2105",
 from: userAddress,
 calls
  }]
@@ -19908,7 +20228,7 @@ if (error.message.includes("insufficient funds")) {
 method: 'wallet_getCapabilities',
 params: [userAddress]
  });
- 
+
  if (capabilities["0x2105"]?.auxiliaryFunds?.supported) {
 console.log("Transaction failed despite auxiliary funds support");
 // May indicate auxiliary funds are temporarily unavailable
@@ -20181,17 +20501,17 @@ if (Object.keys(errors).length > 0) {
 
 // Success - return the request data wrapped in a request object
 // The wallet expects the response to contain the original or modified calls
-return Response.json({ 
- request: requestData 
+return Response.json({
+ request: requestData
 });
 
 // Alternative: Explicitly enumerate fields if needed
-// return Response.json({ 
-// request: { 
-// calls: requestData.calls, 
-// chainId: requestData.chainId, 
-// capabilities: requestData.capabilities 
-// } 
+// return Response.json({
+// request: {
+// calls: requestData.calls,
+// chainId: requestData.chainId,
+// capabilities: requestData.capabilities
+// }
 // });
 
  } catch (error) {
@@ -20255,7 +20575,7 @@ if (result.success) {
  };
 
  return (
-<BasePayButton 
+<BasePayButton
  paymentOptions={{
 amount: '10.00',
 to: 'your-wallet.eth',
@@ -20326,7 +20646,7 @@ const paymentOptions = {
  testnet: true
 };
 
-<BasePayButton 
+<BasePayButton
  paymentOptions={paymentOptions}
  colorScheme="light"
  onPaymentResult={handleResult}
@@ -20346,7 +20666,7 @@ callbackURL: 'https://api.example.com/validate // Optional
  }
 };
 
-<BasePayButton 
+<BasePayButton
  paymentOptions={paymentOptions}
  onPaymentResult={(result) => {
 if (result.success) {
@@ -20360,19 +20680,19 @@ if (result.success) {
 ### Color Schemes
 #### Code```tsx
 {/* Light theme */}
-<BasePayButton 
+<BasePayButton
  paymentOptions={paymentOptions}
  colorScheme="light"
 />
 
 {/* Dark theme */}
-<BasePayButton 
+<BasePayButton
  paymentOptions={paymentOptions}
  colorScheme="dark"
 />
 
 {/* System theme (follows user's system preference) */}
-<BasePayButton 
+<BasePayButton
  paymentOptions={paymentOptions}
  colorScheme="system"
 />
@@ -20424,23 +20744,23 @@ if (result.error.includes('insufficient funds')) {
 const handleClick = => {
  // Custom logic before payment
  console.log('User clicked pay button');
- 
+
  // Analytics tracking
  trackEvent('payment_button_clicked', {
 amount: '10.00',
 product: 'subscription'
  });
- 
+
  // Validation
  if (!isValidPayment) {
 alert('Please complete the form first');
 return false; // Prevent payment
  }
- 
+
  return true; // Continue with payment
 };
 
-<BasePayButton 
+<BasePayButton
  paymentOptions={paymentOptions}
  onClick={handleClick}
  onPaymentResult={handlePaymentResult}
@@ -20477,7 +20797,7 @@ message: 'Payment successful!',
 transactionHash: result.transactionHash,
 userInfo: result.userInfo
  });
- 
+
  // Send confirmation email
  if (result.userInfo?.email) {
 sendConfirmationEmail(result.userInfo.email, result.transactionHash);
@@ -20502,8 +20822,8 @@ setPaymentStatus(null);
 <h3>Premium Subscription</h3>
 <p>$29.99/month</p>
  </div>
- 
- <BasePayButton 
+
+ <BasePayButton
 paymentOptions={paymentOptions}
 colorScheme="light"
 size="large"
@@ -20511,13 +20831,13 @@ disabled={loading}
 onClick={handleClick}
 onPaymentResult={handlePaymentResult}
  />
- 
+
  {loading && (
 <div className="loading">
  Processing payment...
 </div>
  )}
- 
+
  {paymentStatus && (
 <div className={`status ${paymentStatus.type}`}>
  <p>{paymentStatus.message}</p>
@@ -20534,7 +20854,7 @@ onPaymentResult={handlePaymentResult}
  )}
 </div>
  )}
- 
+
  <style jsx>{`.checkout-page {
  max-width: 400px;
  margin: 0 auto;
@@ -20600,7 +20920,7 @@ if (result.success) {
  };
 
  return (
-<BasePayButton 
+<BasePayButton
  paymentOptions={paymentOptions}
  onPaymentResult={handleResult}
 />
@@ -20654,7 +20974,7 @@ console.log('User clicked sign in');
  };
 
  return (
-<SignInWithBaseButton 
+<SignInWithBaseButton
  align="center"
  variant="solid"
  colorScheme="light"
@@ -20769,7 +21089,7 @@ transport: custom(provider)
 
  // Sign authentication message
  const message = `Sign in to MyApp at ${Date.now}`;
- const signature = await client.signMessage({ 
+ const signature = await client.signMessage({
 account,
 message,
  });
@@ -20828,8 +21148,8 @@ return (
 <div className="authentication">
  <h2>Sign In to Continue</h2>
  <p>Connect your Base Account to access the application</p>
- 
- <SignInWithBaseButton 
+
+ <SignInWithBaseButton
 align="center"
 variant="solid"
 colorScheme="light"
@@ -20837,20 +21157,20 @@ size="large"
 disabled={loading}
 onClick={handleSignIn}
  />
- 
+
  {loading && (
 <div className="loading">
  Authenticating...
 </div>
  )}
- 
+
  {error && (
 <div className="error">
  <p>Authentication failed: {error}</p>
  <button onClick={ => setError(null)}>Try Again</button>
 </div>
  )}
- 
+
  <style jsx>{`.authentication {
  max-width: 400px;
  margin: 0 auto;
@@ -20923,7 +21243,7 @@ const siweMessage = createSiweMessage({
 });
 
 // Sign the SIWE message
-const signature = await client.signMessage({ 
+const signature = await client.signMessage({
  account,
  message: siweMessage.prepareMessage,
 });
@@ -20947,7 +21267,7 @@ console.error('SIWE authentication failed:', error);
  }
 };
 
-<SignInWithBaseButton 
+<SignInWithBaseButton
  align="center"
  variant="solid"
  colorScheme="light"
@@ -20971,7 +21291,7 @@ try {
  };
 
  return (
-<SignInWithBaseButton 
+<SignInWithBaseButton
  disabled={isLoading}
  onClick={handleSignIn}
  colorScheme="light"
@@ -21000,7 +21320,7 @@ setError('Authentication failed. Please try again.');
 
  return (
 <div>
- <SignInWithBaseButton 
+ <SignInWithBaseButton
 onClick={handleSignIn}
 colorScheme="light"
  />
@@ -21067,7 +21387,7 @@ import { signIn } from 'next-auth/react';
 
 const handleSignIn = async => {
  // ... get signature as before
- 
+
  const result = await signIn('credentials', {
 address: account,
 message: message,
@@ -21100,7 +21420,7 @@ try {
  };
 
  return (
-<SignInWithBaseButton 
+<SignInWithBaseButton
  align="center"
  variant="solid"
  colorScheme="light"
@@ -22245,7 +22565,8 @@ To run an example XMTP agent, you must create a`.env`file with the following var
 XMTP_WALLET_KEY= # the private key of the wallet
 XMTP_DB_ENCRYPTION_KEY= # encryption key for the local database
 XMTP_ENV=production # local, dev, production
-```
+````
+
 ## Get a basename for your agent
 
 Give your agent a human-readable name:
@@ -22276,10 +22597,6 @@ Give your agent a human-readable name:
  For the complete guide, visit [XMTP documentation](https://docs.xmtp.org/agents/get-started/build-an-agent)
 </Note>
 
-
-
-
-
 ## COOKBOOK
 
 ## Use Cases
@@ -22289,7 +22606,8 @@ Give your agent a human-readable name:
 > Learn how to leverage the Base Paymaster for seamless, gasless transactions on the Coinbase Cloud Developer Platform.
 
 export const Danger = ({children}) => {
- return <div class="my-4 px-5 py-4 overflow-hidden rounded-2xl flex gap-3 border danger-admonition dark:danger-admonition">
+return <div class="my-4 px-5 py-4 overflow-hidden rounded-2xl flex gap-3 border danger-admonition dark:danger-admonition">
+
  <div class="mt-0.5 w-4">
  <svg width="14" height="14" viewBox="0 0 14 14" fill="rgb(239, 68, 68)" xmlns="http://www.w3.org/2000/svg class="w-4 h-4 text-sky-500" aria-label="Danger">
  <path fill-rule="evenodd" clip-rule="evenodd" d="M7 1.3C10.14 1.3 12.7 3.86 12.7 7C12.7 10.14 10.14 12.7 7 12.7C5.48908 12.6974 4.0408 12.096 2.97241 11.0276C1.90403 9.9592 1.30264 8.51092 1.3 7C1.3 3.86 3.86 1.3 7 1.3ZM7 0C3.14 0 0 3.14 0 7C0 10.86 3.14 14 7 14C10.86 14 14 10.86 14 7C14 3.14 10.86 0 7 0ZM8 3H6V8H8V3ZM8 9H6V11H8V9Z"></path>
@@ -22303,10 +22621,9 @@ export const Danger = ({children}) => {
 
 Base transaction fees are typically less than a penny, but the concept of gas can still be confusing for new users and lead to poor user experience when users don't have gas funds in their wallet. You can abstract this away and improve your UX by using the **Base Paymaster**. The Paymaster allows you to:
 
-* Batch multi-step transactions
-* Create custom gasless experiences
-* Sponsor up to \$15k monthly on mainnet (unlimited on testnet)
-
+- Batch multi-step transactions
+- Create custom gasless experiences
+- Sponsor up to \$15k monthly on mainnet (unlimited on testnet)
 
 > Note:
 
@@ -22322,18 +22639,17 @@ Base transaction fees are typically less than a penny, but the concept of gas ca
 This tutorial assumes you have:
 
 1. **A Coinbase Cloud Developer Platform Account**\
- If not, sign up on the [CDP site]. Once you have your account, you can manage projects and utilize tools like the Paymaster.
+   If not, sign up on the [CDP site]. Once you have your account, you can manage projects and utilize tools like the Paymaster.
 
 2. **Familiarity with Smart Accounts and ERC 4337**\
- Smart Accounts are the backbone of advanced transaction patterns (e.g., bundling, sponsorship). If you’re new to ERC 4337, check out external resources like the official [EIP-4337 explainer](https://eips.ethereum.org/EIPS/eip-4337) before starting.
+   Smart Accounts are the backbone of advanced transaction patterns (e.g., bundling, sponsorship). If you’re new to ERC 4337, check out external resources like the official [EIP-4337 explainer](https://eips.ethereum.org/EIPS/eip-4337) before starting.
 
 3. **Foundry**\
- Foundry is a development environment, testing framework, and smart contract toolkit for Ethereum. You’ll need it installed locally for generating key pairs and interacting with smart contracts.
-
+   Foundry is a development environment, testing framework, and smart contract toolkit for Ethereum. You’ll need it installed locally for generating key pairs and interacting with smart contracts.
 
 > Note:
-**Testnet vs. Mainnet**\
- If you prefer not to spend real funds, you can switch to **Base Sepolia** (testnet). The steps below are conceptually the same. Just select *Base Sepolia* in the Coinbase Developer Platform instead of *Base Mainnet*, and use a contract deployed on Base testnet for your allowlisted methods.
+> **Testnet vs. Mainnet**\
+>  If you prefer not to spend real funds, you can switch to **Base Sepolia** (testnet). The steps below are conceptually the same. Just select _Base Sepolia_ in the Coinbase Developer Platform instead of _Base Mainnet_, and use a contract deployed on Base testnet for your allowlisted methods.
 
 ## Set Up a Base Paymaster & Bundler
 
@@ -22346,15 +22662,18 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 
 ### Screenshots
 
-* **Selecting your project**
+- **Selecting your project**
 
 ![](https://mintcdn.com/base-a060aa97/yhxBW4teesnxVVBa/images/gasless-transaction-on-base/cdp-select-project.png?fit=max&auto=format&n=yhxBW4teesnxVVBa&q=85&s=ad65ae145f038beb29b5b0538d8d20bc)
-* **Navigating to the Paymaster tool**
+
+- **Navigating to the Paymaster tool**
 
 ![](https://mintcdn.com/base-a060aa97/yhxBW4teesnxVVBa/images/gasless-transaction-on-base/cdp-paymaster.png?fit=max&auto=format&n=yhxBW4teesnxVVBa&q=85&s=7b6293dfe4563c17be199da2350f5826)
-* **Configuration screen**
+
+- **Configuration screen**
 
 ![](https://mintcdn.com/base-a060aa97/yhxBW4teesnxVVBa/images/gasless-transaction-on-base/cdp-config.png?fit=max&auto=format&n=yhxBW4teesnxVVBa&q=85&s=729f5128cf98287e52874446b44417e8)
+
 ### Allowlist a Sponsorable Contract
 
 1. From the Configuration page, ensure **Base Mainnet** (or **Base Sepolia** if you’re testing) is selected.
@@ -22364,7 +22683,7 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 
 ![](https://mintcdn.com/base-a060aa97/yhxBW4teesnxVVBa/images/gasless-transaction-on-base/cdp-allowlist-contract.png?fit=max&auto=format&n=yhxBW4teesnxVVBa&q=85&s=c22391f42bb9b10e11d38fc68318469d)
 <Note>
- **Use your own contract**\
+**Use your own contract**\
  We use a [simple NFT contract][simple NFT contract] on Base mainnet as an example. Feel free to substitute your own.
 </Note>
 
@@ -22372,12 +22691,12 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 
 Scroll down to the **Per User Limit** section. You can set:
 
-* **Dollar amount limit** or **number of UserOperations** per user
-* **Limit cycles** that reset daily, weekly, or monthly
+- **Dollar amount limit** or **number of UserOperations** per user
+- **Limit cycles** that reset daily, weekly, or monthly
 
 For example, you might set:
 
-* `max USD`to`$0.05`*`max UserOperation`to`1`This means **each user** can only have \$0.05 in sponsored gas and **1** user operation before the cycle resets.
+- `max USD`to`$0.05`\*`max UserOperation`to`1`This means **each user** can only have \$0.05 in sponsored gas and **1** user operation before the cycle resets.
 
 <Note>
  **Limit Cycles**\
@@ -22387,6 +22706,7 @@ For example, you might set:
 Next, **set the Global Limit**. For example, set this to`$0.07`so that once the entire paymaster has sponsored \$0.07 worth of gas (across all users), no more sponsorship occurs unless you raise the limit.
 
 ![](https://mintcdn.com/base-a060aa97/yhxBW4teesnxVVBa/images/gasless-transaction-on-base/cdp-global-user-limits.png?fit=max&auto=format&n=yhxBW4teesnxVVBa&q=85&s=2807bf6b44d653a07048688480048fcf)
+
 ## Test Your Paymaster Policy
 
 Now let’s verify that these policies work. We’ll:
@@ -22398,9 +22718,12 @@ Now let’s verify that these policies work. We’ll:
 ### Installing Foundry
 
 1. Ensure you have **Rust** installed
+
 #### Command```bash
- curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```2. Install Foundry
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+````2. Install Foundry
 #### Command```bash
  curl -L https://foundry.paradigm.xyz | bash
  foundryup
@@ -22613,58 +22936,46 @@ args: [ownerAddress],
  });
  console.log(`NFT balance of ${ownerAddress} is now: ${balance}`);
 }
-```
+````
+
 ## Conclusion
 
 In this tutorial, you:
 
-* Set up and **configured** a Base Paymaster on the Coinbase Developer Platform.
-* **Allowlisted** a contract and specific function (`mintTo`) for sponsorship.
-* Established **per-user** and **global** sponsorship **limits** to control costs.
-* Demonstrated the **sponsorship flow** with Smart Accounts using `permissionless`, `viem`, and Foundry-generated private keys.
+- Set up and **configured** a Base Paymaster on the Coinbase Developer Platform.
+- **Allowlisted** a contract and specific function (`mintTo`) for sponsorship.
+- Established **per-user** and **global** sponsorship **limits** to control costs.
+- Demonstrated the **sponsorship flow** with Smart Accounts using `permissionless`, `viem`, and Foundry-generated private keys.
 
 This approach can greatly improve your dApp’s user experience by removing gas friction. For more complex sponsorship schemes (like daily or weekly cycles), simply tweak your per-user and global limit settings in the Coinbase Developer Platform.
 
 > **Next Steps**
 >
-> * Use a [proxy service][proxy service] for better endpoint security.
-> * Deploy your own contracts and allowlist them.
-> * Experiment with bundling multiple calls into a single sponsored transaction.
+> - Use a [proxy service][proxy service] for better endpoint security.
+> - Deploy your own contracts and allowlist them.
+> - Experiment with bundling multiple calls into a single sponsored transaction.
 
 ## References
 
-* [list of factory addresses]
-* [CDP site]
-* [Coinbase Developer Platform]
-* [UI]
-* [proxy service]
-* [Paymaster Tool]
-* [Foundry Book installation guide]
-* [simple NFT contract]
+- [list of factory addresses]
+- [CDP site]
+- [Coinbase Developer Platform]
+- [UI]
+- [proxy service]
+- [Paymaster Tool]
+- [Foundry Book installation guide]
+- [simple NFT contract]
 
 [list of factory addresses]: https://www.alchemy.com/docs/wallets/smart-contracts/deployed-addresses
-
-
 [CDP site]: https://portal.cdp.coinbase.com/
-
 [Coinbase Developer Platform]: https://portal.cdp.coinbase.com/
-
 [UI]: https://portal.cdp.coinbase.com/products/bundler-and-paymaster
-
 [proxy service]: https://www.smartwallet.dev/guides/paymasters
-
 [Paymaster Tool]: https://portal.cdp.coinbase.com/products/bundler-and-paymaster
-
 [Foundry Book installation guide]: https://book.getfoundry.sh/getting-started/installation
-
 [simple NFT contract]: https://basescan.org/token/0x83bd615eb93ee1336aca53e185b03b54ff4a17e8
 
 **Happy Building on Base!**
-
-
-
-
-
 
 VIBE CODE A MINI APP
 
@@ -22674,13 +22985,7 @@ VIBE CODE A MINI APP
 
 > Mini Apps represent a paradigm shift in application development and distribution
 
-
-
-
-
 #### Ek Varyant 2
-
-
 
 Mini Apps are a new way to build and share apps—designed for the internet we actually use today: fast, social, and always on. They're not "mini" because they're small in impact, but because they're lightweight, easy to create, and instantly accessible.
 
@@ -22724,26 +23029,30 @@ Vibe coding is a powerful way to bring your idea to life especially for non-deve
 
 Below are the elements that you will need to consider when vibe coding a mini app.
 
-
 ### Step: Plan
+
 Clarify the app's purpose, target audience, and core features. Decide on the minimum viable product (MVP) and ensure it's achievable within your available time and resources.
- 
+
 ### Step: UX + Architecture
+
 Map out the user journey, key screens, and interactions. Choose the tech
- stack, plan integrations (APIs, onchain features, etc.), and decide on the
- app's overall architecture.
- 
+stack, plan integrations (APIs, onchain features, etc.), and decide on the
+app's overall architecture.
+
 ### Step: Build the Core Features
+
 Implement the primary functionality first, focusing on the MVP. Keep
- components modular for easier testing and iteration.
- 
+components modular for easier testing and iteration.
+
 ### Step: Test & Refine
+
 Run functional, performance, and user tests to catch bugs and improve the
- experience. Incorporate feedback and make necessary adjustments.
- 
+experience. Incorporate feedback and make necessary adjustments.
+
 ### Step: Deploy & Share
+
 Deploy to your hosting platform (e.g., Vercel, Fleek). Share the app with your intended audience, gather real-world feedback, and iterate as needed.
- 
+
 # Master Prompt Engineering
 
 > Learn best practices for writing effective prompts that generate useful code and UI components for your Mini App
@@ -22752,26 +23061,26 @@ Deploy to your hosting platform (e.g., Vercel, Fleek). Share the app with your i
 
 Prompting well is a core skill—it unlocks faster results, better apps, and more creativity. Here's how to improve:
 
-* **Start with a clear goal.** Be specific about what the app should do, who it's for, and how users will interact with it.
-* **Give context.** Tell the AI what platform you're building for (TBA), what tools you're using (MiniKit, React, Tailwind), and what kind of experience you want to create.
-* **Iterate in small steps.** Don't try to get everything perfect in one go. Run your prompt, review the output, and refine your request to get closer to your vision.
-* **Use `llms.txt`files.** These are AI-friendly docs provided by many blockchain tools. Including their contents (or linking to them) gives the AI better reference data.
-* **Read your prompt out loud.** If it sounds confusing to you, it'll confuse the AI too.
-* **Save good prompts.** Treat them like building blocks. You'll reuse them across projects.
+- **Start with a clear goal.** Be specific about what the app should do, who it's for, and how users will interact with it.
+- **Give context.** Tell the AI what platform you're building for (TBA), what tools you're using (MiniKit, React, Tailwind), and what kind of experience you want to create.
+- **Iterate in small steps.** Don't try to get everything perfect in one go. Run your prompt, review the output, and refine your request to get closer to your vision.
+- **Use `llms.txt`files.** These are AI-friendly docs provided by many blockchain tools. Including their contents (or linking to them) gives the AI better reference data.
+- **Read your prompt out loud.** If it sounds confusing to you, it'll confuse the AI too.
+- **Save good prompts.** Treat them like building blocks. You'll reuse them across projects.
 
 ## What makes a prompt effective
 
-* **State the goal and audience** so the model knows what to optimize. This keeps answers focused on the right use case instead of generic solutions.
-* **Use sections and lists** to structure thinking and outputs, making it easier for the model to organize and for you to read.
-* **Name users, roles, and permissions** to anchor behavior and prevent gaps in access planning.
-* **List core features as outcomes** rather than vague ideas so results are actionable.
-* **Define data entities and fields** to guide consistent responses and align on what's being stored or displayed.
-* **Call out non-functional needs** like security and performance so they aren't forgotten in planning.
-* **Provide tech preferences and constraints** to narrow options and avoid irrelevant suggestions.
-* **Specify deliverables and format** so outputs are ready to use without heavy rework.
-* **Phase the plan** to keep scope lean and shippable. *Example:* Phase 1 = basic employee profiles and login, Phase 2 = payroll and payslips, Phase 3 = attendance and reviews.
-* **Exclude out-of-scope items** to prevent feature creep and keep the project realistic.
-* **Invite assumptions** when details are missing so progress continues without waiting on answers.
+- **State the goal and audience** so the model knows what to optimize. This keeps answers focused on the right use case instead of generic solutions.
+- **Use sections and lists** to structure thinking and outputs, making it easier for the model to organize and for you to read.
+- **Name users, roles, and permissions** to anchor behavior and prevent gaps in access planning.
+- **List core features as outcomes** rather than vague ideas so results are actionable.
+- **Define data entities and fields** to guide consistent responses and align on what's being stored or displayed.
+- **Call out non-functional needs** like security and performance so they aren't forgotten in planning.
+- **Provide tech preferences and constraints** to narrow options and avoid irrelevant suggestions.
+- **Specify deliverables and format** so outputs are ready to use without heavy rework.
+- **Phase the plan** to keep scope lean and shippable. _Example:_ Phase 1 = basic employee profiles and login, Phase 2 = payroll and payslips, Phase 3 = attendance and reviews.
+- **Exclude out-of-scope items** to prevent feature creep and keep the project realistic.
+- **Invite assumptions** when details are missing so progress continues without waiting on answers.
 
 <AccordionGroup>
  <Accordion title="Prompt Template">```I want to build a Mini App for the Base App (TBA)—a social platform where users can post, trade, message, and earn. Please create a responsive React component that includes:
@@ -22820,6 +23129,7 @@ Please return complete, working code with clear comments that explain each part.
  Create an effective prompt from a weak one using the template:```You are an expert prompt engineer. I will give you (A) my rough/weak prompt and (B) a proven prompt template. Rewrite (A) to fully conform to (B), filling required sections with best-guess placeholders where my info is missing, and adding only what the template structure requires.
 
 Constraints:
+
 - Keep my original intent, audience, and scope.
 - Use clear sections and bullet points.
 - Specify deliverables and output format.
@@ -22827,35 +23137,34 @@ Constraints:
 
 Inputs:
 (A) ROUGH_PROMPT:
----
-<paste your rough prompt>
+
 ---
 
-(B) TEMPLATE:
----
-<paste the prompt template>
----
+## <paste your rough prompt>
+
+## (B) TEMPLATE:
+
+## <paste the prompt template>
 
 Output:
+
 - Final improved prompt that follows the template
 - Short list of assumptions (if any)```</Accordion>
-</AccordionGroup>
+  </AccordionGroup>
 
 ## Additional Resources
 
 Here are essential resources to support your Mini App development journey:
 
-* [AI Prompting Guide](https://docs.base.org/onchainkit/guides/ai-prompting-guide#developers-guide-to-effective-ai-prompting) – Strategies for better AI-assisted development
-* [MiniKit Documentation](https://docs.base.org/base-app/guides) – Complete guide to Mini App tools and APIs
-* [Base Documentation](https://docs.base.org) – Technical documentation for the Base blockchain
-* [OnchainKit Components](https://onchainkit.xyz) – Pre-built React components for onchain functionality
-* [Vercel V0 Documentation](https://vercel.com/docs) – Build UIs with natural language
-* Base Community Discord – Connect with other builders
-* [Farcaster Dev Resources](https://docs.farcaster.xyz) – Build with Farcaster social protocols
-* [Base App Developer Portal](https://base.dev) – Tutorials, guides, and tools for Base developers
-* [https://v0.app/chat/design-planning-for-team-management-site-jazkKQyN4Ok
-
-
+- [AI Prompting Guide](https://docs.base.org/onchainkit/guides/ai-prompting-guide#developers-guide-to-effective-ai-prompting) – Strategies for better AI-assisted development
+- [MiniKit Documentation](https://docs.base.org/base-app/guides) – Complete guide to Mini App tools and APIs
+- [Base Documentation](https://docs.base.org) – Technical documentation for the Base blockchain
+- [OnchainKit Components](https://onchainkit.xyz) – Pre-built React components for onchain functionality
+- [Vercel V0 Documentation](https://vercel.com/docs) – Build UIs with natural language
+- Base Community Discord – Connect with other builders
+- [Farcaster Dev Resources](https://docs.farcaster.xyz) – Build with Farcaster social protocols
+- [Base App Developer Portal](https://base.dev) – Tutorials, guides, and tools for Base developers
+- [https://v0.app/chat/design-planning-for-team-management-site-jazkKQyN4Ok
 
 # Essential Documentation Resources
 
@@ -22869,33 +23178,31 @@ Don’t worry if they feel intimidating at first. You’re not expected to memor
 
 Here’s the key idea:
 
-* **Base Docs** focus on the Base chain and app platform—everything from MiniKit to OnchainKit to smart account tools.
-* **Coinbase Developer Platform (CDP)** gives you access to infrastructure tools—wallet APIs, Paymaster, and fiat onramps. Think of it as the backend services layer behind your app.
+- **Base Docs** focus on the Base chain and app platform—everything from MiniKit to OnchainKit to smart account tools.
+- **Coinbase Developer Platform (CDP)** gives you access to infrastructure tools—wallet APIs, Paymaster, and fiat onramps. Think of it as the backend services layer behind your app.
 
 Use the table below to get a feel for when to reach for each one:
 
-| Documentation | Helps with | When to use it | Example prompt |
+| Documentation                     | Helps with                                               | When to use it                                                          | Example prompt                                                                                                                                                                                                                                                                                              |
 | :-------------------------------- | :------------------------------------------------------- | :---------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base Docs | Base Chain, Base Account, Base App, OnchainKit, Cookbook | Finding MiniKit templates; sponsoring transactions via Base Account |`Using the Base documentation at docs.base.org, help me implement wallet connection in my Mini App. I need to: 1) Connect to a user's wallet, 2) Display their Basename if available, 3) Show their account balance. Provide complete React code using MiniKit SDK with TypeScript and explain each step.`|
-| Coinbase Developer Platform (CDP) | Wallet services, Paymaster, onramps | Obtaining API keys; using the Paymaster endpoint; creating fiat onramps |`I want to sponsor transactions for my Mini App users using Coinbase Paymaster. Based on the CDP documentation, provide: 1) Setup instructions for API keys, 2) Complete code example for sponsoring a transaction, 3) Error handling best practices. Include both frontend and any required backend code.`|
-| Next.js Docs | App router, page rendering, project structure | Deciding where to store assets; understanding routing and SSR/SSG |`Using Next.js 14 App Router, help me structure my Mini App with: 1) A main app page, 2) A settings page, 3) API routes for data fetching, 4) Proper file organization for components and assets. Provide the complete folder structure and explain routing patterns.`|
-| Wagmi / Viem | Wallet integration and on-chain data access | Retrieving connected wallet address; reading on-chain data |`Using Wagmi v2 and Viem, create a React hook that: 1) Connects to the user's wallet, 2) Reads their ETH balance on Base, 3) Fetches their last 5 transactions, 4) Handles loading and error states. Include TypeScript types and proper error handling.`|
-| Vercel V0 Docs | AI-powered UI generation with V0 | Adding environment variables; downloading generated code |`I generated a Mini App UI with V0 and want to deploy it. Help me: 1) Add environment variables for my API keys, 2) Download and integrate the V0 code into my local MiniKit project, 3) Deploy to Vercel with proper configuration. Provide step-by-step instructions.`|
+| Base Docs                         | Base Chain, Base Account, Base App, OnchainKit, Cookbook | Finding MiniKit templates; sponsoring transactions via Base Account     | `Using the Base documentation at docs.base.org, help me implement wallet connection in my Mini App. I need to: 1) Connect to a user's wallet, 2) Display their Basename if available, 3) Show their account balance. Provide complete React code using MiniKit SDK with TypeScript and explain each step.`  |
+| Coinbase Developer Platform (CDP) | Wallet services, Paymaster, onramps                      | Obtaining API keys; using the Paymaster endpoint; creating fiat onramps | `I want to sponsor transactions for my Mini App users using Coinbase Paymaster. Based on the CDP documentation, provide: 1) Setup instructions for API keys, 2) Complete code example for sponsoring a transaction, 3) Error handling best practices. Include both frontend and any required backend code.` |
+| Next.js Docs                      | App router, page rendering, project structure            | Deciding where to store assets; understanding routing and SSR/SSG       | `Using Next.js 14 App Router, help me structure my Mini App with: 1) A main app page, 2) A settings page, 3) API routes for data fetching, 4) Proper file organization for components and assets. Provide the complete folder structure and explain routing patterns.`                                      |
+| Wagmi / Viem                      | Wallet integration and on-chain data access              | Retrieving connected wallet address; reading on-chain data              | `Using Wagmi v2 and Viem, create a React hook that: 1) Connects to the user's wallet, 2) Reads their ETH balance on Base, 3) Fetches their last 5 transactions, 4) Handles loading and error states. Include TypeScript types and proper error handling.`                                                   |
+| Vercel V0 Docs                    | AI-powered UI generation with V0                         | Adding environment variables; downloading generated code                | `I generated a Mini App UI with V0 and want to deploy it. Help me: 1) Add environment variables for my API keys, 2) Download and integrate the V0 code into my local MiniKit project, 3) Deploy to Vercel with proper configuration. Provide step-by-step instructions.`                                    |
 
-***
+---
 
 ## Example Prompt for Understanding Key Tools
 
 Use prompts like the one below to help an AI assistant explain concepts from documentation:```Help me understand blockchain frontend development by explaining these concepts in simple terms:
 
- 1. What is Wagmi and how does it simplify wallet connections in React?
- 2. How does Viem handle low-level blockchain operations?
- 3. What's the difference between reading blockchain data and writing transactions?
- 4. How do these tools work together in a typical Mini App?
+1.  What is Wagmi and how does it simplify wallet connections in React?
+2.  How does Viem handle low-level blockchain operations?
+3.  What's the difference between reading blockchain data and writing transactions?
+4.  How do these tools work together in a typical Mini App?
 
 Focus on the Base network and provide practical examples for each concept. Include code snippets where helpful.```In the next section, we’ll show you how to prompt AI tools to make sense of all this documentation—so even the complex stuff becomes easier to use.
-
-
 
 # AI-Assisted Documentation Reading
 
@@ -22909,14 +23216,14 @@ AI tools excel at breaking down complex technical content into understandable ex
 
 The "Explain Like I'm a Vibe Coder" approach involves asking AI to simplify technical concepts while maintaining practical applicability. This technique is particularly effective for understanding blockchain concepts, API documentation, and complex development patterns. The key is providing context about your current knowledge level and specific goals rather than asking for generic explanations.
 
-<Accordion title="Explain Like I'm a Vibe Coder Prompt">```I'm looking at this API documentation but finding it confusing. 
+<Accordion title="Explain Like I'm a Vibe Coder Prompt">``I'm looking at this API documentation but finding it confusing. 
  I want to implement the`Checkout`component on the checkout.tsx page of my website. 
- Please explain this like I'm a Vibe Coder (someone new to blockchain development but familiar with basic web development):```#### Code```typescript
- const chargeHandler = async => {
+ Please explain this like I'm a Vibe Coder (someone new to blockchain development but familiar with basic web development):``#### Code```typescript
+const chargeHandler = async => {
 const response = await fetch('/createCharge', { method: 'POST' });
 const { id } = await response.json;
 return id; // Return charge ID
- };
+};
 
  <Checkout chargeHandler={chargeHandler}>
 <CheckoutButton />
@@ -22929,13 +23236,13 @@ Sharing a screenshot with AI enhances its ability to understand your problem sig
 
 <Accordion title="Screenshot Prompt">```I'm looking at this API documentation but finding it confusing. I want to implement the`Checkout`component on the checkout.tsx page of my website.
 
- I have attached two screenshots. The first screenshot is the page I would like to implement the`Checkout`component on. The second screenshot is the API documentation I am looking at.
+I have attached two screenshots. The first screenshot is the page I would like to implement the`Checkout`component on. The second screenshot is the API documentation I am looking at.
 
- Please explain this like I'm a Vibe Coder (someone new to blockchain development but familiar with basic web development):
+Please explain this like I'm a Vibe Coder (someone new to blockchain development but familiar with basic web development):
 
- [Screenshot 1]
+[Screenshot 1]
 
- [Screenshot 2]```</Accordion>
+[Screenshot 2]```</Accordion>
 
 ### Use code snippets
 
@@ -22943,17 +23250,18 @@ Code snippet analysis is another powerful technique. When you find example code 
 
 <Accordion title="Code Snippet Prompt">```I'm looking at this API documentation but finding it confusing. Please explain this like I'm a Vibe Coder (someone new to blockchain development but familiar with basic web development):
 
- [PASTE DOCUMENTATION SECTION HERE]
+[PASTE DOCUMENTATION SECTION HERE]
 
- Specifically help me understand:
+Specifically help me understand:
 
- 1. What this API does in simple terms
- 2. When I would use it in my Mini App
- 3. What the key parameters mean
- 4. A practical example with my specific use case: [DESCRIBE YOUR USE CASE]
+1.  What this API does in simple terms
+2.  When I would use it in my Mini App
+3.  What the key parameters mean
+4.  A practical example with my specific use case: [DESCRIBE YOUR USE CASE]
 
- Break it down step-by-step and include a working code example I can copy and modify.```</Accordion>```
-```# Mini App Successes in TBA
+Break it down step-by-step and include a working code example I can copy and modify.`</Accordion>`
+
+````# Mini App Successes in TBA
 
 > Understand how to leverage Base features strategically to create Mini Apps that thrive within the Base App ecosystem
 
@@ -22972,19 +23280,19 @@ Mini Apps succeed when they create the smoothest possible user experience. **Min
 ### Step: Audit Connect Walet touchpoints
 If you are using a custom wallet connection flow, you can replace it with
  MiniKit + Base Account.
- 
+
 ### Step: Adopt OnchainKit where it fits
 Evaluate which OnchainKit components can replace custom implementations to
  align with Base UI patterns and speed up development.
- 
+
 ### Step: Implement Paymaster
 If you app requires a user to mint a NFT or submit a transaction onchain,
  ensure it is gasless by making that component interact with a Paymaster.
- 
+
 ### Step: Use Batched Transactions
 If you are using doing multiple transactions in a row, you can use batched
  transactions to reduce the number of popups and approvals.
- 
+
 Below is a prompt that will help you optimize your Mini App for maximum success in the Base App ecosystem.```Help me optimize my Mini App for maximum success in the Base App ecosystem:
 
 CURRENT APP ANALYSIS:
@@ -23047,23 +23355,23 @@ Use a split-screen setup if your display allows. Keep **Vercel V0** open in
 Start in your notes or a Google Doc. Write a short, focused prompt that
 describes the core user journey, key screens, and any visual preferences.
 Keep it specific and concise.
- 
+
 ### Step: Set up your workspace
 Arrange two windows side by side. Left: Vercel V0 for UI generation. Right:
 your LLM and notes for refining the prompt and searching documentation.
- 
+
 ### Step: Generate the first UI in V0
 Paste your prompt into V0 and generate an initial interface. Review the
 output carefully: layout, component structure, naming, and accessibility.
- 
+
 ### Step: Iterate with fast feedback loops
 Identify issues or gaps, refine your prompt, and regenerate targeted parts
 (not always the entire UI). Repeat until the flow matches your intent.
- 
+
 ### Step: Export when satisfied
 When the interface feels right, download the code from V0. You’ll wire up
 functionality and any onchain features later in your local environment.
- 
+
 ## Example: Frontend-Only Prompt Template
 
 Use (and adapt) this prompt to have V0 generate a clean starting interface for your Mini App. Keep it UI-first—no wallet hooks or chain calls yet.```I’m designing the first version of a Mini App UI. Please generate React + TypeScript components with Tailwind CSS that focus on layout and flow only (no data fetching, no blockchain code).
@@ -23114,29 +23422,29 @@ Before you prompt your AI IDE, list where you want onchain interactions to
 Launch Cursor or Claude Code and open your Next.js project. Ensure it runs
 locally first with <code>npm run dev</code> so the AI can follow a working
 baseline.
- 
+
 ### Step: Provide docs context to the AI
 Use the MiniKit existing-app integration page. Use the site dropdown to
 “Copy page as Markdown for LLMs”, then paste that markdown into your AI IDE
 as context.
- 
+
 ### Step: Ask the AI to analyze your app
 Have the AI map your routes, layout, and component structure. Ask it to
 propose exact integration points for MiniKit provider and hooks.
- 
+
 ### Step: Integrate MiniKit provider and Smart Wallet
 Add the MiniKit provider in <code>app/layout.tsx</code> (or your top-level
 layout), wire basic hooks, and confirm no “login” button is added. Mini Apps
 should feel native and sessionless.
- 
+
 ### Step: Add Paymaster for gasless UX
 Configure Coinbase Developer Platform Paymaster with environment variables.
 Update your action flows to sponsor transactions, then test locally.
- 
+
 ### Step: Verify and commit
 Run your app, test every onchain touchpoint, and commit changes with clear
 messages. You are ready to deploy.
- 
+
 ## Helpful Prompts:
 
 
@@ -23254,15 +23562,15 @@ Forking a reference Mini App can save time, then you can layer in your specific 
 ### Step: Fork a relevant starter
 Choose an example close to your use case. Update the`/.well-known/farcaster.json`file, metadata in`app/layout.tsx`and
 environment variables.
- 
+
 ### Step: Customize UI and contracts
 Adjust theme tokens, copy, and any contract addresses or endpoints required
 for your flows.
- 
+
 ### Step: Deploy and verify in Base App
 Deploy with Vercel, test sharing and discovery, and validate wallet and
 Paymaster flows end to end.
- 
+
 To fork a reference Mini App, open your terminal and run the following command:
 #### Command```bash
 git clone https://github.com/base/demos.git
@@ -23659,11 +23967,11 @@ The Preview tool has three main components:
 3. Test launch and frame readiness
 
 
- 
+
 - [Launch Checklist](/mini-apps/quickstart/launch-checklist)
 
 
- 
+
 - [Troubleshooting](/mini-apps/troubleshooting/common-issues)
 
 
@@ -24280,10 +24588,12 @@ Public Actions are client methods that map one-to-one with a "public" Ethereum R
 
 For example, you can use the `getBlockNumber`client method to get the latest block:```javascript
 const blockNumber = await client.getBlockNumber;
-```
+````
+
 ## Writing data to the blockchain
 
 In order to write data to Base, you need to create a Wallet client (`createWalletClient`) and specify an [`Account`](https://ethereum.org/en/developers/docs/accounts/) to use.
+
 ```javascript
 import { createWalletClient, custom } from 'viem'
 import { base } from 'viem/chains'
@@ -24301,16 +24611,18 @@ const client = createWalletClient({
 
 client.sendTransaction({ ... })
 ```
+
 <Info>
  In addition to making a JSON-RPC request (`eth_requestAccounts`) to get an Account, viem provides various helper methods for creating an `Account`, including: [`privateKeyToAccount`](https://viem.sh/docs/accounts/local/privateKeyToAccount [`mnemonicToAccount`](https://viem.sh/docs/accounts/local/mnemonicToAccount and [`hdKeyToAccount`](https://viem.sh/docs/accounts/local/hdKeyToAccount)
 
- To use Base Sepolia (testnet), replace `base`with`baseSepolia`.
+To use Base Sepolia (testnet), replace `base`with`baseSepolia`.
 </Info>
 
 ## Interacting with smart contracts
 
 You can use viem to interact with a smart contract on Base by creating a `Contract` instance using [`getContract`](https://viem.sh/docs/contract/getContract) and passing it the contract ABI, contract address, and [Public](https://viem.sh/docs/clients/public) and/or [Wallet](https://viem.sh/docs/clients/wallet) Client:
-```javascript
+
+````javascript
 import { getContract } from 'viem';
 import { wagmiAbi } from './abi';
 import { publicClient } from './client';
@@ -24411,12 +24723,11 @@ async function getValue {
  const value = await contract.methods.get.call;
  console.log(value.toString);
 }
-```
+````
+
 <Info>
  For more information on deploying contracts on Base, see [Deploying a Smart Contract](../smart-contract-development/hardhat/deploy-with-hardhat.md).
 </Info>
-
-
 
 Account Abstraction
 
@@ -24430,10 +24741,9 @@ Still trying to onboard users to your app? Want to break free from the worries o
 
 Base transaction fees are typically less than a penny, but the concept of gas can still be confusing for new users. You can abstract this away and improve your UX by using the **Base Paymaster**. The Paymaster allows you to:
 
-* Batch multi-step transactions
-* Create custom gasless experiences
-* Sponsor up to \$10k monthly on mainnet (unlimited on testnet)
-
+- Batch multi-step transactions
+- Create custom gasless experiences
+- Sponsor up to \$10k monthly on mainnet (unlimited on testnet)
 
 ## Objectives
 
@@ -24447,16 +24757,16 @@ Base transaction fees are typically less than a penny, but the concept of gas ca
 This tutorial assumes you have:
 
 1. **A Coinbase Cloud Developer Platform Account**\
- If not, sign up on the [CDP site]. Once you have your account, you can manage projects and utilize tools like the Paymaster.
+   If not, sign up on the [CDP site]. Once you have your account, you can manage projects and utilize tools like the Paymaster.
 
 2. **Familiarity with Smart Accounts and ERC 4337**\
- Smart Accounts are the backbone of advanced transaction patterns (e.g., bundling, sponsorship). If you’re new to ERC 4337, check out external resources like the official [EIP-4337 explainer](https://eips.ethereum.org/EIPS/eip-4337) before starting.
+   Smart Accounts are the backbone of advanced transaction patterns (e.g., bundling, sponsorship). If you’re new to ERC 4337, check out external resources like the official [EIP-4337 explainer](https://eips.ethereum.org/EIPS/eip-4337) before starting.
 
 3. **Foundry**\
- Foundry is a development environment, testing framework, and smart contract toolkit for Ethereum. You’ll need it installed locally for generating key pairs and interacting with smart contracts.
+   Foundry is a development environment, testing framework, and smart contract toolkit for Ethereum. You’ll need it installed locally for generating key pairs and interacting with smart contracts.
 
 > **Testnet vs. Mainnet**\
-> If you prefer not to spend real funds, you can switch to **Base Goerli** (testnet). The steps below are conceptually the same. Just select *Base Goerli* in the Coinbase Developer Platform instead of *Base Mainnet*, and use a contract deployed on Base testnet for your allowlisted methods.
+> If you prefer not to spend real funds, you can switch to **Base Goerli** (testnet). The steps below are conceptually the same. Just select _Base Goerli_ in the Coinbase Developer Platform instead of _Base Mainnet_, and use a contract deployed on Base testnet for your allowlisted methods.
 
 ## Set Up a Base Paymaster & Bundler
 
@@ -24469,14 +24779,11 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 
 ### Screenshots
 
-* **Selecting your project**\
- 
+- **Selecting your project**\
 
-* **Navigating to the Paymaster tool**\
+- **Navigating to the Paymaster tool**\
 
-
-* **Configuration screen**\
-
+- **Configuration screen**\
 
 ### Allowlist a Sponsorable Contract
 
@@ -24485,8 +24792,6 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 3. Click **Add** to add an allowlisted contract.
 4. For this example, add [`0x83bd615eb93eE1336acA53e185b03B54fF4A17e8`][simple NFT contract], and add the function `mintTo(address)`.
 
-
-
 > **Use your own contract**\
 > We use a [simple NFT contract][simple NFT contract] on Base mainnet as an example. Feel free to substitute your own.
 
@@ -24494,19 +24799,17 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 
 Scroll down to the **Per User Limit** section. You can set:
 
-* **Dollar amount limit** or **number of UserOperations** per user
-* **Limit cycles** that reset daily, weekly, or monthly
+- **Dollar amount limit** or **number of UserOperations** per user
+- **Limit cycles** that reset daily, weekly, or monthly
 
 For example, you might set:
 
-* `max USD`to`$0.05`*`max UserOperation`to`1`This means **each user** can only have \$0.05 in sponsored gas and **1** user operation before the cycle resets.
+- `max USD`to`$0.05`\*`max UserOperation`to`1`This means **each user** can only have \$0.05 in sponsored gas and **1** user operation before the cycle resets.
 
 > **Limit Cycles**\
 > These reset based on the selected cadence (daily, weekly, monthly).
 
 Next, **Set the Global Limit**. For example, set this to`$0.07`so that once the entire paymaster has sponsored \$0.07 worth of gas (across all users), no more sponsorship occurs unless you raise the limit.
-
-
 
 ## Test Your Paymaster Policy
 
@@ -24519,9 +24822,12 @@ Now let’s verify that these policies work. We’ll:
 ### Installing Foundry
 
 1. Ensure you have **Rust** installed. If not:
+
 #### Command```bash
- curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```2. Install Foundry:
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+````2. Install Foundry:
 #### Command```bash
  curl -L https://foundry.paradigm.xyz | bash
  foundryup
@@ -24720,81 +25026,81 @@ async function checkNftBalance(publicClient, contractAddress, abi, ownerAddress)
  });
  console.log(`NFT balance of ${ownerAddress} is now: ${balance}`);
 }
-```
+````
+
 ## Conclusion
 
 In this tutorial, you:
 
-* Set up and **configured** a Base Paymaster on the Coinbase Developer Platform.
-* **Allowlisted** a contract and specific function (`mintTo`) for sponsorship.
-* Established **per-user** and **global** sponsorship **limits** to control costs.
-* Demonstrated the **sponsorship flow** with Smart Accounts using `permissionless`, `viem`, and Foundry-generated private keys.
+- Set up and **configured** a Base Paymaster on the Coinbase Developer Platform.
+- **Allowlisted** a contract and specific function (`mintTo`) for sponsorship.
+- Established **per-user** and **global** sponsorship **limits** to control costs.
+- Demonstrated the **sponsorship flow** with Smart Accounts using `permissionless`, `viem`, and Foundry-generated private keys.
 
 This approach can greatly improve your dApp’s user experience by removing gas friction. For more complex sponsorship schemes (like daily or weekly cycles), simply tweak your per-user and global limit settings in the Coinbase Developer Platform.
 
 > **Next Steps**
 >
-> * Use a [proxy service][proxy service] for better endpoint security.
-> * Deploy your own contracts and allowlist them.
-> * Experiment with bundling multiple calls into a single sponsored transaction.
+> - Use a [proxy service][proxy service] for better endpoint security.
+> - Deploy your own contracts and allowlist them.
+> - Experiment with bundling multiple calls into a single sponsored transaction.
 
 ## References
 
-* [list of factory addresses]
-* [CDP site]
-* [Coinbase Developer Platform]
-* [UI]
-* [proxy service]
-* [Paymaster Tool]
-* [Foundry Book installation guide]
-* [simple NFT contract]
+- [list of factory addresses]
+- [CDP site]
+- [Coinbase Developer Platform]
+- [UI]
+- [proxy service]
+- [Paymaster Tool]
+- [Foundry Book installation guide]
+- [simple NFT contract]
 
 [list of factory addresses]: https://www.alchemy.com/docs/wallets/smart-contracts/deployed-addresses
-
-
 [CDP site]: https://portal.cdp.coinbase.com/
-
 [Coinbase Developer Platform]: https://portal.cdp.coinbase.com/
-
 [UI]: https://portal.cdp.coinbase.com/products/bundler-and-paymaster
-
 [proxy service]: https://www.smartwallet.dev/guides/paymasters
-
 [Paymaster Tool]: https://portal.cdp.coinbase.com/products/bundler-and-paymaster
-
 [Foundry Book installation guide]: https://book.getfoundry.sh/getting-started/installation
-
 [simple NFT contract]: https://basescan.org/token/0x83bd615eb93ee1336aca53e185b03b54ff4a17e8
 
 **Happy Building on Base!**
+
 # Base — Mini Apps ve OnchainKit — Hazır (BaseMan)
 
 - Kaynak: https://docs.base.org/ (resmi doküman)
 - Son hazırlayan: 2025-11-02
 
 Amaç
+
 - BaseMan’in Base Sepolia (84532) ve Base Mainnet (8453) üzerinde kararlı çalışması için mini app yayın akışını, OnchainKit yapılandırmasını ve RPC/bundler/paymaster ayarlarını standardize etmek.
 
 Temel Kavramlar
+
 - Zincir Kimlikleri: 8453 (Base Mainnet), 84532 (Base Sepolia).
 - RPC Uçları: `https://mainnet.base.org` `https://sepolia.base.org`.
 - OnchainKit Konfig: `rpcUrl`veya`apiKey`zorunlu; aksi halde onchain istekler başarısız olabilir.
 - Mini App Yayınlama: Vercel dağıtımı, Base App üzerinden yayın (manifest/embed uyumu).
 
 OnchainKit Entegrasyonu
+
 - Sağlayıcı: OnchainKit Provider ile`chain`ve`projectId`/`rpcUrl`yapılandırması.
 - Ağ Desteği: 8453/84532 desteklenir;`isBase({ chainId })`gibi yardımcılar mevcuttur.
 - Telemetri/Analytics: (opsiyonel) komponent/komut olaylarını raporlama uçları.
 
 Mini App Oluşturma/Yayınlama
+
 - Şablon veya mevcut uygulamayı adaptasyon;`/.well-known/farcaster.json`manifestini ve`fc:miniapp`embed’ini servis etmek.
 - Base App’te paylaşım/yayın akışı (dokümana göre): URL ile post oluşturma ve doğrulama.
 
 Paymaster/Bundler (Özet — detay CDP dokümanında)
+
 - CDP portalından Paymaster & Bundler endpoint’i alınır; allowlist/policy yapılandırılır.
 - OnchainKit’te`config.paymaster`ile entegrasyon yapılabilir.
 
 Uygulama Kontrol Listesi (Base)
+
 - [ ] 8453/84532 chainId doğru seçiliyor
 - [ ]`rpcUrl`veya`apiKey`sağlanmış
 - [ ] RPC uçları erişilebilir (healthcheck)
@@ -24802,15 +25108,15 @@ Uygulama Kontrol Listesi (Base)
 - [ ] Vercel dağıtımı sağlıklı; statik +`/api/*`uçları çalışıyor
 
 BaseMan Eşleştirmesi
+
 - RPC/env:`.env`içinde`BASE_RPC_URL`, `BASE_SEPOLIA_RPC_URL`(varsa), bundler/paymaster URL’leri
 - OnchainKit ada:`src/ui/onchainkit-app.jsx`(bundle:`vendor/onchainkit/onchainkit.bundle.js`)
 - Yükleme mantığı: `src/load-onchainkit.js`(miniapp tespiti ile web’de yükle)
 
 Notlar
-- Prod/staging için ayrı RPC/bundler/paymaster anahtarları önerilir.
--`requiredChains` manifestte 8453/84532 olarak listelenmeli.
+
+- Prod/staging için ayrı RPC/bundler/paymaster anahtarları önerilir. -`requiredChains` manifestte 8453/84532 olarak listelenmeli.
 
 ---- Hazır Özet Sonu — Aşağıda ham kaynak içerik bulunur ----
-
 
 [Back to top](#table-of-contents)

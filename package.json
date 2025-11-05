@@ -59,36 +59,43 @@
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",
-    "@coinbase/cdp-sdk": "^1.38.4",
+    "@coinbase/cdp-sdk": "^1.38.5",
     "@farcaster/miniapp-sdk": "^0.2.1",
     "@farcaster/miniapp-wagmi-connector": "^1.1.0",
     "@farcaster/quick-auth": "^0.0.8",
     "@tanstack/react-query": "^5.90.6",
-    "aes-js": "^4.0.0-beta.5",
-    "connectkit": "^1.9.1",
     "ethers": "^6.15.0",
     "prompts": "^2.4.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "viem": "^2.38.6",
     "wagmi": "^2.19.2",
-    "zod": "^3.23.8"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@cspell/dict-tr-tr": "^3.0.6",
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@openzeppelin/contracts": "^5.4.0",
     "cspell": "^9.2.2",
-    "doctoc": "^2.2.0",
-    "dotenv": "^16.6.1",
+    "doctoc": "^2.2.1",
+    "dotenv": "^17.2.3",
     "esbuild": "^0.25.12",
     "express": "^5.1.0",
-    "hardhat": "^2.22.5",
-    "markdown-link-check": "^3.12.3",
+    "hardhat": "^2.26.5",
+    "markdown-link-check": "^3.14.1",
     "markdownlint-cli": "^0.45.0",
-    "prettier": "^3.3.3"
+    "prettier": "^3.6.2"
   },
   "engines": {
     "node": ">=20.17.0"
+  },
+  "overrides": {
+    "@walletconnect/core": "^2.23.0",
+    "@walletconnect/ethereum-provider": "^2.23.0",
+    "@walletconnect/sign-client": "^2.23.0",
+    "@walletconnect/universal-provider": "^2.23.0",
+    "@walletconnect/types": "^2.23.0",
+    "@walletconnect/utils": "^2.23.0",
+    "cookie": "^1.0.2"
   }
 }

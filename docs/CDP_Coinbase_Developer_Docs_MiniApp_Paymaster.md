@@ -1,3 +1,157 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Coinbase Developer Platform Documentation](#coinbase-developer-platform-documentation)
+  - [Quick Start / Checklist](#quick-start--checklist)
+    - [Related Docs](#related-docs)
+    - [Env Checklist](#env-checklist)
+    - [Diagrams](#diagrams)
+  - [Table of Contents](#table-of-contents)
+  - [ONCHAIN TOOLS](#onchain-tools)
+  - [Paymaster](#paymaster)
+- [Welcome to Paymaster](#welcome-to-paymaster)
+  - [Get Started](#get-started)
+    - [Example Repository](#example-repository)
+    - [Want More Guidance?](#want-more-guidance)
+- [Quickstart- Set up your Paymaster on your application](#quickstart--set-up-your-paymaster-on-your-application)
+  - [Getting an endpoint on Base Sepolia](#getting-an-endpoint-on-base-sepolia)
+  - [Setting up an app template](#setting-up-an-app-template)
+      - [Code```js](#codejs)
+  - [Implement Wagmi Hooks](#implement-wagmi-hooks)
+      - [Code](#code)
+  - [You're Ready!](#youre-ready)
+- [Gasless Transactions on Base using Base Paymaster](#gasless-transactions-on-base-using-base-paymaster)
+  - [Objectives](#objectives)
+  - [Prerequisites](#prerequisites)
+  - [Set Up a Base Paymaster & Bundler](#set-up-a-base-paymaster--bundler)
+    - [Screenshots](#screenshots)
+    - [Allowlist a Sponsorable Contract](#allowlist-a-sponsorable-contract)
+    - [Global & Per User Limits](#global--per-user-limits)
+  - [Test Your Paymaster Policy](#test-your-paymaster-policy)
+    - [Installing Foundry](#installing-foundry)
+      - [Command```bash](#commandbash)
+  - [Conclusion](#conclusion)
+- [Creating a Paymaster Proxy for Secured Sponsored Transactions](#creating-a-paymaster-proxy-for-secured-sponsored-transactions)
+  - [Using Wagmi/Viem in a Next.js app](#using-wagmiviem-in-a-nextjs-app)
+    - [Choose a paymaster service provider](#choose-a-paymaster-service-provider)
+    - [Validate UserOperation](#validate-useroperation)
+      - [Code```ts](#codets)
+- [Paymaster & Bundler Errors](#paymaster--bundler-errors)
+  - [Paymaster Error Codes](#paymaster-error-codes)
+  - [Paymaster Gas Policy Errors](#paymaster-gas-policy-errors)
+  - [Bundler Error Codes](#bundler-error-codes)
+  - [Entrypoint Error Codes](#entrypoint-error-codes)
+  - [Request Logs](#request-logs)
+- [Paymaster & Bundler Troubleshooting](#paymaster--bundler-troubleshooting)
+  - [Execution reverted](#execution-reverted)
+    - [Issue regarding gas estimation](#issue-regarding-gas-estimation)
+    - [Execution reverted with data](#execution-reverted-with-data)
+    - [Execution reverted for an unknown reason](#execution-reverted-for-an-unknown-reason)
+  - [Invalid chain id](#invalid-chain-id)
+  - [Invalid UserOperation signature or paymaster signature](#invalid-useroperation-signature-or-paymaster-signature)
+- [Paymaster Security](#paymaster-security)
+  - [Paymaster Proxy](#paymaster-proxy)
+  - [DATA](#data)
+  - [Getting Started](#getting-started)
+- [Welcome to Onchain Data](#welcome-to-onchain-data)
+  - [Overview](#overview)
+  - [Key features](#key-features)
+  - [Use cases](#use-cases)
+  - [Demo applications](#demo-applications)
+  - [Available services](#available-services)
+- [Onchain Data: Quickstart](#onchain-data-quickstart)
+    - [Step: Open SQL Playground](#step-open-sql-playground)
+    - [Step: Try a query](#step-try-a-query)
+    - [Step: Open Node Playground](#step-open-node-playground)
+    - [Step: Run the RPC call](#step-run-the-rpc-call)
+  - [Overview](#overview-1)
+  - [Prerequisites](#prerequisites-1)
+  - [1. Run a SQL query](#1-run-a-sql-query)
+  - [2. Make your first RPC call](#2-make-your-first-rpc-call)
+  - [What to read next](#what-to-read-next)
+- [Onchain Data FAQ](#onchain-data-faq)
+    - [What networks are supported?](#what-networks-are-supported)
+    - [What is the rate limit?](#what-is-the-rate-limit)
+    - [Do I need API keys?](#do-i-need-api-keys)
+    - [How fresh is the data?](#how-fresh-is-the-data)
+    - [How much does it cost?](#how-much-does-it-cost)
+    - [Where can I get help?](#where-can-i-get-help)
+  - [Node](#node)
+- [Welcome to Node](#welcome-to-node)
+  - [Overview](#overview-2)
+  - [Key features](#key-features-1)
+  - [Use cases](#use-cases-1)
+  - [Supported networks](#supported-networks)
+  - [Getting started](#getting-started)
+  - [Rate limits](#rate-limits)
+  - [API Reference](#api-reference)
+  - [Support and feedback](#support-and-feedback)
+- [Node Quickstart](#node-quickstart)
+    - [Step: Open Node Playground](#step-open-node-playground-1)
+    - [Step: Run the RPC call](#step-run-the-rpc-call-1)
+  - [Prerequisites](#prerequisites-2)
+  - [1. Try it in the playground](#1-try-it-in-the-playground)
+  - [2. Get your RPC endpoint](#2-get-your-rpc-endpoint)
+    - [Step: Navigate to Node](#step-navigate-to-node)
+    - [Step: Select your network](#step-select-your-network)
+    - [Step: Copy your endpoint URL](#step-copy-your-endpoint-url)
+  - [3. Make your first request](#3-make-your-first-request)
+  - [What to read next](#what-to-read-next-1)
+  - [SQL API](#sql-api)
+- [Welcome to SQL API](#welcome-to-sql-api)
+  - [Key Features](#key-features)
+  - [Use Cases](#use-cases)
+  - [Schema](#schema)
+  - [Support and feedback](#support-and-feedback-1)
+- [SQL API: Quickstart](#sql-api-quickstart)
+    - [Step: Open SQL Playground](#step-open-sql-playground-1)
+    - [Step: Try a query](#step-try-a-query-1)
+  - [Overview](#overview-3)
+  - [Prerequisites](#prerequisites-3)
+  - [1. Try it in the playground](#1-try-it-in-the-playground-1)
+  - [2. Run a query programmatically](#2-run-a-query-programmatically)
+  - [What to read next](#what-to-read-next-2)
+- [Schema](#schema-1)
+  - [Supported Tables](#supported-tables)
+  - [base.blocks](#baseblocks)
+  - [base.events](#baseevents)
+  - [base.transactions](#basetransactions)
+  - [base.encoded_logs](#baseencoded_logs)
+  - [base.transfers](#basetransfers)
+- [CoinbaSeQL Grammar](#coinbaseql-grammar)
+  - [Overview](#overview-4)
+  - [For AI tools and query validators](#for-ai-tools-and-query-validators)
+    - [Design Principles](#design-principles)
+    - [Grammar Specification](#grammar-specification)
+  - [SDKs](#sdks)
+- [Introduction](#introduction)
+  - [<Section>Build onchain</Section>](#sectionbuild-onchainsection)
+  - [<Section>Consumer APIs</Section>](#sectionconsumer-apissection)
+  - [<Section>Institutional APIs</Section>](#sectioninstitutional-apissection)
+  - [BUILD ONCHAIN](#build-onchain)
+  - [CDP SDKs V2](#cdp-sdks-v2)
+  - [Backend](#backend)
+- [Overview](#overview-5)
+  - [Installation](#installation)
+      - [Command](#command)
+      - [When to use each approach:](#when-to-use-each-approach)
+      - [Key differences between Regular Accounts (EOAs) and Smart Accounts:](#key-differences-between-regular-accounts-eoas-and-smart-accounts)
+      - [Example implementations](#example-implementations)
+    - [Transferring tokens](#transferring-tokens)
+      - [EVM](#evm)
+      - [Code```typescript](#codetypescript)
+      - [Code](#code-1)
+      - [Code```typescript](#codetypescript-1)
+          - [Parameters](#parameters)
+          - [options?](#options)
+          - [Returns](#returns)
+      - [Properties](#properties)
+        - [endUser](#enduser)
+      - [Code](#code-2)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: Coinbase Developer Platform Documentation
 version: 0.1.0
@@ -5,36 +159,48 @@ updatedAt: 2025-11-02
 owner: BaseMan
 ---
 
+<!-- cspell:disable -->
+
 # Coinbase Developer Platform Documentation
 
 ## Quick Start / Checklist
+
 - CDP projesi oluştur ve Paymaster/Bundler endpoint’lerini al
 - Politika/allowlist yapılandır: sponsorluk verilecek sözleşme adreslerini ekle, limitleri belirle
-- Bağımlılıklar: `npm install`- Wagmi/Viem entegrasyonu: Paymaster ile gasless için client’ı yapılandır (Paymaster & Bundler URL)
-- Yerel geliştirme:`npm run dev`ve akıllı cüzdanla giriş yap, örnek işlemi tetikle
+- Bağımlılıklar: `npm install`
+- Wagmi/Viem entegrasyonu: Paymaster ile gasless için client’ı yapılandır (Paymaster & Bundler URL)
+- Yerel geliştirme: `npm run dev` ve akıllı cüzdanla giriş yap, örnek işlemi tetikle
 - Günlükleme/hata ayıklama: Paymaster/Bundler loglarını izle, limit aşımlarını doğrula
-- TOC güncelle:`npm run docs:toc`### Related Docs
+- TOC güncelle: `npm run docs:toc`
+
+### Related Docs
+
 - Base: [Base_MiniApps_Docs.md](Base_MiniApps_Docs.md)
 - Farcaster Mini Apps: [Farcaster_MiniApps_Docs.md](Farcaster_MiniApps_Docs.md)
- - Glossary: [glossary.md](glossary.md)
+- Glossary: [glossary.md](glossary.md)
 
 ### Env Checklist
+
 - CDP_API_KEY, CDP_PAYMASTER_URL, CDP_BUNDLER_URL
 - RPC_URL_BASE_SEPOLIA ve/veya RPC_URL_BASE
 - WALLETCONNECT_PROJECT_ID (Wagmi kullanımı için)
 - Örnek dosya: [env.example](env.example)
 
-### Diagrams```mermaid
+### Diagrams
+
+```mermaid
 flowchart LR
- U[User] --> W[Smart Wallet]
- W -->|userOperation| B[Bundler]
- B -->|sponsor request| P[Paymaster]
- P -->|policy check| P
- P -->|paymaster data| B
- B -->|submit to chain| C[Base]
- C --> R[Receipt]
- R --> U
-```<!-- TOC -->
+U[User] --> W[Smart Wallet]
+W -->|userOperation| B[Bundler]
+B -->|sponsor request| P[Paymaster]
+P -->|policy check| P
+P -->|paymaster data| B
+B -->|submit to chain| C[Base]
+C --> R[Receipt]
+R --> U
+```
+
+<!-- TOC -->
 ## Table of Contents
 - [ONCHAIN TOOLS](#onchain-tools)
 - [Paymaster](#paymaster)
@@ -523,9 +689,9 @@ bun i
 Navigate to`/src/components/OnchainProviders.tsx`and modify the OnchainKitProvider's`config`object to include the paymaster URL.
 #### Code```js
 
- <OnchainKitProvider 
-apiKey={NEXT_PUBLIC_CDP_API_KEY} 
-chain={baseSepolia} 
+ <OnchainKitProvider
+apiKey={NEXT_PUBLIC_CDP_API_KEY}
+chain={baseSepolia}
 config={{ paymaster: process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT }}
 >
  {children}
@@ -787,9 +953,9 @@ const authorizationHash = await sepoliaWalletClient.signAuthorization({
 });
 
 // Step 4: Send authorization onchain
-const hash = await walletClient.sendTransaction({ 
- authorizationList: [authorization], 
- to: eoa.address, 
+const hash = await walletClient.sendTransaction({
+ authorizationList: [authorization],
+ to: eoa.address,
 })
 ```## How can I tell if a wallet is a smart account or EOA?
 
@@ -877,7 +1043,7 @@ const owner = privateKeyToAccount('<your-private-key>')
 export const account = await toCoinbaseSmartAccount({
  client,
  owners: [owner]
-}) 
+})
 ```### 4. Add your smart contract's ABI
 
 Create a file called`example-app-abi.js`to store our NFT contract's abi and address. You will have to update this to your smart contract's ABI.
@@ -930,7 +1096,7 @@ const calls = [mintTo]
 account.userOperation = {
  estimateGas: async (userOperation) => {
 const estimate = await bundlerClient.estimateUserOperationGas(userOperation);
-// adjust preVerification upward 
+// adjust preVerification upward
 estimate.preVerificationGas = estimate.preVerificationGas * 2n;
 return estimate;
  },
@@ -1041,19 +1207,22 @@ declare module 'wagmi' {
 config: ReturnType<typeof getConfig>;
  }
 }
-```
+````
+
 ## Implement Wagmi Hooks
 
 For the onchain actions (minting, etc.) of your application, use Wagmi’s [experimental hooks](https://wagmi.sh/react/api/hooks/useCallsStatus#:~:text=Utilities-,Experimental,-useCallsStatus) to manage wallet connection, check for paymaster capabilities, and execute onchain actions with you whitelisted contracts.
 
-* [**`useCapabilities`**](https://wagmi.sh/react/api/hooks/useCapabilities Retrieves the capabilities supported by the connected wallet, such as `paymasterService` for gasless transactions.
-* [**`useWriteContracts`**](https://wagmi.sh/react/api/hooks/useWriteContracts Executes onchain write actions, here used to call the `mintTo` function on the NFT contract.
+- [**`useCapabilities`**](https://wagmi.sh/react/api/hooks/useCapabilities Retrieves the capabilities supported by the connected wallet, such as `paymasterService` for gasless transactions.
+- [**`useWriteContracts`**](https://wagmi.sh/react/api/hooks/useWriteContracts Executes onchain write actions, here used to call the `mintTo` function on the NFT contract.
 
 Here's an example for a onchain action to mint an NFT:
 
 **`mint/page.tsx`**
+
 #### Code
-```tsx
+
+````tsx
 'use client';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { useState, useMemo } from 'react';
@@ -1308,7 +1477,8 @@ Starting Game...
 </div>
  );
 }
-```
+````
+
 ## You're Ready!
 
 You've now created a gasless transaction component that connects to your smart contract, handles wallet logic, and leverages the Coinbase Paymaster to sponsor transactions.
@@ -1319,17 +1489,15 @@ Use this setup as a foundation for other gasless interactions in your dapp. Adju
 
 Happy building! 🚀
 
-
 # Gasless Transactions on Base using Base Paymaster
 
 > Learn how to leverage the Base Paymaster for seamless, gasless transactions on the Coinbase Cloud Developer Platform.
 
 Base transaction fees are typically less than a penny, but the concept of gas can still be confusing for new users and lead to poor user experience when users don't have gas funds in their wallet. You can abstract this away and improve your UX by using the **Base Paymaster**. The Paymaster allows you to:
 
-* Batch multi-step transactions
-* Create custom gasless experiences
-* Sponsor up to \$15k monthly on mainnet (unlimited on testnet)
-
+- Batch multi-step transactions
+- Create custom gasless experiences
+- Sponsor up to \$15k monthly on mainnet (unlimited on testnet)
 
 > Note:
 
@@ -1345,19 +1513,18 @@ Base transaction fees are typically less than a penny, but the concept of gas ca
 This tutorial assumes you have:
 
 1. **A Coinbase Cloud Developer Platform Account**\
- If not, sign up on the [CDP site]. Once you have your account, you can manage projects and utilize tools like the Paymaster.
+   If not, sign up on the [CDP site]. Once you have your account, you can manage projects and utilize tools like the Paymaster.
 
 2. **Familiarity with Smart Accounts and ERC 4337**\
- Smart Accounts are the backbone of advanced transaction patterns (e.g., bundling, sponsorship). If you're new to ERC 4337, check out external resources like the official [EIP-4337 explainer](https://eips.ethereum.org/EIPS/eip-4337) before starting.
+   Smart Accounts are the backbone of advanced transaction patterns (e.g., bundling, sponsorship). If you're new to ERC 4337, check out external resources like the official [EIP-4337 explainer](https://eips.ethereum.org/EIPS/eip-4337) before starting.
 
 3. **Foundry**\
- [Foundry] is a development environment, testing framework, and smart contract toolkit for Ethereum. You'll need it installed locally for generating key pairs and interacting with smart contracts.
-
+   [Foundry] is a development environment, testing framework, and smart contract toolkit for Ethereum. You'll need it installed locally for generating key pairs and interacting with smart contracts.
 
 > Note:
-Testnet vs. Mainnet
+> Testnet vs. Mainnet
 
- If you prefer not to spend real funds, you can switch to **Base Sepolia** (testnet). The steps below are conceptually the same. Just select *Base Sepolia* in the Coinbase Developer Platform instead of *Base Mainnet*, and use a contract deployed on Base testnet for your allowlisted methods.
+If you prefer not to spend real funds, you can switch to **Base Sepolia** (testnet). The steps below are conceptually the same. Just select _Base Sepolia_ in the Coinbase Developer Platform instead of _Base Mainnet_, and use a contract deployed on Base testnet for your allowlisted methods.
 
 ## Set Up a Base Paymaster & Bundler
 
@@ -1379,6 +1546,7 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 **Navigate to the configuration screen**
 
 ![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/cdp-config.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=c14af55f5769e2607744361caf73439e)
+
 ### Allowlist a Sponsorable Contract
 
 1. From the Configuration page, ensure **Base Mainnet** (or **Base Sepolia** if you're testing) is selected.
@@ -1388,31 +1556,32 @@ In this section, you will configure a Paymaster to sponsor payments on behalf of
 
 ![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/cdp-allowlist-contract.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=cabf2c786de0cb15f4bbf7503ad2b86b)
 <Info>
- Use your own contract
+Use your own contract
 
- We use a [simple NFT contract][simple NFT contract] on Base mainnet as an example. Feel free to substitute your own.
+We use a [simple NFT contract][simple NFT contract] on Base mainnet as an example. Feel free to substitute your own.
 </Info>
 
 ### Global & Per User Limits
 
 Scroll down to the **Per User Limit** section. You can set:
 
-* **Dollar amount limit** or **number of UserOperations** per user
-* **Limit cycles** that reset daily, weekly, or monthly
+- **Dollar amount limit** or **number of UserOperations** per user
+- **Limit cycles** that reset daily, weekly, or monthly
 
 For example, you might set:
 
-* `max USD`to`$0.05`*`max UserOperation`to`1`This means **each user** can only have \$0.05 in sponsored gas and **1** user operation before the cycle resets.
+- `max USD`to`$0.05`\*`max UserOperation`to`1`This means **each user** can only have \$0.05 in sponsored gas and **1** user operation before the cycle resets.
 
 <Info>
  Limit Cycles
 
- These reset based on the selected cadence (daily, weekly, monthly).
+These reset based on the selected cadence (daily, weekly, monthly).
 </Info>
 
 Next, **set the Global Limit**. For example, set this to`$0.07`so that once the entire paymaster has sponsored \$0.07 worth of gas (across all users), no more sponsorship occurs unless you raise the limit.
 
 ![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/cdp-global-user-limits.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=1092001b69dda392516e3f19fc85bc3c)
+
 ## Test Your Paymaster Policy
 
 Now let's verify that these policies work. We'll:
@@ -1424,9 +1593,12 @@ Now let's verify that these policies work. We'll:
 ### Installing Foundry
 
 1. Ensure you have **Rust** installed
+
 #### Command```bash
- curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```2. Install Foundry
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+````2. Install Foundry
 #### Command```bash
  curl -L https://foundry.paradigm.xyz | bash
  foundryup
@@ -1638,39 +1810,33 @@ args: [ownerAddress],
  });
  console.log(`NFT balance of ${ownerAddress} is now: ${balance}`);
 }
-```
+````
+
 ## Conclusion
 
 In this tutorial, you:
 
-* Set up and **configured** a Base Paymaster on the Coinbase Developer Platform.
-* **Allowlisted** a contract and specific function (`mintTo`) for sponsorship.
-* Established **per-user** and **global** sponsorship **limits** to control costs.
-* Demonstrated the **sponsorship flow** with Smart Accounts using `permissionless`, `viem`, and Foundry-generated private keys.
+- Set up and **configured** a Base Paymaster on the Coinbase Developer Platform.
+- **Allowlisted** a contract and specific function (`mintTo`) for sponsorship.
+- Established **per-user** and **global** sponsorship **limits** to control costs.
+- Demonstrated the **sponsorship flow** with Smart Accounts using `permissionless`, `viem`, and Foundry-generated private keys.
 
 This approach can greatly improve your onchain app's user experience by removing gas friction. For more complex sponsorship schemes (like daily or weekly cycles), simply tweak your per-user and global limit settings in the Coinbase Developer Platform.
 
 > **Next Steps**
 >
-> * Use a [proxy service][proxy service] for better endpoint security.
-> * Deploy your own contracts and allowlist them.
-> * Experiment with bundling multiple calls into a single sponsored transaction.
-
+> - Use a [proxy service][proxy service] for better endpoint security.
+> - Deploy your own contracts and allowlist them.
+> - Experiment with bundling multiple calls into a single sponsored transaction.
 
 [CDP site]: https://portal.cdp.coinbase.com/
-
 [Coinbase Developer Platform]: https://portal.cdp.coinbase.com/
-
 [proxy service]: https://www.smartwallet.dev/guides/paymasters
-
 [Paymaster Tool]: https://portal.cdp.coinbase.com/products/bundler-and-paymaster
-
 [Foundry]: https://book.getfoundry.sh/getting-started/installation
-
 [simple NFT contract]: https://basescan.org/token/0x83bd615eb93ee1336aca53e185b03b54ff4a17e8
 
 **Happy Building on Base!**
-
 
 # Creating a Paymaster Proxy for Secured Sponsored Transactions
 
@@ -1715,67 +1881,69 @@ The goal of this section is to write a`willSponsor`function to add some extra va
 </Info>
 
 The code below is built specifically for Smart Wallet. It would need to be updated to support other smart accounts.
+
 #### Code```ts
+
 // @errors: 2305
 // @noErrors
 import { UserOperation } from "viem/account-abstraction";
 import { entryPoint06Address } from "viem/account-abstraction";
 import {
- Address,
- BlockTag,
- Hex,
- decodeAbiParameters,
- decodeFunctionData,
+Address,
+BlockTag,
+Hex,
+decodeAbiParameters,
+decodeFunctionData,
 } from "viem";
 import { baseSepolia } from "viem/chains";
 import { client } from "./config";
 import {
- coinbaseSmartWalletABI,
- coinbaseSmartWalletProxyBytecode,
- coinbaseSmartWalletV1Implementation,
- erc1967ProxyImplementationSlot,
- magicSpendAddress,
+coinbaseSmartWalletABI,
+coinbaseSmartWalletProxyBytecode,
+coinbaseSmartWalletV1Implementation,
+erc1967ProxyImplementationSlot,
+magicSpendAddress,
 } from "./constants";
 import { myNFTABI, myNFTAddress } from "@/ABIs/myNFT";
 
-// @noErrors 
+// @noErrors
 
 export async function willSponsor({
- chainId,
- entrypoint,
- userOp,
+chainId,
+entrypoint,
+userOp,
 }: { chainId: number; entrypoint: string; userOp: UserOperation<'0.6'> }) {
- // check chain id
- if (chainId !== baseSepolia.id) return false;
- // check entrypoint
- // not strictly needed given below check on implementation address, but leaving as example
- if (entrypoint.toLowerCase !== entryPoint06Address.toLowerCase)
+// check chain id
+if (chainId !== baseSepolia.id) return false;
+// check entrypoint
+// not strictly needed given below check on implementation address, but leaving as example
+if (entrypoint.toLowerCase !== entryPoint06Address.toLowerCase)
 return false;
 
- try {
+try {
 // check the userOp.sender is a proxy with the expected bytecode
 const code = await client.getBytecode({ address: userOp.sender });
 if (code != coinbaseSmartWalletProxyBytecode) return false;
 
 // check that userOp.sender proxies to expected implementation
 const implementation = await client.request<{
- Parameters: [Address, Hex, BlockTag];
- ReturnType: Hex;
+Parameters: [Address, Hex, BlockTag];
+ReturnType: Hex;
 }>({
- method: "eth_getStorageAt",
- params: [userOp.sender, erc1967ProxyImplementationSlot, "latest"],
+method: "eth_getStorageAt",
+params: [userOp.sender, erc1967ProxyImplementationSlot, "latest"],
 });
 const implementationAddress = decodeAbiParameters(
- [{ type: "address" }],
- implementation,
+[{ type: "address" }],
+implementation,
 )[0];
 if (implementationAddress != coinbaseSmartWalletV1Implementation)
- return false;
+return false;
 
 // check that userOp.callData is making a call we want to sponsor
 const calldata = decodeFunctionData({
- abi: coinbaseSmartWalletABI,
- data: userOp.callData,
+abi: coinbaseSmartWalletABI,
+data: userOp.callData,
 });
 
 // keys.coinbase.com always uses executeBatch
@@ -1783,114 +1951,115 @@ if (calldata.functionName !== "executeBatch") return false;
 if (!calldata.args || calldata.args.length == 0) return false;
 
 const calls = calldata.args[0] as {
- target: Address;
- value: bigint;
- data: Hex;
+target: Address;
+value: bigint;
+data: Hex;
 }[];
 // modify if want to allow batch calls to your contract
 if (calls.length > 2) return false;
 
 let callToCheckIndex = 0;
 if (calls.length > 1) {
- // if there is more than one call, check if the first is a magic spend call
- if (calls[0].target.toLowerCase !== magicSpendAddress.toLowerCase)
+// if there is more than one call, check if the first is a magic spend call
+if (calls[0].target.toLowerCase !== magicSpendAddress.toLowerCase)
 return false;
- callToCheckIndex = 1;
+callToCheckIndex = 1;
 }
 
 if (
- calls[callToCheckIndex].target.toLowerCase !==
- myNFTAddress.toLowerCase
+calls[callToCheckIndex].target.toLowerCase !==
+myNFTAddress.toLowerCase
 )
- return false;
+return false;
 
 const innerCalldata = decodeFunctionData({
- abi: myNFTABI,
- data: calls[callToCheckIndex].data,
+abi: myNFTABI,
+data: calls[callToCheckIndex].data,
 });
 if (innerCalldata.functionName !== "safeMint") return false;
 
 return true;
- } catch (e) {
+} catch (e) {
 console.error(`willSponsor check failed: ${e}`);
 return false;
- }
 }
-```#### Code```ts
+}
+`#### Code`ts
 export const coinbaseSmartWalletProxyBytecode =
- "0x363d3d373d3d363d7f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc545af43d6000803e6038573d6000fd5b3d6000f3";
+"0x363d3d373d3d363d7f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc545af43d6000803e6038573d6000fd5b3d6000f3";
 export const coinbaseSmartWalletV1Implementation =
- "0x000100abaad02f1cfC8Bbe32bD5a564817339E72";
+"0x000100abaad02f1cfC8Bbe32bD5a564817339E72";
 export const magicSpendAddress = "0x011A61C07DbF256A68256B1cB51A5e246730aB92";
 export const erc1967ProxyImplementationSlot =
- "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+"0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 
 export const coinbaseSmartWalletABI = [
- {
+{
 type: "function",
 name: "executeBatch",
 inputs: [
- {
+{
 name: "calls",
 type: "tuple[]",
 internalType: "struct CoinbaseSmartWallet.Call[]",
 components: [
- {
+{
 name: "target",
 type: "address",
 internalType: "address",
- },
- {
+},
+{
 name: "value",
 type: "uint256",
 internalType: "uint256",
- },
- {
+},
+{
 name: "data",
 type: "bytes",
 internalType: "bytes",
- },
+},
 ],
- },
+},
 ],
 outputs: [],
 stateMutability: "payable",
- },
+},
 ];
-```#### Code```ts
+`#### Code`ts
 export const myNFTABI = [
- {
+{
 stateMutability: "nonpayable",
 type: "function",
 inputs: [{ name: "to", type: "address" }],
 name: "safeMint",
 outputs: [],
- },
+},
 ] as const;
 
 export const myNFTAddress = "0x119Ea671030FBf79AB93b436D2E20af6ea469a19";
-```#### Code```ts
+`#### Code`ts
 import { createClient, createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
 import { entryPoint06Address, createPaymasterClient, createBundlerClient } from "viem/account-abstraction";
 
 export const client = createPublicClient({
- chain: baseSepolia,
- transport: http,
+chain: baseSepolia,
+transport: http,
 });
 
 const paymasterService = process.env.PAYMASTER_SERVICE_URL!;
 
 export const paymasterClient = createPaymasterClient({
- transport: http(paymasterService),
+transport: http(paymasterService),
 });
 
 export const bundlerClient = createBundlerClient({
- chain: baseSepolia,
- paymaster: paymasterClient, 
- transport: http(paymasterService),
+chain: baseSepolia,
+paymaster: paymasterClient,
+transport: http(paymasterService),
 })
-```<Info>
+
+````<Info>
  Protect Your Paymaster Service URL
 
  As you can see in the Paymaster transaction [component](https://github.com/wilsoncusack/wagmi-scw/blob/main/src/components/TransactWithPaymaster.tsx)
@@ -1982,7 +2151,8 @@ outputs: [],
 ] as const;
 
 export const myNFTAddress = "0x119Ea671030FBf79AB93b436D2E20af6ea469a19";
-```
+````
+
 **How to find this code in the repository?**
 
 The code above is a simplified version of the code in the
@@ -1997,7 +2167,6 @@ in the UI Smart Wallet will indicate to your user that the transaction is sponso
 
 https://github.com/coinbase/paymaster-bundler-examples/tree/master/examples
 
-
 # Paymaster & Bundler Errors
 
 Learn about Paymaster & Bundler error codes and how to resolve them.
@@ -2008,88 +2177,86 @@ If the error you're encountering persists, please join the Coinbase Developer Pl
 
 Below are a list of common error codes returned by the Paymaster.
 
-| Error | Code | Description |
-| :--------------------- | :----- | :--------------------------------------------------------------------------------------------------------------------------------- |
-| INTERNAL\_ERROR | -32000 | Internal error. Something is wrong with our service. Please contact support if this persists. |
-| UNAUTHORIZED\_ERROR | -32001 | Unauthorized. Check if your API key and RPC URL are valid. |
-| DENIED\_ERROR | -32001 | Request denied. This may be due to the gas policy you configured in the Paymaster page. Check the values in your gas policy. |
-| UNAVAILABLE\_ERROR | -32003 | Service unavailable. Please contact support if this persists. |
-| GAS\_ESTIMATION\_ERROR | -32004 | An error occurred during eth\_estimateUserOperation. This is typically due to insufficient gas, or an invalid paymaster signature. |
-| METHOD\_NOT\_FOUND | -32601 | Method not found. Check if Paymaster is enabled on your RPC URL, and if you're sending the correct JSON-RPC method. |
-| INVALID\_ARGUMENT | -32602 | Invalid argument. Ensure you have the correct parameters in the UserOperation. |
-| PARSE\_ERROR | -32700 | Parse error. Ensure you have the correct parameters in the UserOperation, and that the request body is formatted properly. |
+| Error                | Code   | Description                                                                                                                       |
+| :------------------- | :----- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| INTERNAL_ERROR       | -32000 | Internal error. Something is wrong with our service. Please contact support if this persists.                                     |
+| UNAUTHORIZED_ERROR   | -32001 | Unauthorized. Check if your API key and RPC URL are valid.                                                                        |
+| DENIED_ERROR         | -32001 | Request denied. This may be due to the gas policy you configured in the Paymaster page. Check the values in your gas policy.      |
+| UNAVAILABLE_ERROR    | -32003 | Service unavailable. Please contact support if this persists.                                                                     |
+| GAS_ESTIMATION_ERROR | -32004 | An error occurred during eth_estimateUserOperation. This is typically due to insufficient gas, or an invalid paymaster signature. |
+| METHOD_NOT_FOUND     | -32601 | Method not found. Check if Paymaster is enabled on your RPC URL, and if you're sending the correct JSON-RPC method.               |
+| INVALID_ARGUMENT     | -32602 | Invalid argument. Ensure you have the correct parameters in the UserOperation.                                                    |
+| PARSE_ERROR          | -32700 | Parse error. Ensure you have the correct parameters in the UserOperation, and that the request body is formatted properly.        |
 
 ## Paymaster Gas Policy Errors
 
-| Message | Description |
+| Message                                                       | Description                                                       |
 | :------------------------------------------------------------ | :---------------------------------------------------------------- |
-| rejected due to max per user op spend limit exceeded | UserOperation cost too large - configure Per UserOperation limit. |
-| rejected due to max monthly org spend limit | over max monthly spend - contact us to increase your limit. |
-| rejected due to max global usd spend limit reached | over configured max total USD - adjust your policy. |
-| rejected due to maximum per address transaction count reached | per sender address maximum number of txn sponsored reached. |
-| rejected due to maximum per address sponsorship reached | per sender address maximum USD sponsorship reached. |
-| attestation not found for address | sender address does not have required attestation. |
-| target address not in allowed contracts | contract allowlist - invalid address called. |
-| method not in allowed methods | contract allowlist - wrong method called on allowed contract. |
+| rejected due to max per user op spend limit exceeded          | UserOperation cost too large - configure Per UserOperation limit. |
+| rejected due to max monthly org spend limit                   | over max monthly spend - contact us to increase your limit.       |
+| rejected due to max global usd spend limit reached            | over configured max total USD - adjust your policy.               |
+| rejected due to maximum per address transaction count reached | per sender address maximum number of txn sponsored reached.       |
+| rejected due to maximum per address sponsorship reached       | per sender address maximum USD sponsorship reached.               |
+| attestation not found for address                             | sender address does not have required attestation.                |
+| target address not in allowed contracts                       | contract allowlist - invalid address called.                      |
+| method not in allowed methods                                 | contract allowlist - wrong method called on allowed contract.     |
 
 ## Bundler Error Codes
 
 Below are a list of common error codes returned by the Bundler. These will typically be accompanied by an Entrypoint Error Code (defined below).
 
-| Error | Code | Description |
-| :---------------------------- | :----- | :------------------------------------------------- |
-| REJECTED\_BY\_EP\_OR\_ACCOUNT | -32500 | The transaction was rejected by the EP or account. |
-| REJECTED\_BY\_PAYMASTER | -32501 | The transaction was rejected by the Paymaster. |
-| BANNED\_OPCODE | -32502 | The transaction contains a banned opcode. |
-| SHORT\_DEADLINE | -32503 | The transaction deadline is too short. |
-| BANNED\_OR\_THROTTLED\_ENTITY | -32504 | The entity is banned or throttled. |
-| INVALID\_ENTITY\_STAKE | -32505 | The entity stake is invalid. |
-| INVALID\_AGGREGATOR | -32506 | The aggregator is invalid. |
-| INVALID\_SIGNATURE | -32507 | The transaction signature is invalid. |
-| EXECUTION\_REVERTED | -32521 | The transaction execution was reverted. |
-| INVALID\_FIELDS | -32602 | The transaction contains invalid fields. |
+| Error                      | Code   | Description                                        |
+| :------------------------- | :----- | :------------------------------------------------- |
+| REJECTED_BY_EP_OR_ACCOUNT  | -32500 | The transaction was rejected by the EP or account. |
+| REJECTED_BY_PAYMASTER      | -32501 | The transaction was rejected by the Paymaster.     |
+| BANNED_OPCODE              | -32502 | The transaction contains a banned opcode.          |
+| SHORT_DEADLINE             | -32503 | The transaction deadline is too short.             |
+| BANNED_OR_THROTTLED_ENTITY | -32504 | The entity is banned or throttled.                 |
+| INVALID_ENTITY_STAKE       | -32505 | The entity stake is invalid.                       |
+| INVALID_AGGREGATOR         | -32506 | The aggregator is invalid.                         |
+| INVALID_SIGNATURE          | -32507 | The transaction signature is invalid.              |
+| EXECUTION_REVERTED         | -32521 | The transaction execution was reverted.            |
+| INVALID_FIELDS             | -32602 | The transaction contains invalid fields.           |
 
 ## Entrypoint Error Codes
 
 Below are a list of common error codes returned by the Entry Point.
 
-| Error | Description |
+| Error                            | Description                                                                                                                                                          |
 | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AA10 sender already constructed | The sender was already created, so initCode should be empty. Remove the initCode. |
-| AA13 initCode failed or OOG | The initCode failed to create the account or ran out of gas. Additionally, check the verificationGasLimit field in your UserOperation. |
-| AA14 initCode must return sender | The initCode fails to provide the sender address. Verify either the initCode or the factory contract for potential issues. |
-| AA15 initCode must create sender | The initCode within the UserOperation fails to generate an account. Please inspect the initCode or the factory contract for potential issues. |
-| AA20 Account not deployed | The smart account has not been deployed, and no initCode was specified. If this is the initial transaction for this account, ensure that an initCode is included. |
-| AA21 didn’t pay prefund | The transaction was rejected by the EP or account. Check that the account has enough ETH to pay for the UserOperation, or that the Paymaster is configured properly. |
-| AA23 reverted (or OOG) | The signature of the UserOperation was rejected or ran out of gas. Check if you have sufficient ETH for gas, or that the Paymaster is configured properly. |
-| AA24 Signature error | The signature of the UserOperation is invalid. Check that the UserOperation hash, entrypoint address, and chain ID are correct. |
-| AA25 Invalid account nonce | The nonce is invalid. The UserOperation is using an old nonce, or the nonce is improperly formatted. |
-| AA40 Over verification gas limit | The verification gas limit has been surpassed. Check the verificationGasLimit field in your UserOperation. |
-| AA41 Too little verification gas | Verifying the UserOperation did not complete due to insufficient gas. You may need to increase verificationGasLimit. |
-| AA50 PostOp reverted | The execution of additional logic by the EntryPoint resulted in a revert. |
-| AA51 prefund below actualGasCost | The actual cost of the UserOperation is higher than the total amount of gas approved. |
+| AA10 sender already constructed  | The sender was already created, so initCode should be empty. Remove the initCode.                                                                                    |
+| AA13 initCode failed or OOG      | The initCode failed to create the account or ran out of gas. Additionally, check the verificationGasLimit field in your UserOperation.                               |
+| AA14 initCode must return sender | The initCode fails to provide the sender address. Verify either the initCode or the factory contract for potential issues.                                           |
+| AA15 initCode must create sender | The initCode within the UserOperation fails to generate an account. Please inspect the initCode or the factory contract for potential issues.                        |
+| AA20 Account not deployed        | The smart account has not been deployed, and no initCode was specified. If this is the initial transaction for this account, ensure that an initCode is included.    |
+| AA21 didn’t pay prefund          | The transaction was rejected by the EP or account. Check that the account has enough ETH to pay for the UserOperation, or that the Paymaster is configured properly. |
+| AA23 reverted (or OOG)           | The signature of the UserOperation was rejected or ran out of gas. Check if you have sufficient ETH for gas, or that the Paymaster is configured properly.           |
+| AA24 Signature error             | The signature of the UserOperation is invalid. Check that the UserOperation hash, entrypoint address, and chain ID are correct.                                      |
+| AA25 Invalid account nonce       | The nonce is invalid. The UserOperation is using an old nonce, or the nonce is improperly formatted.                                                                 |
+| AA40 Over verification gas limit | The verification gas limit has been surpassed. Check the verificationGasLimit field in your UserOperation.                                                           |
+| AA41 Too little verification gas | Verifying the UserOperation did not complete due to insufficient gas. You may need to increase verificationGasLimit.                                                 |
+| AA50 PostOp reverted             | The execution of additional logic by the EntryPoint resulted in a revert.                                                                                            |
+| AA51 prefund below actualGasCost | The actual cost of the UserOperation is higher than the total amount of gas approved.                                                                                |
 
 ## Request Logs
 
 Request Logs for UserOps can be downloaded under the Logs tab on the Paymaster page. These logs are useful for debugging errors or auditing sponsored UserOps. Click on`Download CSV`to download a CSV of successful and failed requests.
 
-| Column | Description |
+| Column          | Description                                                                              |
 | :-------------- | :--------------------------------------------------------------------------------------- |
-| OrganizationId | ID of your Cloud Developer Platform Organization. |
-| ProjectId | ID of your Cloud Developer Platform Project. |
-| Network | Network for the request. Either base or base-sepolia. |
-| Status | Status of the request. Either completed, in progress or failed. |
-| UserOpHash | Hash of the UserOperation. |
-| Sender | Account making the UserOperation. |
-| Paymaster | Contract/service that sponsors UserOperation gas (making transactions free to end user). |
-| TransactionHash | Transaction hash that the UserOperation was included in. |
-| GasCost | Cost of gas in Gwei. |
-| GasUsed | Amount of gas used \* the gas cost. |
-| Method | Method called by the request. |
-| ErrorCode | Error code for failed requests. |
-| ErrorMessage | Error message for failed requests. |
-
-
+| OrganizationId  | ID of your Cloud Developer Platform Organization.                                        |
+| ProjectId       | ID of your Cloud Developer Platform Project.                                             |
+| Network         | Network for the request. Either base or base-sepolia.                                    |
+| Status          | Status of the request. Either completed, in progress or failed.                          |
+| UserOpHash      | Hash of the UserOperation.                                                               |
+| Sender          | Account making the UserOperation.                                                        |
+| Paymaster       | Contract/service that sponsors UserOperation gas (making transactions free to end user). |
+| TransactionHash | Transaction hash that the UserOperation was included in.                                 |
+| GasCost         | Cost of gas in Gwei.                                                                     |
+| GasUsed         | Amount of gas used \* the gas cost.                                                      |
+| Method          | Method called by the request.                                                            |
+| ErrorCode       | Error code for failed requests.                                                          |
+| ErrorMessage    | Error message for failed requests.                                                       |
 
 # Paymaster & Bundler Troubleshooting
 
@@ -2099,10 +2266,10 @@ This tutorial explains how to debug common issues you may face when sending User
 
 The UserOperation was able to make it onchain, but an error occurred in one of the smart contracts it interacted with, and thus the entire operation had to be reverted. This can be due to
 
-* Not enough gas to pay for execution
- * Try increasing the`preVerificationGas`or`callGasLimit`padding
-* An issue with the`callData`of your UserOperations
- * This is an issue with your dapp's smart contract, which you will need to debug.
+- Not enough gas to pay for execution
+- Try increasing the`preVerificationGas`or`callGasLimit`padding
+- An issue with the`callData`of your UserOperations
+- This is an issue with your dapp's smart contract, which you will need to debug.
 
 You can use a tool like [Tenderly](https://dashboard.tenderly.co/) to help simulate and debug the UserOperation.
 
@@ -2110,7 +2277,7 @@ You can use a tool like [Tenderly](https://dashboard.tenderly.co/) to help simul
 
 If you think the issue may be related to gas, simulate using the Entrypoint contract,`0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789`, and pasting in your UserOperation into the `tuple`field.
 
-For example, your UserOperation may look something like```{
+For example, your UserOperation may look something like`{
  "callData": "0xb61d27f600000000000000000000000066519fcaee1ed65bc9e0acc25ccd900668d3ed490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000443f84ac0e0000000000000000000000001e3143e0ed8c0ea51f1551b6c355e02f3e0baae0000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000",
  "paymasterAndData": "0xc484bcd10ab8ad132843872deb1a0adc1473189c000066cd03db0000000000000098973f00000a968163f0a57b400000018633de6cf5e53752c5eac49e8f8ffb4ecd16b2afe7b4074086d6693536a9ab1f117bae0b427f83f94246c34d25add97b05e8a73859c2dceef6ee730ab2842bf31b",
  "sender": "0x1e3143E0ED8C0Ea51F1551B6c355e02f3e0bAae0",
@@ -2122,19 +2289,17 @@ For example, your UserOperation may look something like```{
  "callGasLimit": "257565",
  "preVerificationGas": "96024",
  "verificationGasLimit": "87888"
-}```You can use the`simulateHandleOp`function and pass that UserOperation in the`op`field (don't forget to add array brackets around it, because technically it handles a "bundle" of UserOperations).
+}`You can use the`simulateHandleOp`function and pass that UserOperation in the`op`field (don't forget to add array brackets around it, because technically it handles a "bundle" of UserOperations).
 
-
- ![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/pb-paymaster-tenderly-entrypoint.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=41b481bd2c828c215a14e9f7949d6acb)
-
+![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/pb-paymaster-tenderly-entrypoint.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=41b481bd2c828c215a14e9f7949d6acb)
 
 ### Execution reverted with data
 
-Error may look something like this```cause: {
+Error may look something like this`cause: {
  "code": -32004,
  "message": " - execution reverted with data",
  "data": "0xed6c3dec00000000000000000000000036e53f56454e1206f775dafe2b33c1b737c43632"
-}```You can use a tool like [https://bia.is/tools/abi-decoder/ to upload your ABI, enter the data in, and decode the error message. Try using the ABI of every smart contract your dapp could be interacting with.
+}`You can use a tool like [https://bia.is/tools/abi-decoder/ to upload your ABI, enter the data in, and decode the error message. Try using the ABI of every smart contract your dapp could be interacting with.
 
 ### Execution reverted for an unknown reason
 
@@ -2142,24 +2307,19 @@ Similar to above, except your contract is reverting without any error codes. Try
 
 The example below shows you how to debug your own smart contract.
 
-* `Insert any address`- Enter your smart contract's address here
-*`Enter raw input data`- Enter the`callData`of your contract's function (right after`callData = encodeFunctionData`)
+- `Insert any address`- Enter your smart contract's address here \*`Enter raw input data`- Enter the`callData`of your contract's function (right after`callData = encodeFunctionData`)
 
-
- ![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/pb-paymaster-tenderly-dev-debug.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=9048f07e28807bc2498d57dabbd59a6a)
-
+![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/pb-paymaster-tenderly-dev-debug.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=9048f07e28807bc2498d57dabbd59a6a)
 
 ## Invalid chain id
 
 You might be using the mainnet RPC url instead of the testnet RPC url (or vis versa). Make sure you select the right network in the CDP portal
 
-
- ![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/pb-paymaster-chainid.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=65916bdcc1515aaa52c25987108a43c3)
-
+![](https://mintcdn.com/coinbase-prod/s_QeFV8SFwGVfV_u/paymaster/images/pb-paymaster-chainid.png?fit=max&auto=format&n=s_QeFV8SFwGVfV_u&q=85&s=65916bdcc1515aaa52c25987108a43c3)
 
 ## Invalid UserOperation signature or paymaster signature
-```UserOperation rejected because account signature check failed (or paymaster signature, if the paymaster uses its data as signature).```This likely means that you updated the UserOperation after getting a signature from our Paymaster service. Our Paymaster signs the UserOperation with the UserOperation itself, so make sure you're not making any changes to the UserOperation after it's already been signed by our Paymaster`paymasterClient.getPaymasterData`. If you need to adjust things like `callData`, `preVerificationGas`, or `callGasLimit`, you will need to receive a new signature from our Paymaster. Also if you're handling multiple UserOperation, make sure the paymaster signature matches the right UserOperation.
 
+`UserOperation rejected because account signature check failed (or paymaster signature, if the paymaster uses its data as signature).`This likely means that you updated the UserOperation after getting a signature from our Paymaster service. Our Paymaster signs the UserOperation with the UserOperation itself, so make sure you're not making any changes to the UserOperation after it's already been signed by our Paymaster`paymasterClient.getPaymasterData`. If you need to adjust things like `callData`, `preVerificationGas`, or `callGasLimit`, you will need to receive a new signature from our Paymaster. Also if you're handling multiple UserOperation, make sure the paymaster signature matches the right UserOperation.
 
 # Paymaster Security
 
@@ -2177,14 +2337,10 @@ Set sponsorship limits to further ensure you're only sponsoring what you want to
 
 Creating an API to proxy calls to your paymaster service is important for two reasons.
 
-* Allows you to protect any API secret.
-* Allows you to add extra validation on what requests you want to sponsor.
+- Allows you to protect any API secret.
+- Allows you to add extra validation on what requests you want to sponsor.
 
 You can see more details on implementing a paymaster proxy at [smartwallet.dev](https://www.smartwallet.dev/guides/paymasters)
-
-
-
-
 
 ## DATA
 
@@ -2196,72 +2352,52 @@ You can see more details on implementing a paymaster proxy at [smartwallet.dev](
 
 Coinbase Developer Platform's (CDP) Onchain Data provides enterprise-grade tools to read, query, and monitor blockchain data. Get millisecond-latency access to live onchain data without managing complex infrastructure.
 
-
 - [Try it now: Quickstart](/data/get-started/quickstart)
-
 
 ## Key features
 
-* **Ultra-low latency:** Sub-500ms response times with data \<250ms from chain tip
-* **Enterprise-grade reliability:** Production-ready infrastructure built on Coinbase's institutional-grade systems
-* **Real-time updates:** Instant notifications via webhooks with guaranteed delivery and retry logic
-* **Zero infrastructure:** No nodes to run, no databases to maintain, no DevOps overhead
-* **Rich data coverage:** Token balances, wallet history, and more
-* **Easy integration:** Simple REST APIs and comprehensive SDKs in TypeScript, Python, Go, and Rust
+- **Ultra-low latency:** Sub-500ms response times with data \<250ms from chain tip
+- **Enterprise-grade reliability:** Production-ready infrastructure built on Coinbase's institutional-grade systems
+- **Real-time updates:** Instant notifications via webhooks with guaranteed delivery and retry logic
+- **Zero infrastructure:** No nodes to run, no databases to maintain, no DevOps overhead
+- **Rich data coverage:** Token balances, wallet history, and more
+- **Easy integration:** Simple REST APIs and comprehensive SDKs in TypeScript, Python, Go, and Rust
 
 ## Use cases
 
 CDP Onchain Data powers real-time applications across DeFi, NFTs, gaming, and more:
 
-* **DeFi dashboards** - Track token prices, liquidity pools, and trading volumes in real-time
-* **NFT marketplaces** - Index collections, monitor transfers, and display ownership history
-* **Wallet analytics** - Analyze transaction patterns and token holdings
-* **Real-time alerts** - Get notified instantly when onchain events occur
-* **Trading bots** - React to market changes with sub-second data freshness
+- **DeFi dashboards** - Track token prices, liquidity pools, and trading volumes in real-time
+- **NFT marketplaces** - Index collections, monitor transfers, and display ownership history
+- **Wallet analytics** - Analyze transaction patterns and token holdings
+- **Real-time alerts** - Get notified instantly when onchain events occur
+- **Trading bots** - React to market changes with sub-second data freshness
 
 ## Demo applications
 
 See CDP Data in action with working examples:
 
-
- 
 - [Wallet History Dashboard](/get-started/demo-apps/app-examples/wallet-history)
 
-
- 
 - [Transaction History Downloader](/get-started/demo-apps/app-examples/transaction-history-downloader)
-
-
 
 ## Available services
 
-
- 
 - [SQL API](/data/sql-api/welcome)
 
-
- 
 - [Node](/data/node/overview)
 
-
- 
 - [Webhooks](/data/webhooks/welcome)
 
-
- 
 - [Token Balances API](/data/token-balance/welcome)
 
-
- 
 - [Address History API](/data/wallet-history/overview)
-
-
-
 
 # Onchain Data: Quickstart
 
 export const SqlPlaygroundQuickstart = => {
- return <>
+return <>
+
  <p>Use our SQL API to query onchain data in milliseconds. With SQL API, you can:</p>
  <ul>
  <li>Query <strong>transactions, events, blocks, and transfers</strong> across Base with <strong>&lt; 500ms latency</strong></li>
@@ -2289,14 +2425,15 @@ WHERE
 LIMIT 10;`}
  </CodeBlock>
 
- See results in milliseconds! ⚡
- 
- ![](/data/images/sql-playground-quickstart-query.png)
- </>;
+See results in milliseconds! ⚡
+
+![](/data/images/sql-playground-quickstart-query.png)
+</>;
 };
 
 export const NodePlaygroundQuickstart = => {
- return <>
+return <>
+
  <p>CDP Node provides free RPC endpoints for Base. With Node, you can:</p>
  <ul>
  <li>Read blockchain state (blocks, transactions, balances, smart contract data)</li>
@@ -2312,10 +2449,10 @@ Navigate to <a href="https://portal.cdp.coinbase.com/products/node>Node</a> in P
 ### Step: Run the RPC call
 The playground has a prefilled <code>eth_blockNumber</code> call. Click <strong>Run</strong> to get the current block number on Base.
 
- See results in milliseconds! ⚡
+See results in milliseconds! ⚡
 
- ![](/data/images/node-playground-rpc-call.png)
- </>;
+![](/data/images/node-playground-rpc-call.png)
+</>;
 };
 
 ## Overview
@@ -2324,12 +2461,12 @@ Experience Coinbase Developer Platform's (CDP) onchain data tools in just a few 
 
 In this guide, you will:
 
-* Query live blockchain data through our SQL Playground
-* Make your first RPC call to Base through our Node Playground
+- Query live blockchain data through our SQL Playground
+- Make your first RPC call to Base through our Node Playground
 
 ## Prerequisites
 
-* A free [CDP account](https://portal.cdp.coinbase.com/)
+- A free [CDP account](https://portal.cdp.coinbase.com/)
 
 That's it! No API keys needed!
 
@@ -2343,32 +2480,17 @@ That's it! No API keys needed!
 
 ## What to read next
 
-
- 
 - [SQL Schema](/data/sql-api/schema)
 
-
- 
 - [SQL API Reference](/data/sql-api/rest-apis)
 
-
- 
 - [RPC Methods](/data/node/api-reference/core-evm-methods)
 
-
- 
 - [Token Balances API](/data/token-balance/welcome)
 
-
- 
 - [Webhooks](/data/webhooks/welcome)
 
-
- 
 - [Address History API](/data/address-history/overview)
-
-
-
 
 # Onchain Data FAQ
 
@@ -2382,14 +2504,14 @@ The default rate limit is **100 requests per second** at both IP and project lev
 
 ### Do I need API keys?
 
-* **Browser playgrounds** (SQL Playground, Node Playground): No API keys needed
-* **REST APIs and SDK**: Yes, create free API keys in [CDP Portal](https://portal.cdp.coinbase.com/)
+- **Browser playgrounds** (SQL Playground, Node Playground): No API keys needed
+- **REST APIs and SDK**: Yes, create free API keys in [CDP Portal](https://portal.cdp.coinbase.com/)
 
 ### How fresh is the data?
 
-* **SQL API**: \< 500ms latency with data \< 250ms from chain tip
-* **Node RPC**: Real-time access to the latest block
-* **Webhooks**: \< 500ms end-to-end notification delivery
+- **SQL API**: \< 500ms latency with data \< 250ms from chain tip
+- **Node RPC**: Real-time access to the latest block
+- **Webhooks**: \< 500ms end-to-end notification delivery
 
 ### How much does it cost?
 
@@ -2398,7 +2520,6 @@ CDP Onchain Data offers a **free tier** with 100 requests/second. For higher lim
 ### Where can I get help?
 
 Join **#onchain-data** in the CDP Discord to connect with our team and other developers.
-
 
 ## Node
 
@@ -2412,44 +2533,34 @@ To read blockchain data (like balances or transactions) or write to it (like dep
 
 Think of it as a direct line to the Base blockchain. You make requests, and Node handles all the complexity of connecting to and querying the network.
 
-
 - [Try it now: Quickstart](/data/node/quickstart)
 
-
-
- 
 - [Core EVM Methods](/api-reference/json-rpc-api/core)
 
-
- 
 - [Paymaster Methods](/api-reference/json-rpc-api/paymaster)
 
-
- 
 - [Wallet History](/api-reference/json-rpc-api/wallet-history)
-
-
 
 ## Key features
 
-* **Free blockchain access:** Connect to Base Mainnet and Sepolia testnet at no cost with generous rate limits
-* **No infrastructure to manage:** Skip the complexity of running your own blockchain node—just use our endpoints
-* **Standard Ethereum methods:** Works with any Ethereum-compatible tools and libraries you already know, like `ethers.js`and Viem
-* **Bonus features included:** Get extra capabilities like gas sponsorship (Paymaster) and wallet history queries built right in
+- **Free blockchain access:** Connect to Base Mainnet and Sepolia testnet at no cost with generous rate limits
+- **No infrastructure to manage:** Skip the complexity of running your own blockchain node—just use our endpoints
+- **Standard Ethereum methods:** Works with any Ethereum-compatible tools and libraries you already know, like `ethers.js`and Viem
+- **Bonus features included:** Get extra capabilities like gas sponsorship (Paymaster) and wallet history queries built right in
 
 ## Use cases
 
-* **Build DeFi apps:** Create trading interfaces, lending platforms, or dashboards that display live blockchain data
-* **Create NFT platforms:** Build marketplaces that show who owns which NFTs and track their transfer history
-* **Develop wallet apps:** Display user balances, show transaction history, and send transactions on behalf of users
-* **Deploy smart contracts:** Upload your contracts to Base and interact with them programmatically
+- **Build DeFi apps:** Create trading interfaces, lending platforms, or dashboards that display live blockchain data
+- **Create NFT platforms:** Build marketplaces that show who owns which NFTs and track their transfer history
+- **Develop wallet apps:** Display user balances, show transaction history, and send transactions on behalf of users
+- **Deploy smart contracts:** Upload your contracts to Base and interact with them programmatically
 
 ## Supported networks
 
 Currently available on:
 
-* **Base Mainnet** - Production environment for live applications
-* **Base Sepolia** - Testnet for development and testing
+- **Base Mainnet** - Production environment for live applications
+- **Base Sepolia** - Testnet for development and testing
 
 Base is a secure, low-cost, builder-friendly Ethereum L2 built to bring the next billion users onchain. [Learn more about Base](https://docs.base.org/)
 
@@ -2457,9 +2568,7 @@ Base is a secure, low-cost, builder-friendly Ethereum L2 built to bring the next
 
 Ready to connect to Base? Our quickstart guide walks you through everything step-by-step—from trying Node in the browser playground to making your first programmatic request with code examples in multiple languages.
 
-
 - [Start building: Quickstart](/data/node/quickstart)
-
 
 ## Rate limits
 
@@ -2475,19 +2584,19 @@ Free users are rate limited to **7500 API credits every 5 seconds per project**.
 
 When you're ready to build, explore the available methods:
 
-* **[Core EVM Methods](/api-reference/json-rpc-api/core)** - Standard Ethereum JSON-RPC methods ([full spec](https://ethereum.org/en/developers/docs/apis/json-rpc/#json-rpc-methods)
-* **[Paymaster Methods](/api-reference/json-rpc-api/paymaster)** - Sponsor gas fees for your users
-* **[Wallet History Methods](/api-reference/json-rpc-api/wallet-history)** - Query historical wallet data
+- **[Core EVM Methods](/api-reference/json-rpc-api/core)** - Standard Ethereum JSON-RPC methods ([full spec](https://ethereum.org/en/developers/docs/apis/json-rpc/#json-rpc-methods)
+- **[Paymaster Methods](/api-reference/json-rpc-api/paymaster)** - Sponsor gas fees for your users
+- **[Wallet History Methods](/api-reference/json-rpc-api/wallet-history)** - Query historical wallet data
 
 ## Support and feedback
 
-* **CDP Discord**: Join #node for support and to request rate limit increases
-
+- **CDP Discord**: Join #node for support and to request rate limit increases
 
 # Node Quickstart
 
 export const NodePlaygroundQuickstart = => {
- return <>
+return <>
+
  <p>CDP Node provides free RPC endpoints for Base. With Node, you can:</p>
  <ul>
  <li>Read blockchain state (blocks, transactions, balances, smart contract data)</li>
@@ -2503,17 +2612,17 @@ Navigate to <a href="https://portal.cdp.coinbase.com/products/node>Node</a> in P
 ### Step: Run the RPC call
 The playground has a prefilled <code>eth_blockNumber</code> call. Click <strong>Run</strong> to get the current block number on Base.
 
- See results in milliseconds! ⚡
+See results in milliseconds! ⚡
 
- ![](/data/images/node-playground-rpc-call.png)
- </>;
+![](/data/images/node-playground-rpc-call.png)
+</>;
 };
 
 Get started with CDP Node in minutes. This guide shows you how to get your RPC endpoint and make your first blockchain request—both in the browser playground and programmatically in your code.
 
 ## Prerequisites
 
-* A free [CDP account](https://portal.cdp.coinbase.com/)
+- A free [CDP account](https://portal.cdp.coinbase.com/)
 
 That's it! No complex setup, no infrastructure to manage.
 
@@ -2525,24 +2634,27 @@ That's it! No complex setup, no infrastructure to manage.
 
 To use Node in your application, you need an **RPC endpoint URL**. This is the web address where you send blockchain requests—think of it like an API endpoint, but specifically for blockchain operations.
 
-
 ### Step: Navigate to Node
+
 Go to the [Node page](https://portal.cdp.coinbase.com/products/node) in CDP Portal.
- 
+
 ### Step: Select your network
+
 Choose your target network from the dropdown:
 
- * **Base Mainnet** - For production applications
- * **Base Sepolia** - For development and testing
+- **Base Mainnet** - For production applications
+- **Base Sepolia** - For development and testing
 
- ![](https://mintcdn.com/coinbase-prod/h4Nc9NYI7BpHH7WQ/data/images/node-select-network.png?fit=max&auto=format&n=h4Nc9NYI7BpHH7WQ&q=85&s=4479b65d62737f753f50b99b60fff66e)
- ### Step: Copy your endpoint URL
-Copy the displayed RPC endpoint URL. It will look like:```https://api.developer.coinbase.com/rpc/v1/base/YOUR_CLIENT_API_KEY```The Client API key is automatically included in the URL for authentication.
- 
+![](https://mintcdn.com/coinbase-prod/h4Nc9NYI7BpHH7WQ/data/images/node-select-network.png?fit=max&auto=format&n=h4Nc9NYI7BpHH7WQ&q=85&s=4479b65d62737f753f50b99b60fff66e)
+
+### Step: Copy your endpoint URL
+
+Copy the displayed RPC endpoint URL. It will look like:`https://api.developer.coinbase.com/rpc/v1/base/YOUR_CLIENT_API_KEY`The Client API key is automatically included in the URL for authentication.
+
 <Info>
  **About Client API Keys**
 
- Your RPC endpoint URL includes a Client API key, which is designed for client-side use and is safe to include in frontend code. For more details, see [CDP API Keys](/get-started/authentication/cdp-api-keys#client-api-keys).
+Your RPC endpoint URL includes a Client API key, which is designed for client-side use and is safe to include in frontend code. For more details, see [CDP API Keys](/get-started/authentication/cdp-api-keys#client-api-keys).
 </Info>
 
 ## 3. Make your first request
@@ -2568,24 +2680,25 @@ curl https://api.developer.coinbase.com/rpc/v1/base/YOUR_CLIENT_API_KEY \
 }
 ```</Tab>
 
- <Tab title="JavaScript (fetch)">```javascript
+<Tab title="JavaScript (fetch)">```javascript
 const rpcUrl = "https://api.developer.coinbase.com/rpc/v1/base/YOUR_CLIENT_API_KEY;
 
 const response = await fetch(rpcUrl, {
- method: "POST",
- headers: {
+method: "POST",
+headers: {
 "Content-Type": "application/json",
- },
- body: JSON.stringify({
+},
+body: JSON.stringify({
 jsonrpc: "2.0",
 id: 1,
 method: "eth_blockNumber",
- }),
+}),
 });
 
 const data = await response.json;
 console.log("Current block:", parseInt(data.result, 16));
-```</Tab>
+
+````</Tab>
 
  <Tab title="Python">```python
 import requests
@@ -2664,11 +2777,11 @@ Onchain webhooks enable developers to receive real-time notifications for any ev
 </Info>
 
 
- 
+
 - [Quickstart](/data/webhooks/quickstart)
 
 
- 
+
 - [Verify Signatures](/data/webhooks/verify-signatures)
 
 
@@ -2707,14 +2820,14 @@ Get started with Onchain Webhooks in just a few steps. This guide will help you 
 ## Prerequisites
 
 <Steps titleSize="p">
- 
+
 ### Step: Create a Secret API Key
 Sign up at [portal.cdp.coinbase.com](https://portal.cdp.coinbase.com then navigate to [API Keys](https://portal.cdp.coinbase.com/projects/api-keys) and select **Create API key** under the **Secret API Keys** tab.
 
  1. Enter an API key nickname (restrictions are optional)
  2. Click **Create**
  3. Secure your API Key ID and Secret in a safe location
- 
+
 ### Step: Install cdpcurl
 Install`cdpcurl`to make authenticated requests to CDP APIs:
 #### Command```bash
@@ -2726,10 +2839,10 @@ go install github.com/coinbase/cdpcurl@latest
 ```### Step: Get a webhook URL
 You'll need an HTTPS URL to receive webhook events.
 
- 
+
  **Easiest for testing:** You can use [webhook.site](https://webhook.site) to get a free temporary URL instantly where you can view payloads and test with up to 100 events before rate limits apply.
- 
- 
+
+
 ## 1. Construct subscription payload
 
 Create a JSON payload to be used with`cdpcurl`in the next step:
@@ -2923,7 +3036,7 @@ const crypto = require('crypto');
 /**
  * Verify webhook signature and timestamp
  * @param {string} payload - Raw request body as string
- * @param {string} signatureHeader - X-Hook0-Signature header value 
+ * @param {string} signatureHeader - X-Hook0-Signature header value
  * @param {string} secret - Secret from metadata.secret in subscription creation
  * @param {Object} headers - HTTP headers from webhook request
  * @param {number} maxAgeMinutes - Max age for webhook (default: 5 minutes)
@@ -3051,7 +3164,7 @@ Content-Length: 512
 ```## Security best practices
 
 
- 
+
  Never hardcode webhook secrets in your code. Use environment variables or a secure secrets manager:```javascript
 // ✅ Good - using environment variables
 const secret = process.env.WEBHOOK_SECRET;
@@ -3059,9 +3172,9 @@ const secret = process.env.WEBHOOK_SECRET;
 // ❌ Bad - hardcoded secret
 const secret = "whsec_abc123...";
 ```Always use HTTPS endpoints for your webhooks. HTTP endpoints expose your webhook data to interception and tampering.
- 
 
- 
+
+
  Add rate limiting to your webhook endpoint to prevent abuse:```javascript
 const rateLimit = require('express-rate-limit');
 
@@ -3099,19 +3212,19 @@ app.post('/webhook', (req, res) => {
  const payload = req.body.toString;
  const signature = req.headers['x-hook0-signature'];
  const secret = process.env.WEBHOOK_SECRET;
- 
+
  // Check for missing signature
  if (!signature) {
 console.error('Missing X-Hook0-Signature header');
 return res.status(400).send('Missing signature');
  }
- 
+
  // Check for missing secret
  if (!secret) {
 console.error('Webhook secret not configured');
 return res.status(500).send('Server configuration error');
  }
- 
+
  try {
 const isValid = verifyWebhookSignature(payload, signature, secret, req.headers);
 
@@ -3136,14 +3249,12 @@ console.error('Webhook processing error:', error);
 res.status(500).send('Processing error');
  }
 });
-```
+````
+
 ## What to read next
 
-* **[Quickstart](/data/webhooks/quickstart)**: Set up your first webhook subscription
-* **<a href="/api-reference/v2/rest-api/onchain-data/onchain-data" target="_blank">REST API Reference</a>**: View the complete webhook API documentation
-
-
-
+- **[Quickstart](/data/webhooks/quickstart)**: Set up your first webhook subscription
+- **<a href="/api-reference/v2/rest-api/onchain-data/onchain-data" target="_blank">REST API Reference</a>**: View the complete webhook API documentation
 
 ## SQL API
 
@@ -3151,35 +3262,27 @@ res.status(500).send('Processing error');
 
 The SQL API is a zero-infrastructure indexing solution that allows any developer to pull real-time and historical onchain data on Base using custom SQL queries. Unlike Address History API which provides fixed endpoints for wallet data, SQL API gives you complete flexibility to query any blockchain data.
 
-
 - [Try it now: Quickstart](/data/sql-api/quickstart)
-
 
 Developers can access the SQL API through:
 
-
- 
 - [SQL Playground](https://portal.cdp.coinbase.com/products/data/playground)
 
-
- 
 - [REST API](/data/sql-api/rest-apis)
-
-
 
 ## Key Features
 
-* **Zero Infra:** No setup, no guesswork. Just real-time indexed onchain data.
-* **Customizable:** Leverage familiar SQL syntax to pull custom data.
-* **Responsive:** Pull custom onchain data with \< 500ms latency.
-* **Fresh:** \< 250ms end-to-end from tip of chain.
+- **Zero Infra:** No setup, no guesswork. Just real-time indexed onchain data.
+- **Customizable:** Leverage familiar SQL syntax to pull custom data.
+- **Responsive:** Pull custom onchain data with \< 500ms latency.
+- **Fresh:** \< 250ms end-to-end from tip of chain.
 
 ## Use Cases
 
-* **Payment Service Providers:** Track real-time stablecoin transactions for merchants, consumers, and marketplaces.
-* **Portfolio & Treasury:** Give users and institutions a live view of wallet balances and historical flows. Build dashboards that update instantly as funds move across chains, protocols, and counterparties.
-* **Onchain Games:** Track player inventory, asset upgrades, and progression in real time as NFT metadata evolves. Enable game mechanics that reflect actual onchain state — not stale snapshots.
-* **Onchain Social:** Monitor user interactions like tips, follows, and reactions across decentralized social graphs. Surface meaningful engagement and value transfer between users, apps, and agents.
+- **Payment Service Providers:** Track real-time stablecoin transactions for merchants, consumers, and marketplaces.
+- **Portfolio & Treasury:** Give users and institutions a live view of wallet balances and historical flows. Build dashboards that update instantly as funds move across chains, protocols, and counterparties.
+- **Onchain Games:** Track player inventory, asset upgrades, and progression in real time as NFT metadata evolves. Enable game mechanics that reflect actual onchain state — not stale snapshots.
+- **Onchain Social:** Monitor user interactions like tips, follows, and reactions across decentralized social graphs. Surface meaningful engagement and value transfer between users, apps, and agents.
 
 ## Schema
 
@@ -3189,12 +3292,11 @@ The SQL API runs queries against an opinionated schema for efficient organizatio
 
 Join **#onchain-data** in the CDP Discord to access FAQs, schedule project discussions, and connect with other developers. We welcome your feedback and suggestions for improvement.
 
-
-
 # SQL API: Quickstart
 
 export const SqlApiRestExample = => {
- return <>
+return <>
+
  <p>The SQL API <code>/run</code> endpoint accepts your query as a string value. Before running, replace <code>$CLIENT_TOKEN</code> with your <a href="https://portal.cdp.coinbase.com/projects/api-keys/client-key>CDP Client API key</a>.</p>
 
  <CodeBlock language="shell">
@@ -3243,7 +3345,8 @@ export const SqlApiRestExample = => {
 };
 
 export const SqlPlaygroundQuickstart = => {
- return <>
+return <>
+
  <p>Use our SQL API to query onchain data in milliseconds. With SQL API, you can:</p>
  <ul>
  <li>Query <strong>transactions, events, blocks, and transfers</strong> across Base with <strong>&lt; 500ms latency</strong></li>
@@ -3271,10 +3374,10 @@ WHERE
 LIMIT 10;`}
  </CodeBlock>
 
- See results in milliseconds! ⚡
- 
- ![](/data/images/sql-playground-quickstart-query.png)
- </>;
+See results in milliseconds! ⚡
+
+![](/data/images/sql-playground-quickstart-query.png)
+</>;
 };
 
 ## Overview
@@ -3283,9 +3386,9 @@ The SQL API allows you to create custom queries to pull real-time and historical
 
 In this quickstart, you will learn how to:
 
-* Read and use the tables in CDP's curated schema.
-* Pull data from the Base blockchain with a SQL query.
- ​
+- Read and use the tables in CDP's curated schema.
+- Pull data from the Base blockchain with a SQL query.
+  ​
 
 ## Prerequisites
 
@@ -3294,7 +3397,7 @@ Sign in to the [CDP Portal](https://portal.cdp.coinbase.com/)
 <Note>
  **Using the SQL Playground?** No API keys needed!
 
- **Using the API programmatically?** Create a free [CDP Client API key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) for the cURL example below.
+**Using the API programmatically?** Create a free [CDP Client API key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) for the cURL example below.
 </Note>
 
 ## 1. Try it in the playground
@@ -3307,10 +3410,8 @@ Sign in to the [CDP Portal](https://portal.cdp.coinbase.com/)
 
 ## What to read next
 
-* [Schema reference](/data/sql-api/schema): Familiarize yourself with our supported tables for SQL queries
-* [REST API Reference](/data/sql-api/rest-apis): Use the SQL API programmatically
-
-
+- [Schema reference](/data/sql-api/schema): Familiarize yourself with our supported tables for SQL queries
+- [REST API Reference](/data/sql-api/rest-apis): Use the SQL API programmatically
 
 # Schema
 
@@ -3318,148 +3419,142 @@ The SQL API schema is a set of opinionated tables and columns used to organize o
 
 ## Supported Tables
 
-| Table | Description |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [base.blocks](#base-blocks) | Block metadata including timestamps and difficulty |
-| [base.events](#base-events) | Decoded event logs with contract interactions on Base |
-| [base.transactions](#base-transactions) | Transaction data including hash, block number, gas usage |
-| [base.encoded\_logs](#base-encoded-logs) | Encoded log data of event logs that aren't able to be decoded by our event decoder (ex: log0 opcode) |
-| [base.transfers](#base-transfers) | Token transfer events including block details, addresses, and amounts |
+| Table                                   | Description                                                                                          |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [base.blocks](#base-blocks)             | Block metadata including timestamps and difficulty                                                   |
+| [base.events](#base-events)             | Decoded event logs with contract interactions on Base                                                |
+| [base.transactions](#base-transactions) | Transaction data including hash, block number, gas usage                                             |
+| [base.encoded_logs](#base-encoded-logs) | Encoded log data of event logs that aren't able to be decoded by our event decoder (ex: log0 opcode) |
+| [base.transfers](#base-transfers)       | Token transfer events including block details, addresses, and amounts                                |
 
 ## base.blocks
 
 Block metadata including timestamps and difficulty.
 
-
 > Note:
-See an example block on [Basescan](https://basescan.org/block/1000000) to understand how blockchain data corresponds to these SQL fields.
+> See an example block on [Basescan](https://basescan.org/block/1000000) to understand how blockchain data corresponds to these SQL fields.
 
-| Field | Type | Description |
-| --------------------------- | -------- | ---------------------------------------------------------------------------- |
-| block\_number | uint64 | The number of the block |
-| block\_hash | String | The unique hash identifying this block |
-| parent\_hash | String | The hash of the parent block |
-| timestamp | DateTime | The timestamp when this block was created |
-| miner | String | The address of the miner/validator who created this block |
-| nonce | uint64 | The proof-of-work nonce value |
-| sha3\_uncles | String | The hash of the uncles list for this block |
-| transactions\_root | String | The root hash of the transactions trie |
-| state\_root | String | The root hash of the state trie |
-| receipts\_root | String | The root hash of the receipts trie |
-| logs\_bloom | String | The bloom filter for the logs of the block |
-| gas\_limit | uint64 | The maximum gas allowed in this block |
-| gas\_used | uint64 | The total gas used by all transactions in this block |
-| base\_fee\_per\_gas | uint64 | The base fee per gas in this block (EIP-1559) |
-| total\_difficulty | String | The total difficulty of the chain up to this block |
-| size | uint64 | The size of this block in bytes |
-| extra\_data | String | Extra data field for this block |
-| mix\_hash | String | The mix hash for this block |
-| withdrawals\_root | String | The root hash of withdrawals (post-merge) |
-| parent\_beacon\_block\_root | String | The parent beacon block root (post-merge) |
-| blob\_gas\_used | uint64 | The amount of blob gas used in this block |
-| excess\_blob\_gas | uint64 | The excess blob gas in this block |
-| transaction\_count | uint64 | The number of transactions in this block |
-| action | Int8 | Indicates if block was added (1) or removed (-1) due to chain reorganization |
+| Field                    | Type     | Description                                                                  |
+| ------------------------ | -------- | ---------------------------------------------------------------------------- |
+| block_number             | uint64   | The number of the block                                                      |
+| block_hash               | String   | The unique hash identifying this block                                       |
+| parent_hash              | String   | The hash of the parent block                                                 |
+| timestamp                | DateTime | The timestamp when this block was created                                    |
+| miner                    | String   | The address of the miner/validator who created this block                    |
+| nonce                    | uint64   | The proof-of-work nonce value                                                |
+| sha3_uncles              | String   | The hash of the uncles list for this block                                   |
+| transactions_root        | String   | The root hash of the transactions trie                                       |
+| state_root               | String   | The root hash of the state trie                                              |
+| receipts_root            | String   | The root hash of the receipts trie                                           |
+| logs_bloom               | String   | The bloom filter for the logs of the block                                   |
+| gas_limit                | uint64   | The maximum gas allowed in this block                                        |
+| gas_used                 | uint64   | The total gas used by all transactions in this block                         |
+| base_fee_per_gas         | uint64   | The base fee per gas in this block (EIP-1559)                                |
+| total_difficulty         | String   | The total difficulty of the chain up to this block                           |
+| size                     | uint64   | The size of this block in bytes                                              |
+| extra_data               | String   | Extra data field for this block                                              |
+| mix_hash                 | String   | The mix hash for this block                                                  |
+| withdrawals_root         | String   | The root hash of withdrawals (post-merge)                                    |
+| parent_beacon_block_root | String   | The parent beacon block root (post-merge)                                    |
+| blob_gas_used            | uint64   | The amount of blob gas used in this block                                    |
+| excess_blob_gas          | uint64   | The excess blob gas in this block                                            |
+| transaction_count        | uint64   | The number of transactions in this block                                     |
+| action                   | Int8     | Indicates if block was added (1) or removed (-1) due to chain reorganization |
 
 ## base.events
 
 Decoded event logs with contract interactions on Base.
 
-
 > Note:
-See example events on [Basescan](https://basescan.org/tx/0x08ecc43f4394eb6a7c0c7bf89d4c95c2ba67a7d3ce9f08dc09c5f8c29b1e5de3#eventlog) to see how event logs appear on the blockchain.
+> See example events on [Basescan](https://basescan.org/tx/0x08ecc43f4394eb6a7c0c7bf89d4c95c2ba67a7d3ce9f08dc09c5f8c29b1e5de3#eventlog) to see how event logs appear on the blockchain.
 
-| Field | Type | Description |
-| ------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| block\_number | uint64 | The block number |
-| block\_hash | String | A keccak-256 (SHA-3) hash of the block's header data. Unique to the block's contents. Used to verify the integrity of the block |
-| timestamp | DateTime64 | Time at which the block was created |
-| transaction\_hash | String | A keccak-256 hash of the signed transaction data. Unique identifier, on the blockchain, for this specific transaction |
-| transaction\_to | String | The address the transaction is acting against. Could be either an EOA (ex: ETH transfer) or a contract (ex: smart contract call) |
-| transaction\_from | String | The address that originated the transaction. Will be an EOA |
-| transaction\_index | uint64 | The order in which the transaction was included in the block. Commonly used to match transactions to their logs |
-| log\_index | uint64 | The index of the log within the transaction. First log is in the transaction at index 0, second is index 1, etc |
-| address | String | The address of the contract that the log was created from |
-| topics | Array(String) | The topics of the log. Topics are the indexed parameters of the event and the keccak256 hash of the event signature |
-| event\_name | String | Human-readable name of the event |
-| event\_signature | String | Full canonical declaration of the event, including its name and parameter types. Used to generate the hash |
-| parameters | Map(String, Variant(Bool, Int256, String, uint256)) | Map of parameter name to its value |
-| parameter\_types | Map(String, String) | Map of parameter name to its ABI type |
-| action | Int8 | If the log is created, it is 1. If the log is re-orged out it is -1. If the sum of all actions for a given log is greater than 0, the log is "active", meaning it is still in the chain (has not been re-orged out) |
+| Field             | Type                                                | Description                                                                                                                                                                                                         |
+| ----------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| block_number      | uint64                                              | The block number                                                                                                                                                                                                    |
+| block_hash        | String                                              | A keccak-256 (SHA-3) hash of the block's header data. Unique to the block's contents. Used to verify the integrity of the block                                                                                     |
+| timestamp         | DateTime64                                          | Time at which the block was created                                                                                                                                                                                 |
+| transaction_hash  | String                                              | A keccak-256 hash of the signed transaction data. Unique identifier, on the blockchain, for this specific transaction                                                                                               |
+| transaction_to    | String                                              | The address the transaction is acting against. Could be either an EOA (ex: ETH transfer) or a contract (ex: smart contract call)                                                                                    |
+| transaction_from  | String                                              | The address that originated the transaction. Will be an EOA                                                                                                                                                         |
+| transaction_index | uint64                                              | The order in which the transaction was included in the block. Commonly used to match transactions to their logs                                                                                                     |
+| log_index         | uint64                                              | The index of the log within the transaction. First log is in the transaction at index 0, second is index 1, etc                                                                                                     |
+| address           | String                                              | The address of the contract that the log was created from                                                                                                                                                           |
+| topics            | Array(String)                                       | The topics of the log. Topics are the indexed parameters of the event and the keccak256 hash of the event signature                                                                                                 |
+| event_name        | String                                              | Human-readable name of the event                                                                                                                                                                                    |
+| event_signature   | String                                              | Full canonical declaration of the event, including its name and parameter types. Used to generate the hash                                                                                                          |
+| parameters        | Map(String, Variant(Bool, Int256, String, uint256)) | Map of parameter name to its value                                                                                                                                                                                  |
+| parameter_types   | Map(String, String)                                 | Map of parameter name to its ABI type                                                                                                                                                                               |
+| action            | Int8                                                | If the log is created, it is 1. If the log is re-orged out it is -1. If the sum of all actions for a given log is greater than 0, the log is "active", meaning it is still in the chain (has not been re-orged out) |
 
 ## base.transactions
 
 Transaction data including hash, block number, gas usage.
 
-
 > Note:
-See an example transaction on [Basescan](https://basescan.org/tx/0x08ecc43f4394eb6a7c0c7bf89d4c95c2ba67a7d3ce9f08dc09c5f8c29b1e5de3) to understand how transaction data corresponds to these SQL fields.
+> See an example transaction on [Basescan](https://basescan.org/tx/0x08ecc43f4394eb6a7c0c7bf89d4c95c2ba67a7d3ce9f08dc09c5f8c29b1e5de3) to understand how transaction data corresponds to these SQL fields.
 
-| Field | Type | Description |
-| ---------------------------- | ------------- | ---------------------------------------------------------------------------------- |
-| block\_number | uint64 | The number of the block that contains this transaction |
-| block\_hash | String | The hash of the block that contains this transaction |
-| transaction\_hash | String | The unique hash identifying this transaction |
-| transaction\_index | uint64 | The index position of this transaction within its block |
-| from\_address | String | The address that originated this transaction |
-| to\_address | String | The destination address for this transaction |
-| value | String | The value being transferred in this transaction |
-| gas | uint64 | The amount of gas allocated for this transaction |
-| gas\_price | uint64 | The price of gas (in wei) for this transaction |
-| input | String | The data payload sent with this transaction |
-| nonce | uint64 | The number of transactions sent from this address before this one |
-| type | uint64 | The transaction type |
-| max\_fee\_per\_gas | uint64 | The maximum fee per gas the sender is willing to pay |
-| max\_priority\_fee\_per\_gas | uint64 | The maximum priority fee per gas the sender is willing to pay |
-| chain\_id | uint64 | The chain ID this transaction is valid for |
-| v | String | The v component of the transaction signature |
-| r | String | The r component of the transaction signature |
-| s | String | The s component of the transaction signature |
-| is\_system\_tx | Bool | Whether this is a system transaction |
-| max\_fee\_per\_blob\_gas | String | The maximum fee per blob gas the sender is willing to pay |
-| blob\_versioned\_hashes | Array(String) | Array of versioned hashes for any blobs associated with this transaction |
-| timestamp | DateTime64 | The timestamp when this transaction was included in a block |
-| action | Int8 | Indicates if transaction was added (1) or removed (-1) due to chain reorganization |
+| Field                    | Type          | Description                                                                        |
+| ------------------------ | ------------- | ---------------------------------------------------------------------------------- |
+| block_number             | uint64        | The number of the block that contains this transaction                             |
+| block_hash               | String        | The hash of the block that contains this transaction                               |
+| transaction_hash         | String        | The unique hash identifying this transaction                                       |
+| transaction_index        | uint64        | The index position of this transaction within its block                            |
+| from_address             | String        | The address that originated this transaction                                       |
+| to_address               | String        | The destination address for this transaction                                       |
+| value                    | String        | The value being transferred in this transaction                                    |
+| gas                      | uint64        | The amount of gas allocated for this transaction                                   |
+| gas_price                | uint64        | The price of gas (in wei) for this transaction                                     |
+| input                    | String        | The data payload sent with this transaction                                        |
+| nonce                    | uint64        | The number of transactions sent from this address before this one                  |
+| type                     | uint64        | The transaction type                                                               |
+| max_fee_per_gas          | uint64        | The maximum fee per gas the sender is willing to pay                               |
+| max_priority_fee_per_gas | uint64        | The maximum priority fee per gas the sender is willing to pay                      |
+| chain_id                 | uint64        | The chain ID this transaction is valid for                                         |
+| v                        | String        | The v component of the transaction signature                                       |
+| r                        | String        | The r component of the transaction signature                                       |
+| s                        | String        | The s component of the transaction signature                                       |
+| is_system_tx             | Bool          | Whether this is a system transaction                                               |
+| max_fee_per_blob_gas     | String        | The maximum fee per blob gas the sender is willing to pay                          |
+| blob_versioned_hashes    | Array(String) | Array of versioned hashes for any blobs associated with this transaction           |
+| timestamp                | DateTime64    | The timestamp when this transaction was included in a block                        |
+| action                   | Int8          | Indicates if transaction was added (1) or removed (-1) due to chain reorganization |
 
-## base.encoded\_logs
+## base.encoded_logs
 
 Encoded log data of event logs that aren’t able to be decoded by our event decoder (ex: log0 opcode).
 
-| Field | Type | Description |
-| ----------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| block\_number | uint64 | The number of the block that the log is in |
-| block\_hash | String | The hash of the block that the log is in |
-| block\_timestamp | DateTime64 | The timestamp of the block that the log is in |
-| transaction\_hash | String | The hash of the transaction that the log is in |
-| transaction\_to | String | The address the transaction is acting against. Could be either an EOA (ex: ETH transfer) or a contract (ex: smart contract call) |
-| transaction\_from | String | The address that originated the transaction. Will be an EOA |
-| log\_index | uint32 | The index of the log within the transaction. First log is in the transaction at index 0, second is index 1, etc |
-| address | String | The address of the contract that the log was created from |
-| topics | Array(String) | The topics of the log. Topics are the indexed parameters of the event and the keccak256 hash of the event signature |
-| action | Enum8('removed' = -1, 'added' = 1) | If the log is created, it is 1. If the log is re-orged out it is -1. If the sum of all actions for a given log is greater than 0, the log is "active", meaning it is still in the chain (has not been re-orged out) |
+| Field            | Type                               | Description                                                                                                                                                                                                         |
+| ---------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| block_number     | uint64                             | The number of the block that the log is in                                                                                                                                                                          |
+| block_hash       | String                             | The hash of the block that the log is in                                                                                                                                                                            |
+| block_timestamp  | DateTime64                         | The timestamp of the block that the log is in                                                                                                                                                                       |
+| transaction_hash | String                             | The hash of the transaction that the log is in                                                                                                                                                                      |
+| transaction_to   | String                             | The address the transaction is acting against. Could be either an EOA (ex: ETH transfer) or a contract (ex: smart contract call)                                                                                    |
+| transaction_from | String                             | The address that originated the transaction. Will be an EOA                                                                                                                                                         |
+| log_index        | uint32                             | The index of the log within the transaction. First log is in the transaction at index 0, second is index 1, etc                                                                                                     |
+| address          | String                             | The address of the contract that the log was created from                                                                                                                                                           |
+| topics           | Array(String)                      | The topics of the log. Topics are the indexed parameters of the event and the keccak256 hash of the event signature                                                                                                 |
+| action           | Enum8('removed' = -1, 'added' = 1) | If the log is created, it is 1. If the log is re-orged out it is -1. If the sum of all actions for a given log is greater than 0, the log is "active", meaning it is still in the chain (has not been re-orged out) |
 
 ## base.transfers
 
 Token transfer events including block details, addresses, and amounts
 
-
 > Note:
-See example token transfers on [Basescan](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913) (USDC on Base) to understand how transfer events appear on the blockchain.
+> See example token transfers on [Basescan](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913) (USDC on Base) to understand how transfer events appear on the blockchain.
 
-| Field | Type | Description |
-| ----------------- | ---------- | ---------------------------------------- |
-| block\_number | uint64 | Block number containing the transfer |
-| block\_timestamp | DateTime64 | Block timestamp |
-| transaction\_to | String | Transaction recipient address |
-| transaction\_from | String | Transaction sender address |
-| log\_index | uint32 | Log index within the transaction |
-| token\_address | String | Address of the token contract |
-| from\_address | String | Address tokens are transferred from |
-| to\_address | String | Address tokens are transferred to |
-| value | uint256 | Amount of tokens transferred |
-| action | Enum8 | Action: 1 for add, -1 for re-org removal |
-
-
+| Field            | Type       | Description                              |
+| ---------------- | ---------- | ---------------------------------------- |
+| block_number     | uint64     | Block number containing the transfer     |
+| block_timestamp  | DateTime64 | Block timestamp                          |
+| transaction_to   | String     | Transaction recipient address            |
+| transaction_from | String     | Transaction sender address               |
+| log_index        | uint32     | Log index within the transaction         |
+| token_address    | String     | Address of the token contract            |
+| from_address     | String     | Address tokens are transferred from      |
+| to_address       | String     | Address tokens are transferred to        |
+| value            | uint256    | Amount of tokens transferred             |
+| action           | Enum8      | Action: 1 for add, -1 for re-org removal |
 
 # CoinbaSeQL Grammar
 
@@ -3473,9 +3568,9 @@ This page provides the ANTLR4 grammar specification for CoinbaSeQL (pronounced "
 
 CoinbaSeQL supports all standard SQL query features. For practical examples and usage, see:
 
-* **[Quickstart](/data/sql-api/quickstart)** - Try queries in the SQL Playground
-* **[Schema Reference](/data/sql-api/schema)** - Explore available tables and columns
-* **[FAQ](/data/sql-api/faq)** - Common questions about supported features
+- **[Quickstart](/data/sql-api/quickstart)** - Try queries in the SQL Playground
+- **[Schema Reference](/data/sql-api/schema)** - Explore available tables and columns
+- **[FAQ](/data/sql-api/faq)** - Common questions about supported features
 
 ## For AI tools and query validators
 
@@ -3485,14 +3580,15 @@ The complete ANTLR4 grammar specification below defines exactly what SQL syntax 
 
 CoinbaSeQL is created with the following principles:
 
-* As similar to standard SQL as possible
-* Support all common SQL features per the SQL standard
-* Provide understandable, actionable, and helpful error messages
+- As similar to standard SQL as possible
+- Support all common SQL features per the SQL standard
+- Provide understandable, actionable, and helpful error messages
 
 ### Grammar Specification
 
 You can also retrieve this grammar programmatically via the [Get SQL Grammar endpoint](/api-reference/v2/rest-api/sql-api/get-sql-grammar).
-```antlr
+
+````antlr
 grammar SqlQuery;
 
 // If you update this grammar, simply run `make gen` from the top-level to update the parsing logic.
@@ -4097,8 +4193,9 @@ address: "0x835678a611b28684005a5e2233695fb6cbbb0007",
 network: "base",
 pageToken: page.nextPageToken
  });
-```
-```python
+````
+
+````python
  from cdp import CdpClient
 
  page = await cdp.evm.list_token_balances(
@@ -4381,14 +4478,14 @@ import jwt
 from cryptography.hazmat.primitives import serialization
 import time
 import secrets
-import os 
+import os
 
 # Fetch values from exported environment variables
-key_name = os.getenv('KEY_NAME') 
-key_secret = os.getenv('KEY_SECRET') 
-request_method = os.getenv('REQUEST_METHOD') 
-request_host = os.getenv('REQUEST_HOST') 
-request_path = os.getenv('REQUEST_PATH') 
+key_name = os.getenv('KEY_NAME')
+key_secret = os.getenv('KEY_SECRET')
+request_method = os.getenv('REQUEST_METHOD')
+request_host = os.getenv('REQUEST_HOST')
+request_path = os.getenv('REQUEST_PATH')
 
 def build_jwt(uri):
 private_key_bytes = key_secret.encode('utf-8')
@@ -4650,7 +4747,7 @@ uri: uri
 
  # Read the private key from the environment variable
  private_key = OpenSSL::PKey::read(key_secret)
- 
+
  # Encode the JWT
  JWT.encode(claims, private_key, 'ES256', header)
 end
@@ -4672,9 +4769,9 @@ use Firebase\JWT\JWT;
 
 function buildJwt {
 // Fetching values directly from environment variables (no defaults)
-$keyName = getenv('KEY_NAME'); 
+$keyName = getenv('KEY_NAME');
 $keySecret = str_replace('\\n', "\n", getenv('KEY_SECRET')); // Handling the private key format
-$requestMethod = getenv('REQUEST_METHOD'); 
+$requestMethod = getenv('REQUEST_METHOD');
 $requestHost = getenv('REQUEST_HOST');
 $requestPath = getenv('REQUEST_PATH');
 
@@ -6210,11 +6307,9 @@ The [API credit](/data/node/overview#rate-limits) value of this method is 100.
  "nextPageToken": "RlZ6VFBwc2lDSVd...IzEiLCJpZHgiOjB9"
  }
  }
-```
+````
+
 </CodeGroup>
-
-
-
 
 ## SDKs
 
@@ -6223,26 +6318,26 @@ The [API credit](/data/node/overview#rate-limits) value of this method is 100.
 > Explore our SDKs for building onchain apps, AI agents, and more.
 
 export const Section = ({children}) => {
- return <div className="not-prose text-sm text-primary dark:text-primary-light mt-2 mb-1 font-bold">
- {children}
+return <div className="not-prose text-sm text-primary dark:text-primary-light mt-2 mb-1 font-bold">
+{children}
+
  </div>;
 };
 
-
 export const Title = ({children, lightImg, darkImg, hasTopMargin}) => {
- return <div className={`flex gap-2 not-prose ${hasTopMargin ? "mt-12" : ""}`}>
- <img src={lightImg} style={{
+return <div className={`flex gap-2 not-prose ${hasTopMargin ? "mt-12" : ""}`}>
+<img src={lightImg} style={{
  width: "28px",
  height: "28px"
  }} noZoom className="block dark:hidden" />
- <img src={darkImg} style={{
+<img src={darkImg} style={{
  width: "28px",
  height: "28px"
  }} noZoom className="hidden dark:block" />
- <span className="font-semibold text-xl">{children}</span>
+<span className="font-semibold text-xl">{children}</span>
+
  </div>;
 };
-
 
 ## <Section>Build onchain</Section>
 
@@ -6259,23 +6354,13 @@ export const Title = ({children, lightImg, darkImg, hasTopMargin}) => {
 
 Backend onchain tools for interacting with EVM and Solana APIs to create accounts and send transactions, policy APIs to govern transaction permissions, as well as authentication tools for interacting directly with the CDP APIs.
 
-
- 
 - [Python](https://coinbase.github.io/cdp-sdk/python/)
 
-
- 
 - [TypeScript](/sdks/cdp-sdks-v2/typescript)
-
-
 
 Front end tools for providing embedded wallets and other onchain primitives to end users.
 
-
- 
 - [Frontend](/sdks/cdp-sdks-v2/frontend)
-
-
 
 <Title lightImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/light/layerNetworks-3.svg darkImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/dark/layerNetworks-3.svg hasTopMargin>
  ### CDP SDK v1
@@ -6283,15 +6368,9 @@ Front end tools for providing embedded wallets and other onchain primitives to e
 
 Backend onchain tools to enable the simple integration of crypto into your app. By calling Coinbase's Platform APIs, the SDK allows you to provision crypto wallets, send crypto into/out of those wallets, track wallet balances, and trade crypto from one asset into another.
 
-
- 
 - [Python](https://coinbase.github.io/cdp-sdk-python/index.html)
 
-
- 
 - [TypeScript](https://coinbase.github.io/coinbase-sdk-nodejs/index.html)
-
-
 
 <Title lightImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/light/nftAvatar-3.svg darkImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/dark/nftAvatar-3.svg hasTopMargin>
  ### AgentKit
@@ -6299,15 +6378,9 @@ Backend onchain tools to enable the simple integration of crypto into your app. 
 
 AgentKit is a toolkit enabling AI agents to interact with blockchain networks with secure wallet management and comprehensive onchain capabilities. Built on the Coinbase Developer Platform (CDP) SDK, it provides everything needed to create autonomous agents that can perform sophisticated blockchain operations.
 
-
- 
 - [Python](https://github.com/coinbase/agentkit/blob/main/python/coinbase-agentkit/README.md)
 
-
- 
 - [TypeScript](https://github.com/coinbase/agentkit/blob/main/typescript/agentkit/README.md)
-
-
 
 <Title lightImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/light/easyToUse-2.svg darkImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/dark/easyToUse-2.svg hasTopMargin>
  ### OnchainKit
@@ -6315,9 +6388,7 @@ AgentKit is a toolkit enabling AI agents to interact with blockchain networks wi
 
 OnchainKit is your go-to SDK for building beautiful onchain applications. Ship in minutes, not weeks. Anyone can build an onchain app in 15 minutes with OnchainKit. No blockchain experience required.
 
-
 - [React & TypeScript](https://docs.base.org/builderkits/onchainkit/getting-started)
-
 
 <Title lightImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/light/findYourSelection-2.svg darkImg="https://static-assets.coinbase.com/ui-infra/illustration/v1/pictogram/svg/dark/findYourSelection-2.svg hasTopMargin>
  ### MiniKit
@@ -6325,9 +6396,7 @@ OnchainKit is your go-to SDK for building beautiful onchain applications. Ship i
 
 MiniKit is easiest way to build Mini Apps on Base, allowing developers to easily build applications without needing to know the details of the SDK implementation. It integrates seamlessly with OnchainKit components and provides Coinbase Wallet-specific hooks.
 
-
 - [React & TypeScript](https://docs.base.org/builderkits/minikit/overview)
-
 
 ## <Section>Consumer APIs</Section>
 
@@ -6337,23 +6406,13 @@ MiniKit is easiest way to build Mini Apps on Base, allowing developers to easily
 
 Coinbase Advanced Trade is our advanced trading platform, intended for the more experienced trader. It offers a secure and easy way to buy, sell, and trade digital assets online across various trading pairs.
 
-
- 
 - [Python](https://github.com/coinbase/coinbase-advanced-py/)
 
-
- 
 - [TypeScript](https://github.com/coinbase-samples/advanced-sdk-ts)
 
-
- 
 - [Go](https://github.com/coinbase-samples/advanced-trade-sdk-go)
 
-
- 
 - [Java](https://github.com/coinbase-samples/advanced-sdk-java)
-
-
 
 ## <Section>Institutional APIs</Section>
 
@@ -6363,32 +6422,15 @@ Coinbase Advanced Trade is our advanced trading platform, intended for the more 
 
 Coinbase Prime is a full-service prime brokerage platform for institutional investors, combining secure custody solutions, advanced trading options via our Smart Order Router, and real-time market data to meet the needs of professional traders and financial institutions.
 
-
- 
 - [Java](https://github.com/coinbase-samples/prime-sdk-java)
 
-
- 
 - [.Net](https://github.com/coinbase-samples/prime-sdk-dotnet)
 
-
- 
 - [Go](https://github.com/coinbase-samples/prime-sdk-go)
 
-
- 
 - [Python](https://github.com/coinbase-samples/prime-sdk-py)
 
-
- 
 - [TypeScript](https://github.com/coinbase-samples/prime-sdk-ts)
-
-
-
-
-
-
-
 
 ## BUILD ONCHAIN
 
@@ -6404,12 +6446,14 @@ The TypeScript CDP SDK is a library that provides a client for interacting with 
 
 Further documentation is also available on the CDP docs website:
 
-* [Wallet API v2](https://docs.cdp.coinbase.com/wallet-api-v2/docs/welcome)
-* [API Reference](https://docs.cdp.coinbase.com/api-v2/docs/welcome)
+- [Wallet API v2](https://docs.cdp.coinbase.com/wallet-api-v2/docs/welcome)
+- [API Reference](https://docs.cdp.coinbase.com/api-v2/docs/welcome)
 
 ## Installation
+
 #### Command
-```bash
+
+````bash
 npm install @coinbase/cdp-sdk
 ```## API Keys
 
@@ -6853,19 +6897,20 @@ const { userOpHash } = await swapQuote.execute;
 // Wait for the user operation to complete
 const receipt = await smartAccount.waitForUserOperation({ userOpHash });
 console.log(`Status: ${receipt.status}`);
-```
+````
+
 #### When to use each approach:
 
-* **All-in-one (`account.swap`/`smartAccount.swap`)**: Best for most use cases. Simple, handles everything automatically.
-* **Price only (`getSwapPrice`)**: For displaying exchange rates, building price calculators, or checking liquidity without executing. Suitable when frequent price updates are needed - although the data may be slightly less precise.
-* **Create then execute (`account.quoteSwap`/`smartAccount.quoteSwap`)**: When you need to inspect swap details, implement custom logic, or handle complex scenarios before execution. Note: May reserve funds on-chain and is more strictly rate-limited.
+- **All-in-one (`account.swap`/`smartAccount.swap`)**: Best for most use cases. Simple, handles everything automatically.
+- **Price only (`getSwapPrice`)**: For displaying exchange rates, building price calculators, or checking liquidity without executing. Suitable when frequent price updates are needed - although the data may be slightly less precise.
+- **Create then execute (`account.quoteSwap`/`smartAccount.quoteSwap`)**: When you need to inspect swap details, implement custom logic, or handle complex scenarios before execution. Note: May reserve funds on-chain and is more strictly rate-limited.
 
 #### Key differences between Regular Accounts (EOAs) and Smart Accounts:
 
-* **Regular accounts (EOAs)** return `transactionHash`and execute immediately on-chain
-* **Smart accounts** return`userOpHash` and execute via user operations with optional gas sponsorship through paymasters
-* **Smart accounts** require an owner account for signing operations
-* **Smart accounts** support batch operations and advanced account abstraction features
+- **Regular accounts (EOAs)** return `transactionHash`and execute immediately on-chain
+- **Smart accounts** return`userOpHash` and execute via user operations with optional gas sponsorship through paymasters
+- **Smart accounts** require an owner account for signing operations
+- **Smart accounts** support batch operations and advanced account abstraction features
 
 All approaches handle Permit2 signatures automatically for ERC20 token swaps. Make sure tokens have proper allowances set for the Permit2 contract before swapping.
 
@@ -6875,27 +6920,27 @@ To help you get started with token swaps in your application, we provide the fol
 
 **Regular account (EOA) swap examples:**
 
-* [Execute a swap transaction using account (RECOMMENDED)](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.swap.ts) - All-in-one regular account swap execution
-* [Quote swap using account convenience method](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.quoteSwap.ts) - Account convenience method for creating quotes
-* [Two-step quote and execute process](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.quoteSwapAndExecute.ts) - Detailed two-step approach with analysis
-* [Swap with network hoisting](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.swapWithNetworkHoisting.ts) - All-in-one swap and two-step approach swap for EVM chains
+- [Execute a swap transaction using account (RECOMMENDED)](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.swap.ts) - All-in-one regular account swap execution
+- [Quote swap using account convenience method](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.quoteSwap.ts) - Account convenience method for creating quotes
+- [Two-step quote and execute process](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.quoteSwapAndExecute.ts) - Detailed two-step approach with analysis
+- [Swap with network hoisting](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/account.swapWithNetworkHoisting.ts) - All-in-one swap and two-step approach swap for EVM chains
 
 **Smart account swap examples:**
 
-* [Execute a swap transaction using smart account (RECOMMENDED)](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/smart-accounts/swap.ts) - All-in-one smart account swap execution with user operations and optional paymaster support
-* [Quote swap using smart account convenience method](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/smart-accounts/smartAccount.quoteSwap.ts) - Smart account convenience method for creating quotes
-* [Two-step quote and execute process](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/smart-accounts/smartAccount.quoteSwapAndExecute.ts) - Detailed two-step approach with analysis
-* [Smart account swap with network hoisting](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/smartAccount.swapWithNetworkHoisting.ts) - All-in-one smart account swap and two-step approach smart account swap for EVM chains
+- [Execute a swap transaction using smart account (RECOMMENDED)](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/smart-accounts/swap.ts) - All-in-one smart account swap execution with user operations and optional paymaster support
+- [Quote swap using smart account convenience method](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/smart-accounts/smartAccount.quoteSwap.ts) - Smart account convenience method for creating quotes
+- [Two-step quote and execute process](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/smart-accounts/smartAccount.quoteSwapAndExecute.ts) - Detailed two-step approach with analysis
+- [Smart account swap with network hoisting](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/swaps/smartAccount.swapWithNetworkHoisting.ts) - All-in-one smart account swap and two-step approach smart account swap for EVM chains
 
 **BYO wallet (viem) regular account (EOA) swap examples:**
 
-* [Execute a swap transaction using viem account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.account.swap.ts) - All-in-one swap execution with viem wallets
-* [Two-step quote and execute process using viem account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.account.quoteSwapAndExecute.ts) - Detailed two-step approach with viem wallets
+- [Execute a swap transaction using viem account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.account.swap.ts) - All-in-one swap execution with viem wallets
+- [Two-step quote and execute process using viem account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.account.quoteSwapAndExecute.ts) - Detailed two-step approach with viem wallets
 
 **BYO wallet (viem + account abstraction) smart account swap examples:**
 
-* [Execute a swap transaction using viem smart account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.smartAccount.swap.ts) - All-in-one smart account swap with custom bundler/paymaster setup
-* [Two-step quote and execute process using viem smart account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.smartAccount.quoteSwapAndExecute.ts) - Advanced account abstraction integration
+- [Execute a swap transaction using viem smart account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.smartAccount.swap.ts) - All-in-one smart account swap with custom bundler/paymaster setup
+- [Two-step quote and execute process using viem smart account](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/ecosystem/viem/viem.smartAccount.quoteSwapAndExecute.ts) - Advanced account abstraction integration
 
 **Note:** The viem smart account examples require additional dependencies (`permissionless`package) and external service setup (bundler, optional paymaster). For simpler smart account usage, consider CDP's built-in smart account features instead.
 
@@ -6906,16 +6951,19 @@ To help you get started with token swaps in your application, we provide the fol
 For complete examples, check out [evm/transactions/account.transfer.ts](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/transactions/account.transfer.ts) and [evm/smart-accounts/transfer.ts](https://github.com/coinbase/cdp-sdk/blob/main/examples/typescript/evm/smart-accounts/transfer.ts)
 
 You can transfer tokens between accounts using the`transfer`function:
+
 #### Code```typescript
+
 const sender = await cdp.evm.createAccount({ name: "Sender" });
 
 const { transactionHash } = await sender.transfer({
- to: "0x9F663335Cd6Ad02a37B633602E98866CF944124d",
- amount: 10000n, // equivalent to 0.01 USDC
- token: "usdc",
- network: "base-sepolia",
+to: "0x9F663335Cd6Ad02a37B633602E98866CF944124d",
+amount: 10000n, // equivalent to 0.01 USDC
+token: "usdc",
+network: "base-sepolia",
 });
-```You can then [wait for the transaction receipt with a viem Public Client](https://viem.sh/docs/actions/public/waitForTransactionReceipt#waitfortransactionreceipt)
+
+````You can then [wait for the transaction receipt with a viem Public Client](https://viem.sh/docs/actions/public/waitForTransactionReceipt#waitfortransactionreceipt)
 #### Code```typescript
 import { createPublicClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
@@ -6961,10 +7009,13 @@ await sender.transfer({
  network: "base-sepolia",
  paymasterUrl: "https://some-paymaster-url.com
 });
-```
+````
+
 Transfer amount must be passed as a bigint. To convert common tokens from whole units, you can use utilities such as [`parseEther`](https://viem.sh/docs/utilities/parseEther#parseether) and [`parseUnits`](https://viem.sh/docs/utilities/parseUnits#parseunits) from viem.
+
 #### Code
-```typescript
+
+````typescript
 await sender.transfer({
  to: "0x9F663335Cd6Ad02a37B633602E98866CF944124d",
  amount: parseUnits("0.01", 6), // USDC has 6 decimals
@@ -7351,26 +7402,29 @@ The main client for interacting with the CDP API.
 ##### Constructor
 #### Code```ts
 new CdpClient(options?: CdpClientOptions): CdpClient;
-```
+````
+
 Defined in: [cdp.ts:73](https://github.com/coinbase/cdp-sdk/blob/8794662b60e721852bfb60801a1d0bb1bb6e4c59/typescript/src/client/cdp.ts#L73)
 
 The CdpClient is the main class for interacting with the CDP API.
 
 There are a few required parameters that are configured in the [CDP Portal](https://portal.cdp.coinbase.com/projects/api-keys)
 
-* **CDP Secret API Key** (`apiKeyId`&`apiKeySecret`): These are used to authenticate requests to the entire suite of
- APIs offered on Coinbase Developer Platform.
- [Read more about CDP API keys](https://docs.cdp.coinbase.com/get-started/docs/cdp-api-keys)
-* **Wallet Secret** (`walletSecret`): This secret is used specifically to authenticate requests to `POST`, and `DELETE`endpoints in the EVM and Solana Account APIs.
+- **CDP Secret API Key** (`apiKeyId`&`apiKeySecret`): These are used to authenticate requests to the entire suite of
+  APIs offered on Coinbase Developer Platform.
+  [Read more about CDP API keys](https://docs.cdp.coinbase.com/get-started/docs/cdp-api-keys)
+- **Wallet Secret** (`walletSecret`): This secret is used specifically to authenticate requests to `POST`, and `DELETE`endpoints in the EVM and Solana Account APIs.
 
-These parameters can be set as environment variables:```CDP_API_KEY_ID=your-api-key-id
+These parameters can be set as environment variables:`CDP_API_KEY_ID=your-api-key-id
 CDP_API_KEY_SECRET=your-api-key-secret
-CDP_WALLET_SECRET=your-wallet-secret```Or passed as options to the constructor:
+CDP_WALLET_SECRET=your-wallet-secret`Or passed as options to the constructor:
+
 #### Code```typescript
+
 const cdp = new CdpClient({
- apiKeyId: "your-api-key-id",
- apiKeySecret: "your-api-key-secret",
- walletSecret: "your-wallet-secret",
+apiKeyId: "your-api-key-id",
+apiKeySecret: "your-api-key-secret",
+walletSecret: "your-wallet-secret",
 });
 ```The CdpClient is namespaced by chain type:`evm`or`solana`.
 
@@ -7393,8 +7447,10 @@ Configuration options for the CdpClient.
 #### Properties
 
 ##### endUser
+
 #### Code
-```ts
+
+````ts
 endUser: CDPEndUserClient;
 ```Defined in: [cdp.ts:36](https://github.com/coinbase/cdp-sdk/blob/8794662b60e721852bfb60801a1d0bb1bb6e4c59/typescript/src/client/cdp.ts#L36)
 
@@ -7866,3 +7922,4 @@ BaseMan Eşleştirmesi
 
 
 [Back to top](#table-of-contents)
+````

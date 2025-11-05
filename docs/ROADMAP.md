@@ -1,3 +1,13 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [BaseMan Geliştirme Yol Haritası](#baseman-geli%C5%9Ftirme-yol-haritas%C4%B1)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+<!-- cspell:disable -->
+
 # BaseMan Geliştirme Yol Haritası
 
 Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde doğru şekilde çalışır hale getirmek için izlenecek adımları listeler. Her adım, hem yerel dokümantasyondaki ilgili bölümü hem de resmi kaynağın web adresini referans gösterir. İlerledikçe maddeleri işaretleyin ve notlar ekleyin.
@@ -73,6 +83,7 @@ Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde
 ---
 
 İlerleme Kaydı (özet)
+
 - Kontrat deploy/verify: Sepolia’da tamamlandı —`0x3c52dEd86f9E56663cA680D773B64f8f62380cBc`- Authorizer: Backend imzalayıcıya ayarlandı —`0x21bC5c5…`
 - .env uyarlaması: Doküman uyumluluğu ve alias’lar eklendi
 

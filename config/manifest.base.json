@@ -8,7 +8,7 @@
     "ownerAddress": "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
     "allowedAddresses": [
       "0x8132C74c2774935e4CCa5c9B709E381c143b98f7",
-      "0x3c52dEd86f9E56663cA680D773B64f8f62380cBc"
+      "0x2fd9492E5f0F9559152bB5d4d23843072bCF17E2"
     ]
   },
   "miniapp": {
@@ -47,7 +47,7 @@
         "https://ipfs.decentralized-content.com"
       ]
     },
-    "requiredChains": ["eip155:8453"],
+    "requiredChains": ["eip155:8453", "eip155:84532"],
     "requiredCapabilities": [
       "actions.ready",
       "wallet.getEthereumProvider"

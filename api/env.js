@@ -20,6 +20,10 @@ export default async function handler(req, res) {
         obj[k] = val;
       }
     }
+    // Provide a public alias for EIP-712 version if only server var is set
+    if (!obj.NEXT_PUBLIC_REGISTRY_EIP712_VERSION && obj.REGISTRY_EIP712_VERSION) {
+      obj.NEXT_PUBLIC_REGISTRY_EIP712_VERSION = String(obj.REGISTRY_EIP712_VERSION).trim();
+    }
     res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
     res.status(200).send(`window.__ENV = ${JSON.stringify(obj)};`);
   } catch (err) {

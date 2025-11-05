@@ -176,8 +176,19 @@
       }
     }
 
-    sdk.actions.ready();
-    debug("sdk.actions.ready() called");
+    // Call ready asynchronously to hide splash screen
+    (async () => {
+      try {
+        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+          await sdk.actions.ready();
+          debug("sdk.actions.ready() called successfully");
+        } else {
+          debug("Warning: sdk.actions.ready is not available");
+        }
+      } catch (error) {
+        debug(`Error calling sdk.actions.ready: ${error?.message || error}`);
+      }
+    })();
 
     // Try to detect supported chains early and reconfigure if needed
     (async () => {
@@ -278,27 +289,52 @@
         }
 
         try {
+          // Get Ethereum provider from SDK
+          if (!sdk.wallet || typeof sdk.wallet.getEthereumProvider !== 'function') {
+            throw new Error("SDK wallet.getEthereumProvider is not available");
+          }
+          
           const provider = await sdk.wallet.getEthereumProvider();
           if (!provider) throw new Error("Ethereum provider not available.");
-          debug("sdk.wallet.getEthereumProvider() returned");
+          debug("sdk.wallet.getEthereumProvider() returned successfully");
+          
           // Mini‑app providers may not support wallet_switchEthereumChain; skip enforcing switch
 
           let address = null;
           try {
+            // First try to get existing accounts
             const accounts = await provider.request({ method: 'eth_accounts' });
-            if (Array.isArray(accounts) && accounts.length) address = accounts[0];
+            if (Array.isArray(accounts) && accounts.length) {
+              address = accounts[0];
+              debug(`Found existing account: ${address}`);
+            }
           } catch (eaErr) {
             debug(`eth_accounts error: ${eaErr?.message || eaErr}`);
           }
+          
+          // If no account found, request access
           if (!address) {
             try {
+              debug("Requesting account access...");
               const req = await provider.request({ method: 'eth_requestAccounts' });
-              if (Array.isArray(req) && req.length) address = req[0];
+              if (Array.isArray(req) && req.length) {
+                address = req[0];
+                debug(`Account access granted: ${address}`);
+              }
             } catch (reqErr) {
-              debug(`eth_requestAccounts error: ${reqErr?.message || reqErr}`);
+              const errMsg = reqErr?.message || String(reqErr);
+              debug(`eth_requestAccounts error: ${errMsg}`);
+              // User might have rejected the request
+              if (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User')) {
+                throw new Error('User rejected wallet connection');
+              }
+              throw new Error(`Failed to request accounts: ${errMsg}`);
             }
           }
-          if (!address) throw new Error('Wallet address unavailable');
+          
+          if (!address) {
+            throw new Error('Wallet address unavailable - no accounts returned');
+          }
 
           state.signer = null;
           state.address = ethers.getAddress(address);
@@ -765,8 +801,8 @@
         const contractInterface = state.contract && state.contract.interface;
         if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
           // Decide EIP-712 version at runtime (prefer env, else introspect contract.eip712Version())
-          let eip712v = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) || '';
-          let isV2 = eip712v === '2';
+          let eip712v = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim())) || '';
+          let isV2 = eip712v === '2' || eip712v === '';
           if (!isV2 && eip712v !== '1') {
             try {
               if (typeof state.contract.eip712Version === 'function') {
@@ -856,8 +892,10 @@
           debug("Paymaster submission not completed, sending standard transaction.");
         }
 
-        // Fallback standard transaction; detect V2 and include nonce if required
-        let eip712v2 = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) === '2';
+        // Fallback standard transaction (EOA/web only); detect V2 and include nonce if required
+        if (!isMiniAppEnv() && state.contract && typeof state.contract.submitScore === 'function') {
+        let eip712v2 = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim()));
+        eip712v2 = (eip712v2 === '2' || eip712v2 === '' || eip712v2 == null);
         if (!eip712v2) {
           try {
             if (state.contract && typeof state.contract.eip712Version === 'function') {
@@ -882,6 +920,9 @@
 
         debug(`submitScore tx: ${tx.hash}`);
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'fallback:tx', meta: { hash: tx.hash } }) }).catch(()=>{});} catch(_) {}
+        } else {
+          debug('Skipping EOA fallback path (mini-app or no Contract instance)');
+        }
       } catch (error) {
         debug(`submitScore error: ${error?.message || error}`);
       } finally {
@@ -909,8 +950,8 @@
         let paymasterHandled = false;
         const contractInterface = state.contract && state.contract.interface;
         if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
-          const eip712v = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) || '';
-          const isV2 = eip712v === '2';
+          const eip712v = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim())) || '';
+          const isV2 = (eip712v === '2' || eip712v === '');
           let callData;
           if (isV2) {
             let nonceValue = null;
@@ -945,7 +986,9 @@
           return;
         }
 
-        let eip712v2 = (window.__ENV && String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim()) === '2';
+        if (!isMiniAppEnv() && state.contract && typeof state.contract.completeQuest === 'function') {
+        let eip712v2 = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim()));
+        eip712v2 = (eip712v2 === '2' || eip712v2 === '' || eip712v2 == null);
         if (!eip712v2) {
           try {
             if (state.contract && typeof state.contract.eip712Version === 'function') {
@@ -967,6 +1010,9 @@
           tx = await state.contract.completeQuest(state.address, qid, deadlineValue, signature);
         }
         debug(`completeQuest tx: ${tx.hash}`);
+        } else {
+          debug('Skipping EOA quest fallback path (mini-app or no Contract instance)');
+        }
       } catch (error) {
         debug(`completeQuest error: ${error?.message || error}`);
       } finally {
