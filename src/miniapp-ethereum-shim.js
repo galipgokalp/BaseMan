@@ -2,19 +2,23 @@
   // Expose the Farcaster/Base Mini App EIP-1193 provider as window.ethereum
   // so third-party wallet UIs can detect an injected provider when needed.
 
-  const MAX_TRIES = 200; // ~20s at 100ms
+  // Increase tries for mobile environments
+  const MAX_TRIES = 300; // ~30s at 100ms (increased for mobile)
   const DELAY = 100;
   let tries = 0;
 
   function getMiniAppProvider() {
     try {
+      // Priority order optimized for mobile (Farcaster/Base App)
       const sdk =
         (window.fc && window.fc.miniapp) ||
         (window.farcaster && window.farcaster.miniapp) ||
         (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
-        (window.miniapp && (window.miniapp.default || window.miniapp.sdk)) ||
+        (window.MiniApp && window.MiniApp.sdk) ||
         window.MiniAppSDK ||
-        window.MiniApp?.sdk ||
+        window.FarcasterMiniAppSDK ||
+        window.sdk ||
+        (window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp)) ||
         null;
       if (!sdk || !sdk.wallet || typeof sdk.wallet.getEthereumProvider !== 'function') return null;
       return sdk.wallet.getEthereumProvider();

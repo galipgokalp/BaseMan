@@ -1,5 +1,6 @@
 (function () {
-  const MAX_ATTEMPTS = 300;
+  // Increase attempts for mobile environments where SDK may load slower
+  const MAX_ATTEMPTS = 500; // ~100s at 200ms (increased for mobile)
   const POLL_DELAY_MS = 200;
   let attempts = 0;
 
@@ -16,15 +17,20 @@
   }
 
   function resolveSdk() {
+    // Priority order optimized for mobile environments (Farcaster/Base App)
     const candidates = [
-      () => window.sdk,
+      // 1. Farcaster mobile (most common)
       () => window.fc && window.fc.miniapp,
       () => window.farcaster && window.farcaster.miniapp,
+      // 2. Base App / ReactNative WebView
       () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
+      () => window.MiniApp && window.MiniApp.sdk,
+      // 3. Standard SDK namespaces
       () => window.MiniAppSDK,
       () => window.FarcasterMiniAppSDK,
-      () => window.MiniApp && window.MiniApp.sdk,
+      () => window.sdk,
       () => window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp),
+      // 4. GlobalThis namespaces (for module bundlers)
       () =>
         (window.globalThis &&
           window.globalThis.MiniAppSDK &&
@@ -34,12 +40,26 @@
         (window.globalThis &&
           window.globalThis.miniapp &&
           (window.globalThis.miniapp.default || window.globalThis.miniapp.sdk)) ||
-        null
+        null,
+      // 5. Dynamic import detection (for ESM modules)
+      () => {
+        try {
+          if (window.__FARCASTER_SDK__) return window.__FARCASTER_SDK__;
+        } catch (_) {}
+        return null;
+      }
     ];
     for (const getter of candidates) {
       try {
         const value = getter();
-        if (value) return value;
+        // Verify it's actually an SDK object with required methods
+        if (value && typeof value === 'object') {
+          // Check for critical SDK methods
+          if ((value.actions && typeof value.actions.ready === 'function') ||
+              (value.wallet && typeof value.wallet.getEthereumProvider === 'function')) {
+            return value;
+          }
+        }
       } catch (error) {
         debug(`SDK candidate error: ${error?.message || error}`);
       }
@@ -177,16 +197,47 @@
     }
 
     // Call ready asynchronously to hide splash screen
+    // IMPORTANT: This must be called early to prevent infinite loading screen
     (async () => {
       try {
+        // Wait a bit for SDK to fully initialize (especially on mobile)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          await sdk.actions.ready();
-          debug("sdk.actions.ready() called successfully");
+          // Verify SDK is fully ready by checking for context
+          let isReady = false;
+          if (typeof sdk.isInMiniApp === 'function') {
+            try {
+              isReady = await sdk.isInMiniApp({ timeoutMs: 200 });
+            } catch (_) {
+              // If isInMiniApp fails, assume we're in mini app if SDK exists
+              isReady = true;
+            }
+          } else {
+            // If isInMiniApp not available, assume ready if SDK exists
+            isReady = true;
+          }
+          
+          if (isReady) {
+            await sdk.actions.ready();
+            debug("sdk.actions.ready() called successfully");
+          } else {
+            debug("Warning: SDK detected but not in mini app context");
+          }
         } else {
           debug("Warning: sdk.actions.ready is not available");
         }
       } catch (error) {
         debug(`Error calling sdk.actions.ready: ${error?.message || error}`);
+        // Try to call ready anyway if it's a timeout or minor error
+        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+          try {
+            await sdk.actions.ready();
+            debug("sdk.actions.ready() called after error recovery");
+          } catch (retryError) {
+            debug(`Retry ready() failed: ${retryError?.message || retryError}`);
+          }
+        }
       }
     })();
 
@@ -233,23 +284,46 @@
       }
     })();
 
-    function isMiniAppEnv() {
-      // Treat as mini‑app if the SDK is present or known host hints are present
+  function isMiniAppEnv() {
+    // Treat as mini‑app if the SDK is present or known host hints are present
+    try {
+      // 1) Reliable: if we resolved an SDK with wallet.getEthereumProvider
+      if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
+        return true;
+      }
+      // 2) Farcaster/Warpcast hints (mobile priority)
+      const hasFC = Boolean(
+        (window.fc && window.fc.miniapp) || 
+        (window.farcaster && window.farcaster.miniapp) ||
+        (window.fc && typeof window.fc === 'object') ||
+        (window.farcaster && typeof window.farcaster === 'object')
+      );
+      if (hasFC) return true;
+      // 3) React Native webview host (Base App and others) - mobile specific
+      if (Boolean(window.ReactNativeWebView)) {
+        return true;
+      }
+      // 4) User agent hints for mobile apps
+      const ua = navigator.userAgent || '';
+      if (ua.includes('Farcaster') || ua.includes('Warpcast') || ua.includes('BaseApp')) {
+        return true;
+      }
+      // 5) MiniKit / MiniApp namespaces
+      if (window.MiniKit || window.MiniAppSDK || (window.MiniApp && window.MiniApp.sdk) || window.FarcasterMiniAppSDK) {
+        return true;
+      }
+      // 6) Check for iframe context (common in mobile webviews)
       try {
-        // 1) Reliable: if we resolved an SDK with wallet.getEthereumProvider
-        if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
+        if (window.self !== window.top) {
           return true;
         }
-        // 2) Farcaster/Warpcast hints
-        const hasFC = Boolean((window.fc && window.fc.miniapp) || (window.farcaster && window.farcaster.miniapp));
-        if (hasFC) return true;
-        // 3) React Native webview host (Base App and others)
-        if (Boolean(window.ReactNativeWebView)) return true;
-        // 4) MiniKit / MiniApp namespaces
-        if (window.MiniKit || window.MiniAppSDK || (window.MiniApp && window.MiniApp.sdk) || window.FarcasterMiniAppSDK) return true;
-      } catch (_) {}
-      return false;
-    }
+      } catch (_) {
+        // If we can't access top, we might be in a cross-origin iframe
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
 
     async function getMiniAppAuthToken() {
       try {
