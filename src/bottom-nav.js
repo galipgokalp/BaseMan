@@ -270,7 +270,7 @@
       window.BaseManLeaderboard.show();
     } else {
       // Fallback: ensure panel is visible immediately with flexbox
-      panel.hidden = false;
+      panel.removeAttribute('hidden');
       panel.style.display = 'flex';
     }
     

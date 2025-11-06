@@ -304,12 +304,12 @@
     }
     visible = shouldShow;
     // Show panel immediately (synchronous)
-    // Use display style instead of hidden attribute to work with flexbox
+    // Remove hidden attribute and use display style for flexbox compatibility
     if (visible) {
-      panel.hidden = false;
+      panel.removeAttribute('hidden');
       panel.style.display = 'flex';
     } else {
-      panel.hidden = true;
+      panel.setAttribute('hidden', '');
       panel.style.display = 'none';
     }
     if (!visible) {
@@ -336,12 +336,12 @@
       const hash = window.location.hash.substring(1);
       visible = hash === 'leaderboard' || hash === 'pac';
     }
-    // Use display style instead of hidden attribute to work with flexbox
+    // Remove hidden attribute and use display style for flexbox compatibility
     if (visible) {
-      panel.hidden = false;
+      panel.removeAttribute('hidden');
       panel.style.display = 'flex';
     } else {
-      panel.hidden = true;
+      panel.setAttribute('hidden', '');
       panel.style.display = 'none';
     }
 

@@ -26,7 +26,7 @@
 }
 
 .leaderboard-panel[hidden] {
-  display: none !important;
+  display: none;
 }
 
 /* Profile Panel - Side Panel */
