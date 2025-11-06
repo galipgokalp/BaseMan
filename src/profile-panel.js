@@ -66,12 +66,18 @@
   // Track if a dialog is currently open to prevent multiple dialogs
   let currentDialog = null;
   let isDialogHandling = false;
+  let dialogCloseTimeout = null;
 
   function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
     // If a dialog is already open, close it first
     if (currentDialog && document.body.contains(currentDialog)) {
       currentDialog.remove();
       currentDialog = null;
+      isDialogHandling = false;
+      if (dialogCloseTimeout) {
+        clearTimeout(dialogCloseTimeout);
+        dialogCloseTimeout = null;
+      }
     }
     
     // If we're already handling a dialog action, ignore
@@ -97,70 +103,87 @@
     currentDialog = dialog;
     
     let dialogClosed = false;
+    let actionExecuted = false;
     
     const closeDialog = () => {
       if (dialogClosed) return;
       dialogClosed = true;
       isDialogHandling = true;
       
-      // Remove dialog from DOM
+      // Remove dialog from DOM immediately
       if (document.body.contains(dialog)) {
         dialog.remove();
       }
       currentDialog = null;
       
-      // Reset flag after a short delay to allow event handlers to complete
-      setTimeout(() => {
+      // Reset flag after a longer delay to prevent immediate re-triggering
+      if (dialogCloseTimeout) {
+        clearTimeout(dialogCloseTimeout);
+      }
+      dialogCloseTimeout = setTimeout(() => {
         isDialogHandling = false;
-      }, 100);
+        dialogCloseTimeout = null;
+      }, 500);
     };
     
     const handleClick = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
       
-      if (dialogClosed) return;
+      if (dialogClosed || actionExecuted) return;
+      actionExecuted = true;
       
       const action = e.target.getAttribute('data-action');
       
-      // Close dialog immediately
+      // Close dialog immediately and synchronously
       closeDialog();
       
-      // Execute action after dialog is closed
-      if (action === 'confirm') {
-        onConfirm();
-      } else if (action === 'cancel') {
-        onCancel();
-      }
+      // Execute action after a microtask to ensure dialog is closed
+      Promise.resolve().then(() => {
+        if (action === 'confirm') {
+          onConfirm();
+        } else if (action === 'cancel') {
+          onCancel();
+        }
+      });
     };
     
     const handleBackdrop = (e) => {
-      if (e.target === dialog && !dialogClosed) {
+      if (e.target === dialog && !dialogClosed && !actionExecuted) {
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
+        actionExecuted = true;
         closeDialog();
-        onCancel();
+        Promise.resolve().then(() => {
+          onCancel();
+        });
       }
     };
     
     dialog.querySelectorAll('.network-confirm-btn').forEach(btn => {
-      btn.addEventListener('click', handleClick, { once: true });
-      btn.addEventListener('touchend', handleClick, { once: true, passive: false });
+      btn.addEventListener('click', handleClick, { once: true, capture: true });
+      btn.addEventListener('touchend', handleClick, { once: true, passive: false, capture: true });
     });
     
-    dialog.addEventListener('click', handleBackdrop, { once: true });
+    dialog.addEventListener('click', handleBackdrop, { once: true, capture: true });
     
     // Close on Escape key
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && !dialogClosed) {
+      if (e.key === 'Escape' && !dialogClosed && !actionExecuted) {
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
+        actionExecuted = true;
         closeDialog();
         document.removeEventListener('keydown', handleEscape);
-        onCancel();
+        Promise.resolve().then(() => {
+          onCancel();
+        });
       }
     };
-    document.addEventListener('keydown', handleEscape, { once: true });
+    document.addEventListener('keydown', handleEscape, { once: true, capture: true });
   }
 
   function el(tag, className, text) {
@@ -458,25 +481,39 @@
       // Refresh panel to show new network (but don't trigger any events)
       const panel = document.getElementById(PANEL_ID);
       if (panel) {
-        // Use a flag to prevent event listeners from firing during refresh
+        // Keep dialog handling flag active during refresh to prevent event listeners from firing
+        // This prevents the dialog from reopening after network switch
         const wasHandling = isDialogHandling;
-        isDialogHandling = true;
+        if (!wasHandling) {
+          isDialogHandling = true;
+        }
         try {
           await refresh(panel);
         } finally {
           // Only reset if we weren't already handling
+          // Use a longer delay to ensure refresh completes and no events fire
           if (!wasHandling) {
-            setTimeout(() => {
+            if (dialogCloseTimeout) {
+              clearTimeout(dialogCloseTimeout);
+            }
+            dialogCloseTimeout = setTimeout(() => {
               isDialogHandling = false;
-            }, 200);
+              dialogCloseTimeout = null;
+            }, 1000);
           }
         }
       }
     } catch (err) {
       console.error('[profile] switch error', err);
       alert('Failed to switch network: ' + (err?.message || err));
-      // Reset flag on error
-      isDialogHandling = false;
+      // Reset flag on error after a delay
+      if (dialogCloseTimeout) {
+        clearTimeout(dialogCloseTimeout);
+      }
+      dialogCloseTimeout = setTimeout(() => {
+        isDialogHandling = false;
+        dialogCloseTimeout = null;
+      }, 500);
     }
   }
 
