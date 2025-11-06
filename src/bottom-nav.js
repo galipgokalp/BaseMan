@@ -109,7 +109,9 @@
       
       // Use both click and touchstart for faster response on mobile
       const handleClick = (e) => {
+        console.log('[bottom-nav] Button clicked:', navType, e.type);
         if (item.disabled) {
+          console.log('[bottom-nav] Button disabled, ignoring');
           return;
         }
         e.preventDefault();
@@ -164,6 +166,12 @@
     // Close leaderboard
     if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.hide === 'function') {
       window.BaseManLeaderboard.hide();
+    } else {
+      // Fallback: ensure panel is hidden
+      const leaderboardPanel = document.getElementById('leaderboard-panel');
+      if (leaderboardPanel) {
+        leaderboardPanel.setAttribute('hidden', '');
+      }
     }
     
     // Close profile
@@ -197,15 +205,18 @@
   const CLICK_DEBOUNCE_MS = 100; // Minimum time between clicks
 
   function handleNavClick(navType, element) {
+    console.log('[bottom-nav] handleNavClick called:', navType);
     // Debounce rapid clicks
     const now = Date.now();
     if (now - lastClickTime < CLICK_DEBOUNCE_MS) {
+      console.log('[bottom-nav] Click debounced');
       return;
     }
     lastClickTime = now;
     
     // If clicking the same button, toggle (close panel)
     if (currentOpenPanel === navType) {
+      console.log('[bottom-nav] Toggling panel closed');
       closeAllPanels();
       setActive(null);
       return;
@@ -217,6 +228,7 @@
     // Open the selected panel immediately (synchronous)
     switch(navType) {
       case BOTTOM_NAV.LEADERBOARD:
+        console.log('[bottom-nav] Opening leaderboard');
         openLeaderboard();
         setActive(BOTTOM_NAV.LEADERBOARD);
         currentOpenPanel = BOTTOM_NAV.LEADERBOARD;
@@ -259,18 +271,30 @@
   }
 
   function openLeaderboard() {
+    console.log('[bottom-nav] openLeaderboard called');
     // Immediate panel opening - no async delays
     const panel = document.getElementById('leaderboard-panel');
     if (!panel) {
+      console.error('[bottom-nav] leaderboard-panel not found in DOM');
       return;
     }
-
-    // Show panel immediately (synchronous)
+    console.log('[bottom-nav] Panel found, removing hidden attribute');
+    
+    // Always remove hidden attribute first (synchronous, immediate)
+    panel.removeAttribute('hidden');
+    console.log('[bottom-nav] Hidden attribute removed, panel.hasAttribute("hidden"):', panel.hasAttribute('hidden'));
+    
+    // Force display style (inline style has higher specificity than CSS class)
+    panel.style.display = 'flex';
+    console.log('[bottom-nav] Forced display: flex (inline style)');
+    console.log('[bottom-nav] Panel computed display:', window.getComputedStyle(panel).display);
+    
+    // Also use API if available (for data refresh) - force update
     if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.show === 'function') {
-      window.BaseManLeaderboard.show();
+      console.log('[bottom-nav] Calling BaseManLeaderboard.show()');
+      window.BaseManLeaderboard.setVisible(true, { force: true });
     } else {
-      // Fallback: ensure panel is visible immediately
-      panel.removeAttribute('hidden');
+      console.warn('[bottom-nav] BaseManLeaderboard API not available');
     }
     
     // Refresh data in background (async, non-blocking)

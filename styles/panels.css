@@ -24,13 +24,15 @@
 
 /* Show panel when hidden attribute is removed */
 .leaderboard-panel:not([hidden]) {
-  display: flex !important;
+  display: flex;
 }
 
 /* Keep panel hidden when hidden attribute is present */
 .leaderboard-panel[hidden] {
   display: none !important;
 }
+
+/* Inline styles have highest specificity - they will override class rules */
 
 /* Profile Panel - Side Panel */
 .profile-panel {
