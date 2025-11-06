@@ -88,14 +88,15 @@ body::before {
   gap: var(--spacing-lg);
   padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xl);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(var(--spacing-xl) + env(safe-area-inset-bottom, 0px));
+  /* Bottom padding: base + bottom nav height + safe area */
+  padding-bottom: calc(var(--spacing-xl) + 64px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   box-sizing: border-box;
   /* Ensure content fits in viewport */
-  min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-  min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 64px);
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 64px);
 }
 
 /* ===== Leaderboard Panel - Enhanced ===== */
@@ -530,10 +531,13 @@ body::before {
   .game-shell {
     padding: var(--spacing-md) var(--spacing-sm);
     padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
-    padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+    /* Bottom padding: base + bottom nav height + safe area */
+    padding-bottom: calc(var(--spacing-md) + 60px + env(safe-area-inset-bottom, 0px));
     padding-left: calc(var(--spacing-sm) + env(safe-area-inset-left, 0px));
     padding-right: calc(var(--spacing-sm) + env(safe-area-inset-right, 0px));
     gap: var(--spacing-md);
+    min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 60px);
+    min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 60px);
   }
   
   .leaderboard-panel {
@@ -600,6 +604,154 @@ body::before {
   .profile-panel {
     max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 80px);
     max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 80px);
+  }
+}
+
+/* ===== Bottom Navigation Bar ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 32, 0.98) 0%, 
+    rgba(10, 10, 15, 0.99) 100%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-top: 2px solid var(--color-border-bright);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding-top: 8px;
+  z-index: 10000;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
+  box-sizing: border-box;
+}
+
+.bottom-nav::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--color-primary) 50%, 
+    transparent 100%);
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  touch-action: manipulation;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  position: relative;
+  flex: 1;
+  max-width: 25%;
+}
+
+.nav-item:hover:not(:disabled) {
+  background: rgba(255, 225, 79, 0.1);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.nav-item:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.nav-item.active {
+  color: var(--color-primary);
+  background: rgba(255, 225, 79, 0.15);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 0 8px rgba(255, 225, 79, 0.6);
+}
+
+.nav-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nav-icon {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.nav-item:hover:not(:disabled) .nav-icon {
+  transform: scale(1.1);
+}
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* Bottom nav badge indicator (optional, for notifications) */
+.nav-item .nav-badge {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(255, 107, 157, 0.8);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* Mobile adjustments for bottom nav */
+@media (max-width: 480px) {
+  .bottom-nav {
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-top: 6px;
+  }
+  
+  .nav-icon {
+    font-size: 18px;
+  }
+  
+  .nav-label {
+    font-size: 9px;
+  }
+  
+  .nav-item {
+    padding: 6px 8px;
   }
 }
 

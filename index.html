@@ -41,6 +41,25 @@
         </div>
       </section>
     </div>
+    <!-- Bottom Navigation Bar -->
+    <nav id="bottom-nav" class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <button type="button" class="nav-item" data-nav="leaderboard" aria-label="Leaderboard">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">PAC</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="profile" aria-label="Profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Pro</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="wallet" aria-label="Wallet">
+        <span class="nav-icon">🔗</span>
+        <span class="nav-label">Wal</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="settings" aria-label="Settings" disabled>
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Set</span>
+      </button>
+    </nav>
     <canvas id='atlas' class="atlas-hidden"></canvas>
     <script defer src="vendor/miniapp-sdk/index.min.js"></script>
     <!-- Expose Mini App EIP-1193 provider as window.ethereum for libs expecting injected provider -->
@@ -64,6 +83,8 @@
     <script defer src="src/leaderboard-panel.js?v=202512061200"></script>
     <!-- Profile panel (in‑app) -->
     <script defer src="src/profile-panel.js"></script>
+    <!-- Bottom navigation bar -->
+    <script defer src="src/bottom-nav.js"></script>
     <!-- __env already loaded above -->
   </body>
 </html>

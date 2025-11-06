@@ -148,6 +148,14 @@ function mountConnectMenu() {
     const container = ensureMountEl();
     const root = createRoot(container);
     root.render(React.createElement(App));
+    
+    // Listen for wallet open events from bottom nav
+    window.addEventListener('baseman-open-wallet', () => {
+      // Scroll to connect menu and ensure it's visible
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
   } catch (err) {
     console.error('[ConnectMenu] mount failed', err);
   }
