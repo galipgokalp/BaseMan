@@ -143,11 +143,29 @@ function baseBtnStyle() {
 }
 
 // Wait for both DOM and SDK ready in mini app environments
+let mountAttempted = false;
+let mountComplete = false;
+
 function mountConnectMenu() {
+  if (mountAttempted) {
+    console.log('[ConnectMenu] Mount already attempted, skipping...');
+    return;
+  }
+  mountAttempted = true;
+  
   try {
     const container = ensureMountEl();
+    if (!container) {
+      console.warn('[ConnectMenu] Container not created');
+      mountAttempted = false; // Retry
+      return;
+    }
+    
     const root = createRoot(container);
     root.render(React.createElement(App));
+    mountComplete = true;
+    
+    console.log('[ConnectMenu] Mounted successfully');
     
     // Listen for wallet open events from bottom nav
     window.addEventListener('baseman-open-wallet', () => {
@@ -158,31 +176,52 @@ function mountConnectMenu() {
     });
   } catch (err) {
     console.error('[ConnectMenu] mount failed', err);
+    mountAttempted = false; // Allow retry
   }
+}
+
+function initConnectMenu() {
+  if (mountComplete) {
+    console.log('[ConnectMenu] Already mounted');
+    return;
+  }
+  
+  // Wait for React to be available
+  if (typeof React === 'undefined' || typeof createRoot === 'undefined') {
+    console.log('[ConnectMenu] React not available yet, waiting...');
+    setTimeout(initConnectMenu, 200);
+    return;
+  }
+  
+  mountConnectMenu();
 }
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    // In mini app environments, wait for SDK ready
-    if (window.__basemanSDKReadyFired) {
-      setTimeout(mountConnectMenu, 100);
-    } else {
-      window.addEventListener('baseman-sdk-ready', () => {
-        setTimeout(mountConnectMenu, 100);
-      }, { once: true });
-      // Fallback: mount after delay even if SDK ready event doesn't fire
-      setTimeout(mountConnectMenu, 1000);
-    }
+    // Wait for React to load
+    setTimeout(() => {
+      if (window.__basemanSDKReadyFired) {
+        setTimeout(initConnectMenu, 500);
+      } else {
+        window.addEventListener('baseman-sdk-ready', () => {
+          setTimeout(initConnectMenu, 500);
+        }, { once: true });
+        // Fallback: mount after delay even if SDK ready event doesn't fire
+        setTimeout(initConnectMenu, 2000);
+      }
+    }, 500);
   }, { once: true });
 } else {
   // DOM already ready
-  if (window.__basemanSDKReadyFired) {
-    setTimeout(mountConnectMenu, 100);
-  } else {
-    window.addEventListener('baseman-sdk-ready', () => {
-      setTimeout(mountConnectMenu, 100);
-    }, { once: true });
-    // Fallback for web mode
-    setTimeout(mountConnectMenu, 300);
-  }
+  setTimeout(() => {
+    if (window.__basemanSDKReadyFired) {
+      setTimeout(initConnectMenu, 500);
+    } else {
+      window.addEventListener('baseman-sdk-ready', () => {
+        setTimeout(initConnectMenu, 500);
+      }, { once: true });
+      // Fallback for web mode - wait longer for React
+      setTimeout(initConnectMenu, 2000);
+    }
+  }, 500);
 }

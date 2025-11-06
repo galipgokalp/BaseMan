@@ -45,7 +45,18 @@
     await waitReady(sdk).catch(() => {});
     const getToken = sdk?.quickAuth && (sdk.quickAuth.getToken || sdk.quickAuth.token);
     if (typeof getToken !== 'function') return null;
-    try { return await getToken(); } catch (_) { return null; }
+    try { 
+      const result = await getToken();
+      // Handle different response formats
+      if (typeof result === 'string') return result;
+      if (result && typeof result === 'object') {
+        return result.token || result.result || result.value || null;
+      }
+      return null;
+    } catch (err) { 
+      console.warn('[miniapp-auth] getToken failed:', err?.message || err);
+      return null; 
+    }
   }
 
   async function sendToken(token) {

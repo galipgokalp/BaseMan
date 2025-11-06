@@ -250,10 +250,10 @@
     console.log('[bottom-nav] Connect root found (initial):', connectRoot);
     
     if (!connectRoot) {
-      // Wait a bit for connect menu to mount (it's loaded with defer)
+      // Wait longer for connect menu to mount (React needs time to load and render)
       console.log('[bottom-nav] Connect root not found, waiting for mount...');
       let attempts = 0;
-      const maxAttempts = 10;
+      const maxAttempts = 20; // Increased from 10 to 20 (4 seconds total)
       const checkInterval = setInterval(() => {
         attempts++;
         connectRoot = document.getElementById('connect-root');
@@ -261,19 +261,24 @@
           console.log('[bottom-nav] Connect root found after wait:', connectRoot);
           clearInterval(checkInterval);
           handleConnectMenu(connectRoot);
+          dispatchWalletEvent();
         } else if (attempts >= maxAttempts) {
           console.warn('[bottom-nav] Connect root not found after', maxAttempts, 'attempts');
           clearInterval(checkInterval);
-          // Fallback: dispatch event anyway
+          // Fallback: try to create it manually or show message
+          console.warn('[bottom-nav] Connect menu may not be loaded yet. Try refreshing the page.');
           dispatchWalletEvent();
         }
       }, 200);
     } else {
       handleConnectMenu(connectRoot);
+      dispatchWalletEvent();
     }
     
-    // Always dispatch event for connect menu to listen
-    dispatchWalletEvent();
+    // Always dispatch event for connect menu to listen (even if not found yet)
+    if (connectRoot) {
+      dispatchWalletEvent();
+    }
   }
   
   function handleConnectMenu(connectRoot) {

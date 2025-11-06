@@ -452,12 +452,26 @@
                 debug(`Account access granted: ${address}`);
               }
             } catch (reqErr) {
-              const errMsg = reqErr?.message || String(reqErr);
+              // Handle different error formats
+              let errMsg = '';
+              if (reqErr && typeof reqErr === 'object') {
+                errMsg = reqErr.message || reqErr.error?.message || reqErr.error || String(reqErr);
+              } else {
+                errMsg = String(reqErr);
+              }
+              
               debug(`eth_requestAccounts error: ${errMsg}`);
+              
               // User might have rejected the request
               if (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User')) {
                 throw new Error('User rejected wallet connection');
               }
+              
+              // Web mode detection - if not in mini app, provide helpful message
+              if (!isMiniAppEnv() && errMsg.includes('Cannot read properties of undefined')) {
+                throw new Error('Wallet not available in web mode. Please use Farcaster or Base App mobile app.');
+              }
+              
               throw new Error(`Failed to request accounts: ${errMsg}`);
             }
           }
