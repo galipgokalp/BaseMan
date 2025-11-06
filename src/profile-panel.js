@@ -29,6 +29,71 @@
     return Number(chainId) === 8453 ? 'Base' : (Number(chainId) === 84532 ? 'Base Sepolia' : `Chain ${chainId}`);
   }
 
+  function networkName(chainId) {
+    return Number(chainId) === 8453 ? 'Base Mainnet' : (Number(chainId) === 84532 ? 'Base Sepolia' : `Chain ${chainId}`);
+  }
+
+  function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
+    const targetNetworkName = networkName(targetChainId);
+    const dialog = document.createElement('div');
+    dialog.className = 'network-confirm-dialog';
+    dialog.innerHTML = `
+      <div class="network-confirm-content">
+        <h3 class="network-confirm-title">${targetNetworkName}</h3>
+        <p class="network-confirm-message">Do you want to switch to this network?</p>
+        <div class="network-confirm-buttons">
+          <button type="button" class="network-confirm-btn cancel" data-action="cancel">Cancel</button>
+          <button type="button" class="network-confirm-btn confirm" data-action="confirm">Switch</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(dialog);
+    
+    const handleClick = (e) => {
+      const action = e.target.getAttribute('data-action');
+      if (action === 'confirm') {
+        onConfirm();
+      } else if (action === 'cancel') {
+        onCancel();
+      }
+      dialog.remove();
+    };
+    
+    const handleBackdrop = (e) => {
+      if (e.target === dialog) {
+        onCancel();
+        dialog.remove();
+      }
+    };
+    
+    dialog.querySelectorAll('.network-confirm-btn').forEach(btn => {
+      btn.addEventListener('click', handleClick);
+      btn.addEventListener('touchend', handleClick, { passive: false });
+    });
+    
+    dialog.addEventListener('click', handleBackdrop);
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onCancel();
+        dialog.remove();
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Cleanup on remove
+    const observer = new MutationObserver(() => {
+      if (!document.body.contains(dialog)) {
+        document.removeEventListener('keydown', handleEscape);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true });
+  }
+
   function el(tag, className, text) {
     const e = document.createElement(tag);
     if (className) e.className = className;
@@ -75,8 +140,8 @@
             <div class="profile-row"><span>Total Interactions</span><span data-interactions>-</span></div>
           </div>
           <div class="profile-actions">
-            <button type="button" class="profile-action" data-switch="8453">Base Mainnet</button>
-            <button type="button" class="profile-action" data-switch="84532">Base Sepolia</button>
+            <span class="profile-network-link" data-switch="8453">Base Mainnet</span>
+            <span class="profile-network-link" data-switch="84532">Base Sepolia</span>
           </div>
           <div class="profile-history">
             <div class="profile-history__title">Recent Activity</div>
@@ -398,43 +463,47 @@
       }, { passive: false });
     }
           panel.querySelectorAll('[data-switch]').forEach((el) => {
-            el.addEventListener('click', async (e) => {
+            const handleSwitchClick = async (e) => {
               e.preventDefault();
               e.stopPropagation();
               const id = Number(el.getAttribute('data-switch'));
-              if (!isNaN(id)) {
-                el.disabled = true;
-                el.textContent = 'Switching...';
-                try {
-                  await handleSwitch(id);
-                } catch (err) {
-                  console.error('[profile] switch button error:', err);
-                } finally {
-                  el.disabled = false;
-                  const label = id === 8453 ? 'Base Mainnet' : 'Base Sepolia';
-                  el.textContent = label;
-                }
+              if (isNaN(id)) return;
+              
+              const currentChainId = window.BaseManOnchainConfig?.chainId ? Number(window.BaseManOnchainConfig.chainId) : null;
+              
+              // If already on target chain, skip
+              if (currentChainId === id) {
+                return;
               }
-            }, { passive: false });
+              
+              const originalText = el.textContent;
+              
+              // Show confirmation dialog
+              showNetworkConfirmDialog(
+                id,
+                async () => {
+                  // User confirmed - proceed with switch
+                  el.style.opacity = '0.6';
+                  el.textContent = 'Switching...';
+                  try {
+                    await handleSwitch(id);
+                  } catch (err) {
+                    console.error('[profile] switch button error:', err);
+                    alert('Failed to switch network: ' + (err?.message || err));
+                  } finally {
+                    el.style.opacity = '';
+                    el.textContent = originalText;
+                  }
+                },
+                () => {
+                  // User cancelled - do nothing, dialog already closed
+                }
+              );
+            };
+            
+            el.addEventListener('click', handleSwitchClick, { passive: false });
             // Touch event for mobile
-            el.addEventListener('touchend', async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const id = Number(el.getAttribute('data-switch'));
-              if (!isNaN(id)) {
-                el.disabled = true;
-                el.textContent = 'Switching...';
-                try {
-                  await handleSwitch(id);
-                } catch (err) {
-                  console.error('[profile] switch button error:', err);
-                } finally {
-                  el.disabled = false;
-                  const label = id === 8453 ? 'Base Mainnet' : 'Base Sepolia';
-                  el.textContent = label;
-                }
-              }
-            }, { passive: false });
+            el.addEventListener('touchend', handleSwitchClick, { passive: false });
           });
 
     // Complete Quest section removed - no longer needed

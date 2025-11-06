@@ -597,6 +597,40 @@ body::before {
   transform: translateY(0);
 }
 
+.profile-network-link {
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-block;
+  padding: var(--spacing-xs) 0;
+  min-height: 44px;
+  line-height: 44px;
+  touch-action: manipulation;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.profile-network-link:hover {
+  color: var(--color-primary-glow);
+  text-shadow: 0 0 8px rgba(255, 225, 79, 0.5);
+  transform: translateX(2px);
+}
+
+.profile-network-link:active {
+  transform: translateX(0);
+  opacity: 0.8;
+}
+
+.profile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
 /* ===== Scrollbar Styling ===== */
 .leaderboard-scroll::-webkit-scrollbar,
 .profile-panel::-webkit-scrollbar {

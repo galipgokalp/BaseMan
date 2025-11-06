@@ -38,33 +38,37 @@
             profileImg = document.createElement('img');
             profileImg.className = 'nav-profile-img';
             profileImg.alt = 'Profile';
-            // Hide emoji icon
+            // Hide emoji icon and label
             iconSpan.style.display = 'none';
-            // Insert image before label
             const label = profileButton.querySelector('.nav-label');
-            if (label) {
-              profileButton.insertBefore(profileImg, label);
-            } else {
-              profileButton.appendChild(profileImg);
-            }
+            if (label) label.style.display = 'none';
+            // Insert image
+            profileButton.appendChild(profileImg);
           }
           profileImg.src = user.pfpUrl;
+          profileImg.style.display = 'block';
           profileImg.onerror = () => {
             // If image fails to load, show emoji again
             if (profileImg) profileImg.style.display = 'none';
             iconSpan.style.display = '';
+            const label = profileButton.querySelector('.nav-label');
+            if (label) label.style.display = '';
           };
         } else {
           // No profile picture, ensure emoji is visible
           const profileImg = profileButton.querySelector('.nav-profile-img');
           if (profileImg) profileImg.style.display = 'none';
           iconSpan.style.display = '';
+          const label = profileButton.querySelector('.nav-label');
+          if (label) label.style.display = '';
         }
       } else {
         // SDK not available, ensure emoji is visible
         const profileImg = profileButton.querySelector('.nav-profile-img');
         if (profileImg) profileImg.style.display = 'none';
         iconSpan.style.display = '';
+        const label = profileButton.querySelector('.nav-label');
+        if (label) label.style.display = '';
       }
     } catch (err) {
       console.warn('[bottom-nav] Failed to load profile picture:', err);
@@ -72,6 +76,8 @@
       const profileImg = profileButton.querySelector('.nav-profile-img');
       if (profileImg) profileImg.style.display = 'none';
       iconSpan.style.display = '';
+      const label = profileButton.querySelector('.nav-label');
+      if (label) label.style.display = '';
     }
   }
 
