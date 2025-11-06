@@ -100,8 +100,8 @@ body {
 }
 
 .leaderboard-scroll {
-  max-height: 280px;
-  overflow-y: auto;
+  /* Scroll is now handled by .leaderboard-body */
+  overflow: visible;
   padding-right: 4px;
 }
 

@@ -16,13 +16,13 @@
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
   display: none;
+  flex-direction: column;
   box-sizing: border-box;
 }
 
 .leaderboard-panel:not([hidden]) {
-  display: block;
+  display: flex;
 }
 
 .leaderboard-panel[hidden] {
@@ -45,14 +45,14 @@
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
   display: none;
+  flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
 }
 
 .profile-panel.open {
-  display: block;
+  display: flex;
 }
 
 /* Wallet Panel - Side Panel */
@@ -71,14 +71,14 @@
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
   display: none;
+  flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
 }
 
 .wallet-panel.open {
-  display: block;
+  display: flex;
 }
 
 /* Settings Panel - Side Panel */
@@ -97,14 +97,14 @@
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
   display: none;
+  flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
 }
 
 .settings-panel.open {
-  display: block;
+  display: flex;
 }
 
 @keyframes panelSlideIn {
@@ -118,7 +118,8 @@
   }
 }
 
-/* Panel Headers */
+/* Panel Headers - Fixed */
+.leaderboard-header,
 .wallet-header,
 .profile-header,
 .settings-header {
@@ -128,6 +129,26 @@
   margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 32, 0.98) 0%, 
+    rgba(10, 10, 15, 0.99) 100%);
+  backdrop-filter: blur(16px) saturate(180%);
+  z-index: 10;
+  padding-top: var(--spacing-sm);
+  margin-top: calc(-1 * var(--spacing-lg));
+  padding-left: var(--spacing-lg);
+  padding-right: var(--spacing-lg);
+  margin-left: calc(-1 * var(--spacing-lg));
+  margin-right: calc(-1 * var(--spacing-lg));
+}
+
+/* Leaderboard header specific adjustments */
+.leaderboard-panel .leaderboard-header {
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .wallet-title,
@@ -205,6 +226,106 @@
 .profile-close:hover,
 .settings-close:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* Panel Body - Scrollable */
+.leaderboard-body,
+.wallet-body,
+.profile-body,
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding-right: var(--spacing-xs);
+}
+
+.leaderboard-body::-webkit-scrollbar,
+.wallet-body::-webkit-scrollbar,
+.profile-body::-webkit-scrollbar,
+.settings-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.leaderboard-body::-webkit-scrollbar-track,
+.wallet-body::-webkit-scrollbar-track,
+.profile-body::-webkit-scrollbar-track,
+.settings-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+}
+
+.leaderboard-body::-webkit-scrollbar-thumb,
+.wallet-body::-webkit-scrollbar-thumb,
+.profile-body::-webkit-scrollbar-thumb,
+.settings-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border-radius: var(--radius-full);
+}
+
+.leaderboard-body::-webkit-scrollbar-thumb:hover,
+.wallet-body::-webkit-scrollbar-thumb:hover,
+.profile-body::-webkit-scrollbar-thumb:hover,
+.settings-body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--color-primary-glow) 0%, var(--color-secondary) 100%);
+}
+
+/* Leaderboard specific - content after header should scroll */
+.leaderboard-panel {
+  position: relative;
+}
+
+.leaderboard-panel > .leaderboard-close {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  z-index: 10001;
+  flex-shrink: 0;
+}
+
+.leaderboard-panel > .leaderboard-header {
+  flex-shrink: 0;
+}
+
+.leaderboard-panel > .leaderboard-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding-right: var(--spacing-xs);
+}
+
+.leaderboard-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.leaderboard-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+}
+
+.leaderboard-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border-radius: var(--radius-full);
+}
+
+.leaderboard-body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--color-primary-glow) 0%, var(--color-secondary) 100%);
+}
+
+.leaderboard-panel > .leaderboard-body > .leaderboard-status,
+.leaderboard-panel > .leaderboard-body > .leaderboard-list-top {
+  flex-shrink: 0;
+}
+
+.leaderboard-panel > .leaderboard-body > .leaderboard-scroll {
+  flex-shrink: 0;
+  margin-top: var(--spacing-sm);
+}
+
+.leaderboard-panel > .leaderboard-body > .leaderboard-scroll[data-scroll-wrapper] {
+  overflow: visible;
+  max-height: none;
 }
 
 /* Panel Sections */

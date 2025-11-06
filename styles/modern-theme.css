@@ -924,6 +924,15 @@ body.theme-light .profile-network-logo svg rect {
   font-size: 20px;
   line-height: 1;
   transition: transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon-wallet svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .nav-item:hover:not(:disabled) .nav-icon {
