@@ -118,6 +118,10 @@
     if (isOpen) {
       // Load settings immediately (synchronous)
       loadSettings();
+      // Re-wire event listeners when panel opens (for mobile compatibility)
+      requestAnimationFrame(() => {
+        wire(panel);
+      });
       // Refresh in background (non-blocking)
       requestAnimationFrame(() => {
         refresh();
@@ -300,10 +304,14 @@
     // This setting only affects any legacy top-right profile button if it exists
   }
 
+  // Track if elements are already wired to prevent duplicate listeners
+  const wiredElements = new WeakSet();
+
   function wire(panel) {
     const closeBtn = panel.querySelector('[data-close]');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
+    if (closeBtn && !wiredElements.has(closeBtn)) {
+      wiredElements.add(closeBtn);
+      const handleClose = (e) => {
         e.preventDefault();
         e.stopPropagation();
         setVisible(false);
@@ -311,124 +319,140 @@
         if (window.BottomNav) {
           window.BottomNav.setActive(null);
         }
-      });
+      };
+      closeBtn.addEventListener('click', handleClose, { passive: false });
       // Touch event for mobile
-      closeBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setVisible(false);
-        if (window.BottomNav) {
-          window.BottomNav.setActive(null);
-        }
-      }, { passive: false });
+      closeBtn.addEventListener('touchend', handleClose, { passive: false });
     }
 
     // Close on overlay click
-    panel.addEventListener('click', (e) => {
-      if (e.target === panel) {
-        setVisible(false);
-      }
-    });
+    if (!wiredElements.has(panel)) {
+      wiredElements.add(panel);
+      panel.addEventListener('click', (e) => {
+        if (e.target === panel) {
+          setVisible(false);
+        }
+      }, { passive: true });
+    }
 
     // Theme toggle - use both click and change for mobile compatibility
     const themeToggle = panel.querySelector('[data-setting="theme"]');
-    if (themeToggle) {
+    if (themeToggle && !wiredElements.has(themeToggle)) {
+      wiredElements.add(themeToggle);
       const currentTheme = getSetting('theme', 'dark');
       themeToggle.checked = currentTheme === 'light';
+      
       const handleThemeChange = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        // Don't prevent default for change event - let native checkbox work
+        if (e.type === 'change') {
+          e.stopPropagation();
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         // Get the actual input element (in case event is from label)
         const input = e.target.type === 'checkbox' ? e.target : themeToggle;
         const newTheme = input.checked ? 'light' : 'dark';
         setSetting('theme', newTheme);
         applySettings();
       };
-      themeToggle.addEventListener('change', handleThemeChange, { passive: false });
-      themeToggle.addEventListener('click', handleThemeChange, { passive: false });
-      themeToggle.addEventListener('touchend', handleThemeChange, { passive: false });
+      
+      // Change event (primary) - fires when checkbox state changes
+      themeToggle.addEventListener('change', handleThemeChange, { passive: true });
+      // Click event for immediate feedback
+      themeToggle.addEventListener('click', handleThemeChange, { passive: false, capture: true });
+      // Touch events for mobile
+      themeToggle.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+      themeToggle.addEventListener('touchend', handleThemeChange, { passive: false, capture: true });
       
       // Also listen on the label wrapper for better mobile compatibility
       const themeLabel = themeToggle.closest('.settings-toggle');
-      if (themeLabel) {
-        themeLabel.addEventListener('click', (e) => {
+      if (themeLabel && !wiredElements.has(themeLabel)) {
+        wiredElements.add(themeLabel);
+        const handleLabelClick = (e) => {
           // Only handle if click is on label itself, not on input
           if (e.target === themeLabel || e.target.closest('.settings-toggle-slider')) {
             e.preventDefault();
             e.stopPropagation();
             themeToggle.checked = !themeToggle.checked;
+            // Trigger change event manually
+            themeToggle.dispatchEvent(new Event('change', { bubbles: true }));
             const newTheme = themeToggle.checked ? 'light' : 'dark';
             setSetting('theme', newTheme);
             applySettings();
           }
-        }, { passive: false });
-        themeLabel.addEventListener('touchend', (e) => {
-          if (e.target === themeLabel || e.target.closest('.settings-toggle-slider')) {
-            e.preventDefault();
-            e.stopPropagation();
-            themeToggle.checked = !themeToggle.checked;
-            const newTheme = themeToggle.checked ? 'light' : 'dark';
-            setSetting('theme', newTheme);
-            applySettings();
-          }
-        }, { passive: false });
+        };
+        themeLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
+        themeLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
       }
     }
 
     // Sound toggle - use both click and change for mobile compatibility
     const soundToggle = panel.querySelector('[data-setting="sound"]');
-    if (soundToggle) {
+    if (soundToggle && !wiredElements.has(soundToggle)) {
+      wiredElements.add(soundToggle);
       const soundEnabled = getSetting('sound', true);
       soundToggle.checked = soundEnabled;
+      
       const handleSoundChange = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        // Don't prevent default for change event - let native checkbox work
+        if (e.type === 'change') {
+          e.stopPropagation();
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         // Get the actual input element (in case event is from label)
         const input = e.target.type === 'checkbox' ? e.target : soundToggle;
         const enabled = input.checked;
         setSetting('sound', enabled);
         applySettings();
       };
-      soundToggle.addEventListener('change', handleSoundChange, { passive: false });
-      soundToggle.addEventListener('click', handleSoundChange, { passive: false });
-      soundToggle.addEventListener('touchend', handleSoundChange, { passive: false });
+      
+      // Change event (primary) - fires when checkbox state changes
+      soundToggle.addEventListener('change', handleSoundChange, { passive: true });
+      // Click event for immediate feedback
+      soundToggle.addEventListener('click', handleSoundChange, { passive: false, capture: true });
+      // Touch events for mobile
+      soundToggle.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+      soundToggle.addEventListener('touchend', handleSoundChange, { passive: false, capture: true });
       
       // Also listen on the label wrapper for better mobile compatibility
       const soundLabel = soundToggle.closest('.settings-toggle');
-      if (soundLabel) {
-        soundLabel.addEventListener('click', (e) => {
+      if (soundLabel && !wiredElements.has(soundLabel)) {
+        wiredElements.add(soundLabel);
+        const handleLabelClick = (e) => {
           // Only handle if click is on label itself, not on input
           if (e.target === soundLabel || e.target.closest('.settings-toggle-slider')) {
             e.preventDefault();
             e.stopPropagation();
             soundToggle.checked = !soundToggle.checked;
+            // Trigger change event manually
+            soundToggle.dispatchEvent(new Event('change', { bubbles: true }));
             const enabled = soundToggle.checked;
             setSetting('sound', enabled);
             applySettings();
           }
-        }, { passive: false });
-        soundLabel.addEventListener('touchend', (e) => {
-          if (e.target === soundLabel || e.target.closest('.settings-toggle-slider')) {
-            e.preventDefault();
-            e.stopPropagation();
-            soundToggle.checked = !soundToggle.checked;
-            const enabled = soundToggle.checked;
-            setSetting('sound', enabled);
-            applySettings();
-          }
-        }, { passive: false });
+        };
+        soundLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
+        soundLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
       }
     }
 
     // Difficulty select - use both change and input for mobile compatibility
     const difficultySelect = panel.querySelector('[data-setting="difficulty"]');
-    if (difficultySelect) {
+    if (difficultySelect && !wiredElements.has(difficultySelect)) {
+      wiredElements.add(difficultySelect);
       const difficulty = getSetting('difficulty', 'easy');
       difficultySelect.value = difficulty;
       
       const handleDifficultyChange = (e) => {
+        // Never prevent default for select - let it work naturally
         e.stopPropagation();
-        // Don't prevent default for select - let it work naturally
         const newDifficulty = e.target.value || difficultySelect.value;
         if (newDifficulty) {
           setSetting('difficulty', newDifficulty);
@@ -442,7 +466,7 @@
       // Input event for better mobile compatibility
       difficultySelect.addEventListener('input', handleDifficultyChange, { passive: true });
       
-      // Click event to ensure select opens on mobile
+      // Click event to ensure select opens on mobile - don't prevent default
       difficultySelect.addEventListener('click', (e) => {
         e.stopPropagation();
         // Don't prevent default - let native select open
@@ -455,7 +479,7 @@
       // Touch events for mobile - don't prevent default to allow native select to open
       difficultySelect.addEventListener('touchstart', (e) => {
         e.stopPropagation();
-        // Allow native select to open
+        // Allow native select to open - don't prevent default
       }, { passive: true });
       
       difficultySelect.addEventListener('touchend', (e) => {
@@ -469,58 +493,68 @@
             setSetting('difficulty', newValue);
             applySettings();
           }
-        }, 200);
+        }, 300);
       }, { passive: true });
       
       // Also listen for focus to ensure it works
       difficultySelect.addEventListener('focus', () => {
         // Ensure select is ready
         difficultySelect.style.pointerEvents = 'auto';
+        difficultySelect.style.touchAction = 'manipulation';
       });
     }
 
     // Profile button toggle - use both click and change for mobile compatibility
     const profileToggle = panel.querySelector('[data-setting="showProfile"]');
-    if (profileToggle) {
+    if (profileToggle && !wiredElements.has(profileToggle)) {
+      wiredElements.add(profileToggle);
       const showProfile = getSetting('showProfile', true);
       profileToggle.checked = showProfile;
+      
       const handleProfileChange = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        // Don't prevent default for change event - let native checkbox work
+        if (e.type === 'change') {
+          e.stopPropagation();
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         // Get the actual input element (in case event is from label)
         const input = e.target.type === 'checkbox' ? e.target : profileToggle;
         const show = input.checked;
         setSetting('showProfile', show);
         applySettings();
       };
-      profileToggle.addEventListener('change', handleProfileChange, { passive: false });
-      profileToggle.addEventListener('click', handleProfileChange, { passive: false });
-      profileToggle.addEventListener('touchend', handleProfileChange, { passive: false });
+      
+      // Change event (primary) - fires when checkbox state changes
+      profileToggle.addEventListener('change', handleProfileChange, { passive: true });
+      // Click event for immediate feedback
+      profileToggle.addEventListener('click', handleProfileChange, { passive: false, capture: true });
+      // Touch events for mobile
+      profileToggle.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+      profileToggle.addEventListener('touchend', handleProfileChange, { passive: false, capture: true });
       
       // Also listen on the label wrapper for better mobile compatibility
       const profileLabel = profileToggle.closest('.settings-toggle');
-      if (profileLabel) {
-        profileLabel.addEventListener('click', (e) => {
+      if (profileLabel && !wiredElements.has(profileLabel)) {
+        wiredElements.add(profileLabel);
+        const handleLabelClick = (e) => {
           // Only handle if click is on label itself, not on input
           if (e.target === profileLabel || e.target.closest('.settings-toggle-slider')) {
             e.preventDefault();
             e.stopPropagation();
             profileToggle.checked = !profileToggle.checked;
+            // Trigger change event manually
+            profileToggle.dispatchEvent(new Event('change', { bubbles: true }));
             const show = profileToggle.checked;
             setSetting('showProfile', show);
             applySettings();
           }
-        }, { passive: false });
-        profileLabel.addEventListener('touchend', (e) => {
-          if (e.target === profileLabel || e.target.closest('.settings-toggle-slider')) {
-            e.preventDefault();
-            e.stopPropagation();
-            profileToggle.checked = !profileToggle.checked;
-            const show = profileToggle.checked;
-            setSetting('showProfile', show);
-            applySettings();
-          }
-        }, { passive: false });
+        };
+        profileLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
+        profileLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
       }
     }
   }

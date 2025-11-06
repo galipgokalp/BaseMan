@@ -295,8 +295,8 @@ body.theme-light .canvas-container {
 
 .leaderboard-close {
   position: absolute;
-  top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
-  right: var(--spacing-lg);
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
   z-index: 10001;
   background: transparent;
   color: var(--color-text-primary);
@@ -654,14 +654,40 @@ body.theme-light .canvas-container {
   font-size: 0.9rem;
   font-weight: 600;
   transition: all 0.2s ease;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   padding: var(--spacing-xs) 0;
   min-height: 44px;
-  line-height: 44px;
+  line-height: 1;
   touch-action: manipulation;
   text-decoration: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.profile-network-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+}
+
+.profile-network-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+body.theme-light .profile-network-logo svg rect {
+  fill: #0000FF;
+}
+
+.profile-network-text {
+  display: inline-block;
 }
 
 .profile-network-link:hover {

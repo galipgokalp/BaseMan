@@ -33,7 +33,52 @@
     return Number(chainId) === 8453 ? 'Base Mainnet' : (Number(chainId) === 84532 ? 'Base Sepolia' : `Chain ${chainId}`);
   }
 
+  function createBaseLogo() {
+    // Base logo: Blue square (#0000FF) - Base's official brand color
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('width', '16');
+    rect.setAttribute('height', '16');
+    rect.setAttribute('rx', '2');
+    rect.setAttribute('fill', '#0000FF');
+    
+    svg.appendChild(rect);
+    return svg;
+  }
+
+  function setupNetworkLogos(panel) {
+    const logoElements = panel.querySelectorAll('.profile-network-logo');
+    logoElements.forEach((logoEl) => {
+      // Only create logo if it doesn't already have one
+      if (logoEl.children.length === 0) {
+        const svg = createBaseLogo();
+        logoEl.appendChild(svg);
+      }
+    });
+  }
+
+  // Track if a dialog is currently open to prevent multiple dialogs
+  let currentDialog = null;
+  let isDialogHandling = false;
+
   function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
+    // If a dialog is already open, close it first
+    if (currentDialog && document.body.contains(currentDialog)) {
+      currentDialog.remove();
+      currentDialog = null;
+    }
+    
+    // If we're already handling a dialog action, ignore
+    if (isDialogHandling) {
+      return;
+    }
+    
     const targetNetworkName = networkName(targetChainId);
     const dialog = document.createElement('div');
     dialog.className = 'network-confirm-dialog';
@@ -49,14 +94,37 @@
     `;
     
     document.body.appendChild(dialog);
+    currentDialog = dialog;
+    
+    let dialogClosed = false;
+    
+    const closeDialog = () => {
+      if (dialogClosed) return;
+      dialogClosed = true;
+      isDialogHandling = true;
+      
+      // Remove dialog from DOM
+      if (document.body.contains(dialog)) {
+        dialog.remove();
+      }
+      currentDialog = null;
+      
+      // Reset flag after a short delay to allow event handlers to complete
+      setTimeout(() => {
+        isDialogHandling = false;
+      }, 100);
+    };
     
     const handleClick = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      
+      if (dialogClosed) return;
+      
       const action = e.target.getAttribute('data-action');
       
       // Close dialog immediately
-      dialog.remove();
+      closeDialog();
       
       // Execute action after dialog is closed
       if (action === 'confirm') {
@@ -67,43 +135,32 @@
     };
     
     const handleBackdrop = (e) => {
-      if (e.target === dialog) {
+      if (e.target === dialog && !dialogClosed) {
         e.preventDefault();
         e.stopPropagation();
-        // Close dialog immediately
-        dialog.remove();
-        // Execute cancel action
+        closeDialog();
         onCancel();
       }
     };
     
     dialog.querySelectorAll('.network-confirm-btn').forEach(btn => {
-      btn.addEventListener('click', handleClick);
-      btn.addEventListener('touchend', handleClick, { passive: false });
+      btn.addEventListener('click', handleClick, { once: true });
+      btn.addEventListener('touchend', handleClick, { once: true, passive: false });
     });
     
-    dialog.addEventListener('click', handleBackdrop);
+    dialog.addEventListener('click', handleBackdrop, { once: true });
     
     // Close on Escape key
     const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        // Close dialog immediately
-        dialog.remove();
+      if (e.key === 'Escape' && !dialogClosed) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeDialog();
         document.removeEventListener('keydown', handleEscape);
-        // Execute cancel action
         onCancel();
       }
     };
-    document.addEventListener('keydown', handleEscape);
-    
-    // Cleanup on remove
-    const observer = new MutationObserver(() => {
-      if (!document.body.contains(dialog)) {
-        document.removeEventListener('keydown', handleEscape);
-        observer.disconnect();
-      }
-    });
-    observer.observe(document.body, { childList: true });
+    document.addEventListener('keydown', handleEscape, { once: true });
   }
 
   function el(tag, className, text) {
@@ -152,8 +209,14 @@
             <div class="profile-row"><span>Total Interactions</span><span data-interactions>-</span></div>
           </div>
           <div class="profile-actions">
-            <span class="profile-network-link" data-switch="8453">Base Mainnet</span>
-            <span class="profile-network-link" data-switch="84532">Base Sepolia</span>
+            <span class="profile-network-link" data-switch="8453">
+              <span class="profile-network-logo" data-network="8453"></span>
+              <span class="profile-network-text">Base Mainnet</span>
+            </span>
+            <span class="profile-network-link" data-switch="84532">
+              <span class="profile-network-logo" data-network="84532"></span>
+              <span class="profile-network-text">Base Sepolia</span>
+            </span>
           </div>
           <div class="profile-history">
             <div class="profile-history__title">Recent Activity</div>
@@ -392,14 +455,28 @@
         await window.BaseManOnchain.setNetwork({ chainId: targetChainId, registryAddress: nextRegistry });
       }
       
-      // Refresh panel to show new network
+      // Refresh panel to show new network (but don't trigger any events)
       const panel = document.getElementById(PANEL_ID);
       if (panel) {
-        await refresh(panel);
+        // Use a flag to prevent event listeners from firing during refresh
+        const wasHandling = isDialogHandling;
+        isDialogHandling = true;
+        try {
+          await refresh(panel);
+        } finally {
+          // Only reset if we weren't already handling
+          if (!wasHandling) {
+            setTimeout(() => {
+              isDialogHandling = false;
+            }, 200);
+          }
+        }
       }
     } catch (err) {
       console.error('[profile] switch error', err);
       alert('Failed to switch network: ' + (err?.message || err));
+      // Reset flag on error
+      isDialogHandling = false;
     }
   }
 
@@ -474,29 +551,59 @@
         }
       }, { passive: false });
     }
-          panel.querySelectorAll('[data-switch]').forEach((el) => {
+          // Setup network logos
+          setupNetworkLogos(panel);
+          
+          // Track if event listeners are already attached
+          const switchElements = panel.querySelectorAll('[data-switch]');
+          switchElements.forEach((el) => {
+            // Check if event listeners are already attached (using a data attribute)
+            if (el.dataset.switchWired === 'true') {
+              return; // Already wired, skip
+            }
+            
+            // Mark as wired
+            el.dataset.switchWired = 'true';
+            
             const handleSwitchClick = async (e) => {
               e.preventDefault();
               e.stopPropagation();
+              
+              // Prevent multiple clicks while dialog is open or switching
+              if (isDialogHandling || currentDialog) {
+                return;
+              }
+              
               const id = Number(el.getAttribute('data-switch'));
               if (isNaN(id)) return;
               
               const currentChainId = window.BaseManOnchainConfig?.chainId ? Number(window.BaseManOnchainConfig.chainId) : null;
               
-              // If already on target chain, skip
+              // If already on target chain, skip (don't show dialog)
               if (currentChainId === id) {
                 return;
               }
               
-              const originalText = el.textContent;
+              const textEl = el.querySelector('.profile-network-text');
+              const originalText = textEl ? textEl.textContent : el.textContent;
+              let isSwitching = false;
               
               // Show confirmation dialog
               showNetworkConfirmDialog(
                 id,
                 async () => {
                   // User confirmed - proceed with switch
+                  if (isSwitching) return; // Prevent double execution
+                  isSwitching = true;
+                  
                   el.style.opacity = '0.6';
-                  el.textContent = 'Switching...';
+                  if (textEl) {
+                    textEl.textContent = 'Switching...';
+                  } else {
+                    el.textContent = 'Switching...';
+                  }
+                  el.style.pointerEvents = 'none';
+                  
                   try {
                     await handleSwitch(id);
                   } catch (err) {
@@ -504,7 +611,13 @@
                     alert('Failed to switch network: ' + (err?.message || err));
                   } finally {
                     el.style.opacity = '';
-                    el.textContent = originalText;
+                    if (textEl) {
+                      textEl.textContent = originalText;
+                    } else {
+                      el.textContent = originalText;
+                    }
+                    el.style.pointerEvents = '';
+                    isSwitching = false;
                   }
                 },
                 () => {
