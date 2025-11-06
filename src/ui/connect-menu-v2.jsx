@@ -3,7 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { WagmiProvider, useAccount, useConnect, useSendTransaction, useSendCalls } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { parseEther } from 'viem';
-import { config } from './wagmi-config.js';
+import { config as wagmiConfig } from './wagmi-config.js';
+
+// Safely handle config initialization
+const config = wagmiConfig || null;
 
 function isMiniAppEnvironment() {
   try {
@@ -102,6 +105,22 @@ function ConnectMenuInner() {
 
 function App() {
   const qc = new QueryClient();
+  
+  // If config is not available, show error message
+  if (!config) {
+    return React.createElement('div', {
+      style: {
+        fontFamily: 'Inter, system-ui, sans-serif',
+        padding: '8px 12px',
+        background: 'rgba(239, 68, 68, 0.1)',
+        color: '#fca5a5',
+        borderRadius: 8,
+        fontSize: '12px',
+        border: '1px solid rgba(239, 68, 68, 0.3)'
+      }
+    }, 'Wallet config unavailable');
+  }
+  
   return (
     React.createElement(WagmiProvider, { config },
       React.createElement(QueryClientProvider, { client: qc },

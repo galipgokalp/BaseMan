@@ -455,7 +455,12 @@
               // Handle different error formats
               let errMsg = '';
               if (reqErr && typeof reqErr === 'object') {
-                errMsg = reqErr.message || reqErr.error?.message || reqErr.error || String(reqErr);
+                // Safely extract error message from various formats
+                errMsg = reqErr.message || 
+                         (reqErr.error && typeof reqErr.error === 'object' ? reqErr.error.message : null) ||
+                         (reqErr.error && typeof reqErr.error !== 'object' ? String(reqErr.error) : null) ||
+                         (reqErr.code ? `Error ${reqErr.code}` : null) ||
+                         String(reqErr);
               } else {
                 errMsg = String(reqErr);
               }
@@ -468,7 +473,7 @@
               }
               
               // Web mode detection - if not in mini app, provide helpful message
-              if (!isMiniAppEnv() && errMsg.includes('Cannot read properties of undefined')) {
+              if (!isMiniAppEnv() && (errMsg.includes('Cannot read properties of undefined') || errMsg.includes('undefined'))) {
                 throw new Error('Wallet not available in web mode. Please use Farcaster or Base App mobile app.');
               }
               

@@ -361,15 +361,15 @@
       exports.cacheSignal = function() {
         return null;
       };
-      exports.cloneElement = function(element, config2, children) {
+      exports.cloneElement = function(element, config3, children) {
         if (null === element || void 0 === element)
           throw Error(
             "The argument must be a React element, but you passed " + element + "."
           );
         var props = assign({}, element.props), key = element.key;
-        if (null != config2)
-          for (propName in void 0 !== config2.key && (key = "" + config2.key), config2)
-            !hasOwnProperty.call(config2, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config2.ref || (props[propName] = config2[propName]);
+        if (null != config3)
+          for (propName in void 0 !== config3.key && (key = "" + config3.key), config3)
+            !hasOwnProperty.call(config3, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config3.ref || (props[propName] = config3[propName]);
         var propName = arguments.length - 2;
         if (1 === propName) props.children = children;
         else if (1 < propName) {
@@ -395,11 +395,11 @@
         };
         return defaultValue;
       };
-      exports.createElement = function(type2, config2, children) {
+      exports.createElement = function(type2, config3, children) {
         var propName, props = {}, key = null;
-        if (null != config2)
-          for (propName in void 0 !== config2.key && (key = "" + config2.key), config2)
-            hasOwnProperty.call(config2, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config2[propName]);
+        if (null != config3)
+          for (propName in void 0 !== config3.key && (key = "" + config3.key), config3)
+            hasOwnProperty.call(config3, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config3[propName]);
         var childrenLength = arguments.length - 2;
         if (1 === childrenLength) props.children = children;
         else if (1 < childrenLength) {
@@ -14776,8 +14776,8 @@
   });
 
   // node_modules/viem/_esm/errors/base.js
-  function setErrorConfig(config2) {
-    errorConfig = config2;
+  function setErrorConfig(config3) {
+    errorConfig = config3;
   }
   function walk(err, fn4) {
     if (fn4?.(err))
@@ -35104,11 +35104,11 @@ ${prettyStateOverride(stateOverride)}`;
     const pollingInterval = parameters.pollingInterval ?? defaultPollingInterval;
     const cacheTime = parameters.cacheTime ?? pollingInterval;
     const account = parameters.account ? parseAccount(parameters.account) : void 0;
-    const { config: config2, request, value: value2 } = parameters.transport({
+    const { config: config3, request, value: value2 } = parameters.transport({
       chain: chain2,
       pollingInterval
     });
-    const transport = { ...config2, ...value2 };
+    const transport = { ...config3, ...value2 };
     const client = {
       account,
       batch,
@@ -35465,9 +35465,9 @@ ${prettyStateOverride(stateOverride)}`;
       name: name2,
       type: "testClient"
     });
-    return client.extend((config2) => ({
+    return client.extend((config3) => ({
       mode,
-      ...testActions({ mode })(config2)
+      ...testActions({ mode })(config3)
     }));
   }
   var init_createTestClient = __esm({
@@ -35590,14 +35590,14 @@ ${prettyStateOverride(stateOverride)}`;
   });
 
   // node_modules/viem/_esm/clients/transports/custom.js
-  function custom(provider, config2 = {}) {
-    const { key = "custom", methods, name: name2 = "Custom Provider", retryDelay } = config2;
+  function custom(provider, config3 = {}) {
+    const { key = "custom", methods, name: name2 = "Custom Provider", retryDelay } = config3;
     return ({ retryCount: defaultRetryCount }) => createTransport({
       key,
       methods,
       name: name2,
       request: provider.request.bind(provider),
-      retryCount: config2.retryCount ?? defaultRetryCount,
+      retryCount: config3.retryCount ?? defaultRetryCount,
       retryDelay,
       type: "custom"
     });
@@ -35610,8 +35610,8 @@ ${prettyStateOverride(stateOverride)}`;
   });
 
   // node_modules/viem/_esm/clients/transports/fallback.js
-  function fallback(transports_, config2 = {}) {
-    const { key = "fallback", name: name2 = "Fallback", rank = false, shouldThrow: shouldThrow_ = shouldThrow, retryCount, retryDelay } = config2;
+  function fallback(transports_, config3 = {}) {
+    const { key = "fallback", name: name2 = "Fallback", rank = false, shouldThrow: shouldThrow_ = shouldThrow, retryCount, retryDelay } = config3;
     return (({ chain: chain2, pollingInterval = 4e3, timeout, ...rest }) => {
       let transports2 = transports_;
       let onResponse = () => {
@@ -35769,12 +35769,12 @@ ${prettyStateOverride(stateOverride)}`;
   });
 
   // node_modules/viem/_esm/clients/transports/http.js
-  function http(url2, config2 = {}) {
-    const { batch, fetchFn, fetchOptions, key = "http", methods, name: name2 = "HTTP JSON-RPC", onFetchRequest, onFetchResponse, retryDelay, raw } = config2;
+  function http(url2, config3 = {}) {
+    const { batch, fetchFn, fetchOptions, key = "http", methods, name: name2 = "HTTP JSON-RPC", onFetchRequest, onFetchResponse, retryDelay, raw } = config3;
     return ({ chain: chain2, retryCount: retryCount_, timeout: timeout_ }) => {
       const { batchSize = 1e3, wait: wait2 = 0 } = typeof batch === "object" ? batch : {};
-      const retryCount = config2.retryCount ?? retryCount_;
-      const timeout = timeout_ ?? config2.timeout ?? 1e4;
+      const retryCount = config3.retryCount ?? retryCount_;
+      const timeout = timeout_ ?? config3.timeout ?? 1e4;
       const url_ = url2 || chain2?.rpcUrls.default.http[0];
       if (!url_)
         throw new UrlRequiredError();
@@ -35840,11 +35840,11 @@ ${prettyStateOverride(stateOverride)}`;
   });
 
   // node_modules/viem/_esm/clients/transports/webSocket.js
-  function webSocket(url2, config2 = {}) {
-    const { keepAlive, key = "webSocket", methods, name: name2 = "WebSocket JSON-RPC", reconnect: reconnect2, retryDelay } = config2;
+  function webSocket(url2, config3 = {}) {
+    const { keepAlive, key = "webSocket", methods, name: name2 = "WebSocket JSON-RPC", reconnect: reconnect2, retryDelay } = config3;
     return ({ chain: chain2, retryCount: retryCount_, timeout: timeout_ }) => {
-      const retryCount = config2.retryCount ?? retryCount_;
-      const timeout = timeout_ ?? config2.timeout ?? 1e4;
+      const retryCount = config3.retryCount ?? retryCount_;
+      const timeout = timeout_ ?? config3.timeout ?? 1e4;
       const url_ = url2 || chain2?.rpcUrls.default.webSocket?.[0];
       const wsRpcClientOpts = { keepAlive, reconnect: reconnect2 };
       if (!url_)
@@ -37220,21 +37220,21 @@ ${prettyStateOverride(stateOverride)}`;
       init_define_process_env();
       var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
       var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
-      function jsxProd(type2, config2, maybeKey) {
+      function jsxProd(type2, config3, maybeKey) {
         var key = null;
         void 0 !== maybeKey && (key = "" + maybeKey);
-        void 0 !== config2.key && (key = "" + config2.key);
-        if ("key" in config2) {
+        void 0 !== config3.key && (key = "" + config3.key);
+        if ("key" in config3) {
           maybeKey = {};
-          for (var propName in config2)
-            "key" !== propName && (maybeKey[propName] = config2[propName]);
-        } else maybeKey = config2;
-        config2 = maybeKey.ref;
+          for (var propName in config3)
+            "key" !== propName && (maybeKey[propName] = config3[propName]);
+        } else maybeKey = config3;
+        config3 = maybeKey.ref;
         return {
           $$typeof: REACT_ELEMENT_TYPE,
           type: type2,
           key,
-          ref: void 0 !== config2 ? config2 : null,
+          ref: void 0 !== config3 ? config3 : null,
           props: maybeKey
         };
       }
@@ -66114,8 +66114,8 @@ ${t45.stack}`), this._log.warn(n22), this.listenerCount("error") > 0 && this.emi
         getDocsUrl: ({ docsBaseUrl, docsPath: docsPath9 = "", docsSlug }) => docsPath9 ? `${docsBaseUrl ?? "https://viem.sh"}${docsPath9}${docsSlug ? `#${docsSlug}` : ""}` : void 0,
         version: `viem@${version_js_1.version}`
       };
-      function setErrorConfig2(config2) {
-        errorConfig2 = config2;
+      function setErrorConfig2(config3) {
+        errorConfig2 = config3;
       }
       var BaseError12 = class _BaseError extends Error {
         constructor(shortMessage, args = {}) {
@@ -80688,11 +80688,11 @@ ${(0, stateOverride_js_1.prettyStateOverride)(stateOverride)}`;
         const pollingInterval = parameters.pollingInterval ?? defaultPollingInterval;
         const cacheTime = parameters.cacheTime ?? pollingInterval;
         const account = parameters.account ? (0, parseAccount_js_1.parseAccount)(parameters.account) : void 0;
-        const { config: config2, request, value: value2 } = parameters.transport({
+        const { config: config3, request, value: value2 } = parameters.transport({
           chain: chain2,
           pollingInterval
         });
-        const transport = { ...config2, ...value2 };
+        const transport = { ...config3, ...value2 };
         const client = {
           account,
           batch,
@@ -90328,9 +90328,9 @@ ${(0, stateOverride_js_1.prettyStateOverride)(stateOverride)}`;
           name: name2,
           type: "testClient"
         });
-        return client.extend((config2) => ({
+        return client.extend((config3) => ({
           mode,
-          ...(0, test_js_1.testActions)({ mode })(config2)
+          ...(0, test_js_1.testActions)({ mode })(config3)
         }));
       }
     }
@@ -91070,14 +91070,14 @@ ${(0, stateOverride_js_1.prettyStateOverride)(stateOverride)}`;
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.custom = custom3;
       var createTransport_js_1 = require_createTransport();
-      function custom3(provider, config2 = {}) {
-        const { key = "custom", methods, name: name2 = "Custom Provider", retryDelay } = config2;
+      function custom3(provider, config3 = {}) {
+        const { key = "custom", methods, name: name2 = "Custom Provider", retryDelay } = config3;
         return ({ retryCount: defaultRetryCount }) => (0, createTransport_js_1.createTransport)({
           key,
           methods,
           name: name2,
           request: provider.request.bind(provider),
-          retryCount: config2.retryCount ?? defaultRetryCount,
+          retryCount: config3.retryCount ?? defaultRetryCount,
           retryDelay,
           type: "custom"
         });
@@ -91098,8 +91098,8 @@ ${(0, stateOverride_js_1.prettyStateOverride)(stateOverride)}`;
       var rpc_js_1 = require_rpc2();
       var wait_js_1 = require_wait();
       var createTransport_js_1 = require_createTransport();
-      function fallback3(transports_, config2 = {}) {
-        const { key = "fallback", name: name2 = "Fallback", rank = false, shouldThrow: shouldThrow_ = shouldThrow2, retryCount, retryDelay } = config2;
+      function fallback3(transports_, config3 = {}) {
+        const { key = "fallback", name: name2 = "Fallback", rank = false, shouldThrow: shouldThrow_ = shouldThrow2, retryCount, retryDelay } = config3;
         return (({ chain: chain2, pollingInterval = 4e3, timeout, ...rest }) => {
           let transports2 = transports_;
           let onResponse = () => {
@@ -91264,12 +91264,12 @@ ${(0, stateOverride_js_1.prettyStateOverride)(stateOverride)}`;
       var createBatchScheduler_js_1 = require_createBatchScheduler();
       var http_js_1 = require_http();
       var createTransport_js_1 = require_createTransport();
-      function http2(url2, config2 = {}) {
-        const { batch, fetchFn, fetchOptions, key = "http", methods, name: name2 = "HTTP JSON-RPC", onFetchRequest, onFetchResponse, retryDelay, raw } = config2;
+      function http2(url2, config3 = {}) {
+        const { batch, fetchFn, fetchOptions, key = "http", methods, name: name2 = "HTTP JSON-RPC", onFetchRequest, onFetchResponse, retryDelay, raw } = config3;
         return ({ chain: chain2, retryCount: retryCount_, timeout: timeout_ }) => {
           const { batchSize = 1e3, wait: wait2 = 0 } = typeof batch === "object" ? batch : {};
-          const retryCount = config2.retryCount ?? retryCount_;
-          const timeout = timeout_ ?? config2.timeout ?? 1e4;
+          const retryCount = config3.retryCount ?? retryCount_;
+          const timeout = timeout_ ?? config3.timeout ?? 1e4;
           const url_ = url2 || chain2?.rpcUrls.default.http[0];
           if (!url_)
             throw new transport_js_1.UrlRequiredError();
@@ -91338,11 +91338,11 @@ ${(0, stateOverride_js_1.prettyStateOverride)(stateOverride)}`;
       var compat_js_1 = require_compat();
       var webSocket_js_1 = require_webSocket();
       var createTransport_js_1 = require_createTransport();
-      function webSocket2(url2, config2 = {}) {
-        const { keepAlive, key = "webSocket", methods, name: name2 = "WebSocket JSON-RPC", reconnect: reconnect2, retryDelay } = config2;
+      function webSocket2(url2, config3 = {}) {
+        const { keepAlive, key = "webSocket", methods, name: name2 = "WebSocket JSON-RPC", reconnect: reconnect2, retryDelay } = config3;
         return ({ chain: chain2, retryCount: retryCount_, timeout: timeout_ }) => {
-          const retryCount = config2.retryCount ?? retryCount_;
-          const timeout = timeout_ ?? config2.timeout ?? 1e4;
+          const retryCount = config3.retryCount ?? retryCount_;
+          const timeout = timeout_ ?? config3.timeout ?? 1e4;
           const url_ = url2 || chain2?.rpcUrls.default.webSocket?.[0];
           const wsRpcClientOpts = { keepAlive, reconnect: reconnect2 };
           if (!url_)
@@ -129445,8 +129445,8 @@ NPM Registry: https://www.npmjs.com/package/@reown/appkit`;
             if (!apiConfig?.config) {
               return false;
             }
-            const config2 = apiConfig.config;
-            return Boolean(apiConfig.isEnabled) && config2.includes("email");
+            const config3 = apiConfig.config;
+            return Boolean(apiConfig.isEnabled) && config3.includes("email");
           },
           processFallback: (localValue) => {
             if (localValue === void 0) {
@@ -129465,8 +129465,8 @@ NPM Registry: https://www.npmjs.com/package/@reown/appkit`;
             if (!apiConfig?.config) {
               return false;
             }
-            const config2 = apiConfig.config;
-            return Boolean(apiConfig.isEnabled) && config2.length > 0 ? config2.filter((s24) => s24 !== "email") : false;
+            const config3 = apiConfig.config;
+            return Boolean(apiConfig.isEnabled) && config3.length > 0 ? config3.filter((s24) => s24 !== "email") : false;
           },
           processFallback: (localValue) => {
             if (localValue === void 0) {
@@ -129488,8 +129488,8 @@ NPM Registry: https://www.npmjs.com/package/@reown/appkit`;
             if (!apiConfig?.config) {
               return false;
             }
-            const config2 = apiConfig.config;
-            return Boolean(apiConfig.isEnabled) && config2.length > 0 ? config2 : false;
+            const config3 = apiConfig.config;
+            return Boolean(apiConfig.isEnabled) && config3.length > 0 ? config3 : false;
           },
           processFallback: (localValue) => {
             if (localValue === void 0) {
@@ -129511,8 +129511,8 @@ NPM Registry: https://www.npmjs.com/package/@reown/appkit`;
             if (!apiConfig?.config) {
               return false;
             }
-            const config2 = apiConfig.config;
-            return Boolean(apiConfig.isEnabled) && config2.length > 0 ? config2 : false;
+            const config3 = apiConfig.config;
+            return Boolean(apiConfig.isEnabled) && config3.length > 0 ? config3 : false;
           },
           processFallback: (localValue) => {
             if (localValue === void 0) {
@@ -129610,19 +129610,19 @@ NPM Registry: https://www.npmjs.com/package/@reown/appkit`;
         },
         addWarning(localFeatureValue, featureKey) {
           if (localFeatureValue !== void 0) {
-            const config2 = featureConfig[featureKey];
-            const warningName = config2.isLegacy ? `"features.${config2.localFeatureName}" (now "${featureKey}")` : `"features.${featureKey}"`;
+            const config3 = featureConfig[featureKey];
+            const warningName = config3.isLegacy ? `"features.${config3.localFeatureName}" (now "${featureKey}")` : `"features.${featureKey}"`;
             this.localSettingsOverridden.add(warningName);
           }
         },
         processFeature(featureKey, localFeatures, apiProjectConfig, useApi, isBasic) {
-          const config2 = featureConfig[featureKey];
-          const localValue = localFeatures[config2.localFeatureName];
-          if (isBasic && !config2.isAvailableOnBasic) {
+          const config3 = featureConfig[featureKey];
+          const localValue = localFeatures[config3.localFeatureName];
+          if (isBasic && !config3.isAvailableOnBasic) {
             return false;
           }
           if (useApi) {
-            const apiConfig = this.getApiConfig(config2.apiFeatureName, apiProjectConfig);
+            const apiConfig = this.getApiConfig(config3.apiFeatureName, apiProjectConfig);
             if (apiConfig?.config === null) {
               return this.processFallbackFeature(featureKey, localValue);
             }
@@ -129642,9 +129642,9 @@ NPM Registry: https://www.npmjs.com/package/@reown/appkit`;
         processFallbackFeature(featureKey, localValue) {
           return featureConfig[featureKey].processFallback(localValue);
         },
-        async fetchRemoteFeatures(config2) {
-          const isBasic = config2.basic ?? false;
-          const localFeatures = config2.features || {};
+        async fetchRemoteFeatures(config3) {
+          const isBasic = config3.basic ?? false;
+          const localFeatures = config3.features || {};
           this.localSettingsOverridden.clear();
           let apiProjectConfig = null;
           let shouldUseApiConfig = false;
@@ -150686,24 +150686,24 @@ ${params.statement}
   };
 
   // node_modules/@wagmi/core/dist/esm/actions/connect.js
-  async function connect(config2, parameters) {
+  async function connect(config3, parameters) {
     let connector;
     if (typeof parameters.connector === "function") {
-      connector = config2._internal.connectors.setup(parameters.connector);
+      connector = config3._internal.connectors.setup(parameters.connector);
     } else
       connector = parameters.connector;
-    if (connector.uid === config2.state.current)
+    if (connector.uid === config3.state.current)
       throw new ConnectorAlreadyConnectedError();
     try {
-      config2.setState((x9) => ({ ...x9, status: "connecting" }));
+      config3.setState((x9) => ({ ...x9, status: "connecting" }));
       connector.emitter.emit("message", { type: "connecting" });
       const { connector: _10, ...rest } = parameters;
       const data = await connector.connect(rest);
-      connector.emitter.off("connect", config2._internal.events.connect);
-      connector.emitter.on("change", config2._internal.events.change);
-      connector.emitter.on("disconnect", config2._internal.events.disconnect);
-      await config2.storage?.setItem("recentConnectorId", connector.id);
-      config2.setState((x9) => ({
+      connector.emitter.off("connect", config3._internal.events.connect);
+      connector.emitter.on("change", config3._internal.events.change);
+      connector.emitter.on("disconnect", config3._internal.events.disconnect);
+      await config3.storage?.setItem("recentConnectorId", connector.id);
+      config3.setState((x9) => ({
         ...x9,
         connections: new Map(x9.connections).set(connector.uid, {
           accounts: rest.withCapabilities ? data.accounts.map((account) => typeof account === "object" ? account.address : account) : data.accounts,
@@ -150720,7 +150720,7 @@ ${params.statement}
         chainId: data.chainId
       };
     } catch (error) {
-      config2.setState((x9) => ({
+      config3.setState((x9) => ({
         ...x9,
         // Keep existing connector connected in case of error
         status: x9.current ? "connected" : "disconnected"
@@ -150733,12 +150733,12 @@ ${params.statement}
   init_define_process_env();
   init_esm();
   init_utils7();
-  async function getConnectorClient(config2, parameters = {}) {
+  async function getConnectorClient(config3, parameters = {}) {
     const { assertChainId = true } = parameters;
     let connection;
     if (parameters.connector) {
       const { connector: connector2 } = parameters;
-      if (config2.state.status === "reconnecting" && !connector2.getAccounts && !connector2.getChainId)
+      if (config3.state.status === "reconnecting" && !connector2.getAccounts && !connector2.getChainId)
         throw new ConnectorUnavailableReconnectingError({ connector: connector2 });
       const [accounts, chainId2] = await Promise.all([
         connector2.getAccounts().catch((e17) => {
@@ -150754,7 +150754,7 @@ ${params.statement}
         connector: connector2
       };
     } else
-      connection = config2.state.connections.get(config2.state.current);
+      connection = config3.state.connections.get(config3.state.current);
     if (!connection)
       throw new ConnectorNotConnectedError();
     const chainId = parameters.chainId ?? connection.chainId;
@@ -150775,7 +150775,7 @@ ${params.statement}
         address: account.address,
         connector
       });
-    const chain2 = config2.chains.find((chain3) => chain3.id === chainId);
+    const chain2 = config3.chains.find((chain3) => chain3.id === chainId);
     const provider = await connection.connector.getProvider({ chainId });
     return createClient({
       account,
@@ -150787,13 +150787,13 @@ ${params.statement}
 
   // node_modules/@wagmi/core/dist/esm/actions/getAccount.js
   init_define_process_env();
-  function getAccount(config2) {
-    const uid3 = config2.state.current;
-    const connection = config2.state.connections.get(uid3);
+  function getAccount(config3) {
+    const uid3 = config3.state.current;
+    const connection = config3.state.connections.get(uid3);
     const addresses = connection?.accounts;
     const address = addresses?.[0];
-    const chain2 = config2.chains.find((chain3) => chain3.id === connection?.chainId);
-    const status = config2.state.status;
+    const chain2 = config3.chains.find((chain3) => chain3.id === connection?.chainId);
+    const status = config3.state.status;
     switch (status) {
       case "connected":
         return {
@@ -150893,8 +150893,8 @@ ${params.statement}
   // node_modules/@wagmi/core/dist/esm/actions/getConnectors.js
   init_define_process_env();
   var previousConnectors = [];
-  function getConnectors(config2) {
-    const connectors = config2.connectors;
+  function getConnectors(config3) {
+    const connectors = config3.connectors;
     if (previousConnectors.length === connectors.length && previousConnectors.every((connector, index3) => connector === connectors[index3]))
       return previousConnectors;
     previousConnectors = connectors;
@@ -150904,11 +150904,11 @@ ${params.statement}
   // node_modules/@wagmi/core/dist/esm/actions/reconnect.js
   init_define_process_env();
   var isReconnecting = false;
-  async function reconnect(config2, parameters = {}) {
+  async function reconnect(config3, parameters = {}) {
     if (isReconnecting)
       return [];
     isReconnecting = true;
-    config2.setState((x9) => ({
+    config3.setState((x9) => ({
       ...x9,
       status: x9.current ? "reconnecting" : "connecting"
     }));
@@ -150917,20 +150917,20 @@ ${params.statement}
       for (const connector_ of parameters.connectors) {
         let connector;
         if (typeof connector_ === "function")
-          connector = config2._internal.connectors.setup(connector_);
+          connector = config3._internal.connectors.setup(connector_);
         else
           connector = connector_;
         connectors.push(connector);
       }
     } else
-      connectors.push(...config2.connectors);
+      connectors.push(...config3.connectors);
     let recentConnectorId;
     try {
-      recentConnectorId = await config2.storage?.getItem("recentConnectorId");
+      recentConnectorId = await config3.storage?.getItem("recentConnectorId");
     } catch {
     }
     const scores = {};
-    for (const [, connection] of config2.state.connections) {
+    for (const [, connection] of config3.state.connections) {
       scores[connection.connector.id] = 1;
     }
     if (recentConnectorId)
@@ -150954,10 +150954,10 @@ ${params.statement}
       const data = await connector.connect({ isReconnecting: true }).catch(() => null);
       if (!data)
         continue;
-      connector.emitter.off("connect", config2._internal.events.connect);
-      connector.emitter.on("change", config2._internal.events.change);
-      connector.emitter.on("disconnect", config2._internal.events.disconnect);
-      config2.setState((x9) => {
+      connector.emitter.off("connect", config3._internal.events.connect);
+      connector.emitter.on("change", config3._internal.events.change);
+      connector.emitter.on("disconnect", config3._internal.events.disconnect);
+      config3.setState((x9) => {
         const connections2 = new Map(connected ? x9.connections : /* @__PURE__ */ new Map()).set(connector.uid, { accounts: data.accounts, chainId: data.chainId, connector });
         return {
           ...x9,
@@ -150973,16 +150973,16 @@ ${params.statement}
       providers.push(provider);
       connected = true;
     }
-    if (config2.state.status === "reconnecting" || config2.state.status === "connecting") {
+    if (config3.state.status === "reconnecting" || config3.state.status === "connecting") {
       if (!connected)
-        config2.setState((x9) => ({
+        config3.setState((x9) => ({
           ...x9,
           connections: /* @__PURE__ */ new Map(),
           current: null,
           status: "disconnected"
         }));
       else
-        config2.setState((x9) => ({ ...x9, status: "connected" }));
+        config3.setState((x9) => ({ ...x9, status: "connected" }));
     }
     isReconnecting = false;
     return connections;
@@ -150991,9 +150991,9 @@ ${params.statement}
   // node_modules/@wagmi/core/dist/esm/actions/sendCalls.js
   init_define_process_env();
   init_actions();
-  async function sendCalls2(config2, parameters) {
+  async function sendCalls2(config3, parameters) {
     const { account, chainId, connector, calls, ...rest } = parameters;
-    const client = await getConnectorClient(config2, {
+    const client = await getConnectorClient(config3, {
       account,
       assertChainId: false,
       chainId,
@@ -151011,13 +151011,13 @@ ${params.statement}
   // node_modules/@wagmi/core/dist/esm/actions/sendTransaction.js
   init_define_process_env();
   init_actions();
-  async function sendTransaction2(config2, parameters) {
+  async function sendTransaction2(config3, parameters) {
     const { account, chainId, connector, ...rest } = parameters;
     let client;
     if (typeof account === "object" && account?.type === "local")
-      client = config2.getClient({ chainId });
+      client = config3.getClient({ chainId });
     else
-      client = await getConnectorClient(config2, {
+      client = await getConnectorClient(config3, {
         account: account ?? void 0,
         assertChainId: false,
         chainId,
@@ -151049,9 +151049,9 @@ ${params.statement}
 
   // node_modules/@wagmi/core/dist/esm/actions/watchAccount.js
   init_define_process_env();
-  function watchAccount(config2, parameters) {
+  function watchAccount(config3, parameters) {
     const { onChange } = parameters;
-    return config2.subscribe(() => getAccount(config2), onChange, {
+    return config3.subscribe(() => getAccount(config3), onChange, {
       equalityFn(a22, b13) {
         const { connector: aConnector, ...aRest } = a22;
         const { connector: bConnector, ...bRest } = b13;
@@ -151063,9 +151063,9 @@ ${params.statement}
 
   // node_modules/@wagmi/core/dist/esm/actions/watchConnectors.js
   init_define_process_env();
-  function watchConnectors(config2, parameters) {
+  function watchConnectors(config3, parameters) {
     const { onChange } = parameters;
-    return config2._internal.connectors.subscribe((connectors, prevConnectors) => {
+    return config3._internal.connectors.subscribe((connectors, prevConnectors) => {
       onChange(Object.values(connectors), prevConnectors);
     });
   }
@@ -151111,7 +151111,7 @@ ${params.statement}
     let chainChanged2;
     let connect2;
     let disconnect2;
-    return createConnector((config2) => ({
+    return createConnector((config3) => ({
       get icon() {
         return getTarget().icon;
       },
@@ -151198,9 +151198,9 @@ ${params.statement}
             currentChainId = chain2?.id ?? currentChainId;
           }
           if (shimDisconnect)
-            await config2.storage?.removeItem(`${this.id}.disconnected`);
+            await config3.storage?.removeItem(`${this.id}.disconnected`);
           if (!parameters.target)
-            await config2.storage?.setItem("injected.connected", true);
+            await config3.storage?.setItem("injected.connected", true);
           return {
             accounts: withCapabilities ? accounts.map((address) => ({ address, capabilities: {} })) : accounts,
             chainId: currentChainId
@@ -151242,10 +151242,10 @@ ${params.statement}
         } catch {
         }
         if (shimDisconnect) {
-          await config2.storage?.setItem(`${this.id}.disconnected`, true);
+          await config3.storage?.setItem(`${this.id}.disconnected`, true);
         }
         if (!parameters.target)
-          await config2.storage?.removeItem("injected.connected");
+          await config3.storage?.removeItem("injected.connected");
       },
       async getAccounts() {
         const provider = await this.getProvider();
@@ -151284,11 +151284,11 @@ ${params.statement}
       async isAuthorized() {
         try {
           const isDisconnected = shimDisconnect && // If shim exists in storage, connector is disconnected
-          await config2.storage?.getItem(`${this.id}.disconnected`);
+          await config3.storage?.getItem(`${this.id}.disconnected`);
           if (isDisconnected)
             return false;
           if (!parameters.target) {
-            const connected = await config2.storage?.getItem("injected.connected");
+            const connected = await config3.storage?.getItem("injected.connected");
             if (!connected)
               return false;
           }
@@ -151323,17 +151323,17 @@ ${params.statement}
         const provider = await this.getProvider();
         if (!provider)
           throw new ProviderNotFoundError();
-        const chain2 = config2.chains.find((x9) => x9.id === chainId);
+        const chain2 = config3.chains.find((x9) => x9.id === chainId);
         if (!chain2)
           throw new SwitchChainError(new ChainNotConfiguredError());
         const promise = new Promise((resolve) => {
           const listener = ((data) => {
             if ("chainId" in data && data.chainId === chainId) {
-              config2.emitter.off("change", listener);
+              config3.emitter.off("change", listener);
               resolve();
             }
           });
-          config2.emitter.on("change", listener);
+          config3.emitter.on("change", listener);
         });
         try {
           await Promise.all([
@@ -151343,7 +151343,7 @@ ${params.statement}
             }).then(async () => {
               const currentChainId = await this.getChainId();
               if (currentChainId === chainId)
-                config2.emitter.emit("change", { chainId });
+                config3.emitter.emit("change", { chainId });
             }),
             promise
           ]);
@@ -151383,7 +151383,7 @@ ${params.statement}
                 }).then(async () => {
                   const currentChainId = await this.getChainId();
                   if (currentChainId === chainId)
-                    config2.emitter.emit("change", { chainId });
+                    config3.emitter.emit("change", { chainId });
                   else
                     throw new UserRejectedRequestError(new Error("User rejected switch after adding network."));
                 }),
@@ -151402,26 +151402,26 @@ ${params.statement}
       async onAccountsChanged(accounts) {
         if (accounts.length === 0)
           this.onDisconnect();
-        else if (config2.emitter.listenerCount("connect")) {
+        else if (config3.emitter.listenerCount("connect")) {
           const chainId = (await this.getChainId()).toString();
           this.onConnect({ chainId });
           if (shimDisconnect)
-            await config2.storage?.removeItem(`${this.id}.disconnected`);
+            await config3.storage?.removeItem(`${this.id}.disconnected`);
         } else
-          config2.emitter.emit("change", {
+          config3.emitter.emit("change", {
             accounts: accounts.map((x9) => getAddress(x9))
           });
       },
       onChainChanged(chain2) {
         const chainId = Number(chain2);
-        config2.emitter.emit("change", { chainId });
+        config3.emitter.emit("change", { chainId });
       },
       async onConnect(connectInfo) {
         const accounts = await this.getAccounts();
         if (accounts.length === 0)
           return;
         const chainId = Number(connectInfo.chainId);
-        config2.emitter.emit("connect", { accounts, chainId });
+        config3.emitter.emit("connect", { accounts, chainId });
         const provider = await this.getProvider();
         if (provider) {
           if (connect2) {
@@ -151448,7 +151448,7 @@ ${params.statement}
           if (provider && !!(await this.getAccounts()).length)
             return;
         }
-        config2.emitter.emit("disconnect");
+        config3.emitter.emit("disconnect");
         if (provider) {
           if (chainChanged2) {
             provider.removeListener("chainChanged", chainChanged2);
@@ -151624,7 +151624,7 @@ ${params.statement}
       };
     }
   };
-  var persistImpl = (config2, baseOptions) => (set2, get2, api4) => {
+  var persistImpl = (config3, baseOptions) => (set2, get2, api4) => {
     let options = {
       storage: createJSONStorage(() => localStorage),
       partialize: (state25) => state25,
@@ -151640,7 +151640,7 @@ ${params.statement}
     const finishHydrationListeners = /* @__PURE__ */ new Set();
     let storage = options.storage;
     if (!storage) {
-      return config2(
+      return config3(
         (...args) => {
           console.warn(
             `[zustand persist middleware] Unable to update item '${options.name}', the given storage is currently unavailable.`
@@ -151663,7 +151663,7 @@ ${params.statement}
       savedSetState(state25, replace);
       void setItem();
     };
-    const configResult = config2(
+    const configResult = config3(
       (...args) => {
         set2(...args);
         void setItem();
@@ -152018,10 +152018,10 @@ ${params.statement}
       return injected({ target: { ...info, id: info.rdns, provider } });
     }
     const clients = /* @__PURE__ */ new Map();
-    function getClient(config2 = {}) {
-      const chainId = config2.chainId ?? store2.getState().chainId;
+    function getClient(config3 = {}) {
+      const chainId = config3.chainId ?? store2.getState().chainId;
       const chain2 = chains2.getState().find((x9) => x9.id === chainId);
-      if (config2.chainId && !chain2)
+      if (config3.chainId && !chain2)
         throw new ChainNotConfiguredError();
       {
         const client2 = clients.get(store2.getState().chainId);
@@ -152311,21 +152311,21 @@ ${params.statement}
 
   // node_modules/@wagmi/core/dist/esm/hydrate.js
   init_define_process_env();
-  function hydrate(config2, parameters) {
+  function hydrate(config3, parameters) {
     const { initialState: initialState2, reconnectOnMount } = parameters;
-    if (initialState2 && !config2._internal.store.persist.hasHydrated())
-      config2.setState({
+    if (initialState2 && !config3._internal.store.persist.hasHydrated())
+      config3.setState({
         ...initialState2,
-        chainId: config2.chains.some((x9) => x9.id === initialState2.chainId) ? initialState2.chainId : config2.chains[0].id,
+        chainId: config3.chains.some((x9) => x9.id === initialState2.chainId) ? initialState2.chainId : config3.chains[0].id,
         connections: reconnectOnMount ? initialState2.connections : /* @__PURE__ */ new Map(),
         status: reconnectOnMount ? "reconnecting" : "disconnected"
       });
     return {
       async onMount() {
-        if (config2._internal.ssr) {
-          await config2._internal.store.persist.rehydrate();
-          if (config2._internal.mipd) {
-            config2._internal.connectors.setState((connectors) => {
+        if (config3._internal.ssr) {
+          await config3._internal.store.persist.rehydrate();
+          if (config3._internal.mipd) {
+            config3._internal.connectors.setState((connectors) => {
               const rdnsSet = /* @__PURE__ */ new Set();
               for (const connector of connectors ?? []) {
                 if (connector.rdns) {
@@ -152336,12 +152336,12 @@ ${params.statement}
                 }
               }
               const mipdConnectors = [];
-              const providers = config2._internal.mipd?.getProviders() ?? [];
+              const providers = config3._internal.mipd?.getProviders() ?? [];
               for (const provider of providers) {
                 if (rdnsSet.has(provider.info.rdns))
                   continue;
-                const connectorFn = config2._internal.connectors.providerDetailToConnector(provider);
-                const connector = config2._internal.connectors.setup(connectorFn);
+                const connectorFn = config3._internal.connectors.providerDetailToConnector(provider);
+                const connector = config3._internal.connectors.setup(connectorFn);
                 mipdConnectors.push(connector);
               }
               return [...connectors, ...mipdConnectors];
@@ -152349,9 +152349,9 @@ ${params.statement}
           }
         }
         if (reconnectOnMount)
-          reconnect(config2);
-        else if (config2.storage)
-          config2.setState((x9) => ({
+          reconnect(config3);
+        else if (config3.storage)
+          config3.setState((x9) => ({
             ...x9,
             connections: /* @__PURE__ */ new Map()
           }));
@@ -152377,18 +152377,18 @@ ${params.statement}
   // node_modules/wagmi/dist/esm/hydrate.js
   var import_react = __toESM(require_react(), 1);
   function Hydrate(parameters) {
-    const { children, config: config2, initialState: initialState2, reconnectOnMount = true } = parameters;
-    const { onMount } = hydrate(config2, {
+    const { children, config: config3, initialState: initialState2, reconnectOnMount = true } = parameters;
+    const { onMount } = hydrate(config3, {
       initialState: initialState2,
       reconnectOnMount
     });
-    if (!config2._internal.ssr)
+    if (!config3._internal.ssr)
       onMount();
     const active = (0, import_react.useRef)(true);
     (0, import_react.useEffect)(() => {
       if (!active.current)
         return;
-      if (!config2._internal.ssr)
+      if (!config3._internal.ssr)
         return;
       onMount();
       return () => {
@@ -152401,8 +152401,8 @@ ${params.statement}
   // node_modules/wagmi/dist/esm/context.js
   var WagmiContext = (0, import_react2.createContext)(void 0);
   function WagmiProvider(parameters) {
-    const { children, config: config2 } = parameters;
-    const props = { value: config2 };
+    const { children, config: config3 } = parameters;
+    const props = { value: config3 };
     return (0, import_react2.createElement)(Hydrate, parameters, (0, import_react2.createElement)(WagmiContext.Provider, props, children));
   }
 
@@ -152461,10 +152461,10 @@ ${params.statement}
   init_define_process_env();
   var import_react3 = __toESM(require_react(), 1);
   function useConfig(parameters = {}) {
-    const config2 = parameters.config ?? (0, import_react3.useContext)(WagmiContext);
-    if (!config2)
+    const config3 = parameters.config ?? (0, import_react3.useContext)(WagmiContext);
+    if (!config3)
       throw new WagmiProviderNotFoundError();
-    return config2;
+    return config3;
   }
 
   // node_modules/wagmi/dist/esm/hooks/useSyncExternalStoreWithTracked.js
@@ -152518,8 +152518,8 @@ ${params.statement}
 
   // node_modules/wagmi/dist/esm/hooks/useAccount.js
   function useAccount(parameters = {}) {
-    const config2 = useConfig(parameters);
-    return useSyncExternalStoreWithTracked((onChange) => watchAccount(config2, { onChange }), () => getAccount(config2));
+    const config3 = useConfig(parameters);
+    return useSyncExternalStoreWithTracked((onChange) => watchAccount(config3, { onChange }), () => getAccount(config3));
   }
 
   // node_modules/@wagmi/core/dist/esm/exports/query.js
@@ -153110,7 +153110,7 @@ ${params.statement}
       this.silent = options?.silent;
     }
   };
-  function createRetryer(config2) {
+  function createRetryer(config3) {
     let isRetryCancelled = false;
     let failureCount = 0;
     let continueFn;
@@ -153120,7 +153120,7 @@ ${params.statement}
       if (!isResolved()) {
         const error = new CancelledError(cancelOptions);
         reject(error);
-        config2.onCancel?.(error);
+        config3.onCancel?.(error);
       }
     };
     const cancelRetry = () => {
@@ -153129,8 +153129,8 @@ ${params.statement}
     const continueRetry = () => {
       isRetryCancelled = false;
     };
-    const canContinue = () => focusManager.isFocused() && (config2.networkMode === "always" || onlineManager.isOnline()) && config2.canRun();
-    const canStart = () => canFetch(config2.networkMode) && config2.canRun();
+    const canContinue = () => focusManager.isFocused() && (config3.networkMode === "always" || onlineManager.isOnline()) && config3.canRun();
+    const canStart = () => canFetch(config3.networkMode) && config3.canRun();
     const resolve = (value2) => {
       if (!isResolved()) {
         continueFn?.();
@@ -153150,11 +153150,11 @@ ${params.statement}
             continueResolve(value2);
           }
         };
-        config2.onPause?.();
+        config3.onPause?.();
       }).then(() => {
         continueFn = void 0;
         if (!isResolved()) {
-          config2.onContinue?.();
+          config3.onContinue?.();
         }
       });
     };
@@ -153163,9 +153163,9 @@ ${params.statement}
         return;
       }
       let promiseOrValue;
-      const initialPromise = failureCount === 0 ? config2.initialPromise : void 0;
+      const initialPromise = failureCount === 0 ? config3.initialPromise : void 0;
       try {
-        promiseOrValue = initialPromise ?? config2.fn();
+        promiseOrValue = initialPromise ?? config3.fn();
       } catch (error) {
         promiseOrValue = Promise.reject(error);
       }
@@ -153173,8 +153173,8 @@ ${params.statement}
         if (isResolved()) {
           return;
         }
-        const retry = config2.retry ?? (isServer ? 0 : 3);
-        const retryDelay = config2.retryDelay ?? defaultRetryDelay;
+        const retry = config3.retry ?? (isServer ? 0 : 3);
+        const retryDelay = config3.retryDelay ?? defaultRetryDelay;
         const delay = typeof retryDelay === "function" ? retryDelay(failureCount, error) : retryDelay;
         const shouldRetry2 = retry === true || typeof retry === "number" && failureCount < retry || typeof retry === "function" && retry(failureCount, error);
         if (isRetryCancelled || !shouldRetry2) {
@@ -153182,7 +153182,7 @@ ${params.statement}
           return;
         }
         failureCount++;
-        config2.onFail?.(failureCount, error);
+        config3.onFail?.(failureCount, error);
         sleep(delay).then(() => {
           return canContinue() ? void 0 : pause();
         }).then(() => {
@@ -153251,7 +153251,7 @@ ${params.statement}
   // node_modules/@tanstack/query-core/build/modern/query.js
   var _initialState, _revertState, _cache, _client, _retryer, _defaultOptions, _abortSignalConsumed, _Query_instances, dispatch_fn, _a5;
   var Query = (_a5 = class extends Removable {
-    constructor(config2) {
+    constructor(config3) {
       super();
       __privateAdd(this, _Query_instances);
       __privateAdd(this, _initialState);
@@ -153262,15 +153262,15 @@ ${params.statement}
       __privateAdd(this, _defaultOptions);
       __privateAdd(this, _abortSignalConsumed);
       __privateSet(this, _abortSignalConsumed, false);
-      __privateSet(this, _defaultOptions, config2.defaultOptions);
-      this.setOptions(config2.options);
+      __privateSet(this, _defaultOptions, config3.defaultOptions);
+      this.setOptions(config3.options);
       this.observers = [];
-      __privateSet(this, _client, config2.client);
+      __privateSet(this, _client, config3.client);
       __privateSet(this, _cache, __privateGet(this, _client).getQueryCache());
-      this.queryKey = config2.queryKey;
-      this.queryHash = config2.queryHash;
+      this.queryKey = config3.queryKey;
+      this.queryHash = config3.queryHash;
       __privateSet(this, _initialState, getDefaultState(this.options));
-      this.state = config2.state ?? __privateGet(this, _initialState);
+      this.state = config3.state ?? __privateGet(this, _initialState);
       this.scheduleGc();
     }
     get meta() {
@@ -153781,19 +153781,19 @@ ${params.statement}
   init_define_process_env();
   var _client2, _observers, _mutationCache, _retryer2, _Mutation_instances, dispatch_fn2, _a6;
   var Mutation = (_a6 = class extends Removable {
-    constructor(config2) {
+    constructor(config3) {
       super();
       __privateAdd(this, _Mutation_instances);
       __privateAdd(this, _client2);
       __privateAdd(this, _observers);
       __privateAdd(this, _mutationCache);
       __privateAdd(this, _retryer2);
-      __privateSet(this, _client2, config2.client);
-      this.mutationId = config2.mutationId;
-      __privateSet(this, _mutationCache, config2.mutationCache);
+      __privateSet(this, _client2, config3.client);
+      this.mutationId = config3.mutationId;
+      __privateSet(this, _mutationCache, config3.mutationCache);
       __privateSet(this, _observers, []);
-      this.state = config2.state || getDefaultState2();
-      this.setOptions(config2.options);
+      this.state = config3.state || getDefaultState2();
+      this.setOptions(config3.options);
       this.scheduleGc();
     }
     setOptions(options) {
@@ -154041,12 +154041,12 @@ ${params.statement}
   // node_modules/@tanstack/query-core/build/modern/mutationCache.js
   var _mutations, _scopes, _mutationId, _a7;
   var MutationCache = (_a7 = class extends Subscribable {
-    constructor(config2 = {}) {
+    constructor(config3 = {}) {
       super();
       __privateAdd(this, _mutations);
       __privateAdd(this, _scopes);
       __privateAdd(this, _mutationId);
-      this.config = config2;
+      this.config = config3;
       __privateSet(this, _mutations, /* @__PURE__ */ new Set());
       __privateSet(this, _scopes, /* @__PURE__ */ new Map());
       __privateSet(this, _mutationId, 0);
@@ -154278,10 +154278,10 @@ ${params.statement}
   init_define_process_env();
   var _queries, _a9;
   var QueryCache = (_a9 = class extends Subscribable {
-    constructor(config2 = {}) {
+    constructor(config3 = {}) {
       super();
       __privateAdd(this, _queries);
-      this.config = config2;
+      this.config = config3;
       __privateSet(this, _queries, /* @__PURE__ */ new Map());
     }
     build(client, options, state25) {
@@ -154370,7 +154370,7 @@ ${params.statement}
   init_define_process_env();
   var _queryCache, _mutationCache2, _defaultOptions2, _queryDefaults, _mutationDefaults, _mountCount, _unsubscribeFocus, _unsubscribeOnline, _a10;
   var QueryClient = (_a10 = class {
-    constructor(config2 = {}) {
+    constructor(config3 = {}) {
       __privateAdd(this, _queryCache);
       __privateAdd(this, _mutationCache2);
       __privateAdd(this, _defaultOptions2);
@@ -154379,9 +154379,9 @@ ${params.statement}
       __privateAdd(this, _mountCount);
       __privateAdd(this, _unsubscribeFocus);
       __privateAdd(this, _unsubscribeOnline);
-      __privateSet(this, _queryCache, config2.queryCache || new QueryCache());
-      __privateSet(this, _mutationCache2, config2.mutationCache || new MutationCache());
-      __privateSet(this, _defaultOptions2, config2.defaultOptions || {});
+      __privateSet(this, _queryCache, config3.queryCache || new QueryCache());
+      __privateSet(this, _mutationCache2, config3.mutationCache || new MutationCache());
+      __privateSet(this, _defaultOptions2, config3.defaultOptions || {});
       __privateSet(this, _queryDefaults, /* @__PURE__ */ new Map());
       __privateSet(this, _mutationDefaults, /* @__PURE__ */ new Map());
       __privateSet(this, _mountCount, 0);
@@ -154658,10 +154658,10 @@ ${params.statement}
 
   // node_modules/@wagmi/core/dist/esm/query/connect.js
   init_define_process_env();
-  function connectMutationOptions(config2) {
+  function connectMutationOptions(config3) {
     return {
       mutationFn(variables) {
-        return connect(config2, variables);
+        return connect(config3, variables);
       },
       mutationKey: ["connect"]
     };
@@ -154669,10 +154669,10 @@ ${params.statement}
 
   // node_modules/@wagmi/core/dist/esm/query/sendCalls.js
   init_define_process_env();
-  function sendCallsMutationOptions(config2) {
+  function sendCallsMutationOptions(config3) {
     return {
       mutationFn(variables) {
-        return sendCalls2(config2, variables);
+        return sendCalls2(config3, variables);
       },
       mutationKey: ["sendCalls"]
     };
@@ -154680,10 +154680,10 @@ ${params.statement}
 
   // node_modules/@wagmi/core/dist/esm/query/sendTransaction.js
   init_define_process_env();
-  function sendTransactionMutationOptions(config2) {
+  function sendTransactionMutationOptions(config3) {
     return {
       mutationFn(variables) {
-        return sendTransaction2(config2, variables);
+        return sendTransaction2(config3, variables);
       },
       mutationKey: ["sendTransaction"]
     };
@@ -154764,30 +154764,30 @@ ${params.statement}
   init_define_process_env();
   var import_react5 = __toESM(require_react(), 1);
   function useConnectors(parameters = {}) {
-    const config2 = useConfig(parameters);
-    return (0, import_react5.useSyncExternalStore)((onChange) => watchConnectors(config2, { onChange }), () => getConnectors(config2), () => getConnectors(config2));
+    const config3 = useConfig(parameters);
+    return (0, import_react5.useSyncExternalStore)((onChange) => watchConnectors(config3, { onChange }), () => getConnectors(config3), () => getConnectors(config3));
   }
 
   // node_modules/wagmi/dist/esm/hooks/useConnect.js
   function useConnect(parameters = {}) {
     const { mutation } = parameters;
-    const config2 = useConfig(parameters);
-    const mutationOptions = connectMutationOptions(config2);
+    const config3 = useConfig(parameters);
+    const mutationOptions = connectMutationOptions(config3);
     const { mutate, mutateAsync, ...result } = useMutation({
       ...mutation,
       ...mutationOptions
     });
     (0, import_react6.useEffect)(() => {
-      return config2.subscribe(({ status }) => status, (status, previousStatus) => {
+      return config3.subscribe(({ status }) => status, (status, previousStatus) => {
         if (previousStatus === "connected" && status === "disconnected")
           result.reset();
       });
-    }, [config2, result.reset]);
+    }, [config3, result.reset]);
     return {
       ...result,
       connect: mutate,
       connectAsync: mutateAsync,
-      connectors: useConnectors({ config: config2 })
+      connectors: useConnectors({ config: config3 })
     };
   }
 
@@ -154795,8 +154795,8 @@ ${params.statement}
   init_define_process_env();
   function useSendCalls(parameters = {}) {
     const { mutation } = parameters;
-    const config2 = useConfig(parameters);
-    const mutationOptions = sendCallsMutationOptions(config2);
+    const config3 = useConfig(parameters);
+    const mutationOptions = sendCallsMutationOptions(config3);
     const { mutate, mutateAsync, ...result } = useMutation({
       ...mutation,
       ...mutationOptions
@@ -154812,8 +154812,8 @@ ${params.statement}
   init_define_process_env();
   function useSendTransaction(parameters = {}) {
     const { mutation } = parameters;
-    const config2 = useConfig(parameters);
-    const mutationOptions = sendTransactionMutationOptions(config2);
+    const config3 = useConfig(parameters);
+    const mutationOptions = sendTransactionMutationOptions(config3);
     const { mutate, mutateAsync, ...result } = useMutation({
       ...mutation,
       ...mutationOptions
@@ -162240,8 +162240,8 @@ ${params.statement}
       });
     }
   }
-  function isLittleEndian(config2) {
-    return config2?.endian === 1 ? false : true;
+  function isLittleEndian(config3) {
+    return config3?.endian === 1 ? false : true;
   }
   function numberEncoderFactory(input) {
     return createEncoder({
@@ -162273,20 +162273,20 @@ ${params.statement}
     const bytesLength = length2 ?? bytes.byteLength;
     return bytes.buffer.slice(bytesOffset, bytesOffset + bytesLength);
   }
-  var getU64Encoder = (config2 = {}) => numberEncoderFactory({
-    config: config2,
+  var getU64Encoder = (config3 = {}) => numberEncoderFactory({
+    config: config3,
     name: "u64",
     range: [0n, BigInt("0xffffffffffffffff")],
     set: (view, value2, le5) => view.setBigUint64(0, BigInt(value2), le5),
     size: 8
   });
-  var getU64Decoder = (config2 = {}) => numberDecoderFactory({
-    config: config2,
+  var getU64Decoder = (config3 = {}) => numberDecoderFactory({
+    config: config3,
     get: (view, le5) => view.getBigUint64(0, le5),
     name: "u64",
     size: 8
   });
-  var getU64Codec = (config2 = {}) => combineCodec(getU64Encoder(config2), getU64Decoder(config2));
+  var getU64Codec = (config3 = {}) => combineCodec(getU64Encoder(config3), getU64Decoder(config3));
 
   // node_modules/superstruct/dist/index.mjs
   init_define_process_env();
@@ -165460,14 +165460,14 @@ ${params.statement}
      *
      * @returns {Buffer} Signature of transaction in wire format.
      */
-    serialize(config2) {
+    serialize(config3) {
       const {
         requireAllSignatures,
         verifySignatures
       } = Object.assign({
         requireAllSignatures: true,
         verifySignatures: true
-      }, config2);
+      }, config3);
       const signData = this.serializeMessage();
       if (verifySignatures) {
         const sigErrors = this._getMessageSignednessErrors(signData, requireAllSignatures);
@@ -169853,10 +169853,10 @@ Message: ${transactionMessage}.
 
   // node_modules/@farcaster/miniapp-sdk/node_modules/@farcaster/quick-auth/dist/lightClient.js
   function createLightClient(options = {}) {
-    const config2 = createConfig2(options);
+    const config3 = createConfig2(options);
     return {
-      generateNonce: () => generateNonce(config2),
-      verifySiwf: (options2) => verifySiwf(config2, options2)
+      generateNonce: () => generateNonce(config3),
+      verifySiwf: (options2) => verifySiwf(config3, options2)
     };
   }
 
@@ -170174,7 +170174,7 @@ Message: ${transactionMessage}.
   var chainChanged;
   var disconnect;
   function farcasterMiniApp() {
-    return createConnector((config2) => ({
+    return createConnector((config3) => ({
       id: "farcaster",
       name: "Farcaster",
       rdns: "xyz.farcaster.MiniAppWallet",
@@ -170187,12 +170187,12 @@ Message: ${transactionMessage}.
         });
         let targetChainId = chainId;
         if (!targetChainId) {
-          const state25 = await config2.storage?.getItem("state") ?? {};
-          const isChainSupported = config2.chains.some((x9) => x9.id === state25.chainId);
+          const state25 = await config3.storage?.getItem("state") ?? {};
+          const isChainSupported = config3.chains.some((x9) => x9.id === state25.chainId);
           if (isChainSupported)
             targetChainId = state25.chainId;
           else
-            targetChainId = config2.chains[0]?.id;
+            targetChainId = config3.chains[0]?.id;
         }
         if (!targetChainId)
           throw new Error("No chains found on connector.");
@@ -170255,7 +170255,7 @@ Message: ${transactionMessage}.
       },
       async switchChain({ chainId }) {
         const provider = await this.getProvider();
-        const chain2 = config2.chains.find((x9) => x9.id === chainId);
+        const chain2 = config3.chains.find((x9) => x9.id === chainId);
         if (!chain2) {
           throw new SwitchChainError(new ChainNotConfiguredError());
         }
@@ -170263,24 +170263,24 @@ Message: ${transactionMessage}.
           method: "wallet_switchEthereumChain",
           params: [{ chainId: numberToHex(chainId) }]
         });
-        config2.emitter.emit("change", { chainId });
+        config3.emitter.emit("change", { chainId });
         return chain2;
       },
       onAccountsChanged(accounts) {
         if (accounts.length === 0) {
           this.onDisconnect();
         } else {
-          config2.emitter.emit("change", {
+          config3.emitter.emit("change", {
             accounts: accounts.map((x9) => getAddress(x9))
           });
         }
       },
       onChainChanged(chain2) {
         const chainId = Number(chain2);
-        config2.emitter.emit("change", { chainId });
+        config3.emitter.emit("change", { chainId });
       },
       async onDisconnect() {
-        config2.emitter.emit("disconnect");
+        config3.emitter.emit("disconnect");
       },
       async getProvider() {
         return dist_default.wallet.ethProvider;
@@ -170306,7 +170306,7 @@ Message: ${transactionMessage}.
     let connect2;
     let displayUri;
     let disconnect2;
-    return createConnector((config2) => ({
+    return createConnector((config3) => ({
       id: "metaMaskSDK",
       name: "MetaMask",
       rdns: ["io.metamask", "io.metamask.mobile"],
@@ -170445,10 +170445,10 @@ Message: ${transactionMessage}.
             return SDK;
           })();
           const readonlyRPCMap = {};
-          for (const chain2 of config2.chains)
+          for (const chain2 of config3.chains)
             readonlyRPCMap[numberToHex(chain2.id)] = extractRpcUrls({
               chain: chain2,
-              transports: config2.transports
+              transports: config3.transports
             })?.[0];
           sdk2 = new MetaMaskSDK({
             _source: "wagmi",
@@ -170497,7 +170497,7 @@ Message: ${transactionMessage}.
       },
       async switchChain({ addEthereumChainParameter, chainId }) {
         const provider2 = await this.getProvider();
-        const chain2 = config2.chains.find((x9) => x9.id === chainId);
+        const chain2 = config3.chains.find((x9) => x9.id === chainId);
         if (!chain2)
           throw new SwitchChainError(new ChainNotConfiguredError());
         try {
@@ -170574,12 +170574,12 @@ Message: ${transactionMessage}.
           await new Promise((resolve) => {
             const listener = ((data) => {
               if ("chainId" in data && data.chainId === chainId2) {
-                config2.emitter.off("change", listener);
+                config3.emitter.off("change", listener);
                 resolve();
               }
             });
-            config2.emitter.on("change", listener);
-            config2.emitter.emit("change", { chainId: chainId2 });
+            config3.emitter.on("change", listener);
+            config3.emitter.emit("change", { chainId: chainId2 });
           });
         }
       },
@@ -170589,24 +170589,24 @@ Message: ${transactionMessage}.
             this.onDisconnect();
           else
             return;
-        } else if (config2.emitter.listenerCount("connect")) {
+        } else if (config3.emitter.listenerCount("connect")) {
           const chainId = (await this.getChainId()).toString();
           this.onConnect({ chainId });
         } else
-          config2.emitter.emit("change", {
+          config3.emitter.emit("change", {
             accounts: accounts.map((x9) => getAddress(x9))
           });
       },
       onChainChanged(chain2) {
         const chainId = Number(chain2);
-        config2.emitter.emit("change", { chainId });
+        config3.emitter.emit("change", { chainId });
       },
       async onConnect(connectInfo) {
         const accounts = await this.getAccounts();
         if (accounts.length === 0)
           return;
         const chainId = Number(connectInfo.chainId);
-        config2.emitter.emit("connect", { accounts, chainId });
+        config3.emitter.emit("connect", { accounts, chainId });
         const provider2 = await this.getProvider();
         if (connect2) {
           provider2.removeListener("connect", connect2);
@@ -170631,7 +170631,7 @@ Message: ${transactionMessage}.
           if (provider2 && !!(await this.getAccounts()).length)
             return;
         }
-        config2.emitter.emit("disconnect");
+        config3.emitter.emit("disconnect");
         if (chainChanged2) {
           provider2.removeListener("chainChanged", chainChanged2);
           chainChanged2 = void 0;
@@ -170646,7 +170646,7 @@ Message: ${transactionMessage}.
         }
       },
       onDisplayUri(uri) {
-        config2.emitter.emit("message", { type: "display_uri", data: uri });
+        config3.emitter.emit("message", { type: "display_uri", data: uri });
       }
     }));
   }
@@ -170659,7 +170659,7 @@ Message: ${transactionMessage}.
     const { shimDisconnect = false } = parameters;
     let provider_;
     let disconnect2;
-    return createConnector((config2) => ({
+    return createConnector((config3) => ({
       id: "safe",
       name: "Safe",
       type: safe.type,
@@ -170674,7 +170674,7 @@ Message: ${transactionMessage}.
           provider.on("disconnect", disconnect2);
         }
         if (shimDisconnect)
-          await config2.storage?.removeItem("safe.disconnected");
+          await config3.storage?.removeItem("safe.disconnected");
         return {
           // TODO(v3): Make `withCapabilities: true` default behavior
           accounts: withCapabilities ? accounts.map((address) => ({ address, capabilities: {} })) : accounts,
@@ -170690,7 +170690,7 @@ Message: ${transactionMessage}.
           disconnect2 = void 0;
         }
         if (shimDisconnect)
-          await config2.storage?.setItem("safe.disconnected", true);
+          await config3.storage?.setItem("safe.disconnected", true);
       },
       async getAccounts() {
         const provider = await this.getProvider();
@@ -170729,7 +170729,7 @@ Message: ${transactionMessage}.
       async isAuthorized() {
         try {
           const isDisconnected = shimDisconnect && // If shim exists in storage, connector is disconnected
-          await config2.storage?.getItem("safe.disconnected");
+          await config3.storage?.getItem("safe.disconnected");
           if (isDisconnected)
             return false;
           const accounts = await this.getAccounts();
@@ -170743,7 +170743,7 @@ Message: ${transactionMessage}.
       onChainChanged() {
       },
       onDisconnect() {
-        config2.emitter.emit("disconnect");
+        config3.emitter.emit("disconnect");
       }
     }));
   }
@@ -170763,7 +170763,7 @@ Message: ${transactionMessage}.
     let displayUri;
     let sessionDelete;
     let disconnect2;
-    return createConnector((config2) => ({
+    return createConnector((config3) => ({
       id: "walletConnect",
       name: "WalletConnect",
       type: walletConnect.type,
@@ -170791,12 +170791,12 @@ Message: ${transactionMessage}.
           }
           let targetChainId = chainId;
           if (!targetChainId) {
-            const state25 = await config2.storage?.getItem("state") ?? {};
-            const isChainSupported = config2.chains.some((x9) => x9.id === state25.chainId);
+            const state25 = await config3.storage?.getItem("state") ?? {};
+            const isChainSupported = config3.chains.some((x9) => x9.id === state25.chainId);
             if (isChainSupported)
               targetChainId = state25.chainId;
             else
-              targetChainId = config2.chains[0]?.id;
+              targetChainId = config3.chains[0]?.id;
           }
           if (!targetChainId)
             throw new Error("No chains found on connector.");
@@ -170804,12 +170804,12 @@ Message: ${transactionMessage}.
           if (provider.session && isChainsStale)
             await provider.disconnect();
           if (!provider.session || isChainsStale) {
-            const optionalChains = config2.chains.filter((chain2) => chain2.id !== targetChainId).map((optionalChain) => optionalChain.id);
+            const optionalChains = config3.chains.filter((chain2) => chain2.id !== targetChainId).map((optionalChain) => optionalChain.id);
             await provider.connect({
               optionalChains: [targetChainId, ...optionalChains],
               ..."pairingTopic" in rest ? { pairingTopic: rest.pairingTopic } : {}
             });
-            this.setRequestedChainsIds(config2.chains.map((x9) => x9.id));
+            this.setRequestedChainsIds(config3.chains.map((x9) => x9.id));
           }
           const accounts = (await provider.enable()).map((x9) => getAddress(x9));
           let currentChainId = await this.getChainId();
@@ -170893,7 +170893,7 @@ Message: ${transactionMessage}.
       },
       async getProvider({ chainId } = {}) {
         async function initProvider() {
-          const optionalChains = config2.chains.map((x9) => x9.id);
+          const optionalChains = config3.chains.map((x9) => x9.id);
           if (!optionalChains.length)
             return;
           const { EthereumProvider } = await Promise.resolve().then(() => (init_dist12(), dist_exports));
@@ -170902,10 +170902,10 @@ Message: ${transactionMessage}.
             disableProviderPing: true,
             optionalChains,
             projectId: parameters.projectId,
-            rpcMap: Object.fromEntries(config2.chains.map((chain2) => {
+            rpcMap: Object.fromEntries(config3.chains.map((chain2) => {
               const [url2] = extractRpcUrls({
                 chain: chain2,
-                transports: config2.transports
+                transports: config3.transports
               });
               return [chain2.id, url2];
             })),
@@ -170949,7 +170949,7 @@ Message: ${transactionMessage}.
         const provider = await this.getProvider();
         if (!provider)
           throw new ProviderNotFoundError();
-        const chain2 = config2.chains.find((x9) => x9.id === chainId);
+        const chain2 = config3.chains.find((x9) => x9.id === chainId);
         if (!chain2)
           throw new SwitchChainError(new ChainNotConfiguredError());
         try {
@@ -170957,11 +170957,11 @@ Message: ${transactionMessage}.
             new Promise((resolve) => {
               const listener = ({ chainId: currentChainId }) => {
                 if (currentChainId === chainId) {
-                  config2.emitter.off("change", listener);
+                  config3.emitter.off("change", listener);
                   resolve();
                 }
               };
-              config2.emitter.on("change", listener);
+              config3.emitter.on("change", listener);
             }),
             provider.request({
               method: "wallet_switchEthereumChain",
@@ -171010,22 +171010,22 @@ Message: ${transactionMessage}.
         if (accounts.length === 0)
           this.onDisconnect();
         else
-          config2.emitter.emit("change", {
+          config3.emitter.emit("change", {
             accounts: accounts.map((x9) => getAddress(x9))
           });
       },
       onChainChanged(chain2) {
         const chainId = Number(chain2);
-        config2.emitter.emit("change", { chainId });
+        config3.emitter.emit("change", { chainId });
       },
       async onConnect(connectInfo) {
         const chainId = Number(connectInfo.chainId);
         const accounts = await this.getAccounts();
-        config2.emitter.emit("connect", { accounts, chainId });
+        config3.emitter.emit("connect", { accounts, chainId });
       },
       async onDisconnect(_error) {
         this.setRequestedChainsIds([]);
-        config2.emitter.emit("disconnect");
+        config3.emitter.emit("disconnect");
         const provider = await this.getProvider();
         if (accountsChanged2) {
           provider.removeListener("accountsChanged", accountsChanged2);
@@ -171049,7 +171049,7 @@ Message: ${transactionMessage}.
         }
       },
       onDisplayUri(uri) {
-        config2.emitter.emit("message", { type: "display_uri", data: uri });
+        config3.emitter.emit("message", { type: "display_uri", data: uri });
       },
       onSessionDelete() {
         this.onDisconnect();
@@ -171061,7 +171061,7 @@ Message: ${transactionMessage}.
         return chainIds ?? [];
       },
       async getRequestedChainsIds() {
-        return await config2.storage?.getItem(this.requestedChainsStorageKey) ?? [];
+        return await config3.storage?.getItem(this.requestedChainsStorageKey) ?? [];
       },
       /**
        * Checks if the target chains match the chains that were
@@ -171077,7 +171077,7 @@ Message: ${transactionMessage}.
       async isChainsStale() {
         if (!isNewChainsStale)
           return false;
-        const connectorChains = config2.chains.map((x9) => x9.id);
+        const connectorChains = config3.chains.map((x9) => x9.id);
         const namespaceChains = this.getNamespaceChainsIds();
         if (namespaceChains.length && !namespaceChains.some((id2) => connectorChains.includes(id2)))
           return false;
@@ -171085,7 +171085,7 @@ Message: ${transactionMessage}.
         return !connectorChains.every((id2) => requestedChains.includes(id2));
       },
       async setRequestedChainsIds(chains2) {
-        await config2.storage?.setItem(this.requestedChainsStorageKey, chains2);
+        await config3.storage?.setItem(this.requestedChainsStorageKey, chains2);
       },
       get requestedChainsStorageKey() {
         return `${this.id}.requestedChains`;
@@ -171102,6 +171102,18 @@ Message: ${transactionMessage}.
     return void 0;
   }
   function makeWagmiConfig() {
+    if (!base || typeof base.id === "undefined" || !baseSepolia || typeof baseSepolia.id === "undefined") {
+      console.error("[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.");
+      try {
+        return createConfig({
+          chains: [],
+          transports: {}
+        });
+      } catch (e17) {
+        console.error("[wagmi-config] Failed to create minimal config:", e17);
+        throw new Error("Wagmi config initialization failed: chain objects unavailable");
+      }
+    }
     const sepoliaUrl = readEnv("NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL") || readEnv("BASE_SEPOLIA_RPC_URL") || "";
     const mainnetUrl = readEnv("NEXT_PUBLIC_BASE_MAINNET_RPC_URL") || readEnv("BASE_MAINNET_RPC_URL") || "";
     const wcProjectId = (readEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID") || readEnv("WALLETCONNECT_PROJECT_ID") || "").trim();
@@ -171138,9 +171150,24 @@ Message: ${transactionMessage}.
       connectors: webConnectors
     });
   }
-  var config = makeWagmiConfig();
+  var config;
+  try {
+    config = makeWagmiConfig();
+  } catch (error) {
+    console.error("[wagmi-config] Failed to create config:", error);
+    try {
+      config = createConfig({
+        chains: [],
+        transports: {}
+      });
+    } catch (e17) {
+      console.error("[wagmi-config] Failed to create fallback config:", e17);
+      config = null;
+    }
+  }
 
   // src/ui/connect-menu-v2.jsx
+  var config2 = config || null;
   function isMiniAppEnvironment() {
     try {
       return Boolean(
@@ -171231,9 +171258,22 @@ Message: ${transactionMessage}.
   }
   function App() {
     const qc2 = new QueryClient();
+    if (!config2) {
+      return import_react7.default.createElement("div", {
+        style: {
+          fontFamily: "Inter, system-ui, sans-serif",
+          padding: "8px 12px",
+          background: "rgba(239, 68, 68, 0.1)",
+          color: "#fca5a5",
+          borderRadius: 8,
+          fontSize: "12px",
+          border: "1px solid rgba(239, 68, 68, 0.3)"
+        }
+      }, "Wallet config unavailable");
+    }
     return import_react7.default.createElement(
       WagmiProvider,
-      { config },
+      { config: config2 },
       import_react7.default.createElement(
         QueryClientProvider,
         { client: qc2 },
@@ -171275,11 +171315,25 @@ Message: ${transactionMessage}.
       // Prevent double-tap zoom on mobile
     };
   }
+  var mountAttempted = false;
+  var mountComplete = false;
   function mountConnectMenu() {
+    if (mountAttempted) {
+      console.log("[ConnectMenu] Mount already attempted, skipping...");
+      return;
+    }
+    mountAttempted = true;
     try {
       const container = ensureMountEl();
+      if (!container) {
+        console.warn("[ConnectMenu] Container not created");
+        mountAttempted = false;
+        return;
+      }
       const root = (0, import_client2.createRoot)(container);
       root.render(import_react7.default.createElement(App));
+      mountComplete = true;
+      console.log("[ConnectMenu] Mounted successfully");
       window.addEventListener("baseman-open-wallet", () => {
         if (container) {
           container.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -171287,28 +171341,45 @@ Message: ${transactionMessage}.
       });
     } catch (err) {
       console.error("[ConnectMenu] mount failed", err);
+      mountAttempted = false;
     }
+  }
+  function initConnectMenu() {
+    if (mountComplete) {
+      console.log("[ConnectMenu] Already mounted");
+      return;
+    }
+    if (typeof import_react7.default === "undefined" || typeof import_client2.createRoot === "undefined") {
+      console.log("[ConnectMenu] React not available yet, waiting...");
+      setTimeout(initConnectMenu, 200);
+      return;
+    }
+    mountConnectMenu();
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
-      if (window.__basemanSDKReadyFired) {
-        setTimeout(mountConnectMenu, 100);
-      } else {
-        window.addEventListener("baseman-sdk-ready", () => {
-          setTimeout(mountConnectMenu, 100);
-        }, { once: true });
-        setTimeout(mountConnectMenu, 1e3);
-      }
+      setTimeout(() => {
+        if (window.__basemanSDKReadyFired) {
+          setTimeout(initConnectMenu, 500);
+        } else {
+          window.addEventListener("baseman-sdk-ready", () => {
+            setTimeout(initConnectMenu, 500);
+          }, { once: true });
+          setTimeout(initConnectMenu, 2e3);
+        }
+      }, 500);
     }, { once: true });
   } else {
-    if (window.__basemanSDKReadyFired) {
-      setTimeout(mountConnectMenu, 100);
-    } else {
-      window.addEventListener("baseman-sdk-ready", () => {
-        setTimeout(mountConnectMenu, 100);
-      }, { once: true });
-      setTimeout(mountConnectMenu, 300);
-    }
+    setTimeout(() => {
+      if (window.__basemanSDKReadyFired) {
+        setTimeout(initConnectMenu, 500);
+      } else {
+        window.addEventListener("baseman-sdk-ready", () => {
+          setTimeout(initConnectMenu, 500);
+        }, { once: true });
+        setTimeout(initConnectMenu, 2e3);
+      }
+    }, 500);
   }
 })();
 /*! Bundled license information:

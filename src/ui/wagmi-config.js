@@ -12,6 +12,21 @@ function readEnv(key) {
 }
 
 export function makeWagmiConfig() {
+  // Safely check if chain objects are available
+  if (!base || typeof base.id === 'undefined' || !baseSepolia || typeof baseSepolia.id === 'undefined') {
+    console.error('[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.');
+    // Return a minimal config to prevent crashes
+    try {
+      return createConfig({
+        chains: [],
+        transports: {}
+      });
+    } catch (e) {
+      console.error('[wagmi-config] Failed to create minimal config:', e);
+      throw new Error('Wagmi config initialization failed: chain objects unavailable');
+    }
+  }
+
   const sepoliaUrl = readEnv('NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL') || readEnv('BASE_SEPOLIA_RPC_URL') || '';
   const mainnetUrl = readEnv('NEXT_PUBLIC_BASE_MAINNET_RPC_URL') || readEnv('BASE_MAINNET_RPC_URL') || '';
   const wcProjectId = (readEnv('NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID') || readEnv('WALLETCONNECT_PROJECT_ID') || '').trim();
@@ -60,8 +75,29 @@ export function makeWagmiConfig() {
 }
 
 export function pickChainById(chainId) {
+  if (!base || typeof base.id === 'undefined' || !baseSepolia || typeof baseSepolia.id === 'undefined') {
+    console.warn('[wagmi-config] pickChainById: Chain objects not available');
+    return null;
+  }
   return Number(chainId) === base.id ? base : baseSepolia;
 }
 
 // Convenience export mirroring docs usage
-export const config = makeWagmiConfig();
+// Wrap in try-catch to handle initialization errors gracefully
+let config;
+try {
+  config = makeWagmiConfig();
+} catch (error) {
+  console.error('[wagmi-config] Failed to create config:', error);
+  // Create a minimal fallback config to prevent crashes
+  try {
+    config = createConfig({
+      chains: [],
+      transports: {}
+    });
+  } catch (e) {
+    console.error('[wagmi-config] Failed to create fallback config:', e);
+    config = null;
+  }
+}
+export { config };

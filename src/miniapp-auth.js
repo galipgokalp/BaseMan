@@ -47,10 +47,11 @@
     if (typeof getToken !== 'function') return null;
     try { 
       const result = await getToken();
-      // Handle different response formats
+      // Handle different response formats safely
       if (typeof result === 'string') return result;
       if (result && typeof result === 'object') {
-        return result.token || result.result || result.value || null;
+        // Safely access nested properties
+        return result.token || (result.result && typeof result.result !== 'undefined' ? result.result : null) || result.value || null;
       }
       return null;
     } catch (err) { 
