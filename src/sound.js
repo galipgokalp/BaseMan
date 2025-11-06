@@ -1,6 +1,10 @@
 /* Sound handlers added by Dr James Freeman who was sad such a great reverse was a silent movie  */
 
 var audio = new preloadAudio();
+// Make audio globally accessible
+if (typeof window !== 'undefined') {
+  window.audio = audio;
+}
 
 function audioTrack(url, volume) {
     var audio = new Audio(url);

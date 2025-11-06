@@ -47,9 +47,19 @@
               </label>
             </div>
             <div class="settings-row settings-toggle-row">
-              <span>Sound Effects</span>
+              <span>Intro Music</span>
               <label class="settings-toggle">
-                <input type="checkbox" data-setting="sound" checked />
+                <input type="checkbox" data-setting="introMusic" checked />
+                <span class="settings-toggle-slider">
+                  <span class="settings-toggle-label">Off</span>
+                  <span class="settings-toggle-label">On</span>
+                </span>
+              </label>
+            </div>
+            <div class="settings-row settings-toggle-row">
+              <span>Game Sound Effects</span>
+              <label class="settings-toggle">
+                <input type="checkbox" data-setting="gameSoundEffects" checked />
                 <span class="settings-toggle-slider">
                   <span class="settings-toggle-label">Off</span>
                   <span class="settings-toggle-label">On</span>
@@ -140,11 +150,18 @@
       themeToggle.checked = theme === 'light';
     }
 
-    // Load sound
-    const soundToggle = panel.querySelector('[data-setting="sound"]');
-    if (soundToggle) {
-      const soundEnabled = getSetting('sound', true);
-      soundToggle.checked = soundEnabled;
+    // Load intro music setting
+    const introMusicToggle = panel.querySelector('[data-setting="introMusic"]');
+    if (introMusicToggle) {
+      const introMusicEnabled = getSetting('introMusic', true);
+      introMusicToggle.checked = introMusicEnabled;
+    }
+    
+    // Load game sound effects setting
+    const gameSoundEffectsToggle = panel.querySelector('[data-setting="gameSoundEffects"]');
+    if (gameSoundEffectsToggle) {
+      const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
+      gameSoundEffectsToggle.checked = gameSoundEffectsEnabled;
     }
 
     // Load difficulty
@@ -203,57 +220,135 @@
     }
   }
 
+  // Wrap audio track functions to respect settings
+  function wrapAudioTracks() {
+    if (typeof window.audio === 'undefined' || !window.audio) {
+      return;
+    }
+
+    // Wrap coffeeBreakMusic (intro music)
+    if (window.audio.coffeeBreakMusic && !window.audio.coffeeBreakMusic._wrapped) {
+      const originalPlay = window.audio.coffeeBreakMusic.play;
+      const originalStartLoop = window.audio.coffeeBreakMusic.startLoop;
+      
+      window.audio.coffeeBreakMusic.play = function(noResetTime) {
+        const introMusicEnabled = getSetting('introMusic', true);
+        if (introMusicEnabled) {
+          return originalPlay.call(this, noResetTime);
+        }
+        // Don't play if disabled
+        return;
+      };
+      
+      window.audio.coffeeBreakMusic.startLoop = function(noResetTime) {
+        const introMusicEnabled = getSetting('introMusic', true);
+        if (introMusicEnabled) {
+          return originalStartLoop.call(this, noResetTime);
+        }
+        // Don't start loop if disabled
+        return;
+      };
+      
+      window.audio.coffeeBreakMusic._wrapped = true;
+    }
+
+    // Wrap game sound effects (all other sounds)
+    const gameSoundTracks = [
+      'credit', 'startMusic', 'die', 'ghostReturnToHome', 
+      'eatingGhost', 'ghostTurnToBlue', 'eatingFruit',
+      'ghostSpurtMove1', 'ghostSpurtMove2', 'ghostSpurtMove3', 'ghostSpurtMove4',
+      'ghostNormalMove', 'extend', 'eating'
+    ];
+    
+    gameSoundTracks.forEach(function(trackName) {
+      if (window.audio[trackName] && !window.audio[trackName]._wrapped) {
+        const originalPlay = window.audio[trackName].play;
+        const originalStartLoop = window.audio[trackName].startLoop;
+        
+        window.audio[trackName].play = function(noResetTime) {
+          const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
+          if (gameSoundEffectsEnabled) {
+            return originalPlay.call(this, noResetTime);
+          }
+          // Don't play if disabled
+          return;
+        };
+        
+        window.audio[trackName].startLoop = function(noResetTime) {
+          const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
+          if (gameSoundEffectsEnabled) {
+            return originalStartLoop.call(this, noResetTime);
+          }
+          // Don't start loop if disabled
+          return;
+        };
+        
+        window.audio[trackName]._wrapped = true;
+      }
+    });
+  }
+
   function applySettings() {
     // Apply theme
     const theme = getSetting('theme', 'dark');
     document.body.classList.toggle('theme-light', theme === 'light');
     document.body.classList.toggle('theme-dark', theme === 'dark');
 
-    // Apply sound
-    const soundEnabled = getSetting('sound', true);
-    window.__basemanSoundEnabled = soundEnabled;
+    // Apply intro music setting (coffeeBreakMusic)
+    const introMusicEnabled = getSetting('introMusic', true);
+    window.__basemanIntroMusicEnabled = introMusicEnabled;
+    
+    // Apply game sound effects setting (all other sounds including startMusic)
+    const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
+    window.__basemanGameSoundEffectsEnabled = gameSoundEffectsEnabled;
+    
+    // Wrap audio tracks to respect settings (only once)
+    wrapAudioTracks();
     
     if (typeof window.audio !== 'undefined' && window.audio) {
-      if (!soundEnabled) {
-        // Mute all sounds
-        if (window.audio.silence) {
-          window.audio.silence();
+      try {
+        // Control intro music (coffeeBreakMusic - plays on mini app entry)
+        if (window.audio.coffeeBreakMusic && window.audio.coffeeBreakMusic.audio) {
+          if (introMusicEnabled) {
+            window.audio.coffeeBreakMusic.audio.volume = 1;
+          } else {
+            window.audio.coffeeBreakMusic.audio.volume = 0;
+            // Stop the music if it's playing
+            if (window.audio.coffeeBreakMusic.stopLoop) {
+              window.audio.coffeeBreakMusic.stopLoop();
+            }
+          }
         }
-        // Also set volume to 0 for all audio tracks
-        try {
-          for (var key in window.audio) {
-            if (window.audio[key] && typeof window.audio[key] === 'object') {
-              // Check if it's an audioTrack object with audio property
-              if (window.audio[key].audio && window.audio[key].audio instanceof Audio) {
-                window.audio[key].audio.volume = 0;
+        
+        // Control game sound effects (all other sounds including startMusic)
+        const gameSoundTracks = [
+          'credit', 'startMusic', 'die', 'ghostReturnToHome', 
+          'eatingGhost', 'ghostTurnToBlue', 'eatingFruit',
+          'ghostSpurtMove1', 'ghostSpurtMove2', 'ghostSpurtMove3', 'ghostSpurtMove4',
+          'ghostNormalMove', 'extend', 'eating'
+        ];
+        
+        gameSoundTracks.forEach(function(trackName) {
+          if (window.audio[trackName] && window.audio[trackName].audio) {
+            if (gameSoundEffectsEnabled) {
+              // Restore original volumes
+              if (trackName === 'ghostTurnToBlue' || trackName === 'eating') {
+                window.audio[trackName].audio.volume = 0.5;
+              } else {
+                window.audio[trackName].audio.volume = 1;
+              }
+            } else {
+              // Mute game sound effects
+              window.audio[trackName].audio.volume = 0;
+              // Stop any looping sounds
+              if (window.audio[trackName].stopLoop) {
+                window.audio[trackName].stopLoop();
               }
             }
           }
-        } catch (e) {
-          console.warn('[settings-panel] Failed to mute audio:', e);
-        }
-      } else {
-        // Unmute all sounds - restore volumes
-        try {
-          // Restore original volumes
-          if (window.audio.credit && window.audio.credit.audio) window.audio.credit.audio.volume = 1;
-          if (window.audio.coffeeBreakMusic && window.audio.coffeeBreakMusic.audio) window.audio.coffeeBreakMusic.audio.volume = 1;
-          if (window.audio.die && window.audio.die.audio) window.audio.die.audio.volume = 1;
-          if (window.audio.ghostReturnToHome && window.audio.ghostReturnToHome.audio) window.audio.ghostReturnToHome.audio.volume = 1;
-          if (window.audio.eatingGhost && window.audio.eatingGhost.audio) window.audio.eatingGhost.audio.volume = 1;
-          if (window.audio.ghostTurnToBlue && window.audio.ghostTurnToBlue.audio) window.audio.ghostTurnToBlue.audio.volume = 0.5;
-          if (window.audio.eatingFruit && window.audio.eatingFruit.audio) window.audio.eatingFruit.audio.volume = 1;
-          if (window.audio.ghostSpurtMove1 && window.audio.ghostSpurtMove1.audio) window.audio.ghostSpurtMove1.audio.volume = 1;
-          if (window.audio.ghostSpurtMove2 && window.audio.ghostSpurtMove2.audio) window.audio.ghostSpurtMove2.audio.volume = 1;
-          if (window.audio.ghostSpurtMove3 && window.audio.ghostSpurtMove3.audio) window.audio.ghostSpurtMove3.audio.volume = 1;
-          if (window.audio.ghostSpurtMove4 && window.audio.ghostSpurtMove4.audio) window.audio.ghostSpurtMove4.audio.volume = 1;
-          if (window.audio.ghostNormalMove && window.audio.ghostNormalMove.audio) window.audio.ghostNormalMove.audio.volume = 1;
-          if (window.audio.extend && window.audio.extend.audio) window.audio.extend.audio.volume = 1;
-          if (window.audio.eating && window.audio.eating.audio) window.audio.eating.audio.volume = 0.5;
-          if (window.audio.startMusic && window.audio.startMusic.audio) window.audio.startMusic.audio.volume = 1;
-        } catch (e) {
-          console.warn('[settings-panel] Failed to unmute audio:', e);
-        }
+        });
+      } catch (e) {
+        console.warn('[settings-panel] Failed to apply audio settings:', e);
       }
     }
 
@@ -389,57 +484,95 @@
       }
     }
 
-    // Sound toggle - use both click and change for mobile compatibility
-    const soundToggle = panel.querySelector('[data-setting="sound"]');
-    if (soundToggle && !wiredElements.has(soundToggle)) {
-      wiredElements.add(soundToggle);
-      const soundEnabled = getSetting('sound', true);
-      soundToggle.checked = soundEnabled;
+    // Intro Music toggle
+    const introMusicToggle = panel.querySelector('[data-setting="introMusic"]');
+    if (introMusicToggle && !wiredElements.has(introMusicToggle)) {
+      wiredElements.add(introMusicToggle);
+      const introMusicEnabled = getSetting('introMusic', true);
+      introMusicToggle.checked = introMusicEnabled;
       
-      const handleSoundChange = (e) => {
-        // Don't prevent default for change event - let native checkbox work
+      const handleIntroMusicChange = (e) => {
         if (e.type === 'change') {
           e.stopPropagation();
         } else {
           e.preventDefault();
           e.stopPropagation();
         }
-        // Get the actual input element (in case event is from label)
-        const input = e.target.type === 'checkbox' ? e.target : soundToggle;
+        const input = e.target.type === 'checkbox' ? e.target : introMusicToggle;
         const enabled = input.checked;
-        setSetting('sound', enabled);
+        setSetting('introMusic', enabled);
         applySettings();
       };
       
-      // Change event (primary) - fires when checkbox state changes
-      soundToggle.addEventListener('change', handleSoundChange, { passive: true });
-      // Click event for immediate feedback
-      soundToggle.addEventListener('click', handleSoundChange, { passive: false, capture: true });
-      // Touch events for mobile
-      soundToggle.addEventListener('touchstart', (e) => {
+      introMusicToggle.addEventListener('change', handleIntroMusicChange, { passive: true });
+      introMusicToggle.addEventListener('click', handleIntroMusicChange, { passive: false, capture: true });
+      introMusicToggle.addEventListener('touchstart', (e) => {
         e.stopPropagation();
       }, { passive: true });
-      soundToggle.addEventListener('touchend', handleSoundChange, { passive: false, capture: true });
+      introMusicToggle.addEventListener('touchend', handleIntroMusicChange, { passive: false, capture: true });
       
-      // Also listen on the label wrapper for better mobile compatibility
-      const soundLabel = soundToggle.closest('.settings-toggle');
-      if (soundLabel && !wiredElements.has(soundLabel)) {
-        wiredElements.add(soundLabel);
+      const introMusicLabel = introMusicToggle.closest('.settings-toggle');
+      if (introMusicLabel && !wiredElements.has(introMusicLabel)) {
+        wiredElements.add(introMusicLabel);
         const handleLabelClick = (e) => {
-          // Only handle if click is on label itself, not on input
-          if (e.target === soundLabel || e.target.closest('.settings-toggle-slider')) {
+          if (e.target === introMusicLabel || e.target.closest('.settings-toggle-slider')) {
             e.preventDefault();
             e.stopPropagation();
-            soundToggle.checked = !soundToggle.checked;
-            // Trigger change event manually
-            soundToggle.dispatchEvent(new Event('change', { bubbles: true }));
-            const enabled = soundToggle.checked;
-            setSetting('sound', enabled);
+            introMusicToggle.checked = !introMusicToggle.checked;
+            introMusicToggle.dispatchEvent(new Event('change', { bubbles: true }));
+            const enabled = introMusicToggle.checked;
+            setSetting('introMusic', enabled);
             applySettings();
           }
         };
-        soundLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
-        soundLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
+        introMusicLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
+        introMusicLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
+      }
+    }
+
+    // Game Sound Effects toggle
+    const gameSoundEffectsToggle = panel.querySelector('[data-setting="gameSoundEffects"]');
+    if (gameSoundEffectsToggle && !wiredElements.has(gameSoundEffectsToggle)) {
+      wiredElements.add(gameSoundEffectsToggle);
+      const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
+      gameSoundEffectsToggle.checked = gameSoundEffectsEnabled;
+      
+      const handleGameSoundEffectsChange = (e) => {
+        if (e.type === 'change') {
+          e.stopPropagation();
+        } else {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        const input = e.target.type === 'checkbox' ? e.target : gameSoundEffectsToggle;
+        const enabled = input.checked;
+        setSetting('gameSoundEffects', enabled);
+        applySettings();
+      };
+      
+      gameSoundEffectsToggle.addEventListener('change', handleGameSoundEffectsChange, { passive: true });
+      gameSoundEffectsToggle.addEventListener('click', handleGameSoundEffectsChange, { passive: false, capture: true });
+      gameSoundEffectsToggle.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+      gameSoundEffectsToggle.addEventListener('touchend', handleGameSoundEffectsChange, { passive: false, capture: true });
+      
+      const gameSoundEffectsLabel = gameSoundEffectsToggle.closest('.settings-toggle');
+      if (gameSoundEffectsLabel && !wiredElements.has(gameSoundEffectsLabel)) {
+        wiredElements.add(gameSoundEffectsLabel);
+        const handleLabelClick = (e) => {
+          if (e.target === gameSoundEffectsLabel || e.target.closest('.settings-toggle-slider')) {
+            e.preventDefault();
+            e.stopPropagation();
+            gameSoundEffectsToggle.checked = !gameSoundEffectsToggle.checked;
+            gameSoundEffectsToggle.dispatchEvent(new Event('change', { bubbles: true }));
+            const enabled = gameSoundEffectsToggle.checked;
+            setSetting('gameSoundEffects', enabled);
+            applySettings();
+          }
+        };
+        gameSoundEffectsLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
+        gameSoundEffectsLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
       }
     }
 
@@ -612,7 +745,17 @@
   // Apply settings on load
   if (typeof window !== 'undefined') {
     function doApplySettings() {
-      applySettings();
+      // Wait for audio to be ready, then wrap and apply settings
+      function tryApply() {
+        if (typeof window.audio !== 'undefined' && window.audio) {
+          wrapAudioTracks();
+          applySettings();
+        } else {
+          // Retry after a short delay if audio is not ready yet
+          setTimeout(tryApply, 100);
+        }
+      }
+      tryApply();
       // Also apply profile button visibility after a delay to ensure profile-panel.js has run
       setTimeout(() => {
         const showProfile = getSetting('showProfile', true);
