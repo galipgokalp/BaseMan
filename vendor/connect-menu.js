@@ -171256,7 +171256,7 @@ Message: ${transactionMessage}.
     const isMiniApp = isMiniAppEnvironment();
     if (!config2) {
       if (isMiniApp) {
-        return import_react7.default.createElement(import_react7.default.Fragment);
+        return null;
       }
       return import_react7.default.createElement("div", {
         style: {
@@ -171282,6 +171282,13 @@ Message: ${transactionMessage}.
   }
   function ensureMountEl() {
     let el2 = document.getElementById("connect-root");
+    const isMiniApp = isMiniAppEnvironment();
+    if (isMiniApp && !config2) {
+      if (el2) {
+        el2.remove();
+      }
+      return null;
+    }
     if (!el2) {
       el2 = document.createElement("div");
       el2.id = "connect-root";
@@ -171316,6 +171323,26 @@ Message: ${transactionMessage}.
   }
   var mountAttempted = false;
   var mountComplete = false;
+  (function() {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    function checkAndRemove() {
+      const isMiniApp = isMiniAppEnvironment();
+      if (isMiniApp && !config2) {
+        const existingContainer = document.getElementById("connect-root");
+        if (existingContainer) {
+          existingContainer.remove();
+        }
+      }
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", checkAndRemove, { once: true });
+    } else {
+      checkAndRemove();
+    }
+    setTimeout(checkAndRemove, 100);
+    setTimeout(checkAndRemove, 500);
+    setTimeout(checkAndRemove, 1e3);
+  })();
   function mountConnectMenu() {
     if (mountAttempted) {
       console.log("[ConnectMenu] Mount already attempted, skipping...");
@@ -171324,6 +171351,17 @@ Message: ${transactionMessage}.
     mountAttempted = true;
     try {
       const isMiniApp = isMiniAppEnvironment();
+      if (isMiniApp && !config2) {
+        console.log("[ConnectMenu] Skipping mount - mini app with no config");
+        const existingContainer = document.getElementById("connect-root");
+        if (existingContainer) {
+          existingContainer.style.display = "none";
+          existingContainer.style.visibility = "hidden";
+          existingContainer.style.opacity = "0";
+          existingContainer.style.pointerEvents = "none";
+        }
+        return;
+      }
       const container = ensureMountEl();
       if (!container) {
         console.warn("[ConnectMenu] Container not created");
@@ -171336,6 +171374,9 @@ Message: ${transactionMessage}.
       mountComplete = true;
       if (isMiniApp && !config2) {
         container.style.display = "none";
+        container.style.visibility = "hidden";
+        container.style.opacity = "0";
+        container.style.pointerEvents = "none";
         console.log("[ConnectMenu] Config unavailable in mini app - hiding menu");
       } else {
         console.log("[ConnectMenu] Mounted successfully");
@@ -171353,6 +171394,18 @@ Message: ${transactionMessage}.
   function initConnectMenu() {
     if (mountComplete) {
       console.log("[ConnectMenu] Already mounted");
+      return;
+    }
+    const isMiniApp = isMiniAppEnvironment();
+    if (isMiniApp && !config2) {
+      console.log("[ConnectMenu] Skipping mount - mini app with no config");
+      const existingContainer = document.getElementById("connect-root");
+      if (existingContainer) {
+        existingContainer.style.display = "none";
+        existingContainer.style.visibility = "hidden";
+        existingContainer.style.opacity = "0";
+        existingContainer.style.pointerEvents = "none";
+      }
       return;
     }
     if (typeof import_react7.default === "undefined" || typeof import_client2.createRoot === "undefined") {
