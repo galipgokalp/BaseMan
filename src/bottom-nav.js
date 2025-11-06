@@ -20,6 +20,7 @@
     const nav = document.getElementById('bottom-nav');
     if (!nav) {
       console.error('[bottom-nav] Navigation element not found!');
+      initStarted = false; // Reset so we can retry
       return;
     }
     console.log('[bottom-nav] Navigation element found:', nav);
@@ -29,6 +30,7 @@
     
     if (items.length === 0) {
       console.error('[bottom-nav] No nav items found!');
+      initStarted = false; // Reset so we can retry
       return;
     }
 
@@ -41,19 +43,23 @@
         return;
       }
 
-      // Remove any existing listeners to avoid duplicates
-      const newItem = item.cloneNode(true);
-      item.parentNode.replaceChild(newItem, item);
+      // Check if already has listener (avoid duplicates)
+      if (item.hasAttribute('data-listener-attached')) {
+        console.log(`[bottom-nav] Item ${navType} already has listener, skipping...`);
+        return;
+      }
       
-      newItem.addEventListener('click', (e) => {
+      item.setAttribute('data-listener-attached', 'true');
+      
+      item.addEventListener('click', (e) => {
         console.log(`[bottom-nav] Clicked on nav item: ${navType}`, e);
-        if (newItem.disabled) {
+        if (item.disabled) {
           console.warn(`[bottom-nav] Item ${navType} is disabled`);
           return;
         }
         e.preventDefault();
         e.stopPropagation();
-        handleNavClick(navType, newItem);
+        handleNavClick(navType, item);
       });
       
       console.log(`[bottom-nav] Event listener added to item: ${navType}`);
@@ -239,37 +245,60 @@
   function openWallet() {
     console.log('[bottom-nav] openWallet called');
     
-    // Focus on Wagmi connect menu
-    // The connect menu is in a separate React component
-    // We'll trigger a custom event that the connect menu can listen to
+    // Try to find connect menu - wait for it to mount if not ready
+    let connectRoot = document.getElementById('connect-root');
+    console.log('[bottom-nav] Connect root found (initial):', connectRoot);
+    
+    if (!connectRoot) {
+      // Wait a bit for connect menu to mount (it's loaded with defer)
+      console.log('[bottom-nav] Connect root not found, waiting for mount...');
+      let attempts = 0;
+      const maxAttempts = 10;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        connectRoot = document.getElementById('connect-root');
+        if (connectRoot) {
+          console.log('[bottom-nav] Connect root found after wait:', connectRoot);
+          clearInterval(checkInterval);
+          handleConnectMenu(connectRoot);
+        } else if (attempts >= maxAttempts) {
+          console.warn('[bottom-nav] Connect root not found after', maxAttempts, 'attempts');
+          clearInterval(checkInterval);
+          // Fallback: dispatch event anyway
+          dispatchWalletEvent();
+        }
+      }, 200);
+    } else {
+      handleConnectMenu(connectRoot);
+    }
+    
+    // Always dispatch event for connect menu to listen
+    dispatchWalletEvent();
+  }
+  
+  function handleConnectMenu(connectRoot) {
+    if (!connectRoot) return;
+    
+    // Scroll to connect menu if needed
+    connectRoot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Try to trigger click on connect button if visible
+    setTimeout(() => {
+      const connectButton = connectRoot.querySelector('button');
+      console.log('[bottom-nav] Connect button found:', connectButton);
+      if (connectButton && !connectButton.disabled) {
+        connectButton.focus();
+        console.log('[bottom-nav] Connect button focused');
+      }
+    }, 100);
+  }
+  
+  function dispatchWalletEvent() {
     const walletEvent = new CustomEvent('baseman-open-wallet', {
       detail: { source: 'bottom-nav' }
     });
     console.log('[bottom-nav] Dispatching baseman-open-wallet event');
     window.dispatchEvent(walletEvent);
-
-    // Also try to find and focus the connect menu container
-    const connectRoot = document.getElementById('connect-root');
-    console.log('[bottom-nav] Connect root found:', connectRoot);
-    
-    if (connectRoot) {
-      // Scroll to connect menu if needed
-      connectRoot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      
-      // Try to trigger click on connect button if visible
-      setTimeout(() => {
-        const connectButton = connectRoot.querySelector('button');
-        console.log('[bottom-nav] Connect button found:', connectButton);
-        if (connectButton && !connectButton.disabled) {
-          connectButton.focus();
-          console.log('[bottom-nav] Connect button focused');
-        }
-      }, 100);
-    } else {
-      console.warn('[bottom-nav] Connect root not found');
-    }
-    
-    console.log('[bottom-nav] Wallet opened successfully');
   }
 
   // Public API
@@ -281,50 +310,75 @@
     getCurrentActive: () => currentActive
   };
 
-  // Initialize when DOM is ready
+  // Initialize when DOM is ready - prevent double initialization
+  let initStarted = false;
+  let initComplete = false;
+  
   function initWhenReady() {
+    if (initStarted) {
+      console.log('[bottom-nav] Initialization already started, skipping...');
+      return;
+    }
+    initStarted = true;
+    
     console.log('[bottom-nav] initWhenReady called, document.readyState:', document.readyState);
+    
+    function doInit() {
+      if (initComplete) {
+        console.log('[bottom-nav] Already initialized, skipping...');
+        return;
+      }
+      initComplete = true;
+      init();
+    }
     
     if (document.readyState === 'loading') {
       console.log('[bottom-nav] DOM is loading, waiting for DOMContentLoaded...');
       document.addEventListener('DOMContentLoaded', () => {
         console.log('[bottom-nav] DOMContentLoaded fired');
-        // Wait a bit for other scripts to initialize
+        // Wait for SDK ready
         if (window.__basemanSDKReadyFired) {
-          console.log('[bottom-nav] SDK already ready, initializing in 200ms');
-          setTimeout(init, 200);
+          console.log('[bottom-nav] SDK already ready, initializing in 500ms');
+          setTimeout(doInit, 500);
         } else {
           console.log('[bottom-nav] Waiting for SDK ready event...');
-          window.addEventListener('baseman-sdk-ready', () => {
-            console.log('[bottom-nav] SDK ready event fired, initializing in 200ms');
-            setTimeout(init, 200);
-          }, { once: true });
-          // Fallback - wait longer for leaderboard/profile panels to initialize
-          console.log('[bottom-nav] Fallback: initializing in 2000ms');
+          const sdkReadyHandler = () => {
+            console.log('[bottom-nav] SDK ready event fired, initializing in 500ms');
+            setTimeout(doInit, 500);
+          };
+          window.addEventListener('baseman-sdk-ready', sdkReadyHandler, { once: true });
+          // Single fallback - wait for connect menu to mount
+          console.log('[bottom-nav] Fallback: initializing in 3000ms');
           setTimeout(() => {
-            console.log('[bottom-nav] Fallback timeout fired, initializing now');
-            init();
-          }, 2000);
+            if (!initComplete) {
+              console.log('[bottom-nav] Fallback timeout fired, initializing now');
+              window.removeEventListener('baseman-sdk-ready', sdkReadyHandler);
+              doInit();
+            }
+          }, 3000);
         }
       }, { once: true });
     } else {
       console.log('[bottom-nav] DOM already ready');
-      // DOM already ready
       if (window.__basemanSDKReadyFired) {
-        console.log('[bottom-nav] SDK already ready, initializing in 200ms');
-        setTimeout(init, 200);
+        console.log('[bottom-nav] SDK already ready, initializing in 500ms');
+        setTimeout(doInit, 500);
       } else {
         console.log('[bottom-nav] Waiting for SDK ready event...');
-        window.addEventListener('baseman-sdk-ready', () => {
-          console.log('[bottom-nav] SDK ready event fired, initializing in 200ms');
-          setTimeout(init, 200);
-        }, { once: true });
-        // Fallback - wait longer for leaderboard/profile panels to initialize
-        console.log('[bottom-nav] Fallback: initializing in 2000ms');
+        const sdkReadyHandler = () => {
+          console.log('[bottom-nav] SDK ready event fired, initializing in 500ms');
+          setTimeout(doInit, 500);
+        };
+        window.addEventListener('baseman-sdk-ready', sdkReadyHandler, { once: true });
+        // Single fallback - wait for connect menu to mount
+        console.log('[bottom-nav] Fallback: initializing in 3000ms');
         setTimeout(() => {
-          console.log('[bottom-nav] Fallback timeout fired, initializing now');
-          init();
-        }, 2000);
+          if (!initComplete) {
+            console.log('[bottom-nav] Fallback timeout fired, initializing now');
+            window.removeEventListener('baseman-sdk-ready', sdkReadyHandler);
+            doInit();
+          }
+        }, 3000);
       }
     }
   }
