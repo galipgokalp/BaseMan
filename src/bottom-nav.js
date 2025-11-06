@@ -93,49 +93,89 @@
       return;
     }
 
-    // Check if leaderboard panel has a show/toggle method
-    if (typeof window.LeaderboardPanel !== 'undefined' && window.LeaderboardPanel.show) {
-      window.LeaderboardPanel.show();
-    } else {
-      // Toggle visibility - leaderboard is always visible in game shell by default
-      // So we scroll to it instead of toggling
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      
-      // Add a subtle highlight animation
-      panel.style.transition = 'box-shadow 0.3s ease';
-      panel.style.boxShadow = '0 0 30px rgba(255, 225, 79, 0.6)';
+    // Use the correct API: window.BaseManLeaderboard
+    if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.show === 'function') {
+      window.BaseManLeaderboard.show();
+      // Also scroll to it for better UX
       setTimeout(() => {
-        panel.style.boxShadow = '';
-      }, 1000);
-      
-      // Scroll to top if panel is scrollable
-      const scrollWrapper = panel.querySelector('[data-scroll-wrapper]');
-      if (scrollWrapper) {
-        scrollWrapper.scrollTop = 0;
-      }
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } else {
+      // Fallback: ensure panel is visible and scroll to it
+      panel.hidden = false;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    // Add a subtle highlight animation
+    panel.style.transition = 'box-shadow 0.3s ease';
+    panel.style.boxShadow = '0 0 30px rgba(255, 225, 79, 0.6)';
+    setTimeout(() => {
+      panel.style.boxShadow = '';
+    }, 1000);
+    
+    // Scroll to top if panel is scrollable
+    const scrollWrapper = panel.querySelector('[data-scroll-wrapper]');
+    if (scrollWrapper) {
+      scrollWrapper.scrollTop = 0;
+    }
+    
+    // Refresh leaderboard data
+    if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.refresh === 'function') {
+      window.BaseManLeaderboard.refresh();
     }
   }
 
   function openProfile() {
-    // Use existing profile panel functionality
-    const profileBtn = document.querySelector('.profile-btn, #baseman-profile-btn, [data-profile-btn]');
+    // Try multiple methods to open profile panel
+    let profileOpened = false;
+    
+    // Method 1: Find and click profile button
+    const profileBtn = document.getElementById('baseman-profile-btn') || 
+                       document.querySelector('.profile-btn');
     if (profileBtn && !profileBtn.disabled) {
       profileBtn.click();
-    } else if (typeof window.ProfilePanel !== 'undefined') {
-      if (window.ProfilePanel.toggle) {
-        window.ProfilePanel.toggle();
-      } else if (window.ProfilePanel.open) {
-        window.ProfilePanel.open();
+      profileOpened = true;
+    }
+    
+    // Method 2: Directly toggle panel if button not found
+    if (!profileOpened) {
+      const panel = document.getElementById('baseman-profile-panel');
+      if (panel) {
+        const isOpen = panel.classList.contains('open');
+        if (!isOpen) {
+          // Simulate button click to trigger wallet connection logic
+          if (profileBtn) {
+            profileBtn.click();
+          } else {
+            // Direct toggle if button not available
+            panel.classList.add('open');
+            panel.setAttribute('aria-hidden', 'false');
+            
+            // Trigger wallet connection and refresh
+            (async () => {
+              try {
+                if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
+                  await window.BaseManOnchain.ensureWallet();
+                } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
+                  await window.sdk.actions.signIn({ acceptAuthAddress: true });
+                }
+              } catch (err) {
+                console.warn('[bottom-nav] Wallet connection failed:', err?.message || err);
+              }
+              
+              // Refresh panel if refresh function exists
+              if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.refresh === 'function') {
+                window.ProfilePanel.refresh();
+              }
+            })();
+          }
+          profileOpened = true;
+        }
       }
-    } else {
-      // Fallback: try to find and click profile button
-      const btn = document.getElementById('baseman-profile-btn') || 
-                  document.querySelector('.profile-btn');
-      if (btn) {
-        btn.click();
-      } else {
-        console.warn('[bottom-nav] Profile panel button not found');
-      }
+    }
+    
+    if (!profileOpened) {
+      console.warn('[bottom-nav] Profile panel could not be opened - button and panel not found');
     }
   }
 
@@ -174,19 +214,34 @@
   };
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    // Also wait for SDK ready in mini app environments
-    if (window.__basemanSDKReadyFired) {
-      setTimeout(init, 100);
-    } else {
-      window.addEventListener('baseman-sdk-ready', () => {
-        setTimeout(init, 100);
+  function initWhenReady() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        // Wait a bit for other scripts to initialize
+        if (window.__basemanSDKReadyFired) {
+          setTimeout(init, 200);
+        } else {
+          window.addEventListener('baseman-sdk-ready', () => {
+            setTimeout(init, 200);
+          }, { once: true });
+          // Fallback - wait longer for leaderboard/profile panels to initialize
+          setTimeout(init, 1000);
+        }
       }, { once: true });
-      // Fallback
-      setTimeout(init, 300);
+    } else {
+      // DOM already ready
+      if (window.__basemanSDKReadyFired) {
+        setTimeout(init, 200);
+      } else {
+        window.addEventListener('baseman-sdk-ready', () => {
+          setTimeout(init, 200);
+        }, { once: true });
+        // Fallback - wait longer for leaderboard/profile panels to initialize
+        setTimeout(init, 1000);
+      }
     }
   }
+  
+  initWhenReady();
 })();
 
