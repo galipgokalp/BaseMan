@@ -304,7 +304,14 @@
     }
     visible = shouldShow;
     // Show panel immediately (synchronous)
-    panel.hidden = !visible;
+    // Use display style instead of hidden attribute to work with flexbox
+    if (visible) {
+      panel.hidden = false;
+      panel.style.display = 'flex';
+    } else {
+      panel.hidden = true;
+      panel.style.display = 'none';
+    }
     if (!visible) {
       stopPolling();
     } else {
@@ -329,7 +336,14 @@
       const hash = window.location.hash.substring(1);
       visible = hash === 'leaderboard' || hash === 'pac';
     }
-    panel.hidden = !visible;
+    // Use display style instead of hidden attribute to work with flexbox
+    if (visible) {
+      panel.hidden = false;
+      panel.style.display = 'flex';
+    } else {
+      panel.hidden = true;
+      panel.style.display = 'none';
+    }
 
     if (refreshBtn) {
       refreshBtn.addEventListener("click", () => {
