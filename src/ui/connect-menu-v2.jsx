@@ -79,8 +79,8 @@ function ensureMountEl() {
     el = document.createElement('div');
     el.id = 'connect-root';
     el.style.position = 'fixed';
-    el.style.top = '16px';
-    el.style.right = '16px';
+    el.style.bottom = '12px';
+    el.style.right = '12px';
     el.style.zIndex = '2147483647';
     document.body.appendChild(el);
   }

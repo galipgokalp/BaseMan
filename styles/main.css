@@ -278,8 +278,8 @@ body {
 /* ===== Profile panel ===== */
 .profile-btn {
   position: fixed;
-  bottom: 12px;
-  right: 12px;
+  top: 16px;
+  right: 16px;
   z-index: 10002;
   cursor: pointer;
   padding: 8px 10px;
@@ -292,8 +292,8 @@ body {
 
 .profile-panel {
   position: fixed;
-  right: 12px;
-  bottom: 56px;
+  right: 16px;
+  top: 56px;
   width: min(92vw, 420px);
   max-height: 60vh;
   overflow: auto;

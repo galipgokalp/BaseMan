@@ -191241,8 +191241,8 @@ Message: ${transactionMessage}.
       el2 = document.createElement("div");
       el2.id = "connect-root";
       el2.style.position = "fixed";
-      el2.style.top = "16px";
-      el2.style.right = "16px";
+      el2.style.bottom = "12px";
+      el2.style.right = "12px";
       el2.style.zIndex = "2147483647";
       document.body.appendChild(el2);
     }
