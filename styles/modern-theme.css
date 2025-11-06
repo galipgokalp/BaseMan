@@ -1,0 +1,630 @@
+/* ===== BaseMan Modern Theme ===== */
+/* Enhanced design with neon accents, gradients, and smooth animations */
+
+:root {
+  /* Color Palette - Pac-Man inspired neon theme */
+  --color-primary: #ffe14f;      /* Pac-Man yellow */
+  --color-primary-glow: #ffed75;
+  --color-secondary: #8be7ff;    /* Cyan blue */
+  --color-accent: #ff6b9d;       /* Pink/magenta */
+  --color-success: #00ff88;      /* Green */
+  --color-bg-dark: #0a0a0f;      /* Deep black-blue */
+  --color-bg-mid: #141420;       /* Dark purple-blue */
+  --color-bg-light: rgba(20, 20, 32, 0.8);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b9b9b9;
+  --color-text-muted: #6b7280;
+  --color-border: rgba(255, 225, 79, 0.2);
+  --color-border-bright: rgba(255, 225, 79, 0.4);
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+  
+  /* Shadows & Glows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --glow-primary: 0 0 20px rgba(255, 225, 79, 0.4);
+  --glow-secondary: 0 0 15px rgba(139, 231, 255, 0.3);
+}
+
+/* ===== Body & Background ===== */
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1e 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  color: var(--color-text-primary);
+  font-family: "ArcadeR", system-ui, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+  /* Safe area insets for mobile devices (notch, navigation bars) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Animated background particles effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 225, 79, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(139, 231, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 20%, rgba(255, 107, 157, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+  animation: backgroundPulse 20s ease-in-out infinite;
+}
+
+@keyframes backgroundPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* ===== Game Shell ===== */
+.game-shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xl);
+  padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--spacing-xl) + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  /* Ensure content fits in viewport */
+  min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+
+/* ===== Leaderboard Panel - Enhanced ===== */
+.leaderboard-panel {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 32, 0.95) 0%, 
+    rgba(10, 10, 15, 0.98) 100%);
+  border: 2px solid var(--color-border-bright);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: var(--shadow-lg), var(--glow-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.leaderboard-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--color-primary) 50%, 
+    transparent 100%);
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.leaderboard-title {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(255, 225, 79, 0.3);
+  position: relative;
+}
+
+.leaderboard-refresh {
+  background: rgba(255, 225, 79, 0.1);
+  border: 1px solid var(--color-border-bright);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 44px; /* Minimum touch target size (Base App guideline) */
+  min-width: 44px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+}
+
+.leaderboard-refresh::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 225, 79, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.leaderboard-refresh:hover {
+  background: rgba(255, 225, 79, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: var(--glow-primary);
+  transform: translateY(-2px);
+}
+
+.leaderboard-refresh:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.leaderboard-refresh:active {
+  transform: translateY(0);
+}
+
+/* ===== Leaderboard Items - Enhanced ===== */
+.leaderboard-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.03) 0%, 
+    rgba(255, 255, 255, 0.01) 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.leaderboard-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-primary);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.leaderboard-item:hover {
+  background: linear-gradient(135deg, 
+    rgba(255, 225, 79, 0.08) 0%, 
+    rgba(255, 225, 79, 0.03) 100%);
+  border-color: var(--color-border-bright);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+
+.leaderboard-item:hover::before {
+  transform: scaleY(1);
+}
+
+.leaderboard-item:first-child {
+  background: linear-gradient(135deg, 
+    rgba(255, 225, 79, 0.15) 0%, 
+    rgba(255, 225, 79, 0.05) 100%);
+  border-color: var(--color-primary);
+  box-shadow: var(--glow-primary);
+}
+
+.leaderboard-rank {
+  color: var(--color-primary);
+  font-weight: 700;
+  min-width: 52px;
+  font-size: 1.1rem;
+  text-shadow: 0 0 10px rgba(255, 225, 79, 0.5);
+}
+
+.leaderboard-item:first-child .leaderboard-rank {
+  font-size: 1.3rem;
+}
+
+.leaderboard-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-bg-mid), var(--color-bg-dark));
+  border: 2px solid var(--color-border-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.leaderboard-item:hover .leaderboard-avatar {
+  border-color: var(--color-primary);
+  box-shadow: var(--glow-secondary);
+  transform: scale(1.05);
+}
+
+.leaderboard-name {
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-handle {
+  color: var(--color-secondary);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-score-value {
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 225, 79, 0.4);
+}
+
+.leaderboard-score-label {
+  color: var(--color-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Profile Panel - Enhanced ===== */
+.profile-btn {
+  position: fixed;
+  top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
+  right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+  z-index: 10002;
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 44px; /* Minimum touch target size (Base App guideline) */
+  min-width: 44px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border-bright);
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 32, 0.9) 0%, 
+    rgba(10, 10, 15, 0.95) 100%);
+  color: var(--color-text-primary);
+  font: 600 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+}
+
+.profile-btn:hover {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, 
+    rgba(255, 225, 79, 0.15) 0%, 
+    rgba(255, 225, 79, 0.05) 100%);
+  box-shadow: var(--glow-primary);
+  transform: translateY(-2px);
+}
+
+.profile-btn:active {
+  transform: translateY(0);
+}
+
+.profile-panel {
+  position: fixed;
+  right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+  top: calc(60px + env(safe-area-inset-top, 0px));
+  width: min(calc(100vw - var(--spacing-md) * 2 - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
+  max-height: calc(100vh - 60px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 60px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  z-index: 10001;
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 32, 0.98) 0%, 
+    rgba(10, 10, 15, 0.99) 100%);
+  border: 2px solid var(--color-border-bright);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
+  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: var(--shadow-lg), var(--glow-primary);
+  display: none;
+  animation: panelSlideIn 0.3s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.profile-panel.open {
+  display: block;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-title {
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  font-weight: 700;
+}
+
+.profile-close {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.profile-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-primary);
+}
+
+.profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-row:last-child {
+  border-bottom: none;
+}
+
+.profile-row span:first-child {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.profile-row span:last-child {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.profile-action {
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 44px; /* Minimum touch target size (Base App guideline) */
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-bright);
+  background: rgba(255, 225, 79, 0.1);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+}
+
+.profile-action:hover {
+  background: rgba(255, 225, 79, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: var(--glow-primary);
+  transform: translateY(-2px);
+}
+
+.profile-action:active {
+  transform: translateY(0);
+}
+
+/* ===== Scrollbar Styling ===== */
+.leaderboard-scroll::-webkit-scrollbar,
+.profile-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.leaderboard-scroll::-webkit-scrollbar-track,
+.profile-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+}
+
+.leaderboard-scroll::-webkit-scrollbar-thumb,
+.profile-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.leaderboard-scroll::-webkit-scrollbar-thumb:hover,
+.profile-panel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--color-primary-glow) 0%, var(--color-secondary) 100%);
+  background-clip: padding-box;
+}
+
+/* ===== Responsive Design ===== */
+/* Mobile optimization for Farcaster/Base App mini apps */
+@media (max-width: 480px) {
+  .game-shell {
+    padding: var(--spacing-md) var(--spacing-sm);
+    padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(var(--spacing-sm) + env(safe-area-inset-left, 0px));
+    padding-right: calc(var(--spacing-sm) + env(safe-area-inset-right, 0px));
+    gap: var(--spacing-md);
+  }
+  
+  .leaderboard-panel {
+    padding: var(--spacing-md);
+    width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    box-sizing: border-box;
+  }
+  
+  .leaderboard-item {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+  
+  .leaderboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .leaderboard-refresh {
+    align-self: flex-end;
+    min-width: 80px; /* Ensure touch target is large enough */
+  }
+  
+  .profile-panel {
+    width: calc(100vw - var(--spacing-md) * 2 - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+    left: calc(var(--spacing-md) + env(safe-area-inset-left, 0px));
+    max-width: none;
+  }
+  
+  .profile-btn {
+    /* Ensure profile button is accessible in thumb reach zone */
+    top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
+    right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
+  }
+}
+
+/* Portrait orientation optimization */
+@media (orientation: portrait) {
+  .game-shell {
+    /* Optimize for portrait mode */
+    max-width: 100%;
+  }
+  
+  .leaderboard-panel {
+    /* Ensure full width usage in portrait */
+    width: 100%;
+  }
+}
+
+/* Landscape mode (not recommended for mini apps, but handle gracefully) */
+@media (orientation: landscape) and (max-height: 500px) {
+  .game-shell {
+    padding: var(--spacing-sm);
+  }
+  
+  .leaderboard-panel {
+    max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 100px);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 100px);
+  }
+  
+  .profile-panel {
+    max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 80px);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 80px);
+  }
+}
+
+/* ===== Animation Utilities ===== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+

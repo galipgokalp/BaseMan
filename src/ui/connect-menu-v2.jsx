@@ -117,8 +117,9 @@ function ensureMountEl() {
     el = document.createElement('div');
     el.id = 'connect-root';
     el.style.position = 'fixed';
-    el.style.bottom = '12px';
-    el.style.right = '12px';
+    // Safe area insets support for mobile devices (notch, navigation bars)
+    el.style.bottom = 'calc(12px + env(safe-area-inset-bottom, 0px))';
+    el.style.right = 'calc(12px + env(safe-area-inset-right, 0px))';
     el.style.zIndex = '2147483647';
     document.body.appendChild(el);
   }
@@ -128,9 +129,16 @@ function ensureMountEl() {
 function baseBtnStyle() {
   return {
     fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 600,
-    padding: '10px 14px', borderRadius: 10, border: '1px solid #334155',
+    padding: '10px 14px', 
+    minHeight: '44px', // Minimum touch target size (Base App guideline)
+    minWidth: '44px',
+    borderRadius: 10, border: '1px solid #334155',
     background: '#0b1220', color: '#e2e8f0', cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    touchAction: 'manipulation' // Prevent double-tap zoom on mobile
   };
 }
 
