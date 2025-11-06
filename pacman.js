@@ -9516,8 +9516,7 @@ var executive = (function(){
         reqFrame = requestAnimationFrame(tick);
     };
 
-    return {
-
+    var executiveObj = {
         getFramePeriod: function() {
             return framePeriod;
         },
@@ -9548,6 +9547,13 @@ var executive = (function(){
         isPaused: function() { return paused; },
         getFps: function() { return fps; },
     };
+    
+    // Expose executive to window for external access (e.g., settings panel)
+    if (typeof window !== 'undefined') {
+        window.executive = executiveObj;
+    }
+    
+    return executiveObj;
 })();
 
 //@line 1 "src/states.js"

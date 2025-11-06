@@ -41,8 +41,8 @@
               <label class="settings-toggle">
                 <input type="checkbox" data-setting="theme" />
                 <span class="settings-toggle-slider">
-                  <span class="settings-toggle-label">Dark</span>
-                  <span class="settings-toggle-label">Light</span>
+                  <span class="settings-toggle-icon">🌙</span>
+                  <span class="settings-toggle-icon">☀️</span>
                 </span>
               </label>
             </div>
@@ -60,8 +60,8 @@
               <span>Game Difficulty</span>
               <select class="settings-select" data-setting="difficulty">
                 <option value="easy">Easy</option>
-                <option value="normal" selected>Normal</option>
                 <option value="hard">Hard</option>
+                <option value="extreme">Extreme</option>
               </select>
             </div>
             <div class="settings-row settings-toggle-row">
@@ -157,7 +157,7 @@
     // Load difficulty
     const difficultySelect = panel.querySelector('[data-setting="difficulty"]');
     if (difficultySelect) {
-      const difficulty = getSetting('difficulty', 'normal');
+      const difficulty = getSetting('difficulty', 'easy');
       difficultySelect.value = difficulty;
     }
 
@@ -239,15 +239,71 @@
 
     // Apply sound
     const soundEnabled = getSetting('sound', true);
+    window.__basemanSoundEnabled = soundEnabled;
+    
     if (typeof window.audio !== 'undefined' && window.audio) {
-      if (!soundEnabled && window.audio.silence) {
-        window.audio.silence();
+      if (!soundEnabled) {
+        // Mute all sounds
+        if (window.audio.silence) {
+          window.audio.silence();
+        }
+        // Also set volume to 0 for all audio tracks
+        try {
+          for (var key in window.audio) {
+            if (window.audio[key] && typeof window.audio[key] === 'object') {
+              // Check if it's an audioTrack object with audio property
+              if (window.audio[key].audio && window.audio[key].audio instanceof Audio) {
+                window.audio[key].audio.volume = 0;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[settings-panel] Failed to mute audio:', e);
+        }
+      } else {
+        // Unmute all sounds - restore volumes
+        try {
+          // Restore original volumes
+          if (window.audio.credit && window.audio.credit.audio) window.audio.credit.audio.volume = 1;
+          if (window.audio.coffeeBreakMusic && window.audio.coffeeBreakMusic.audio) window.audio.coffeeBreakMusic.audio.volume = 1;
+          if (window.audio.die && window.audio.die.audio) window.audio.die.audio.volume = 1;
+          if (window.audio.ghostReturnToHome && window.audio.ghostReturnToHome.audio) window.audio.ghostReturnToHome.audio.volume = 1;
+          if (window.audio.eatingGhost && window.audio.eatingGhost.audio) window.audio.eatingGhost.audio.volume = 1;
+          if (window.audio.ghostTurnToBlue && window.audio.ghostTurnToBlue.audio) window.audio.ghostTurnToBlue.audio.volume = 0.5;
+          if (window.audio.eatingFruit && window.audio.eatingFruit.audio) window.audio.eatingFruit.audio.volume = 1;
+          if (window.audio.ghostSpurtMove1 && window.audio.ghostSpurtMove1.audio) window.audio.ghostSpurtMove1.audio.volume = 1;
+          if (window.audio.ghostSpurtMove2 && window.audio.ghostSpurtMove2.audio) window.audio.ghostSpurtMove2.audio.volume = 1;
+          if (window.audio.ghostSpurtMove3 && window.audio.ghostSpurtMove3.audio) window.audio.ghostSpurtMove3.audio.volume = 1;
+          if (window.audio.ghostSpurtMove4 && window.audio.ghostSpurtMove4.audio) window.audio.ghostSpurtMove4.audio.volume = 1;
+          if (window.audio.ghostNormalMove && window.audio.ghostNormalMove.audio) window.audio.ghostNormalMove.audio.volume = 1;
+          if (window.audio.extend && window.audio.extend.audio) window.audio.extend.audio.volume = 1;
+          if (window.audio.eating && window.audio.eating.audio) window.audio.eating.audio.volume = 0.5;
+          if (window.audio.startMusic && window.audio.startMusic.audio) window.audio.startMusic.audio.volume = 1;
+        } catch (e) {
+          console.warn('[settings-panel] Failed to unmute audio:', e);
+        }
       }
     }
 
     // Apply difficulty
-    const difficulty = getSetting('difficulty', 'normal');
+    const difficulty = getSetting('difficulty', 'easy');
     window.__basemanDifficulty = difficulty;
+    window.gameDifficulty = difficulty;
+    
+    // Apply difficulty to game speed
+    // Difficulty affects game update rate: Easy (slower), Hard (normal), Extreme (faster)
+    if (typeof window.executive !== 'undefined' && window.executive && typeof window.executive.setUpdatesPerSecond === 'function') {
+      if (difficulty === 'easy') {
+        // Easy: 90% speed (slower, easier)
+        window.executive.setUpdatesPerSecond(54); // 60 * 0.9
+      } else if (difficulty === 'hard') {
+        // Hard: 100% speed (normal)
+        window.executive.setUpdatesPerSecond(60);
+      } else if (difficulty === 'extreme') {
+        // Extreme: 110% speed (faster, harder)
+        window.executive.setUpdatesPerSecond(66); // 60 * 1.1
+      }
+    }
 
     // Profile button removed - now controlled by bottom nav only
     // Always ensure profile button is hidden

@@ -258,19 +258,38 @@
   transition: all 0.3s ease;
 }
 
+.settings-toggle-icon {
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .settings-toggle input:checked + .settings-toggle-slider {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
   border-color: var(--color-primary);
 }
 
-.settings-toggle input:checked + .settings-toggle-slider .settings-toggle-label:last-child {
-  color: var(--color-text-primary);
-  font-weight: 700;
+.settings-toggle input:checked + .settings-toggle-slider .settings-toggle-icon:last-child {
+  opacity: 1;
+  transform: scale(1.2);
 }
 
-.settings-toggle input:not(:checked) + .settings-toggle-slider .settings-toggle-label:first-child {
-  color: var(--color-text-primary);
-  font-weight: 700;
+.settings-toggle input:not(:checked) + .settings-toggle-slider .settings-toggle-icon:first-child {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.settings-toggle input:checked + .settings-toggle-slider .settings-toggle-icon:first-child {
+  opacity: 0.5;
+  transform: scale(0.9);
+}
+
+.settings-toggle input:not(:checked) + .settings-toggle-slider .settings-toggle-icon:last-child {
+  opacity: 0.5;
+  transform: scale(0.9);
 }
 
 .settings-toggle-slider::before {
