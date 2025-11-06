@@ -87,17 +87,6 @@
             </div>
           </div>
           <div class="settings-section">
-            <h3 class="settings-section-title">Network</h3>
-            <div class="settings-row">
-              <span>Current Network</span>
-              <span data-network>-</span>
-            </div>
-            <div class="settings-row">
-              <span>Chain ID</span>
-              <span data-chain-id>-</span>
-            </div>
-          </div>
-          <div class="settings-section">
             <h3 class="settings-section-title">About</h3>
             <div class="settings-row">
               <span>Mini App</span>
@@ -183,28 +172,7 @@
         envEl.textContent = isProd ? 'Production' : 'Development';
       }
 
-      // Get network info
-      const onchain = window.BaseManOnchain;
-      if (onchain) {
-        const chainId = onchain.getChainId && onchain.getChainId();
-        const networkEl = panel.querySelector('[data-network]');
-        const chainIdEl = panel.querySelector('[data-chain-id]');
-        
-        if (chainId) {
-          const networkLabel = Number(chainId) === 8453 ? 'Base' : 
-                               (Number(chainId) === 84532 ? 'Base Sepolia' : `Chain ${chainId}`);
-          if (networkEl) networkEl.textContent = networkLabel;
-          if (chainIdEl) chainIdEl.textContent = String(chainId);
-        } else {
-          if (networkEl) networkEl.textContent = '-';
-          if (chainIdEl) chainIdEl.textContent = '-';
-        }
-      } else {
-        const networkEl = panel.querySelector('[data-network]');
-        const chainIdEl = panel.querySelector('[data-chain-id]');
-        if (networkEl) networkEl.textContent = 'Not connected';
-        if (chainIdEl) chainIdEl.textContent = '-';
-      }
+      // Network section removed
     } catch (error) {
       console.error('[settings-panel] refresh error', error);
     }
@@ -291,17 +259,17 @@
     window.gameDifficulty = difficulty;
     
     // Apply difficulty to game speed
-    // Difficulty affects game update rate: Easy (slower), Hard (normal), Extreme (faster)
+    // Difficulty affects game update rate: Easy (100%), Hard (110%), Extreme (120%)
     if (typeof window.executive !== 'undefined' && window.executive && typeof window.executive.setUpdatesPerSecond === 'function') {
       if (difficulty === 'easy') {
-        // Easy: 90% speed (slower, easier)
-        window.executive.setUpdatesPerSecond(54); // 60 * 0.9
+        // Easy: 100% speed (normal)
+        window.executive.setUpdatesPerSecond(60); // 60 * 1.0
       } else if (difficulty === 'hard') {
-        // Hard: 100% speed (normal)
-        window.executive.setUpdatesPerSecond(60);
-      } else if (difficulty === 'extreme') {
-        // Extreme: 110% speed (faster, harder)
+        // Hard: 110% speed (faster)
         window.executive.setUpdatesPerSecond(66); // 60 * 1.1
+      } else if (difficulty === 'extreme') {
+        // Extreme: 120% speed (fastest)
+        window.executive.setUpdatesPerSecond(72); // 60 * 1.2
       }
     }
 
@@ -344,13 +312,15 @@
       const currentTheme = getSetting('theme', 'dark');
       themeToggle.checked = currentTheme === 'light';
       const handleThemeChange = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const newTheme = e.target.checked ? 'light' : 'dark';
         setSetting('theme', newTheme);
         applySettings();
       };
-      themeToggle.addEventListener('change', handleThemeChange);
-      themeToggle.addEventListener('click', handleThemeChange); // Mobile fallback
-      themeToggle.addEventListener('touchend', handleThemeChange); // Mobile touch
+      themeToggle.addEventListener('change', handleThemeChange, { passive: false });
+      themeToggle.addEventListener('click', handleThemeChange, { passive: false });
+      themeToggle.addEventListener('touchend', handleThemeChange, { passive: false });
     }
 
     // Sound toggle - use both click and change for mobile compatibility
@@ -359,27 +329,42 @@
       const soundEnabled = getSetting('sound', true);
       soundToggle.checked = soundEnabled;
       const handleSoundChange = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const enabled = e.target.checked;
         setSetting('sound', enabled);
         applySettings();
       };
-      soundToggle.addEventListener('change', handleSoundChange);
-      soundToggle.addEventListener('click', handleSoundChange); // Mobile fallback
-      soundToggle.addEventListener('touchend', handleSoundChange); // Mobile touch
+      soundToggle.addEventListener('change', handleSoundChange, { passive: false });
+      soundToggle.addEventListener('click', handleSoundChange, { passive: false });
+      soundToggle.addEventListener('touchend', handleSoundChange, { passive: false });
     }
 
     // Difficulty select - use both change and input for mobile compatibility
     const difficultySelect = panel.querySelector('[data-setting="difficulty"]');
     if (difficultySelect) {
-      const difficulty = getSetting('difficulty', 'normal');
+      const difficulty = getSetting('difficulty', 'easy');
       difficultySelect.value = difficulty;
       const handleDifficultyChange = (e) => {
         const newDifficulty = e.target.value;
         setSetting('difficulty', newDifficulty);
         applySettings();
       };
-      difficultySelect.addEventListener('change', handleDifficultyChange);
-      difficultySelect.addEventListener('input', handleDifficultyChange); // Mobile fallback
+      // Add multiple event listeners for better mobile compatibility
+      difficultySelect.addEventListener('change', handleDifficultyChange, { passive: true });
+      difficultySelect.addEventListener('input', handleDifficultyChange, { passive: true });
+      difficultySelect.addEventListener('click', (e) => {
+        // Ensure select is focused/opened on mobile
+        if (e.target.tagName === 'SELECT') {
+          e.target.focus();
+        }
+      }, { passive: true });
+      // Touch events for mobile
+      difficultySelect.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleDifficultyChange(e);
+      }, { passive: false });
     }
 
     // Profile button toggle - use both click and change for mobile compatibility
@@ -388,13 +373,15 @@
       const showProfile = getSetting('showProfile', true);
       profileToggle.checked = showProfile;
       const handleProfileChange = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const show = e.target.checked;
         setSetting('showProfile', show);
         applySettings();
       };
-      profileToggle.addEventListener('change', handleProfileChange);
-      profileToggle.addEventListener('click', handleProfileChange); // Mobile fallback
-      profileToggle.addEventListener('touchend', handleProfileChange); // Mobile touch
+      profileToggle.addEventListener('change', handleProfileChange, { passive: false });
+      profileToggle.addEventListener('click', handleProfileChange, { passive: false });
+      profileToggle.addEventListener('touchend', handleProfileChange, { passive: false });
     }
   }
 

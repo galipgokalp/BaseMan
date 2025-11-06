@@ -20,7 +20,7 @@
       return env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS || env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
     }
     if (Number(chainId) === 84532) {
-      return env.BASE_SEPOLIA_REGISTRY_ADDRESS || env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
+      return env.NEXT_PUBLIC_BASE_SEPOLIA_REGISTRY_ADDRESS || env.BASE_SEPOLIA_REGISTRY_ADDRESS || env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
     }
     return env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
   }
@@ -70,8 +70,8 @@
             <div class="profile-row"><span>Total Interactions</span><span data-interactions>-</span></div>
           </div>
           <div class="profile-actions">
-            <button type="button" class="profile-action" data-switch="84532">Switch to Base Sepolia</button>
-            <button type="button" class="profile-action" data-switch="8453">Switch to Base Mainnet</button>
+            <button type="button" class="profile-action" data-switch="8453">Base Mainnet</button>
+            <button type="button" class="profile-action" data-switch="84532">Base Sepolia</button>
           </div>
           <div class="profile-history">
             <div class="profile-history__title">Recent Activity</div>
@@ -200,17 +200,79 @@
       alert('Registry address not configured for selected network');
       return;
     }
+    
+    const targetChainId = Number(chainId);
+    const currentChainId = window.BaseManOnchainConfig?.chainId ? Number(window.BaseManOnchainConfig.chainId) : null;
+    
+    // If already on target chain, skip
+    if (currentChainId === targetChainId) {
+      console.log(`[profile] Already on chain ${targetChainId}`);
+      return;
+    }
+    
     try {
+      // First, try to switch chain via SDK wallet if available
+      if (window.sdk && window.sdk.wallet && typeof window.sdk.wallet.switchEthereumChain === 'function') {
+        try {
+          const hexChainId = '0x' + targetChainId.toString(16);
+          await window.sdk.wallet.switchEthereumChain({ chainId: hexChainId });
+        } catch (sdkErr) {
+          console.warn('[profile] SDK switchEthereumChain failed:', sdkErr);
+          // Continue with provider-based switch
+        }
+      }
+      
+      // Also try via window.ethereum if available
+      if (window.ethereum && typeof window.ethereum.request === 'function') {
+        try {
+          const hexChainId = '0x' + targetChainId.toString(16);
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: hexChainId }]
+          });
+        } catch (ethErr) {
+          // If chain not added, try to add it
+          if (ethErr?.code === 4902) {
+            try {
+              const chainMetadata = {
+                chainId: '0x' + targetChainId.toString(16),
+                chainName: targetChainId === 8453 ? 'Base Mainnet' : 'Base Sepolia',
+                rpcUrls: targetChainId === 8453 ? ['https://mainnet.base.org'] : ['https://sepolia.base.org'],
+                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                blockExplorerUrls: targetChainId === 8453 ? ['https://basescan.org'] : ['https://sepolia.basescan.org']
+              };
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [chainMetadata]
+              });
+            } catch (addErr) {
+              console.warn('[profile] wallet_addEthereumChain failed:', addErr);
+            }
+          } else {
+            console.warn('[profile] wallet_switchEthereumChain failed:', ethErr);
+          }
+        }
+      }
+      
+      // Update config
       window.BaseManOnchainConfig = Object.assign({}, window.BaseManOnchainConfig || {}, {
-        chainId: Number(chainId),
+        chainId: targetChainId,
         registryAddress: nextRegistry
       });
+      
+      // Update onchain client
       if (window.BaseManOnchain && typeof window.BaseManOnchain.setNetwork === 'function') {
-        await window.BaseManOnchain.setNetwork({ chainId: Number(chainId), registryAddress: nextRegistry });
+        await window.BaseManOnchain.setNetwork({ chainId: targetChainId, registryAddress: nextRegistry });
+      }
+      
+      // Refresh panel to show new network
+      const panel = document.getElementById(PANEL_ID);
+      if (panel) {
+        await refresh(panel);
       }
     } catch (err) {
       console.error('[profile] switch error', err);
-      alert('Failed to switch network');
+      alert('Failed to switch network: ' + (err?.message || err));
     }
   }
 
@@ -267,13 +329,45 @@
     panel.querySelector('[data-close]')?.addEventListener('click', () => {
       setVisible(false);
     });
-    panel.querySelectorAll('[data-switch]').forEach((el) => {
-      el.addEventListener('click', async () => {
-        const id = Number(el.getAttribute('data-switch'));
-        await handleSwitch(id);
-        await refresh(panel);
-      });
-    });
+          panel.querySelectorAll('[data-switch]').forEach((el) => {
+            el.addEventListener('click', async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const id = Number(el.getAttribute('data-switch'));
+              if (!isNaN(id)) {
+                el.disabled = true;
+                el.textContent = 'Switching...';
+                try {
+                  await handleSwitch(id);
+                } catch (err) {
+                  console.error('[profile] switch button error:', err);
+                } finally {
+                  el.disabled = false;
+                  const label = id === 8453 ? 'Base Mainnet' : 'Base Sepolia';
+                  el.textContent = label;
+                }
+              }
+            }, { passive: false });
+            // Touch event for mobile
+            el.addEventListener('touchend', async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const id = Number(el.getAttribute('data-switch'));
+              if (!isNaN(id)) {
+                el.disabled = true;
+                el.textContent = 'Switching...';
+                try {
+                  await handleSwitch(id);
+                } catch (err) {
+                  console.error('[profile] switch button error:', err);
+                } finally {
+                  el.disabled = false;
+                  const label = id === 8453 ? 'Base Mainnet' : 'Base Sepolia';
+                  el.textContent = label;
+                }
+              }
+            }, { passive: false });
+          });
 
     // Complete Quest section removed - no longer needed
   }
