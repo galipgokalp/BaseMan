@@ -171253,7 +171253,11 @@ Message: ${transactionMessage}.
   }
   function App() {
     const qc2 = new QueryClient();
+    const isMiniApp = isMiniAppEnvironment();
     if (!config2) {
+      if (isMiniApp) {
+        return import_react7.default.createElement(import_react7.default.Fragment);
+      }
       return import_react7.default.createElement("div", {
         style: {
           fontFamily: "Inter, system-ui, sans-serif",
@@ -171319,6 +171323,7 @@ Message: ${transactionMessage}.
     }
     mountAttempted = true;
     try {
+      const isMiniApp = isMiniAppEnvironment();
       const container = ensureMountEl();
       if (!container) {
         console.warn("[ConnectMenu] Container not created");
@@ -171326,11 +171331,17 @@ Message: ${transactionMessage}.
         return;
       }
       const root = (0, import_client2.createRoot)(container);
-      root.render(import_react7.default.createElement(App));
+      const appElement = import_react7.default.createElement(App);
+      root.render(appElement);
       mountComplete = true;
-      console.log("[ConnectMenu] Mounted successfully");
+      if (isMiniApp && !config2) {
+        container.style.display = "none";
+        console.log("[ConnectMenu] Config unavailable in mini app - hiding menu");
+      } else {
+        console.log("[ConnectMenu] Mounted successfully");
+      }
       window.addEventListener("baseman-open-wallet", () => {
-        if (container) {
+        if (container && container.style.display !== "none") {
           container.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
       });

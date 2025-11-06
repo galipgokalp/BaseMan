@@ -105,9 +105,18 @@ function ConnectMenuInner() {
 
 function App() {
   const qc = new QueryClient();
+  const isMiniApp = isMiniAppEnvironment();
   
-  // If config is not available, show error message
+  // If config is not available
   if (!config) {
+    // In mini app environments, don't show error - wallet works via SDK
+    // In web environments, show a helpful error message
+    if (isMiniApp) {
+      // Return empty fragment in mini app - don't show any UI
+      return React.createElement(React.Fragment);
+    }
+    
+    // Web environment - show error message
     return React.createElement('div', {
       style: {
         fontFamily: 'Inter, system-ui, sans-serif',
@@ -173,6 +182,7 @@ function mountConnectMenu() {
   mountAttempted = true;
   
   try {
+    const isMiniApp = isMiniAppEnvironment();
     const container = ensureMountEl();
     if (!container) {
       console.warn('[ConnectMenu] Container not created');
@@ -181,15 +191,22 @@ function mountConnectMenu() {
     }
     
     const root = createRoot(container);
-    root.render(React.createElement(App));
+    const appElement = React.createElement(App);
+    root.render(appElement);
     mountComplete = true;
     
-    console.log('[ConnectMenu] Mounted successfully');
+    // In mini app, if config is null, hide the container
+    if (isMiniApp && !config) {
+      container.style.display = 'none';
+      console.log('[ConnectMenu] Config unavailable in mini app - hiding menu');
+    } else {
+      console.log('[ConnectMenu] Mounted successfully');
+    }
     
     // Listen for wallet open events from bottom nav
     window.addEventListener('baseman-open-wallet', () => {
-      // Scroll to connect menu and ensure it's visible
-      if (container) {
+      // Only scroll if container is visible
+      if (container && container.style.display !== 'none') {
         container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     });
