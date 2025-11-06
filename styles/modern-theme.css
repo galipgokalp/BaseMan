@@ -405,10 +405,10 @@ body::before {
 .profile-panel {
   position: fixed;
   right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
-  top: calc(60px + env(safe-area-inset-top, 0px));
+  top: 50vh;
   width: min(calc(100vw - var(--spacing-md) * 2 - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
-  max-height: calc(100vh - 60px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-  max-height: calc(100dvh - 60px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(50vh - 64px - env(safe-area-inset-bottom, 0px));
+  max-height: calc(50dvh - 64px - env(safe-area-inset-bottom, 0px));
   overflow: auto;
   z-index: 10001;
   background: linear-gradient(135deg, 
@@ -457,6 +457,45 @@ body::before {
   background-clip: text;
   margin: 0;
   font-weight: 700;
+}
+
+/* Profile User Info */
+.profile-user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.profile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 2px 8px rgba(255, 225, 79, 0.3);
+  flex-shrink: 0;
+}
+
+.profile-user-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-username {
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .profile-close {
@@ -634,13 +673,13 @@ body::before {
   }
   
   .leaderboard-panel {
-    max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 100px);
-    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 100px);
+    max-height: calc(50vh - env(safe-area-inset-bottom, 0px) - 64px);
+    max-height: calc(50dvh - env(safe-area-inset-bottom, 0px) - 64px);
   }
   
   .profile-panel {
-    max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 80px);
-    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 80px);
+    max-height: calc(50vh - env(safe-area-inset-bottom, 0px) - 64px);
+    max-height: calc(50dvh - env(safe-area-inset-bottom, 0px) - 64px);
   }
 }
 

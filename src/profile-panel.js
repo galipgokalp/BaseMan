@@ -51,7 +51,12 @@
       panel.setAttribute('aria-hidden', 'true');
       panel.innerHTML = `
         <header class="profile-header">
-          <h2 class="profile-title">Your Profile</h2>
+          <div class="profile-user-info">
+            <img class="profile-avatar" data-avatar src="" alt="Profile" style="display: none;" />
+            <div class="profile-user-details">
+              <h2 class="profile-username" data-username>-</h2>
+            </div>
+          </div>
           <button type="button" class="profile-close" data-close>×</button>
         </header>
         <div class="profile-body">
@@ -103,6 +108,51 @@
     const gamesPlayedEl = panel.querySelector('[data-games-played]');
     const bestScoreEl = panel.querySelector('[data-best-score]');
     const avgScoreEl = panel.querySelector('[data-avg-score]');
+    const avatarEl = panel.querySelector('[data-avatar]');
+    const usernameEl = panel.querySelector('[data-username]');
+
+    // Load Farcaster user profile
+    try {
+      if (window.sdk && window.sdk.context) {
+        const context = await window.sdk.context;
+        const user = context?.user;
+        if (user) {
+          // Set profile picture
+          if (user.pfpUrl && avatarEl) {
+            avatarEl.src = user.pfpUrl;
+            avatarEl.style.display = 'block';
+            avatarEl.onerror = () => {
+              avatarEl.style.display = 'none';
+            };
+          } else if (avatarEl) {
+            avatarEl.style.display = 'none';
+          }
+          
+          // Set username/display name
+          if (usernameEl) {
+            if (user.displayName) {
+              usernameEl.textContent = user.displayName;
+            } else if (user.username) {
+              usernameEl.textContent = `@${user.username}`;
+            } else {
+              usernameEl.textContent = '-';
+            }
+          }
+        } else {
+          // Fallback if no user info
+          if (avatarEl) avatarEl.style.display = 'none';
+          if (usernameEl) usernameEl.textContent = 'Your Profile';
+        }
+      } else {
+        // Fallback if SDK not available
+        if (avatarEl) avatarEl.style.display = 'none';
+        if (usernameEl) usernameEl.textContent = 'Your Profile';
+      }
+    } catch (err) {
+      console.warn('[profile] Failed to load Farcaster user info:', err);
+      if (avatarEl) avatarEl.style.display = 'none';
+      if (usernameEl) usernameEl.textContent = 'Your Profile';
+    }
 
     try {
       if (!window.BaseManOnchain || typeof window.BaseManOnchain.ensureWallet !== 'function') {
@@ -132,7 +182,7 @@
           const q = new URLSearchParams({ address: effectiveAddress, network }).toString();
           const bal = await fetchJson(`/api/token-balances?${q}`);
           const eth = (bal.balances || []).find((b) => (b.token && b.token.symbol === 'ETH')) || null;
-          ethEl.textContent = eth ? `${Number(eth.amount.amount) / 10 ** eth.amount.decimals}` : '-';
+          ethEl.textContent = eth ? `${(Number(eth.amount.amount) / 10 ** eth.amount.decimals).toFixed(6)}` : '-';
         }
       } catch (_) {
         ethEl.textContent = '-';

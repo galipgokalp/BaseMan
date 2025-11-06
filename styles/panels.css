@@ -3,7 +3,7 @@
 /* Leaderboard Panel - Full Screen Overlay */
 .leaderboard-panel {
   position: fixed;
-  top: 0;
+  top: 50vh;
   left: 0;
   right: 0;
   bottom: calc(64px + env(safe-area-inset-bottom, 0px));
@@ -32,7 +32,7 @@
 /* Profile Panel - Side Panel */
 .profile-panel {
   position: fixed;
-  top: 0;
+  top: 50vh;
   right: 0;
   bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   width: min(calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
@@ -58,7 +58,7 @@
 /* Wallet Panel - Side Panel */
 .wallet-panel {
   position: fixed;
-  top: 0;
+  top: 50vh;
   right: 0;
   bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   width: min(calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
@@ -84,7 +84,7 @@
 /* Settings Panel - Side Panel */
 .settings-panel {
   position: fixed;
-  top: 0;
+  top: 50vh;
   right: 0;
   bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   width: min(calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
@@ -140,6 +140,45 @@
   background-clip: text;
   margin: 0;
   font-weight: 700;
+}
+
+/* Profile User Info */
+.profile-user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.profile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 2px 8px rgba(255, 225, 79, 0.3);
+  flex-shrink: 0;
+}
+
+.profile-user-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-username {
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wallet-close,
