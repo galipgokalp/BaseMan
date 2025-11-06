@@ -269,9 +269,8 @@
     if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.show === 'function') {
       window.BaseManLeaderboard.show();
     } else {
-      // Fallback: ensure panel is visible immediately with flexbox
+      // Fallback: ensure panel is visible immediately
       panel.removeAttribute('hidden');
-      panel.style.display = 'flex';
     }
     
     // Refresh data in background (async, non-blocking)

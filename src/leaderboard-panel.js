@@ -304,13 +304,11 @@
     }
     visible = shouldShow;
     // Show panel immediately (synchronous)
-    // Remove hidden attribute and use display style for flexbox compatibility
+    // Use only hidden attribute - CSS handles display
     if (visible) {
       panel.removeAttribute('hidden');
-      panel.style.display = 'flex';
     } else {
       panel.setAttribute('hidden', '');
-      panel.style.display = 'none';
     }
     if (!visible) {
       stopPolling();
@@ -336,13 +334,11 @@
       const hash = window.location.hash.substring(1);
       visible = hash === 'leaderboard' || hash === 'pac';
     }
-    // Remove hidden attribute and use display style for flexbox compatibility
+    // Use only hidden attribute - CSS handles display
     if (visible) {
       panel.removeAttribute('hidden');
-      panel.style.display = 'flex';
     } else {
       panel.setAttribute('hidden', '');
-      panel.style.display = 'none';
     }
 
     if (refreshBtn) {
