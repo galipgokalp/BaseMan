@@ -171102,17 +171102,17 @@ Message: ${transactionMessage}.
     return void 0;
   }
   function makeWagmiConfig() {
-    if (!base || typeof base.id === "undefined" || !baseSepolia || typeof baseSepolia.id === "undefined") {
-      console.error("[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.");
-      try {
-        return createConfig({
-          chains: [],
-          transports: {}
-        });
-      } catch (e17) {
-        console.error("[wagmi-config] Failed to create minimal config:", e17);
-        throw new Error("Wagmi config initialization failed: chain objects unavailable");
+    try {
+      const baseId = base?.id;
+      const baseSepoliaId = baseSepolia?.id;
+      if (!base || typeof baseId === "undefined" || !baseSepolia || typeof baseSepoliaId === "undefined") {
+        console.error("[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.");
+        console.error("[wagmi-config] base:", base, "baseSepolia:", baseSepolia);
+        return null;
       }
+    } catch (e17) {
+      console.error("[wagmi-config] Error checking chain objects:", e17);
+      return null;
     }
     const sepoliaUrl = readEnv("NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL") || readEnv("BASE_SEPOLIA_RPC_URL") || "";
     const mainnetUrl = readEnv("NEXT_PUBLIC_BASE_MAINNET_RPC_URL") || readEnv("BASE_MAINNET_RPC_URL") || "";
@@ -171153,17 +171153,12 @@ Message: ${transactionMessage}.
   var config;
   try {
     config = makeWagmiConfig();
+    if (!config) {
+      console.warn("[wagmi-config] Config is null - chain objects may not be available. Connect menu may not work.");
+    }
   } catch (error) {
     console.error("[wagmi-config] Failed to create config:", error);
-    try {
-      config = createConfig({
-        chains: [],
-        transports: {}
-      });
-    } catch (e17) {
-      console.error("[wagmi-config] Failed to create fallback config:", e17);
-      config = null;
-    }
+    config = null;
   }
 
   // src/ui/connect-menu-v2.jsx

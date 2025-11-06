@@ -13,18 +13,22 @@ function readEnv(key) {
 
 export function makeWagmiConfig() {
   // Safely check if chain objects are available
-  if (!base || typeof base.id === 'undefined' || !baseSepolia || typeof baseSepolia.id === 'undefined') {
-    console.error('[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.');
-    // Return a minimal config to prevent crashes
-    try {
-      return createConfig({
-        chains: [],
-        transports: {}
-      });
-    } catch (e) {
-      console.error('[wagmi-config] Failed to create minimal config:', e);
-      throw new Error('Wagmi config initialization failed: chain objects unavailable');
+  // Note: Checking for existence first before accessing properties
+  try {
+    // Try to access chain properties to see if they're available
+    const baseId = base?.id;
+    const baseSepoliaId = baseSepolia?.id;
+    
+    if (!base || typeof baseId === 'undefined' || !baseSepolia || typeof baseSepoliaId === 'undefined') {
+      console.error('[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.');
+      console.error('[wagmi-config] base:', base, 'baseSepolia:', baseSepolia);
+      // Don't try to create config with empty chains - wagmi requires at least one chain
+      // Return null to signal that config cannot be created
+      return null;
     }
+  } catch (e) {
+    console.error('[wagmi-config] Error checking chain objects:', e);
+    return null;
   }
 
   const sepoliaUrl = readEnv('NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL') || readEnv('BASE_SEPOLIA_RPC_URL') || '';
@@ -87,17 +91,11 @@ export function pickChainById(chainId) {
 let config;
 try {
   config = makeWagmiConfig();
+  if (!config) {
+    console.warn('[wagmi-config] Config is null - chain objects may not be available. Connect menu may not work.');
+  }
 } catch (error) {
   console.error('[wagmi-config] Failed to create config:', error);
-  // Create a minimal fallback config to prevent crashes
-  try {
-    config = createConfig({
-      chains: [],
-      transports: {}
-    });
-  } catch (e) {
-    console.error('[wagmi-config] Failed to create fallback config:', e);
-    config = null;
-  }
+  config = null;
 }
 export { config };

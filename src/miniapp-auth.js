@@ -50,8 +50,14 @@
       // Handle different response formats safely
       if (typeof result === 'string') return result;
       if (result && typeof result === 'object') {
-        // Safely access nested properties
-        return result.token || (result.result && typeof result.result !== 'undefined' ? result.result : null) || result.value || null;
+        // Safely access nested properties - check existence before accessing
+        if ('token' in result && result.token) return result.token;
+        if ('result' in result && result.result !== null && result.result !== undefined) {
+          // If result.result is a string, return it; otherwise try to extract token from it
+          if (typeof result.result === 'string') return result.result;
+          if (typeof result.result === 'object' && result.result.token) return result.result.token;
+        }
+        if ('value' in result && result.value) return result.value;
       }
       return null;
     } catch (err) { 
