@@ -182,7 +182,7 @@ body::before {
 }
 
 .leaderboard-title {
-  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-size: clamp(1.05rem, 2.8vw, 1.4rem);
   text-transform: uppercase;
   letter-spacing: 2px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
@@ -204,7 +204,7 @@ body::before {
   min-width: 44px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.595rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
@@ -246,6 +246,28 @@ body::before {
   transform: translateY(0);
 }
 
+.leaderboard-close {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: none;
+  font-size: 1.05rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+.leaderboard-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* ===== Leaderboard Items - Enhanced ===== */
 .leaderboard-item {
   display: grid;
@@ -258,7 +280,7 @@ body::before {
     rgba(255, 255, 255, 0.01) 100%);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  font-size: 0.9rem;
+  font-size: 0.63rem;
   letter-spacing: 0.3px;
   transition: all 0.3s ease;
   position: relative;
@@ -302,12 +324,12 @@ body::before {
   color: var(--color-primary);
   font-weight: 700;
   min-width: 52px;
-  font-size: 1.1rem;
+  font-size: 0.77rem;
   text-shadow: 0 0 10px rgba(255, 225, 79, 0.5);
 }
 
 .leaderboard-item:first-child .leaderboard-rank {
-  font-size: 1.3rem;
+  font-size: 0.91rem;
 }
 
 .leaderboard-avatar {
@@ -321,7 +343,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.49rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
 }
@@ -334,7 +356,7 @@ body::before {
 
 .leaderboard-name {
   color: var(--color-text-primary);
-  font-size: 0.95rem;
+  font-size: 0.665rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -343,7 +365,7 @@ body::before {
 
 .leaderboard-handle {
   color: var(--color-secondary);
-  font-size: 0.78rem;
+  font-size: 0.546rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -351,14 +373,14 @@ body::before {
 
 .leaderboard-score-value {
   color: var(--color-primary);
-  font-size: 1.1rem;
+  font-size: 0.77rem;
   font-weight: 700;
   text-shadow: 0 0 10px rgba(255, 225, 79, 0.4);
 }
 
 .leaderboard-score-label {
   color: var(--color-secondary);
-  font-size: 0.7rem;
+  font-size: 0.49rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -450,7 +472,7 @@ body::before {
 }
 
 .profile-title {
-  font-size: 1.2rem;
+  font-size: 0.84rem;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -486,7 +508,7 @@ body::before {
 }
 
 .profile-username {
-  font-size: 1.2rem;
+  font-size: 0.84rem;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -502,7 +524,7 @@ body::before {
   background: transparent;
   color: var(--color-text-primary);
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.05rem;
   cursor: pointer;
   width: 32px;
   height: 32px;
@@ -527,7 +549,7 @@ body::before {
 .profile-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.95rem;
+  font-size: 0.665rem;
   padding: var(--spacing-sm) 0;
   border-bottom: 1px solid var(--color-border);
 }
@@ -554,7 +576,7 @@ body::before {
   border: 1px solid var(--color-border-bright);
   background: rgba(255, 225, 79, 0.1);
   color: var(--color-text-primary);
-  font-size: 0.9rem;
+  font-size: 0.63rem;
   font-weight: 600;
   transition: all 0.3s ease;
   width: 100%;
@@ -792,6 +814,21 @@ body::before {
   transform: scale(1.1);
 }
 
+.nav-profile-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 2px 4px rgba(255, 225, 79, 0.3);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.nav-item:hover:not(:disabled) .nav-profile-img {
+  transform: scale(1.1);
+}
+
 .nav-label {
   font-size: 10px;
   font-weight: 600;
@@ -828,6 +865,11 @@ body::before {
   
   .nav-icon {
     font-size: 18px;
+  }
+  
+  .nav-profile-img {
+    width: 22px;
+    height: 22px;
   }
   
   .nav-label {

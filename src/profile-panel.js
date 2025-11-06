@@ -376,9 +376,27 @@
       });
     }
 
-    panel.querySelector('[data-close]')?.addEventListener('click', () => {
-      setVisible(false);
-    });
+    const closeBtn = panel.querySelector('[data-close]');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setVisible(false);
+        // Also update bottom nav state
+        if (window.BottomNav) {
+          window.BottomNav.setActive(null);
+        }
+      });
+      // Touch event for mobile
+      closeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setVisible(false);
+        if (window.BottomNav) {
+          window.BottomNav.setActive(null);
+        }
+      }, { passive: false });
+    }
           panel.querySelectorAll('[data-switch]').forEach((el) => {
             el.addEventListener('click', async (e) => {
               e.preventDefault();

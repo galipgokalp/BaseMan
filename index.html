@@ -33,7 +33,10 @@
       <section id="leaderboard-panel" class="leaderboard-panel" data-limit="100">
         <header class="leaderboard-header">
           <span class="leaderboard-title">PAC-BOARD</span>
-          <button type="button" class="leaderboard-refresh" data-refresh>Refresh</button>
+          <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+            <button type="button" class="leaderboard-refresh" data-refresh>Refresh</button>
+            <button type="button" class="leaderboard-close" data-close>×</button>
+          </div>
         </header>
         <div class="leaderboard-status" data-status>Loading leaderboard…</div>
         <ol class="leaderboard-list leaderboard-list-top" data-list-top></ol>

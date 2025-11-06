@@ -340,6 +340,29 @@
       });
     }
 
+    // Close button event listener
+    const closeBtn = panel.querySelector('[data-close]');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setVisible(false, { reload: false });
+        // Also update bottom nav state
+        if (window.BottomNav) {
+          window.BottomNav.setActive(null);
+        }
+      });
+      // Touch event for mobile
+      closeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setVisible(false, { reload: false });
+        if (window.BottomNav) {
+          window.BottomNav.setActive(null);
+        }
+      }, { passive: false });
+    }
+
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         if (!visible) return;

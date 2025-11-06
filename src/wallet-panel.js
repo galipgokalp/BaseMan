@@ -165,49 +165,96 @@
       const usdcEl = panel.querySelector('[data-usdc-balance]');
       
       if (address) {
-        // Try to get ETH balance from provider
+        // Initialize with loading state
+        if (ethEl) ethEl.textContent = 'Loading...';
+        if (usdcEl) usdcEl.textContent = 'Loading...';
+        
+        // Try to get ETH balance from provider first
         let ethBalance = null;
         try {
           // Try multiple provider sources
-          const provider = onchain.provider || onchain._provider || window.ethereum;
-          if (provider && typeof provider.request === 'function') {
-            const balance = await provider.request({
-              method: 'eth_getBalance',
-              params: [address, 'latest']
-            });
-            ethBalance = parseFloat(balance) / 1e18;
-          } else if (provider && typeof provider.getBalance === 'function') {
-            // Ethers.js provider
-            const balance = await provider.getBalance(address);
-            ethBalance = parseFloat(balance.toString()) / 1e18;
+          let provider = null;
+          if (onchain.provider) {
+            provider = onchain.provider;
+          } else if (onchain._provider) {
+            provider = onchain._provider;
+          } else if (window.ethereum) {
+            provider = window.ethereum;
+          } else if (window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') {
+            try {
+              provider = await window.sdk.wallet.getEthereumProvider();
+            } catch (e) {
+              console.warn('[wallet-panel] Failed to get provider from SDK:', e);
+            }
+          }
+          
+          if (provider) {
+            if (typeof provider.request === 'function') {
+              // EIP-1193 provider
+              const balance = await provider.request({
+                method: 'eth_getBalance',
+                params: [address, 'latest']
+              });
+              if (balance && typeof balance === 'string') {
+                ethBalance = parseFloat(balance) / 1e18;
+              }
+            } else if (typeof provider.getBalance === 'function') {
+              // Ethers.js provider
+              const balance = await provider.getBalance(address);
+              if (balance) {
+                ethBalance = parseFloat(balance.toString()) / 1e18;
+              }
+            }
           }
         } catch (err) {
-          console.warn('[wallet-panel] Failed to fetch ETH balance:', err);
+          console.warn('[wallet-panel] Failed to fetch ETH balance from provider:', err);
         }
         
+        // Update ETH balance display
         if (ethEl) {
-          if (ethBalance !== null) {
+          if (ethBalance !== null && !isNaN(ethBalance)) {
             ethEl.textContent = ethBalance.toFixed(6) + ' ETH';
           } else {
-            ethEl.textContent = 'Loading...';
-            // Try API fallback
+            // Try API fallback for ETH
             try {
               const network = chainId ? (chainId === 8453 ? 'base' : 'base-sepolia') : 'base-sepolia';
               const q = new URLSearchParams({ address: address, network }).toString();
               const bal = await fetch(`/api/token-balances?${q}`);
               if (bal.ok) {
                 const payload = await bal.json();
-                const eth = (payload.balances || []).find((b) => (b.token && b.token.symbol === 'ETH')) || null;
-                if (eth) {
-                  ethEl.textContent = `${(Number(eth.amount.amount) / 10 ** eth.amount.decimals).toFixed(6)} ETH`;
+                if (payload && payload.balances && Array.isArray(payload.balances)) {
+                  // Look for native ETH (might be listed as native token or ETH)
+                  const eth = payload.balances.find((b) => {
+                    const symbol = b.token?.symbol?.toUpperCase();
+                    return symbol === 'ETH' || symbol === 'NATIVE' || !b.token?.contractAddress;
+                  }) || null;
+                  
+                  if (eth && eth.amount) {
+                    const amount = Number(eth.amount.amount) / (10 ** (eth.amount.decimals || 18));
+                    ethEl.textContent = `${amount.toFixed(6)} ETH`;
+                  } else {
+                    // If no ETH in API response, try provider one more time or show 0
+                    ethEl.textContent = '0 ETH';
+                  }
                 } else {
                   ethEl.textContent = '0 ETH';
                 }
               } else {
-                ethEl.textContent = 'N/A';
+                // If API fails but we have provider balance, use that
+                if (ethBalance !== null && !isNaN(ethBalance)) {
+                  ethEl.textContent = ethBalance.toFixed(6) + ' ETH';
+                } else {
+                  ethEl.textContent = 'N/A';
+                }
               }
             } catch (apiErr) {
-              ethEl.textContent = 'N/A';
+              console.warn('[wallet-panel] API fallback failed:', apiErr);
+              // If API fails but we have provider balance, use that
+              if (ethBalance !== null && !isNaN(ethBalance)) {
+                ethEl.textContent = ethBalance.toFixed(6) + ' ETH';
+              } else {
+                ethEl.textContent = 'N/A';
+              }
             }
           }
         }
@@ -220,16 +267,28 @@
             const bal = await fetch(`/api/token-balances?${q}`);
             if (bal.ok) {
               const payload = await bal.json();
-              const usdc = (payload.balances || []).find((b) => (b.token && b.token.symbol === 'USDC')) || null;
-              if (usdc) {
-                usdcEl.textContent = `${(Number(usdc.amount.amount) / 10 ** usdc.amount.decimals).toFixed(2)} USDC`;
+              if (payload && payload.balances && Array.isArray(payload.balances)) {
+                const usdc = payload.balances.find((b) => {
+                  const symbol = b.token?.symbol?.toUpperCase();
+                  return symbol === 'USDC';
+                }) || null;
+                
+                if (usdc && usdc.amount) {
+                  const amount = Number(usdc.amount.amount) / (10 ** (usdc.amount.decimals || 6));
+                  usdcEl.textContent = `${amount.toFixed(2)} USDC`;
+                } else {
+                  usdcEl.textContent = '0 USDC';
+                }
               } else {
                 usdcEl.textContent = '0 USDC';
               }
             } else {
+              const errorText = await bal.text().catch(() => '');
+              console.warn('[wallet-panel] USDC balance API error:', bal.status, errorText);
               usdcEl.textContent = 'N/A';
             }
           } catch (apiErr) {
+            console.warn('[wallet-panel] USDC balance fetch error:', apiErr);
             usdcEl.textContent = 'N/A';
           }
         }
@@ -257,9 +316,24 @@
   function wire(panel) {
     const closeBtn = panel.querySelector('[data-close]');
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         setVisible(false);
+        // Also update bottom nav state
+        if (window.BottomNav) {
+          window.BottomNav.setActive(null);
+        }
       });
+      // Touch event for mobile
+      closeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setVisible(false);
+        if (window.BottomNav) {
+          window.BottomNav.setActive(null);
+        }
+      }, { passive: false });
     }
 
     // Close on overlay click

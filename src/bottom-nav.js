@@ -16,6 +16,65 @@
   let currentActive = null;
   let currentOpenPanel = null;
 
+  async function loadProfilePicture() {
+    const profileButton = document.querySelector('[data-nav="profile"]');
+    if (!profileButton) {
+      return;
+    }
+
+    const iconSpan = profileButton.querySelector('.nav-icon');
+    if (!iconSpan) {
+      return;
+    }
+
+    try {
+      if (window.sdk && window.sdk.context) {
+        const context = await window.sdk.context;
+        const user = context?.user;
+        if (user && user.pfpUrl) {
+          // Create or update profile image
+          let profileImg = profileButton.querySelector('.nav-profile-img');
+          if (!profileImg) {
+            profileImg = document.createElement('img');
+            profileImg.className = 'nav-profile-img';
+            profileImg.alt = 'Profile';
+            // Hide emoji icon
+            iconSpan.style.display = 'none';
+            // Insert image before label
+            const label = profileButton.querySelector('.nav-label');
+            if (label) {
+              profileButton.insertBefore(profileImg, label);
+            } else {
+              profileButton.appendChild(profileImg);
+            }
+          }
+          profileImg.src = user.pfpUrl;
+          profileImg.onerror = () => {
+            // If image fails to load, show emoji again
+            if (profileImg) profileImg.style.display = 'none';
+            iconSpan.style.display = '';
+          };
+        } else {
+          // No profile picture, ensure emoji is visible
+          const profileImg = profileButton.querySelector('.nav-profile-img');
+          if (profileImg) profileImg.style.display = 'none';
+          iconSpan.style.display = '';
+        }
+      } else {
+        // SDK not available, ensure emoji is visible
+        const profileImg = profileButton.querySelector('.nav-profile-img');
+        if (profileImg) profileImg.style.display = 'none';
+        iconSpan.style.display = '';
+      }
+    } catch (err) {
+      console.warn('[bottom-nav] Failed to load profile picture:', err);
+      // Fallback: show emoji
+      const profileImg = profileButton.querySelector('.nav-profile-img');
+      if (profileImg) profileImg.style.display = 'none';
+      iconSpan.style.display = '';
+    }
+  }
+
   function init() {
     const nav = document.getElementById('bottom-nav');
     if (!nav) {
@@ -63,6 +122,24 @@
       item.addEventListener('touchstart', handleClick, { passive: false, capture: true });
     });
 
+    // Load profile picture (async, non-blocking)
+    requestAnimationFrame(() => {
+      loadProfilePicture();
+    });
+
+    // Also try loading when SDK is ready
+    if (window.__basemanSDKReadyFired) {
+      requestAnimationFrame(() => {
+        loadProfilePicture();
+      });
+    } else {
+      window.addEventListener('baseman-sdk-ready', () => {
+        requestAnimationFrame(() => {
+          loadProfilePicture();
+        });
+      }, { once: true });
+    }
+
     // Don't set initial active state - panels should be closed on startup
     // Only open panels when user explicitly clicks
     const hash = window.location.hash.substring(1);
@@ -104,7 +181,9 @@
       window.SettingsPanel.hide();
     }
     
+    // Reset state
     currentOpenPanel = null;
+    setActive(null);
   }
 
   // Debounce to prevent rapid clicks
