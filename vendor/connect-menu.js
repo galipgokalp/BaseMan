@@ -191158,11 +191158,21 @@ Message: ${transactionMessage}.
   var config = makeWagmiConfig();
 
   // src/ui/connect-menu-v2.jsx
+  function isMiniAppEnvironment() {
+    try {
+      return Boolean(
+        typeof window !== "undefined" && (window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniApp?.sdk || window.MiniKit || window.ReactNativeWebView || window.navigator && window.navigator.userAgent && (window.navigator.userAgent.includes("Farcaster") || window.navigator.userAgent.includes("Warpcast") || window.navigator.userAgent.includes("BaseApp")))
+      );
+    } catch (_10) {
+      return false;
+    }
+  }
   function ConnectMenuInner() {
     const { isConnected, address } = useAccount();
     const { connect: connect2, connectors, isPending } = useConnect();
     const { sendTransaction: sendTransaction3 } = useSendTransaction();
     const { sendCalls: sendCalls3 } = useSendCalls();
+    const isMiniApp = isMiniAppEnvironment();
     if (isConnected) {
       return import_react7.default.createElement(
         import_react7.default.Fragment,
@@ -191205,6 +191215,19 @@ Message: ${transactionMessage}.
           }, "Send Batch (2x)")
         )
       );
+    }
+    if (isMiniApp) {
+      return import_react7.default.createElement("div", {
+        style: {
+          fontFamily: "Inter, system-ui, sans-serif",
+          padding: "8px 12px",
+          background: "rgba(0, 0, 0, 0.6)",
+          color: "#a5b4fc",
+          borderRadius: 8,
+          fontSize: "12px",
+          border: "1px solid rgba(255, 255, 255, 0.1)"
+        }
+      }, "Wallet: Auto-connecting...");
     }
     return import_react7.default.createElement("button", {
       type: "button",
@@ -191261,7 +191284,7 @@ Message: ${transactionMessage}.
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     };
   }
-  document.addEventListener("DOMContentLoaded", () => {
+  function mountConnectMenu() {
     try {
       const container = ensureMountEl();
       const root = (0, import_client2.createRoot)(container);
@@ -191269,7 +191292,28 @@ Message: ${transactionMessage}.
     } catch (err) {
       console.error("[ConnectMenu] mount failed", err);
     }
-  });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.__basemanSDKReadyFired) {
+        setTimeout(mountConnectMenu, 100);
+      } else {
+        window.addEventListener("baseman-sdk-ready", () => {
+          setTimeout(mountConnectMenu, 100);
+        }, { once: true });
+        setTimeout(mountConnectMenu, 1e3);
+      }
+    }, { once: true });
+  } else {
+    if (window.__basemanSDKReadyFired) {
+      setTimeout(mountConnectMenu, 100);
+    } else {
+      window.addEventListener("baseman-sdk-ready", () => {
+        setTimeout(mountConnectMenu, 100);
+      }, { once: true });
+      setTimeout(mountConnectMenu, 300);
+    }
+  }
 })();
 /*! Bundled license information:
 

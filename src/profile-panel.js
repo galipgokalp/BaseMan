@@ -266,11 +266,20 @@
     try {
       const shell = ensureShell();
       if (!shell) {
-        // Retry after a short delay if body isn't ready
-        setTimeout(() => {
+        // Retry multiple times for mobile environments where body may load slower
+        let retries = 0;
+        const maxRetries = 10;
+        const retryInterval = setInterval(() => {
+          retries++;
           const retry = ensureShell();
-          if (retry) wire(retry.panel, retry.btn);
-        }, 100);
+          if (retry) {
+            clearInterval(retryInterval);
+            wire(retry.panel, retry.btn);
+          } else if (retries >= maxRetries) {
+            clearInterval(retryInterval);
+            console.warn('[profile-panel] Max retries reached, profile panel may not work');
+          }
+        }, 200);
         return;
       }
       wire(shell.panel, shell.btn);
@@ -279,10 +288,23 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    // Use setTimeout to ensure body is fully available
-    setTimeout(init, 0);
+  // Wait for both DOM ready and SDK ready (if in mini app)
+  function initWhenReady() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init, { once: true });
+    } else {
+      // Also wait for SDK ready event in mini app environments
+      if (window.__basemanSDKReadyFired) {
+        setTimeout(init, 100);
+      } else {
+        window.addEventListener('baseman-sdk-ready', () => {
+          setTimeout(init, 100);
+        }, { once: true });
+        // Fallback: init after a delay even if SDK ready event doesn't fire
+        setTimeout(init, 1000);
+      }
+    }
   }
+
+  initWhenReady();
 })();

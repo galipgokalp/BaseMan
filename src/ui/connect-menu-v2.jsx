@@ -5,12 +5,35 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { parseEther } from 'viem';
 import { config } from './wagmi-config.js';
 
+function isMiniAppEnvironment() {
+  try {
+    return Boolean(
+      (typeof window !== 'undefined') && (
+        (window.fc && window.fc.miniapp) ||
+        (window.farcaster && window.farcaster.miniapp) ||
+        window.MiniAppSDK || window.MiniApp?.sdk ||
+        window.MiniKit || window.ReactNativeWebView ||
+        (window.navigator && window.navigator.userAgent && (
+          window.navigator.userAgent.includes('Farcaster') ||
+          window.navigator.userAgent.includes('Warpcast') ||
+          window.navigator.userAgent.includes('BaseApp')
+        ))
+      )
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
 function ConnectMenuInner() {
   const { isConnected, address } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { sendTransaction } = useSendTransaction();
   const { sendCalls } = useSendCalls();
+  const isMiniApp = isMiniAppEnvironment();
 
+  // In mini app environments, show wallet status but don't show connect button
+  // Wallet auto-connects, so we just show the connected state
   if (isConnected) {
     return (
       React.createElement(React.Fragment, null,
@@ -45,6 +68,21 @@ function ConnectMenuInner() {
         )
       )
     );
+  }
+
+  // In mini app environments, wallet auto-connects, so show a minimal status
+  if (isMiniApp) {
+    return React.createElement('div', {
+      style: {
+        fontFamily: 'Inter, system-ui, sans-serif',
+        padding: '8px 12px',
+        background: 'rgba(0, 0, 0, 0.6)',
+        color: '#a5b4fc',
+        borderRadius: 8,
+        fontSize: '12px',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }
+    }, 'Wallet: Auto-connecting...');
   }
 
   return (
@@ -96,7 +134,8 @@ function baseBtnStyle() {
   };
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Wait for both DOM and SDK ready in mini app environments
+function mountConnectMenu() {
   try {
     const container = ensureMountEl();
     const root = createRoot(container);
@@ -104,4 +143,30 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (err) {
     console.error('[ConnectMenu] mount failed', err);
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // In mini app environments, wait for SDK ready
+    if (window.__basemanSDKReadyFired) {
+      setTimeout(mountConnectMenu, 100);
+    } else {
+      window.addEventListener('baseman-sdk-ready', () => {
+        setTimeout(mountConnectMenu, 100);
+      }, { once: true });
+      // Fallback: mount after delay even if SDK ready event doesn't fire
+      setTimeout(mountConnectMenu, 1000);
+    }
+  }, { once: true });
+} else {
+  // DOM already ready
+  if (window.__basemanSDKReadyFired) {
+    setTimeout(mountConnectMenu, 100);
+  } else {
+    window.addEventListener('baseman-sdk-ready', () => {
+      setTimeout(mountConnectMenu, 100);
+    }, { once: true });
+    // Fallback for web mode
+    setTimeout(mountConnectMenu, 300);
+  }
+}
