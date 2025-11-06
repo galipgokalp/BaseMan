@@ -1230,8 +1230,39 @@
       getWalletAddress: () => state.address
     };
 
-    // Do not automatically request wallet connection on load to avoid passkey prompts.
-    // Wallet will be prepared lazily on first on‑chain action (submitScore/completeQuest) or when user opens profile panel.
+    // In mini app environments, prepare wallet in background (but don't request accounts to avoid passkey prompts).
+    // Wallet will be fully connected on first on‑chain action (submitScore/completeQuest) or when user opens profile panel.
+    // Menu buttons work regardless of wallet status - wallet is only needed for on-chain interactions.
+    if (isMiniAppEnv()) {
+      // Background wallet preparation: try to get provider but don't request accounts yet
+      (async () => {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for SDK to be fully ready
+          if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function' && !state.contract) {
+            try {
+              const provider = await sdk.wallet.getEthereumProvider();
+              if (provider) {
+                // Try to get accounts without requesting (read-only check)
+                try {
+                  const accounts = await provider.request({ method: 'eth_accounts' });
+                  if (Array.isArray(accounts) && accounts.length > 0) {
+                    // Accounts already available - connect immediately
+                    await ensureWallet();
+                  }
+                } catch (_) {
+                  // eth_accounts not available or failed - wallet will be connected on first use
+                  debug('Wallet will be connected on first on-chain action');
+                }
+              }
+            } catch (_) {
+              // Provider not available yet - will be connected on first use
+            }
+          }
+        } catch (err) {
+          debug(`Background wallet preparation: ${err?.message || err}`);
+        }
+      })();
+    }
   }
 
   function createDebugOverlay() {

@@ -213,24 +213,24 @@
       return;
     }
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const isOpen = panel.classList.contains('open');
       panel.classList.toggle('open');
       panel.setAttribute('aria-hidden', String(!panel.classList.contains('open')));
       if (!isOpen && panel.classList.contains('open')) {
+        // Ensure wallet is connected when opening profile panel
+        try {
+          if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
+            await window.BaseManOnchain.ensureWallet();
+          } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
+            await window.sdk.actions.signIn({ acceptAuthAddress: true });
+          }
+        } catch (err) {
+          console.warn('[profile-panel] Wallet connection failed:', err?.message || err);
+        }
         refresh(panel);
       }
     });
-    // If not connected, clicking Profile triggers sign-in first
-    btn.addEventListener('click', async () => {
-      try {
-        if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
-          await window.BaseManOnchain.ensureWallet();
-        } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
-          await window.sdk.actions.signIn({ acceptAuthAddress: true });
-        }
-      } catch (_) {}
-    }, { once: true });
     panel.querySelector('[data-close]')?.addEventListener('click', () => {
       panel.classList.remove('open');
       panel.setAttribute('aria-hidden', 'true');

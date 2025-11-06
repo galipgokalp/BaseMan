@@ -9696,12 +9696,11 @@ var homeState = (function(){
     var setWalletStatus = function(ready, error) {
         walletReady = !!ready;
         walletError = walletReady ? null : error || null;
-        if (walletReady) {
-            if (!menu.isEnabled()) {
-                menu.enable();
-            }
-        } else if (menu.isEnabled()) {
-            menu.disable();
+        // Menu is always enabled in mini app environments
+        // Wallet connection is automatic in Base App/Farcaster mini apps
+        // Users should be able to interact with the game menu regardless of wallet status
+        if (!menu.isEnabled()) {
+            menu.enable();
         }
     };
 
