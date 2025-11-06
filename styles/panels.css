@@ -1,23 +1,24 @@
 /* ===== Panel Overlay Styles ===== */
 
-/* Leaderboard Panel - Full Screen Overlay */
+/* Leaderboard Panel - Side Panel (same size as other panels) */
 .leaderboard-panel {
   position: fixed;
   top: 50vh;
-  left: 0;
   right: 0;
   bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  width: min(calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
   z-index: 10000;
   background: linear-gradient(135deg, 
     rgba(20, 20, 32, 0.98) 0%, 
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
-  border-top: 2px solid var(--color-border-bright);
+  border-left: 2px solid var(--color-border-bright);
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
   flex-direction: column;
   box-sizing: border-box;
+  animation: panelSlideIn 0.3s ease-out;
   /* Default: hidden */
   display: none;
 }
@@ -276,9 +277,7 @@
 }
 
 /* Leaderboard specific - content after header should scroll */
-.leaderboard-panel {
-  position: relative;
-}
+/* Note: position is set in main .leaderboard-panel rule above */
 
 .leaderboard-panel > .leaderboard-close {
   position: absolute;
@@ -684,7 +683,8 @@
 @media (max-width: 480px) {
   .profile-panel,
   .wallet-panel,
-  .settings-panel {
+  .settings-panel,
+  .leaderboard-panel {
     width: 100vw;
     right: 0;
   }
