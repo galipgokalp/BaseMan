@@ -624,9 +624,10 @@ body::before {
   justify-content: space-around;
   align-items: flex-start;
   padding-top: 8px;
-  z-index: 10000;
+  z-index: 99999; /* Very high z-index to ensure it's above everything */
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
   box-sizing: border-box;
+  pointer-events: auto; /* Ensure clicks are captured */
 }
 
 .bottom-nav::before {
@@ -663,6 +664,9 @@ body::before {
   position: relative;
   flex: 1;
   max-width: 25%;
+  z-index: 100000; /* Even higher than nav bar */
+  pointer-events: auto; /* Ensure clicks are captured */
+  -webkit-tap-highlight-color: rgba(255, 225, 79, 0.3); /* Visual feedback on tap */
 }
 
 .nav-item:hover:not(:disabled) {
