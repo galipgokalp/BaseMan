@@ -105,18 +105,9 @@ function ConnectMenuInner() {
 
 function App() {
   const qc = new QueryClient();
-  const isMiniApp = isMiniAppEnvironment();
   
-  // If config is not available
+  // If config is not available, show error message (should rarely happen now with fallback chains)
   if (!config) {
-    // In mini app environments, don't show error - wallet works via SDK
-    // In web environments, show a helpful error message
-    if (isMiniApp) {
-      // Return null in mini app - React will render nothing
-      return null;
-    }
-    
-    // Web environment - show error message
     return React.createElement('div', {
       style: {
         fontFamily: 'Inter, system-ui, sans-serif',
@@ -141,18 +132,6 @@ function App() {
 
 function ensureMountEl() {
   let el = document.getElementById('connect-root');
-  
-  // Check if we should even create the container
-  const isMiniApp = isMiniAppEnvironment();
-  if (isMiniApp && !config) {
-    // Don't create container in mini app if config is unavailable
-    if (el) {
-      // If it already exists, remove it completely
-      el.remove();
-    }
-    return null;
-  }
-  
   if (!el) {
     el = document.createElement('div');
     el.id = 'connect-root';
@@ -186,33 +165,6 @@ function baseBtnStyle() {
 let mountAttempted = false;
 let mountComplete = false;
 
-// Immediately check and remove container if in mini app with no config
-(function() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  
-  function checkAndRemove() {
-    const isMiniApp = isMiniAppEnvironment();
-    if (isMiniApp && !config) {
-      const existingContainer = document.getElementById('connect-root');
-      if (existingContainer) {
-        existingContainer.remove();
-      }
-    }
-  }
-  
-  // Check immediately if DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkAndRemove, { once: true });
-  } else {
-    checkAndRemove();
-  }
-  
-  // Also check after a short delay to catch any late creation
-  setTimeout(checkAndRemove, 100);
-  setTimeout(checkAndRemove, 500);
-  setTimeout(checkAndRemove, 1000);
-})();
-
 function mountConnectMenu() {
   if (mountAttempted) {
     console.log('[ConnectMenu] Mount already attempted, skipping...');
@@ -221,21 +173,6 @@ function mountConnectMenu() {
   mountAttempted = true;
   
   try {
-    const isMiniApp = isMiniAppEnvironment();
-    
-    // Final check: don't mount in mini app if config is unavailable
-    if (isMiniApp && !config) {
-      console.log('[ConnectMenu] Skipping mount - mini app with no config');
-      const existingContainer = document.getElementById('connect-root');
-      if (existingContainer) {
-        existingContainer.style.display = 'none';
-        existingContainer.style.visibility = 'hidden';
-        existingContainer.style.opacity = '0';
-        existingContainer.style.pointerEvents = 'none';
-      }
-      return;
-    }
-    
     const container = ensureMountEl();
     if (!container) {
       console.warn('[ConnectMenu] Container not created');
@@ -248,21 +185,11 @@ function mountConnectMenu() {
     root.render(appElement);
     mountComplete = true;
     
-    // Ensure container is visible if we got this far
-    if (isMiniApp && !config) {
-      container.style.display = 'none';
-      container.style.visibility = 'hidden';
-      container.style.opacity = '0';
-      container.style.pointerEvents = 'none';
-      console.log('[ConnectMenu] Config unavailable in mini app - hiding menu');
-    } else {
-      console.log('[ConnectMenu] Mounted successfully');
-    }
+    console.log('[ConnectMenu] Mounted successfully');
     
     // Listen for wallet open events from bottom nav
     window.addEventListener('baseman-open-wallet', () => {
-      // Only scroll if container is visible
-      if (container && container.style.display !== 'none') {
+      if (container) {
         container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     });
@@ -275,21 +202,6 @@ function mountConnectMenu() {
 function initConnectMenu() {
   if (mountComplete) {
     console.log('[ConnectMenu] Already mounted');
-    return;
-  }
-  
-  // Don't mount in mini app if config is unavailable
-  const isMiniApp = isMiniAppEnvironment();
-  if (isMiniApp && !config) {
-    console.log('[ConnectMenu] Skipping mount - mini app with no config');
-    // Hide container if it exists
-    const existingContainer = document.getElementById('connect-root');
-    if (existingContainer) {
-      existingContainer.style.display = 'none';
-      existingContainer.style.visibility = 'hidden';
-      existingContainer.style.opacity = '0';
-      existingContainer.style.pointerEvents = 'none';
-    }
     return;
   }
   

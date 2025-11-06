@@ -171101,18 +171101,58 @@ Message: ${transactionMessage}.
     }
     return void 0;
   }
+  function getFallbackBaseChain() {
+    return {
+      id: 8453,
+      name: "Base",
+      network: "base",
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      rpcUrls: {
+        default: { http: ["https://mainnet.base.org"] },
+        public: { http: ["https://mainnet.base.org"] }
+      },
+      blockExplorers: {
+        default: { name: "Basescan", url: "https://basescan.org" }
+      },
+      contracts: {
+        multicall3: { address: "0xca11bde05977b3631167028862be2a173976ca11" }
+      }
+    };
+  }
+  function getFallbackBaseSepoliaChain() {
+    return {
+      id: 84532,
+      name: "Base Sepolia",
+      network: "base-sepolia",
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      rpcUrls: {
+        default: { http: ["https://sepolia.base.org"] },
+        public: { http: ["https://sepolia.base.org"] }
+      },
+      blockExplorers: {
+        default: { name: "Basescan", url: "https://sepolia.basescan.org" }
+      },
+      contracts: {
+        multicall3: { address: "0xca11bde05977b3631167028862be2a173976ca11" }
+      },
+      testnet: true
+    };
+  }
   function makeWagmiConfig() {
+    let baseChain, baseSepoliaChain;
     try {
-      const baseId = base?.id;
-      const baseSepoliaId = baseSepolia?.id;
-      if (!base || typeof baseId === "undefined" || !baseSepolia || typeof baseSepoliaId === "undefined") {
-        console.error("[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.");
-        console.error("[wagmi-config] base:", base, "baseSepolia:", baseSepolia);
-        return null;
+      if (base && typeof base.id !== "undefined" && baseSepolia && typeof baseSepolia.id !== "undefined") {
+        baseChain = base;
+        baseSepoliaChain = baseSepolia;
+      } else {
+        console.warn("[wagmi-config] Chain imports unavailable, using fallback definitions");
+        baseChain = getFallbackBaseChain();
+        baseSepoliaChain = getFallbackBaseSepoliaChain();
       }
     } catch (e17) {
       console.error("[wagmi-config] Error checking chain objects:", e17);
-      return null;
+      baseChain = getFallbackBaseChain();
+      baseSepoliaChain = getFallbackBaseSepoliaChain();
     }
     const sepoliaUrl = readEnv("NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL") || readEnv("BASE_SEPOLIA_RPC_URL") || "";
     const mainnetUrl = readEnv("NEXT_PUBLIC_BASE_MAINNET_RPC_URL") || readEnv("BASE_MAINNET_RPC_URL") || "";
@@ -171127,10 +171167,10 @@ Message: ${transactionMessage}.
       }
     }
     const transports2 = {};
-    transports2[base.id] = mainnetUrl ? http(mainnetUrl) : http();
-    transports2[baseSepolia.id] = sepoliaUrl ? http(sepoliaUrl) : http();
+    transports2[baseChain.id] = mainnetUrl ? http(mainnetUrl) : http();
+    transports2[baseSepoliaChain.id] = sepoliaUrl ? http(sepoliaUrl) : http();
     const baseConfig = {
-      chains: [baseSepolia, base],
+      chains: [baseSepoliaChain, baseChain],
       transports: transports2
     };
     if (isMiniAppHost()) {
@@ -171253,11 +171293,7 @@ Message: ${transactionMessage}.
   }
   function App() {
     const qc2 = new QueryClient();
-    const isMiniApp = isMiniAppEnvironment();
     if (!config2) {
-      if (isMiniApp) {
-        return null;
-      }
       return import_react7.default.createElement("div", {
         style: {
           fontFamily: "Inter, system-ui, sans-serif",
@@ -171282,13 +171318,6 @@ Message: ${transactionMessage}.
   }
   function ensureMountEl() {
     let el2 = document.getElementById("connect-root");
-    const isMiniApp = isMiniAppEnvironment();
-    if (isMiniApp && !config2) {
-      if (el2) {
-        el2.remove();
-      }
-      return null;
-    }
     if (!el2) {
       el2 = document.createElement("div");
       el2.id = "connect-root";
@@ -171323,26 +171352,6 @@ Message: ${transactionMessage}.
   }
   var mountAttempted = false;
   var mountComplete = false;
-  (function() {
-    if (typeof window === "undefined" || typeof document === "undefined") return;
-    function checkAndRemove() {
-      const isMiniApp = isMiniAppEnvironment();
-      if (isMiniApp && !config2) {
-        const existingContainer = document.getElementById("connect-root");
-        if (existingContainer) {
-          existingContainer.remove();
-        }
-      }
-    }
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", checkAndRemove, { once: true });
-    } else {
-      checkAndRemove();
-    }
-    setTimeout(checkAndRemove, 100);
-    setTimeout(checkAndRemove, 500);
-    setTimeout(checkAndRemove, 1e3);
-  })();
   function mountConnectMenu() {
     if (mountAttempted) {
       console.log("[ConnectMenu] Mount already attempted, skipping...");
@@ -171350,18 +171359,6 @@ Message: ${transactionMessage}.
     }
     mountAttempted = true;
     try {
-      const isMiniApp = isMiniAppEnvironment();
-      if (isMiniApp && !config2) {
-        console.log("[ConnectMenu] Skipping mount - mini app with no config");
-        const existingContainer = document.getElementById("connect-root");
-        if (existingContainer) {
-          existingContainer.style.display = "none";
-          existingContainer.style.visibility = "hidden";
-          existingContainer.style.opacity = "0";
-          existingContainer.style.pointerEvents = "none";
-        }
-        return;
-      }
       const container = ensureMountEl();
       if (!container) {
         console.warn("[ConnectMenu] Container not created");
@@ -171372,17 +171369,9 @@ Message: ${transactionMessage}.
       const appElement = import_react7.default.createElement(App);
       root.render(appElement);
       mountComplete = true;
-      if (isMiniApp && !config2) {
-        container.style.display = "none";
-        container.style.visibility = "hidden";
-        container.style.opacity = "0";
-        container.style.pointerEvents = "none";
-        console.log("[ConnectMenu] Config unavailable in mini app - hiding menu");
-      } else {
-        console.log("[ConnectMenu] Mounted successfully");
-      }
+      console.log("[ConnectMenu] Mounted successfully");
       window.addEventListener("baseman-open-wallet", () => {
-        if (container && container.style.display !== "none") {
+        if (container) {
           container.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
       });
@@ -171394,18 +171383,6 @@ Message: ${transactionMessage}.
   function initConnectMenu() {
     if (mountComplete) {
       console.log("[ConnectMenu] Already mounted");
-      return;
-    }
-    const isMiniApp = isMiniAppEnvironment();
-    if (isMiniApp && !config2) {
-      console.log("[ConnectMenu] Skipping mount - mini app with no config");
-      const existingContainer = document.getElementById("connect-root");
-      if (existingContainer) {
-        existingContainer.style.display = "none";
-        existingContainer.style.visibility = "hidden";
-        existingContainer.style.opacity = "0";
-        existingContainer.style.pointerEvents = "none";
-      }
       return;
     }
     if (typeof import_react7.default === "undefined" || typeof import_client2.createRoot === "undefined") {

@@ -11,24 +11,66 @@ function readEnv(key) {
   return undefined;
 }
 
+// Fallback chain definitions in case imports fail during bundling
+function getFallbackBaseChain() {
+  return {
+    id: 8453,
+    name: 'Base',
+    network: 'base',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: {
+      default: { http: ['https://mainnet.base.org'] },
+      public: { http: ['https://mainnet.base.org'] }
+    },
+    blockExplorers: {
+      default: { name: 'Basescan', url: 'https://basescan.org' }
+    },
+    contracts: {
+      multicall3: { address: '0xca11bde05977b3631167028862be2a173976ca11' }
+    }
+  };
+}
+
+function getFallbackBaseSepoliaChain() {
+  return {
+    id: 84532,
+    name: 'Base Sepolia',
+    network: 'base-sepolia',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: {
+      default: { http: ['https://sepolia.base.org'] },
+      public: { http: ['https://sepolia.base.org'] }
+    },
+    blockExplorers: {
+      default: { name: 'Basescan', url: 'https://sepolia.basescan.org' }
+    },
+    contracts: {
+      multicall3: { address: '0xca11bde05977b3631167028862be2a173976ca11' }
+    },
+    testnet: true
+  };
+}
+
 export function makeWagmiConfig() {
-  // Safely check if chain objects are available
-  // Note: Checking for existence first before accessing properties
+  // Get chain objects, with fallback if imports failed
+  let baseChain, baseSepoliaChain;
+  
   try {
-    // Try to access chain properties to see if they're available
-    const baseId = base?.id;
-    const baseSepoliaId = baseSepolia?.id;
-    
-    if (!base || typeof baseId === 'undefined' || !baseSepolia || typeof baseSepoliaId === 'undefined') {
-      console.error('[wagmi-config] Chain objects not available. Wagmi chains may not be loaded properly.');
-      console.error('[wagmi-config] base:', base, 'baseSepolia:', baseSepolia);
-      // Don't try to create config with empty chains - wagmi requires at least one chain
-      // Return null to signal that config cannot be created
-      return null;
+    // Try to use imported chains first
+    if (base && typeof base.id !== 'undefined' && baseSepolia && typeof baseSepolia.id !== 'undefined') {
+      baseChain = base;
+      baseSepoliaChain = baseSepolia;
+    } else {
+      // Fallback to manual definitions if imports failed
+      console.warn('[wagmi-config] Chain imports unavailable, using fallback definitions');
+      baseChain = getFallbackBaseChain();
+      baseSepoliaChain = getFallbackBaseSepoliaChain();
     }
   } catch (e) {
     console.error('[wagmi-config] Error checking chain objects:', e);
-    return null;
+    // Use fallback chains
+    baseChain = getFallbackBaseChain();
+    baseSepoliaChain = getFallbackBaseSepoliaChain();
   }
 
   const sepoliaUrl = readEnv('NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL') || readEnv('BASE_SEPOLIA_RPC_URL') || '';
@@ -50,11 +92,11 @@ export function makeWagmiConfig() {
 
   const transports = {};
   // Provide explicit transports for each chain; fall back to default http() if no env URL
-  transports[base.id] = mainnetUrl ? http(mainnetUrl) : http();
-  transports[baseSepolia.id] = sepoliaUrl ? http(sepoliaUrl) : http();
+  transports[baseChain.id] = mainnetUrl ? http(mainnetUrl) : http();
+  transports[baseSepoliaChain.id] = sepoliaUrl ? http(sepoliaUrl) : http();
 
   const baseConfig = {
-    chains: [baseSepolia, base],
+    chains: [baseSepoliaChain, baseChain],
     transports
   };
 
@@ -79,11 +121,22 @@ export function makeWagmiConfig() {
 }
 
 export function pickChainById(chainId) {
-  if (!base || typeof base.id === 'undefined' || !baseSepolia || typeof baseSepolia.id === 'undefined') {
-    console.warn('[wagmi-config] pickChainById: Chain objects not available');
-    return null;
+  try {
+    // Try to use imported chains first
+    if (base && typeof base.id !== 'undefined' && baseSepolia && typeof baseSepolia.id !== 'undefined') {
+      return Number(chainId) === base.id ? base : baseSepolia;
+    } else {
+      // Fallback to manual definitions
+      const baseChain = getFallbackBaseChain();
+      const baseSepoliaChain = getFallbackBaseSepoliaChain();
+      return Number(chainId) === baseChain.id ? baseChain : baseSepoliaChain;
+    }
+  } catch (e) {
+    console.warn('[wagmi-config] pickChainById error:', e);
+    const baseChain = getFallbackBaseChain();
+    const baseSepoliaChain = getFallbackBaseSepoliaChain();
+    return Number(chainId) === baseChain.id ? baseChain : baseSepoliaChain;
   }
-  return Number(chainId) === base.id ? base : baseSepolia;
 }
 
 // Convenience export mirroring docs usage
