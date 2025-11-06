@@ -195,8 +195,9 @@
     }
 
     const effectiveItems = items.slice(0, limit);
-    const topItems = effectiveItems.slice(0, 5);
-    const restItems = effectiveItems.slice(5);
+    // First 10 shown prominently, rest 90 in scroller
+    const topItems = effectiveItems.slice(0, 10);
+    const restItems = effectiveItems.slice(10);
 
     if (topListEl) {
       const fragmentTop = document.createDocumentFragment();
@@ -209,7 +210,7 @@
     if (restItems.length && restListEl && scrollWrapper) {
       const fragmentRest = document.createDocumentFragment();
       restItems.forEach((entry, index) => {
-        const fallbackRank = 5 + index + 1;
+        const fallbackRank = 10 + index + 1;
         fragmentRest.appendChild(createListItem(entry, fallbackRank));
       });
       restListEl.appendChild(fragmentRest);
@@ -302,14 +303,19 @@
       return;
     }
     visible = shouldShow;
+    // Show panel immediately (synchronous)
     panel.hidden = !visible;
     if (!visible) {
       stopPolling();
-    } else if (reload) {
-      loadLeaderboard();
-      startPolling();
     } else {
+      // Start polling immediately
       startPolling();
+      // Load data in background (non-blocking)
+      if (reload) {
+        requestAnimationFrame(() => {
+          loadLeaderboard();
+        });
+      }
     }
   };
 

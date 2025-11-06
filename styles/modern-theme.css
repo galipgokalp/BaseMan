@@ -38,6 +38,43 @@
   --glow-secondary: 0 0 15px rgba(139, 231, 255, 0.3);
 }
 
+/* Light Theme */
+body.theme-light {
+  --color-bg-dark: #f5f5f7;
+  --color-bg-mid: #ffffff;
+  --color-bg-light: rgba(255, 255, 255, 0.9);
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #4a4a4a;
+  --color-text-muted: #8a8a8a;
+  --color-border: rgba(255, 225, 79, 0.3);
+  --color-border-bright: rgba(255, 225, 79, 0.5);
+}
+
+body.theme-light {
+  background: linear-gradient(135deg, #f5f5f7 0%, #ffffff 50%, #e8e8f0 100%);
+}
+
+body.theme-light .game-shell {
+  background: transparent;
+}
+
+body.theme-light .leaderboard-panel,
+body.theme-light .profile-panel,
+body.theme-light .wallet-panel,
+body.theme-light .settings-panel {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.98) 0%, 
+    rgba(245, 245, 247, 0.99) 100%);
+  border-color: rgba(255, 225, 79, 0.4);
+}
+
+body.theme-light .bottom-nav {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.98) 0%, 
+    rgba(245, 245, 247, 0.99) 100%);
+  border-top-color: rgba(255, 225, 79, 0.4);
+}
+
 /* ===== Body & Background ===== */
 body {
   margin: 0;
@@ -86,10 +123,10 @@ body::before {
   flex-direction: column;
   align-items: center;
   gap: var(--spacing-lg);
-  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xl);
+  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
-  /* Bottom padding: base + bottom nav height + safe area */
-  padding-bottom: calc(var(--spacing-xl) + 64px + env(safe-area-inset-bottom, 0px));
+  /* Bottom padding: minimal spacing + bottom nav height + safe area */
+  padding-bottom: calc(var(--spacing-md) + 64px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
@@ -531,8 +568,8 @@ body::before {
   .game-shell {
     padding: var(--spacing-md) var(--spacing-sm);
     padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
-    /* Bottom padding: base + bottom nav height + safe area */
-    padding-bottom: calc(var(--spacing-md) + 60px + env(safe-area-inset-bottom, 0px));
+    /* Bottom padding: minimal spacing + bottom nav height + safe area */
+    padding-bottom: calc(var(--spacing-sm) + 60px + env(safe-area-inset-bottom, 0px));
     padding-left: calc(var(--spacing-sm) + env(safe-area-inset-left, 0px));
     padding-right: calc(var(--spacing-sm) + env(safe-area-inset-right, 0px));
     gap: var(--spacing-md);
@@ -656,7 +693,7 @@ body::before {
   cursor: pointer;
   touch-action: manipulation;
   border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
+  transition: opacity 0.1s ease, transform 0.1s ease;
   background: transparent;
   border: none;
   color: var(--color-text-secondary);
@@ -667,6 +704,10 @@ body::before {
   z-index: 100000; /* Even higher than nav bar */
   pointer-events: auto; /* Ensure clicks are captured */
   -webkit-tap-highlight-color: rgba(255, 225, 79, 0.3); /* Visual feedback on tap */
+  /* Optimize for mobile touch */
+  -webkit-touch-callout: none;
+  user-select: none;
+  will-change: opacity, transform;
 }
 
 .nav-item:hover:not(:disabled) {

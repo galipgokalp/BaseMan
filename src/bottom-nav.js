@@ -14,55 +14,53 @@
   };
 
   let currentActive = null;
+  let currentOpenPanel = null;
 
   function init() {
-    console.log('[bottom-nav] Initializing...');
     const nav = document.getElementById('bottom-nav');
     if (!nav) {
-      console.error('[bottom-nav] Navigation element not found!');
-      initStarted = false; // Reset so we can retry
+      initStarted = false;
       return;
     }
-    console.log('[bottom-nav] Navigation element found:', nav);
 
     const items = nav.querySelectorAll('.nav-item');
-    console.log('[bottom-nav] Found nav items:', items.length);
-    
     if (items.length === 0) {
-      console.error('[bottom-nav] No nav items found!');
-      initStarted = false; // Reset so we can retry
+      initStarted = false;
       return;
     }
 
-    items.forEach((item, index) => {
+    items.forEach((item) => {
       const navType = item.getAttribute('data-nav');
-      console.log(`[bottom-nav] Item ${index}: navType="${navType}"`, item);
-      
       if (!navType) {
-        console.warn(`[bottom-nav] Item ${index} has no data-nav attribute`);
         return;
       }
 
       // Check if already has listener (avoid duplicates)
       if (item.hasAttribute('data-listener-attached')) {
-        console.log(`[bottom-nav] Item ${navType} already has listener, skipping...`);
         return;
       }
       
       item.setAttribute('data-listener-attached', 'true');
       
-      item.addEventListener('click', (e) => {
-        console.log(`[bottom-nav] Clicked on nav item: ${navType}`, e);
+      // Use both click and touchstart for faster response on mobile
+      const handleClick = (e) => {
         if (item.disabled) {
-          console.warn(`[bottom-nav] Item ${navType} is disabled`);
           return;
         }
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
+        // Immediate visual feedback
+        item.style.opacity = '0.7';
+        setTimeout(() => { item.style.opacity = ''; }, 100);
+        // Handle click immediately
         handleNavClick(navType, item);
-      });
+      };
       
-      console.log(`[bottom-nav] Event listener added to item: ${navType}`);
+      // Add click listener (primary) - use capture phase for faster response
+      item.addEventListener('click', handleClick, { passive: false, capture: true });
+      // Add touchstart for mobile (faster than click) - use capture phase
+      item.addEventListener('touchstart', handleClick, { passive: false, capture: true });
     });
 
     // Set initial active state based on URL hash or default
@@ -70,39 +68,85 @@
     if (hash === 'leaderboard' || hash === 'pac') {
       setActive(BOTTOM_NAV.LEADERBOARD);
     }
-    
-    console.log('[bottom-nav] Initialization complete');
   }
 
-  function handleNavClick(navType, element) {
-    console.log('[bottom-nav] handleNavClick called:', navType, element);
+  function closeAllPanels() {
+    // Close leaderboard
+    if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.hide === 'function') {
+      window.BaseManLeaderboard.hide();
+    }
     
+    // Close profile
+    if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.hide === 'function') {
+      window.ProfilePanel.hide();
+    } else {
+      const profilePanel = document.getElementById('baseman-profile-panel');
+      if (profilePanel) {
+        profilePanel.classList.remove('open');
+        profilePanel.setAttribute('aria-hidden', 'true');
+      }
+    }
+    
+    // Close wallet
+    if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.hide === 'function') {
+      window.WalletPanel.hide();
+    }
+    
+    // Close settings
+    if (typeof window.SettingsPanel !== 'undefined' && typeof window.SettingsPanel.hide === 'function') {
+      window.SettingsPanel.hide();
+    }
+    
+    currentOpenPanel = null;
+  }
+
+  // Debounce to prevent rapid clicks
+  let lastClickTime = 0;
+  const CLICK_DEBOUNCE_MS = 100; // Minimum time between clicks
+
+  function handleNavClick(navType, element) {
+    // Debounce rapid clicks
+    const now = Date.now();
+    if (now - lastClickTime < CLICK_DEBOUNCE_MS) {
+      return;
+    }
+    lastClickTime = now;
+    
+    // If clicking the same button, toggle (close panel)
+    if (currentOpenPanel === navType) {
+      closeAllPanels();
+      setActive(null);
+      return;
+    }
+    
+    // Close all panels first (synchronous, fast)
+    closeAllPanels();
+    
+    // Open the selected panel immediately (synchronous)
     switch(navType) {
       case BOTTOM_NAV.LEADERBOARD:
-        console.log('[bottom-nav] Opening leaderboard...');
         openLeaderboard();
         setActive(BOTTOM_NAV.LEADERBOARD);
+        currentOpenPanel = BOTTOM_NAV.LEADERBOARD;
         break;
       
       case BOTTOM_NAV.PROFILE:
-        console.log('[bottom-nav] Opening profile...');
         openProfile();
         setActive(BOTTOM_NAV.PROFILE);
+        currentOpenPanel = BOTTOM_NAV.PROFILE;
         break;
       
       case BOTTOM_NAV.WALLET:
-        console.log('[bottom-nav] Opening wallet...');
         openWallet();
         setActive(BOTTOM_NAV.WALLET);
+        currentOpenPanel = BOTTOM_NAV.WALLET;
         break;
       
       case BOTTOM_NAV.SETTINGS:
-        // Settings panel will be implemented later
-        console.log('[bottom-nav] Settings panel coming soon');
+        openSettings();
+        setActive(BOTTOM_NAV.SETTINGS);
+        currentOpenPanel = BOTTOM_NAV.SETTINGS;
         break;
-      
-      default:
-        console.warn('[bottom-nav] Unknown nav type:', navType);
     }
   }
 
@@ -123,161 +167,105 @@
   }
 
   function openLeaderboard() {
-    console.log('[bottom-nav] openLeaderboard called');
-    
-    // Use existing leaderboard panel functionality
+    // Immediate panel opening - no async delays
     const panel = document.getElementById('leaderboard-panel');
     if (!panel) {
-      console.error('[bottom-nav] Leaderboard panel not found!');
       return;
     }
-    console.log('[bottom-nav] Leaderboard panel found:', panel);
 
-    // Use the correct API: window.BaseManLeaderboard
+    // Show panel immediately (synchronous)
     if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.show === 'function') {
-      console.log('[bottom-nav] Using window.BaseManLeaderboard.show()');
       window.BaseManLeaderboard.show();
-      // Also scroll to it for better UX
-      setTimeout(() => {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
     } else {
-      console.log('[bottom-nav] BaseManLeaderboard API not available, using fallback');
-      // Fallback: ensure panel is visible and scroll to it
+      // Fallback: ensure panel is visible immediately
       panel.hidden = false;
       panel.style.display = 'block';
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     
-    // Add a subtle highlight animation
-    panel.style.transition = 'box-shadow 0.3s ease';
-    panel.style.boxShadow = '0 0 30px rgba(255, 225, 79, 0.6)';
-    setTimeout(() => {
-      panel.style.boxShadow = '';
-    }, 1000);
-    
-    // Scroll to top if panel is scrollable
-    const scrollWrapper = panel.querySelector('[data-scroll-wrapper]');
-    if (scrollWrapper) {
-      scrollWrapper.scrollTop = 0;
-    }
-    
-    // Refresh leaderboard data
+    // Refresh data in background (async, non-blocking)
     if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.refresh === 'function') {
-      console.log('[bottom-nav] Refreshing leaderboard');
-      window.BaseManLeaderboard.refresh();
+      // Use requestAnimationFrame for next frame to avoid blocking UI
+      requestAnimationFrame(() => {
+        window.BaseManLeaderboard.refresh();
+      });
     }
-    
-    console.log('[bottom-nav] Leaderboard opened successfully');
   }
 
   function openProfile() {
-    console.log('[bottom-nav] openProfile called');
-    
-    // Try multiple methods to open profile panel
-    let profileOpened = false;
-    
-    // Method 1: Find and click profile button
-    const profileBtn = document.getElementById('baseman-profile-btn') || 
-                       document.querySelector('.profile-btn');
-    console.log('[bottom-nav] Profile button found:', profileBtn);
-    
-    if (profileBtn && !profileBtn.disabled) {
-      console.log('[bottom-nav] Clicking profile button...');
-      profileBtn.click();
-      profileOpened = true;
-      console.log('[bottom-nav] Profile button clicked');
-    }
-    
-    // Method 2: Directly toggle panel if button not found
-    if (!profileOpened) {
-      const panel = document.getElementById('baseman-profile-panel');
-      console.log('[bottom-nav] Profile panel found:', panel);
-      
-      if (panel) {
-        const isOpen = panel.classList.contains('open');
-        console.log('[bottom-nav] Profile panel isOpen:', isOpen);
-        
-        if (!isOpen) {
-          // Simulate button click to trigger wallet connection logic
-          if (profileBtn) {
-            console.log('[bottom-nav] Using profile button click');
-            profileBtn.click();
-          } else {
-            console.log('[bottom-nav] Direct toggle - no button found');
-            // Direct toggle if button not available
-            panel.classList.add('open');
-            panel.setAttribute('aria-hidden', 'false');
-            panel.style.display = 'block';
-            
-            // Trigger wallet connection and refresh
-            (async () => {
-              try {
-                if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
-                  await window.BaseManOnchain.ensureWallet();
-                } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
-                  await window.sdk.actions.signIn({ acceptAuthAddress: true });
-                }
-              } catch (err) {
-                console.warn('[bottom-nav] Wallet connection failed:', err?.message || err);
-              }
-              
-              // Refresh panel if refresh function exists
-              if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.refresh === 'function') {
-                window.ProfilePanel.refresh();
-              }
-            })();
-          }
-          profileOpened = true;
-        } else {
-          console.log('[bottom-nav] Profile panel already open');
+    // Immediate panel opening
+    if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.show === 'function') {
+      window.ProfilePanel.show();
+      // Refresh in background (non-blocking)
+      requestAnimationFrame(() => {
+        if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.refresh === 'function') {
+          window.ProfilePanel.refresh();
         }
-      }
+      });
+      return;
     }
-    
-    if (!profileOpened) {
-      console.error('[bottom-nav] Profile panel could not be opened - button and panel not found');
-    } else {
-      console.log('[bottom-nav] Profile opened successfully');
+
+    // Fallback: Directly toggle panel immediately
+    const panel = document.getElementById('baseman-profile-panel');
+    if (panel) {
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      panel.style.display = 'block';
+
+      // Trigger wallet connection and refresh in background (non-blocking)
+      requestAnimationFrame(() => {
+        (async () => {
+          try {
+            if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
+              await window.BaseManOnchain.ensureWallet();
+            } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
+              await window.sdk.actions.signIn({ acceptAuthAddress: true });
+            }
+          } catch (err) {}
+
+          // Refresh panel if refresh function exists
+          if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.refresh === 'function') {
+            window.ProfilePanel.refresh();
+          }
+        })();
+      });
     }
   }
 
   function openWallet() {
-    console.log('[bottom-nav] openWallet called');
-    
-    // Try to find connect menu - wait for it to mount if not ready
+    // Immediate panel opening
+    if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
+      window.WalletPanel.show();
+      // Refresh in background
+      requestAnimationFrame(() => {
+        if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
+          window.WalletPanel.refresh();
+        }
+      });
+      return;
+    }
+
+    // Fallback: Try to find connect menu immediately
     let connectRoot = document.getElementById('connect-root');
-    console.log('[bottom-nav] Connect root found (initial):', connectRoot);
     
-    if (!connectRoot) {
-      // Wait longer for connect menu to mount (React needs time to load and render)
-      console.log('[bottom-nav] Connect root not found, waiting for mount...');
+    if (connectRoot) {
+      handleConnectMenu(connectRoot);
+      dispatchWalletEvent();
+    } else {
+      // Try to find connect menu quickly (reduced attempts)
       let attempts = 0;
-      const maxAttempts = 20; // Increased from 10 to 20 (4 seconds total)
+      const maxAttempts = 5; // Reduced from 20 to 5 (1 second max wait)
       const checkInterval = setInterval(() => {
         attempts++;
         connectRoot = document.getElementById('connect-root');
         if (connectRoot) {
-          console.log('[bottom-nav] Connect root found after wait:', connectRoot);
           clearInterval(checkInterval);
           handleConnectMenu(connectRoot);
           dispatchWalletEvent();
         } else if (attempts >= maxAttempts) {
-          console.warn('[bottom-nav] Connect root not found after', maxAttempts, 'attempts');
           clearInterval(checkInterval);
-          // Fallback: try to create it manually or show message
-          console.warn('[bottom-nav] Connect menu may not be loaded yet. Try refreshing the page.');
           dispatchWalletEvent();
         }
       }, 200);
-    } else {
-      handleConnectMenu(connectRoot);
-      dispatchWalletEvent();
-    }
-    
-    // Always dispatch event for connect menu to listen (even if not found yet)
-    if (connectRoot) {
-      dispatchWalletEvent();
     }
   }
   
@@ -287,23 +275,34 @@
     // Scroll to connect menu if needed
     connectRoot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     
-    // Try to trigger click on connect button if visible
-    setTimeout(() => {
+    // Try to trigger focus on connect button if visible
+    requestAnimationFrame(() => {
       const connectButton = connectRoot.querySelector('button');
-      console.log('[bottom-nav] Connect button found:', connectButton);
       if (connectButton && !connectButton.disabled) {
         connectButton.focus();
-        console.log('[bottom-nav] Connect button focused');
       }
-    }, 100);
+    });
   }
   
   function dispatchWalletEvent() {
     const walletEvent = new CustomEvent('baseman-open-wallet', {
       detail: { source: 'bottom-nav' }
     });
-    console.log('[bottom-nav] Dispatching baseman-open-wallet event');
     window.dispatchEvent(walletEvent);
+  }
+
+  function openSettings() {
+    // Immediate panel opening
+    if (typeof window.SettingsPanel !== 'undefined' && typeof window.SettingsPanel.show === 'function') {
+      window.SettingsPanel.show();
+      // Refresh in background
+      requestAnimationFrame(() => {
+        if (typeof window.SettingsPanel !== 'undefined' && typeof window.SettingsPanel.refresh === 'function') {
+          window.SettingsPanel.refresh();
+        }
+      });
+      return;
+    }
   }
 
   // Public API
@@ -315,80 +314,37 @@
     getCurrentActive: () => currentActive
   };
 
-  // Initialize when DOM is ready - prevent double initialization
+  // Initialize immediately - don't wait for SDK
+  // Event listeners should be attached as soon as DOM is ready
   let initStarted = false;
   let initComplete = false;
   
   function initWhenReady() {
     if (initStarted) {
-      console.log('[bottom-nav] Initialization already started, skipping...');
       return;
     }
     initStarted = true;
     
-    console.log('[bottom-nav] initWhenReady called, document.readyState:', document.readyState);
-    
     function doInit() {
       if (initComplete) {
-        console.log('[bottom-nav] Already initialized, skipping...');
         return;
       }
       initComplete = true;
       init();
     }
     
+    // Initialize immediately if DOM is ready, otherwise wait for DOMContentLoaded
     if (document.readyState === 'loading') {
-      console.log('[bottom-nav] DOM is loading, waiting for DOMContentLoaded...');
-      document.addEventListener('DOMContentLoaded', () => {
-        console.log('[bottom-nav] DOMContentLoaded fired');
-        // Wait for SDK ready
-        if (window.__basemanSDKReadyFired) {
-          console.log('[bottom-nav] SDK already ready, initializing in 500ms');
-          setTimeout(doInit, 500);
-        } else {
-          console.log('[bottom-nav] Waiting for SDK ready event...');
-          const sdkReadyHandler = () => {
-            console.log('[bottom-nav] SDK ready event fired, initializing in 500ms');
-            setTimeout(doInit, 500);
-          };
-          window.addEventListener('baseman-sdk-ready', sdkReadyHandler, { once: true });
-          // Single fallback - wait for connect menu to mount
-          console.log('[bottom-nav] Fallback: initializing in 3000ms');
-          setTimeout(() => {
-            if (!initComplete) {
-              console.log('[bottom-nav] Fallback timeout fired, initializing now');
-              window.removeEventListener('baseman-sdk-ready', sdkReadyHandler);
-              doInit();
-            }
-          }, 3000);
-        }
-      }, { once: true });
+      document.addEventListener('DOMContentLoaded', doInit, { once: true });
+      // Fallback: init immediately if DOMContentLoaded takes too long
+      setTimeout(doInit, 100);
     } else {
-      console.log('[bottom-nav] DOM already ready');
-      if (window.__basemanSDKReadyFired) {
-        console.log('[bottom-nav] SDK already ready, initializing in 500ms');
-        setTimeout(doInit, 500);
-      } else {
-        console.log('[bottom-nav] Waiting for SDK ready event...');
-        const sdkReadyHandler = () => {
-          console.log('[bottom-nav] SDK ready event fired, initializing in 500ms');
-          setTimeout(doInit, 500);
-        };
-        window.addEventListener('baseman-sdk-ready', sdkReadyHandler, { once: true });
-        // Single fallback - wait for connect menu to mount
-        console.log('[bottom-nav] Fallback: initializing in 3000ms');
-        setTimeout(() => {
-          if (!initComplete) {
-            console.log('[bottom-nav] Fallback timeout fired, initializing now');
-            window.removeEventListener('baseman-sdk-ready', sdkReadyHandler);
-            doInit();
-          }
-        }, 3000);
-      }
+      // DOM already ready - init immediately
+      doInit();
     }
   }
-  
-  console.log('[bottom-nav] Script loaded, starting initialization...');
+
+  // Start initialization immediately
   initWhenReady();
 })();
 

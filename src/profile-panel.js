@@ -43,15 +43,7 @@
       return null;
     }
 
-    let btn = document.getElementById(BTN_ID);
-    if (!btn) {
-      btn = el('button', 'profile-btn');
-      btn.id = BTN_ID;
-      btn.type = 'button';
-      btn.textContent = 'Profile';
-      btn.setAttribute('aria-label', 'Open profile panel');
-      document.body.appendChild(btn);
-    }
+    // Profile button removed - now controlled by bottom nav
     let panel = document.getElementById(PANEL_ID);
     if (!panel) {
       panel = el('section', 'profile-panel');
@@ -63,11 +55,20 @@
           <button type="button" class="profile-close" data-close>×</button>
         </header>
         <div class="profile-body">
-          <div class="profile-row"><span>Address</span><span data-address>-</span></div>
-          <div class="profile-row"><span>Network</span><span data-network>-</span></div>
-          <div class="profile-row"><span>ETH Balance</span><span data-eth>-</span></div>
-          <div class="profile-row"><span>Total Score</span><span data-score>-</span></div>
-          <div class="profile-row"><span>Interactions</span><span data-interactions>-</span></div>
+          <div class="profile-section">
+            <h3 class="profile-section-title">Wallet Information</h3>
+            <div class="profile-row"><span>Address</span><span data-address>-</span></div>
+            <div class="profile-row"><span>Network</span><span data-network>-</span></div>
+            <div class="profile-row"><span>ETH Balance</span><span data-eth>-</span></div>
+          </div>
+          <div class="profile-section">
+            <h3 class="profile-section-title">Game Statistics</h3>
+            <div class="profile-row"><span>Total Score</span><span data-score>-</span></div>
+            <div class="profile-row"><span>Games Played</span><span data-games-played>-</span></div>
+            <div class="profile-row"><span>Best Score</span><span data-best-score>-</span></div>
+            <div class="profile-row"><span>Average Score</span><span data-avg-score>-</span></div>
+            <div class="profile-row"><span>Total Interactions</span><span data-interactions>-</span></div>
+          </div>
           <div class="profile-actions">
             <button type="button" class="profile-action" data-switch="84532">Switch to Base Sepolia</button>
             <button type="button" class="profile-action" data-switch="8453">Switch to Base Mainnet</button>
@@ -85,7 +86,7 @@
       `;
       document.body.appendChild(panel);
     }
-    return { btn, panel };
+    return { btn: null, panel };
   }
 
   async function fetchJson(url) {
@@ -104,6 +105,9 @@
     const ethEl = panel.querySelector('[data-eth]');
     const scoreEl = panel.querySelector('[data-score]');
     const interEl = panel.querySelector('[data-interactions]');
+    const gamesPlayedEl = panel.querySelector('[data-games-played]');
+    const bestScoreEl = panel.querySelector('[data-best-score]');
+    const avgScoreEl = panel.querySelector('[data-avg-score]');
 
     try {
       if (!window.BaseManOnchain || typeof window.BaseManOnchain.ensureWallet !== 'function') {
@@ -176,11 +180,19 @@
             ], signer);
             const result = await contract.getScore(effectiveAddress);
             const total = result?.totalScore ? BigInt(result.totalScore).toString() : '0';
+            const high = result?.highScore ? BigInt(result.highScore).toString() : '0';
             scoreEl.textContent = total;
+            if (bestScoreEl) bestScoreEl.textContent = high;
+            // Games played and average would need additional contract calls or API
+            if (gamesPlayedEl) gamesPlayedEl.textContent = '-'; // TODO: Calculate from history
+            if (avgScoreEl) avgScoreEl.textContent = total !== '0' ? (Number(total) / 1).toFixed(0) : '-'; // TODO: Calculate properly
           }
         }
       } catch (_) {
         scoreEl.textContent = '-';
+        if (bestScoreEl) bestScoreEl.textContent = '-';
+        if (gamesPlayedEl) gamesPlayedEl.textContent = '-';
+        if (avgScoreEl) avgScoreEl.textContent = '-';
       }
     } catch (err) {
       console.error('[profile] refresh error', err);
@@ -207,33 +219,58 @@
     }
   }
 
+  let isOpen = false;
+
+  function setVisible(visible) {
+    const shell = ensureShell();
+    if (!shell || !shell.panel) return;
+
+    isOpen = !!visible;
+    // Show panel immediately (synchronous)
+    shell.panel.classList.toggle('open', isOpen);
+    shell.panel.setAttribute('aria-hidden', String(!isOpen));
+
+    if (isOpen) {
+      // Refresh panel in background (non-blocking)
+      requestAnimationFrame(() => {
+        refresh(shell.panel);
+      });
+      
+      // Ensure wallet is connected in background (non-blocking)
+      requestAnimationFrame(() => {
+        (async () => {
+          try {
+            if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
+              await window.BaseManOnchain.ensureWallet();
+              // Refresh after wallet connection
+              refresh(shell.panel);
+            } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
+              await window.sdk.actions.signIn({ acceptAuthAddress: true });
+              refresh(shell.panel);
+            }
+          } catch (err) {
+            // Silent fail - don't block UI
+          }
+        })();
+      });
+    }
+  }
+
   function wire(panel, btn) {
-    if (!panel || !btn) {
-      console.error('[profile-panel] wire: panel or btn missing');
+    if (!panel) {
+      console.error('[profile-panel] wire: panel missing');
       return;
     }
 
-    btn.addEventListener('click', async () => {
-      const isOpen = panel.classList.contains('open');
-      panel.classList.toggle('open');
-      panel.setAttribute('aria-hidden', String(!panel.classList.contains('open')));
-      if (!isOpen && panel.classList.contains('open')) {
-        // Ensure wallet is connected when opening profile panel
-        try {
-          if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
-            await window.BaseManOnchain.ensureWallet();
-          } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
-            await window.sdk.actions.signIn({ acceptAuthAddress: true });
-          }
-        } catch (err) {
-          console.warn('[profile-panel] Wallet connection failed:', err?.message || err);
-        }
-        refresh(panel);
-      }
-    });
+    // If button exists, wire it (for backward compatibility)
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        setVisible(!isOpen);
+      });
+    }
+
     panel.querySelector('[data-close]')?.addEventListener('click', () => {
-      panel.classList.remove('open');
-      panel.setAttribute('aria-hidden', 'true');
+      setVisible(false);
     });
     panel.querySelectorAll('[data-switch]').forEach((el) => {
       el.addEventListener('click', async () => {
@@ -282,6 +319,7 @@
         }, 200);
         return;
       }
+      // Button may be null now (controlled by bottom nav)
       wire(shell.panel, shell.btn);
     } catch (error) {
       console.error('[profile-panel] init error', error);
@@ -305,6 +343,18 @@
       }
     }
   }
+
+  // Public API
+  window.ProfilePanel = {
+    show: () => setVisible(true),
+    hide: () => setVisible(false),
+    toggle: () => setVisible(!isOpen),
+    refresh: () => {
+      const shell = ensureShell();
+      if (shell && shell.panel) refresh(shell.panel);
+    },
+    isOpen: () => isOpen
+  };
 
   initWhenReady();
 })();
