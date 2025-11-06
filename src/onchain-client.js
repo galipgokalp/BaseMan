@@ -18,10 +18,13 @@
 
   function resolveSdk() {
     // Priority order optimized for mobile environments (Farcaster/Base App)
+    // Try multiple times as SDK may load after page load in mobile webviews
     const candidates = [
-      // 1. Farcaster mobile (most common)
+      // 1. Farcaster mobile (most common) - check multiple ways
       () => window.fc && window.fc.miniapp,
       () => window.farcaster && window.farcaster.miniapp,
+      () => window.fc && window.fc.sdk,
+      () => window.farcaster && window.farcaster.sdk,
       // 2. Base App / ReactNative WebView
       () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
       () => window.MiniApp && window.MiniApp.sdk,
@@ -202,14 +205,16 @@
     (async () => {
       try {
         // Wait a bit for SDK to fully initialize (especially on mobile)
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Increased delay for mobile webview environments
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
           // Verify SDK is fully ready by checking for context
           let isReady = false;
           if (typeof sdk.isInMiniApp === 'function') {
             try {
-              isReady = await sdk.isInMiniApp({ timeoutMs: 200 });
+              // Increased timeout for mobile environments
+              isReady = await sdk.isInMiniApp({ timeoutMs: 1000 });
             } catch (_) {
               // If isInMiniApp fails, assume we're in mini app if SDK exists
               isReady = true;
@@ -217,6 +222,20 @@
           } else {
             // If isInMiniApp not available, assume ready if SDK exists
             isReady = true;
+          }
+          
+          // Additional check: if we're in a mobile webview, assume ready
+          if (!isReady) {
+            try {
+              const ua = navigator.userAgent || '';
+              const isMobileWebView = ua.includes('Farcaster') || 
+                                     ua.includes('Warpcast') || 
+                                     ua.includes('BaseApp') ||
+                                     typeof window.ReactNativeWebView !== 'undefined';
+              if (isMobileWebView) {
+                isReady = true;
+              }
+            } catch (_) {}
           }
           
           if (isReady) {

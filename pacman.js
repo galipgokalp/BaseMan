@@ -13656,13 +13656,14 @@ window.addEventListener("load", function() {
     };
     window.addEventListener("baseman-sdk-ready", sdkReadyHandler);
     
-    // Fallback: if SDK ready event doesn't fire within 2 seconds, start anyway (web mode or SDK not available)
+    // Fallback: if SDK ready event doesn't fire within 3 seconds, start anyway (web mode or SDK not available)
+    // Increased timeout for mobile environments where SDK may load slower
     setTimeout(function() {
         if (!gameStarted) {
             window.removeEventListener("baseman-sdk-ready", sdkReadyHandler);
             tryStartGame();
         }
-    }, 2000);
+    }, 3000);
     
     // Also try to start immediately if we're not in a mini app environment
     // Check for common indicators that we're NOT in a mini app
