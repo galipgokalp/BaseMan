@@ -73,6 +73,12 @@ export function makeWagmiConfig() {
     baseSepoliaChain = getFallbackBaseSepoliaChain();
   }
 
+  // Validate chain objects have required properties
+  if (!baseChain || !baseChain.id || !baseSepoliaChain || !baseSepoliaChain.id) {
+    console.error('[wagmi-config] Invalid chain objects:', { baseChain, baseSepoliaChain });
+    throw new Error('Failed to create valid chain objects');
+  }
+
   const sepoliaUrl = readEnv('NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL') || readEnv('BASE_SEPOLIA_RPC_URL') || '';
   const mainnetUrl = readEnv('NEXT_PUBLIC_BASE_MAINNET_RPC_URL') || readEnv('BASE_MAINNET_RPC_URL') || '';
   const wcProjectId = (readEnv('NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID') || readEnv('WALLETCONNECT_PROJECT_ID') || '').trim();
@@ -92,32 +98,74 @@ export function makeWagmiConfig() {
 
   const transports = {};
   // Provide explicit transports for each chain; fall back to default http() if no env URL
-  transports[baseChain.id] = mainnetUrl ? http(mainnetUrl) : http();
-  transports[baseSepoliaChain.id] = sepoliaUrl ? http(sepoliaUrl) : http();
+  try {
+    transports[baseChain.id] = mainnetUrl ? http(mainnetUrl) : http();
+    transports[baseSepoliaChain.id] = sepoliaUrl ? http(sepoliaUrl) : http();
+  } catch (transportError) {
+    console.error('[wagmi-config] Error creating transports:', transportError);
+    // Fallback to default http() for both
+    transports[baseChain.id] = http();
+    transports[baseSepoliaChain.id] = http();
+  }
 
   const baseConfig = {
     chains: [baseSepoliaChain, baseChain],
     transports
   };
 
-  if (isMiniAppHost()) {
+  // Try to create config with proper error handling
+  try {
+    if (isMiniAppHost()) {
+      try {
+        const connector = miniAppConnector();
+        return createConfig({
+          ...baseConfig,
+          connectors: [connector]
+        });
+      } catch (connectorError) {
+        console.error('[wagmi-config] Error creating mini app connector:', connectorError);
+        // Fallback: try without connector or with injected
+        try {
+          return createConfig({
+            ...baseConfig,
+            connectors: [injected()]
+          });
+        } catch (fallbackError) {
+          console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
+          throw fallbackError;
+        }
+      }
+    }
+
+    const webConnectors = [];
+    try {
+      webConnectors.push(injected());
+      webConnectors.push(metaMask());
+      webConnectors.push(safe());
+      if (wcProjectId) {
+        webConnectors.push(walletConnect({ projectId: wcProjectId }));
+      }
+    } catch (connectorError) {
+      console.warn('[wagmi-config] Some connectors failed to initialize:', connectorError);
+      // Continue with whatever connectors we have
+      if (webConnectors.length === 0) {
+        webConnectors.push(injected());
+      }
+    }
+
     return createConfig({
       ...baseConfig,
-      connectors: [miniAppConnector()]
+      connectors: webConnectors
     });
+  } catch (createError) {
+    console.error('[wagmi-config] createConfig failed:', createError);
+    console.error('[wagmi-config] Config params:', {
+      chains: baseConfig.chains.map(c => ({ id: c.id, name: c.name })),
+      transports: Object.keys(baseConfig.transports),
+      isMiniApp: isMiniAppHost()
+    });
+    throw createError;
   }
-
-  const webConnectors = [
-    injected(),
-    metaMask(),
-    safe()
-  ];
-  if (wcProjectId) webConnectors.push(walletConnect({ projectId: wcProjectId }));
-
-  return createConfig({
-    ...baseConfig,
-    connectors: webConnectors
-  });
 }
 
 export function pickChainById(chainId) {
@@ -146,9 +194,33 @@ try {
   config = makeWagmiConfig();
   if (!config) {
     console.warn('[wagmi-config] Config is null - chain objects may not be available. Connect menu may not work.');
+  } else {
+    console.log('[wagmi-config] Config created successfully');
   }
 } catch (error) {
   console.error('[wagmi-config] Failed to create config:', error);
-  config = null;
+  console.error('[wagmi-config] Error details:', {
+    message: error?.message,
+    stack: error?.stack,
+    name: error?.name
+  });
+  // Try one more time with minimal config as last resort
+  try {
+    console.warn('[wagmi-config] Attempting minimal config as fallback...');
+    const minimalBase = getFallbackBaseChain();
+    const minimalSepolia = getFallbackBaseSepoliaChain();
+    config = createConfig({
+      chains: [minimalSepolia, minimalBase],
+      transports: {
+        [minimalBase.id]: http(),
+        [minimalSepolia.id]: http()
+      },
+      connectors: []
+    });
+    console.log('[wagmi-config] Minimal config created successfully');
+  } catch (fallbackError) {
+    console.error('[wagmi-config] Fallback config also failed:', fallbackError);
+    config = null;
+  }
 }
 export { config };
