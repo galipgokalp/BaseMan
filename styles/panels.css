@@ -16,15 +16,18 @@
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
-  display: none;
   flex-direction: column;
   box-sizing: border-box;
+  /* Default: hidden */
+  display: none;
 }
 
+/* Show panel when hidden attribute is removed */
 .leaderboard-panel:not([hidden]) {
-  display: flex;
+  display: flex !important;
 }
 
+/* Keep panel hidden when hidden attribute is present */
 .leaderboard-panel[hidden] {
   display: none !important;
 }
