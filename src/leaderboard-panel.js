@@ -320,8 +320,14 @@
   };
 
   const init = () => {
+    // Start with panel closed - Game Canvas should be visible first
+    // Only show if explicitly requested via URL hash or user action
     if (typeof window.__BaseManLeaderboardDesiredVisible === "boolean") {
       visible = window.__BaseManLeaderboardDesiredVisible;
+    } else {
+      // Check URL hash for explicit leaderboard request
+      const hash = window.location.hash.substring(1);
+      visible = hash === 'leaderboard' || hash === 'pac';
     }
     panel.hidden = !visible;
 

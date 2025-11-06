@@ -249,30 +249,21 @@
     const difficulty = getSetting('difficulty', 'normal');
     window.__basemanDifficulty = difficulty;
 
-    // Apply profile button visibility
-    const showProfile = getSetting('showProfile', true);
-    ensureProfileButton(showProfile);
+    // Profile button removed - now controlled by bottom nav only
+    // Always ensure profile button is hidden
+    ensureProfileButton(false);
   }
 
   function ensureProfileButton(show) {
+    // Profile button removed - now controlled by bottom nav only
+    // Hide any existing profile button
     let profileBtn = document.getElementById('baseman-profile-btn');
-    if (!profileBtn && show) {
-      // Create profile button if it doesn't exist and should be shown
-      profileBtn = document.createElement('button');
-      profileBtn.id = 'baseman-profile-btn';
-      profileBtn.className = 'profile-btn';
-      profileBtn.type = 'button';
-      profileBtn.textContent = 'Profile';
-      profileBtn.setAttribute('aria-label', 'Open profile panel');
-      profileBtn.addEventListener('click', () => {
-        if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.show === 'function') {
-          window.ProfilePanel.show();
-        }
-      });
-      document.body.appendChild(profileBtn);
-    }
     if (profileBtn) {
-      profileBtn.style.display = show ? '' : 'none';
+      profileBtn.style.display = 'none';
+      // Remove from DOM if exists
+      try {
+        profileBtn.remove();
+      } catch (e) {}
     }
   }
 
@@ -291,52 +282,63 @@
       }
     });
 
-    // Theme toggle
+    // Theme toggle - use both click and change for mobile compatibility
     const themeToggle = panel.querySelector('[data-setting="theme"]');
     if (themeToggle) {
       const currentTheme = getSetting('theme', 'dark');
       themeToggle.checked = currentTheme === 'light';
-      themeToggle.addEventListener('change', (e) => {
+      const handleThemeChange = (e) => {
         const newTheme = e.target.checked ? 'light' : 'dark';
         setSetting('theme', newTheme);
         applySettings();
-      });
+      };
+      themeToggle.addEventListener('change', handleThemeChange);
+      themeToggle.addEventListener('click', handleThemeChange); // Mobile fallback
+      themeToggle.addEventListener('touchend', handleThemeChange); // Mobile touch
     }
 
-    // Sound toggle
+    // Sound toggle - use both click and change for mobile compatibility
     const soundToggle = panel.querySelector('[data-setting="sound"]');
     if (soundToggle) {
       const soundEnabled = getSetting('sound', true);
       soundToggle.checked = soundEnabled;
-      soundToggle.addEventListener('change', (e) => {
+      const handleSoundChange = (e) => {
         const enabled = e.target.checked;
         setSetting('sound', enabled);
         applySettings();
-      });
+      };
+      soundToggle.addEventListener('change', handleSoundChange);
+      soundToggle.addEventListener('click', handleSoundChange); // Mobile fallback
+      soundToggle.addEventListener('touchend', handleSoundChange); // Mobile touch
     }
 
-    // Difficulty select
+    // Difficulty select - use both change and input for mobile compatibility
     const difficultySelect = panel.querySelector('[data-setting="difficulty"]');
     if (difficultySelect) {
       const difficulty = getSetting('difficulty', 'normal');
       difficultySelect.value = difficulty;
-      difficultySelect.addEventListener('change', (e) => {
+      const handleDifficultyChange = (e) => {
         const newDifficulty = e.target.value;
         setSetting('difficulty', newDifficulty);
         applySettings();
-      });
+      };
+      difficultySelect.addEventListener('change', handleDifficultyChange);
+      difficultySelect.addEventListener('input', handleDifficultyChange); // Mobile fallback
     }
 
-    // Profile button toggle
+    // Profile button toggle - use both click and change for mobile compatibility
     const profileToggle = panel.querySelector('[data-setting="showProfile"]');
     if (profileToggle) {
       const showProfile = getSetting('showProfile', true);
       profileToggle.checked = showProfile;
-      profileToggle.addEventListener('change', (e) => {
+      const handleProfileChange = (e) => {
         const show = e.target.checked;
         setSetting('showProfile', show);
         applySettings();
-      });
+      };
+      profileToggle.addEventListener('change', handleProfileChange);
+      profileToggle.addEventListener('click', handleProfileChange); // Mobile fallback
+      profileToggle.addEventListener('touchend', handleProfileChange); // Mobile touch
     }
   }
 

@@ -73,11 +73,6 @@
             <button type="button" class="profile-action" data-switch="84532">Switch to Base Sepolia</button>
             <button type="button" class="profile-action" data-switch="8453">Switch to Base Mainnet</button>
           </div>
-          <div class="profile-divider"></div>
-          <div class="profile-actions">
-            <input type="number" min="0" step="1" value="1" class="profile-input" data-quest-id placeholder="Quest ID" />
-            <button type="button" class="profile-action" data-complete-quest>Complete Quest</button>
-          </div>
           <div class="profile-history">
             <div class="profile-history__title">Recent Activity</div>
             <ol class="profile-history__list" data-history></ol>
@@ -280,23 +275,7 @@
       });
     });
 
-    const completeBtn = panel.querySelector('[data-complete-quest]');
-    const questInput = panel.querySelector('[data-quest-id]');
-    if (completeBtn) {
-      completeBtn.addEventListener('click', async () => {
-        const raw = questInput && questInput.value ? questInput.value : '1';
-        const qid = Math.max(0, parseInt(String(raw), 10) || 0);
-        try {
-          if (window.BaseManOnchain && typeof window.BaseManOnchain.completeQuest === 'function') {
-            await window.BaseManOnchain.completeQuest(qid);
-            await refresh(panel);
-          }
-        } catch (err) {
-          console.error('[profile] complete quest error', err);
-          alert('Failed to complete quest');
-        }
-      });
-    }
+    // Complete Quest section removed - no longer needed
   }
 
   function init() {

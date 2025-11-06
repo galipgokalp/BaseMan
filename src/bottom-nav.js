@@ -63,10 +63,17 @@
       item.addEventListener('touchstart', handleClick, { passive: false, capture: true });
     });
 
-    // Set initial active state based on URL hash or default
+    // Don't set initial active state - panels should be closed on startup
+    // Only open panels when user explicitly clicks
     const hash = window.location.hash.substring(1);
     if (hash === 'leaderboard' || hash === 'pac') {
+      // Only open if URL explicitly requests it
+      openLeaderboard();
       setActive(BOTTOM_NAV.LEADERBOARD);
+      currentOpenPanel = BOTTOM_NAV.LEADERBOARD;
+    } else {
+      // Ensure all panels are closed on startup
+      closeAllPanels();
     }
   }
 

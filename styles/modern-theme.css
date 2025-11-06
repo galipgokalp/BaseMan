@@ -126,7 +126,7 @@ body::before {
   padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   /* Bottom padding: minimal spacing + bottom nav height + safe area */
-  padding-bottom: calc(var(--spacing-md) + 64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(8px + 64px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
@@ -568,8 +568,8 @@ body::before {
   .game-shell {
     padding: var(--spacing-md) var(--spacing-sm);
     padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
-    /* Bottom padding: minimal spacing + bottom nav height + safe area */
-    padding-bottom: calc(var(--spacing-sm) + 60px + env(safe-area-inset-bottom, 0px));
+    /* Bottom padding: minimal spacing + bottom nav height + safe area (reduced for closer canvas) */
+    padding-bottom: calc(8px + 60px + env(safe-area-inset-bottom, 0px));
     padding-left: calc(var(--spacing-sm) + env(safe-area-inset-left, 0px));
     padding-right: calc(var(--spacing-sm) + env(safe-area-inset-right, 0px));
     gap: var(--spacing-md);

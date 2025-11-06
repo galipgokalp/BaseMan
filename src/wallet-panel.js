@@ -136,36 +136,106 @@
         }
       }
 
-      // Get network
-      const chainId = onchain.getChainId && onchain.getChainId();
+      // Get network and chain ID
+      let chainId = null;
+      // Try multiple methods to get chain ID
+      if (onchain.getChainId && typeof onchain.getChainId === 'function') {
+        chainId = onchain.getChainId();
+      } else if (window.BaseManOnchainConfig && window.BaseManOnchainConfig.chainId) {
+        chainId = Number(window.BaseManOnchainConfig.chainId);
+      } else if (window.ethereum && window.ethereum.chainId) {
+        chainId = Number(window.ethereum.chainId);
+      } else if (onchain._chainId) {
+        chainId = Number(onchain._chainId);
+      }
+      
+      const networkEl = panel.querySelector('[data-network]');
+      const chainIdEl = panel.querySelector('[data-chain-id]');
+      
       if (chainId) {
-        const networkEl = panel.querySelector('[data-network]');
-        const chainIdEl = panel.querySelector('[data-chain-id]');
         if (networkEl) networkEl.textContent = networkLabel(chainId);
         if (chainIdEl) chainIdEl.textContent = String(chainId);
+      } else {
+        if (networkEl) networkEl.textContent = '-';
+        if (chainIdEl) chainIdEl.textContent = '-';
       }
 
       // Get balances
-      if (address && window.ethereum) {
+      const ethEl = panel.querySelector('[data-eth-balance]');
+      const usdcEl = panel.querySelector('[data-usdc-balance]');
+      
+      if (address) {
+        // Try to get ETH balance from provider
+        let ethBalance = null;
         try {
-          const balance = await window.ethereum.request({
-            method: 'eth_getBalance',
-            params: [address, 'latest']
-          });
-          const ethBalance = parseFloat(balance) / 1e18;
-          const ethEl = panel.querySelector('[data-eth-balance]');
-          if (ethEl) {
-            ethEl.textContent = ethBalance.toFixed(6) + ' ETH';
+          // Try multiple provider sources
+          const provider = onchain.provider || onchain._provider || window.ethereum;
+          if (provider && typeof provider.request === 'function') {
+            const balance = await provider.request({
+              method: 'eth_getBalance',
+              params: [address, 'latest']
+            });
+            ethBalance = parseFloat(balance) / 1e18;
+          } else if (provider && typeof provider.getBalance === 'function') {
+            // Ethers.js provider
+            const balance = await provider.getBalance(address);
+            ethBalance = parseFloat(balance.toString()) / 1e18;
           }
         } catch (err) {
           console.warn('[wallet-panel] Failed to fetch ETH balance:', err);
         }
-      }
-
-      // USDC balance (placeholder - would need contract interaction)
-      const usdcEl = panel.querySelector('[data-usdc-balance]');
-      if (usdcEl) {
-        usdcEl.textContent = 'N/A';
+        
+        if (ethEl) {
+          if (ethBalance !== null) {
+            ethEl.textContent = ethBalance.toFixed(6) + ' ETH';
+          } else {
+            ethEl.textContent = 'Loading...';
+            // Try API fallback
+            try {
+              const network = chainId ? (chainId === 8453 ? 'base' : 'base-sepolia') : 'base-sepolia';
+              const q = new URLSearchParams({ address: address, network }).toString();
+              const bal = await fetch(`/api/token-balances?${q}`);
+              if (bal.ok) {
+                const payload = await bal.json();
+                const eth = (payload.balances || []).find((b) => (b.token && b.token.symbol === 'ETH')) || null;
+                if (eth) {
+                  ethEl.textContent = `${(Number(eth.amount.amount) / 10 ** eth.amount.decimals).toFixed(6)} ETH`;
+                } else {
+                  ethEl.textContent = '0 ETH';
+                }
+              } else {
+                ethEl.textContent = 'N/A';
+              }
+            } catch (apiErr) {
+              ethEl.textContent = 'N/A';
+            }
+          }
+        }
+        
+        // USDC balance from API
+        if (usdcEl) {
+          try {
+            const network = chainId ? (chainId === 8453 ? 'base' : 'base-sepolia') : 'base-sepolia';
+            const q = new URLSearchParams({ address: address, network }).toString();
+            const bal = await fetch(`/api/token-balances?${q}`);
+            if (bal.ok) {
+              const payload = await bal.json();
+              const usdc = (payload.balances || []).find((b) => (b.token && b.token.symbol === 'USDC')) || null;
+              if (usdc) {
+                usdcEl.textContent = `${(Number(usdc.amount.amount) / 10 ** usdc.amount.decimals).toFixed(2)} USDC`;
+              } else {
+                usdcEl.textContent = '0 USDC';
+              }
+            } else {
+              usdcEl.textContent = 'N/A';
+            }
+          } catch (apiErr) {
+            usdcEl.textContent = 'N/A';
+          }
+        }
+      } else {
+        if (ethEl) ethEl.textContent = '-';
+        if (usdcEl) usdcEl.textContent = '-';
       }
 
     } catch (error) {
