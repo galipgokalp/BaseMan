@@ -260,35 +260,44 @@
     
     // Apply difficulty to game speed
     // Difficulty affects game update rate: Easy (100%), Hard (110%), Extreme (120%)
-    if (typeof window.executive !== 'undefined' && window.executive && typeof window.executive.setUpdatesPerSecond === 'function') {
-      if (difficulty === 'easy') {
-        // Easy: 100% speed (normal)
-        window.executive.setUpdatesPerSecond(60); // 60 * 1.0
-      } else if (difficulty === 'hard') {
-        // Hard: 110% speed (faster)
-        window.executive.setUpdatesPerSecond(66); // 60 * 1.1
-      } else if (difficulty === 'extreme') {
-        // Extreme: 120% speed (fastest)
-        window.executive.setUpdatesPerSecond(72); // 60 * 1.2
+    const applyDifficulty = () => {
+      if (typeof window.executive !== 'undefined' && window.executive && typeof window.executive.setUpdatesPerSecond === 'function') {
+        try {
+          if (difficulty === 'easy') {
+            // Easy: 100% speed (normal)
+            window.executive.setUpdatesPerSecond(60); // 60 * 1.0
+          } else if (difficulty === 'hard') {
+            // Hard: 110% speed (faster)
+            window.executive.setUpdatesPerSecond(66); // 60 * 1.1
+          } else if (difficulty === 'extreme') {
+            // Extreme: 120% speed (fastest)
+            window.executive.setUpdatesPerSecond(72); // 60 * 1.2
+          }
+          console.log('[settings-panel] Difficulty applied:', difficulty);
+        } catch (err) {
+          console.warn('[settings-panel] Failed to apply difficulty:', err);
+        }
+      } else {
+        // Executive not ready yet, retry after a short delay
+        setTimeout(applyDifficulty, 100);
       }
-    }
+    };
+    applyDifficulty();
 
-    // Profile button removed - now controlled by bottom nav only
-    // Always ensure profile button is hidden
-    ensureProfileButton(false);
+    // Apply profile button visibility setting
+    const showProfile = getSetting('showProfile', true);
+    ensureProfileButton(showProfile);
   }
 
   function ensureProfileButton(show) {
-    // Profile button removed - now controlled by bottom nav only
-    // Hide any existing profile button
+    // Profile button is now in bottom nav, but we keep this function for compatibility
+    // If a top-right profile button exists, show/hide it based on setting
     let profileBtn = document.getElementById('baseman-profile-btn');
     if (profileBtn) {
-      profileBtn.style.display = 'none';
-      // Remove from DOM if exists
-      try {
-        profileBtn.remove();
-      } catch (e) {}
+      profileBtn.style.display = show ? 'inline-flex' : 'none';
     }
+    // Note: Bottom nav profile button is always visible and controlled by bottom-nav.js
+    // This setting only affects any legacy top-right profile button if it exists
   }
 
   function wire(panel) {
@@ -329,13 +338,41 @@
       const handleThemeChange = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const newTheme = e.target.checked ? 'light' : 'dark';
+        // Get the actual input element (in case event is from label)
+        const input = e.target.type === 'checkbox' ? e.target : themeToggle;
+        const newTheme = input.checked ? 'light' : 'dark';
         setSetting('theme', newTheme);
         applySettings();
       };
       themeToggle.addEventListener('change', handleThemeChange, { passive: false });
       themeToggle.addEventListener('click', handleThemeChange, { passive: false });
       themeToggle.addEventListener('touchend', handleThemeChange, { passive: false });
+      
+      // Also listen on the label wrapper for better mobile compatibility
+      const themeLabel = themeToggle.closest('.settings-toggle');
+      if (themeLabel) {
+        themeLabel.addEventListener('click', (e) => {
+          // Only handle if click is on label itself, not on input
+          if (e.target === themeLabel || e.target.closest('.settings-toggle-slider')) {
+            e.preventDefault();
+            e.stopPropagation();
+            themeToggle.checked = !themeToggle.checked;
+            const newTheme = themeToggle.checked ? 'light' : 'dark';
+            setSetting('theme', newTheme);
+            applySettings();
+          }
+        }, { passive: false });
+        themeLabel.addEventListener('touchend', (e) => {
+          if (e.target === themeLabel || e.target.closest('.settings-toggle-slider')) {
+            e.preventDefault();
+            e.stopPropagation();
+            themeToggle.checked = !themeToggle.checked;
+            const newTheme = themeToggle.checked ? 'light' : 'dark';
+            setSetting('theme', newTheme);
+            applySettings();
+          }
+        }, { passive: false });
+      }
     }
 
     // Sound toggle - use both click and change for mobile compatibility
@@ -346,13 +383,41 @@
       const handleSoundChange = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const enabled = e.target.checked;
+        // Get the actual input element (in case event is from label)
+        const input = e.target.type === 'checkbox' ? e.target : soundToggle;
+        const enabled = input.checked;
         setSetting('sound', enabled);
         applySettings();
       };
       soundToggle.addEventListener('change', handleSoundChange, { passive: false });
       soundToggle.addEventListener('click', handleSoundChange, { passive: false });
       soundToggle.addEventListener('touchend', handleSoundChange, { passive: false });
+      
+      // Also listen on the label wrapper for better mobile compatibility
+      const soundLabel = soundToggle.closest('.settings-toggle');
+      if (soundLabel) {
+        soundLabel.addEventListener('click', (e) => {
+          // Only handle if click is on label itself, not on input
+          if (e.target === soundLabel || e.target.closest('.settings-toggle-slider')) {
+            e.preventDefault();
+            e.stopPropagation();
+            soundToggle.checked = !soundToggle.checked;
+            const enabled = soundToggle.checked;
+            setSetting('sound', enabled);
+            applySettings();
+          }
+        }, { passive: false });
+        soundLabel.addEventListener('touchend', (e) => {
+          if (e.target === soundLabel || e.target.closest('.settings-toggle-slider')) {
+            e.preventDefault();
+            e.stopPropagation();
+            soundToggle.checked = !soundToggle.checked;
+            const enabled = soundToggle.checked;
+            setSetting('sound', enabled);
+            applySettings();
+          }
+        }, { passive: false });
+      }
     }
 
     // Difficulty select - use both change and input for mobile compatibility
@@ -360,26 +425,58 @@
     if (difficultySelect) {
       const difficulty = getSetting('difficulty', 'easy');
       difficultySelect.value = difficulty;
+      
       const handleDifficultyChange = (e) => {
-        const newDifficulty = e.target.value;
-        setSetting('difficulty', newDifficulty);
-        applySettings();
+        e.stopPropagation();
+        // Don't prevent default for select - let it work naturally
+        const newDifficulty = e.target.value || difficultySelect.value;
+        if (newDifficulty) {
+          setSetting('difficulty', newDifficulty);
+          applySettings();
+        }
       };
-      // Add multiple event listeners for better mobile compatibility
+      
+      // Change event (primary) - fires when selection is made
       difficultySelect.addEventListener('change', handleDifficultyChange, { passive: true });
+      
+      // Input event for better mobile compatibility
       difficultySelect.addEventListener('input', handleDifficultyChange, { passive: true });
+      
+      // Click event to ensure select opens on mobile
       difficultySelect.addEventListener('click', (e) => {
-        // Ensure select is focused/opened on mobile
+        e.stopPropagation();
+        // Don't prevent default - let native select open
+        // Just ensure it's focused
         if (e.target.tagName === 'SELECT') {
           e.target.focus();
         }
       }, { passive: true });
-      // Touch events for mobile
-      difficultySelect.addEventListener('touchend', (e) => {
-        e.preventDefault();
+      
+      // Touch events for mobile - don't prevent default to allow native select to open
+      difficultySelect.addEventListener('touchstart', (e) => {
         e.stopPropagation();
-        handleDifficultyChange(e);
-      }, { passive: false });
+        // Allow native select to open
+      }, { passive: true });
+      
+      difficultySelect.addEventListener('touchend', (e) => {
+        e.stopPropagation();
+        // Don't prevent default - let native select open
+        // Check for value change after a delay
+        const currentValue = difficultySelect.value;
+        setTimeout(() => {
+          const newValue = difficultySelect.value;
+          if (newValue && newValue !== currentValue) {
+            setSetting('difficulty', newValue);
+            applySettings();
+          }
+        }, 200);
+      }, { passive: true });
+      
+      // Also listen for focus to ensure it works
+      difficultySelect.addEventListener('focus', () => {
+        // Ensure select is ready
+        difficultySelect.style.pointerEvents = 'auto';
+      });
     }
 
     // Profile button toggle - use both click and change for mobile compatibility
@@ -390,13 +487,41 @@
       const handleProfileChange = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const show = e.target.checked;
+        // Get the actual input element (in case event is from label)
+        const input = e.target.type === 'checkbox' ? e.target : profileToggle;
+        const show = input.checked;
         setSetting('showProfile', show);
         applySettings();
       };
       profileToggle.addEventListener('change', handleProfileChange, { passive: false });
       profileToggle.addEventListener('click', handleProfileChange, { passive: false });
       profileToggle.addEventListener('touchend', handleProfileChange, { passive: false });
+      
+      // Also listen on the label wrapper for better mobile compatibility
+      const profileLabel = profileToggle.closest('.settings-toggle');
+      if (profileLabel) {
+        profileLabel.addEventListener('click', (e) => {
+          // Only handle if click is on label itself, not on input
+          if (e.target === profileLabel || e.target.closest('.settings-toggle-slider')) {
+            e.preventDefault();
+            e.stopPropagation();
+            profileToggle.checked = !profileToggle.checked;
+            const show = profileToggle.checked;
+            setSetting('showProfile', show);
+            applySettings();
+          }
+        }, { passive: false });
+        profileLabel.addEventListener('touchend', (e) => {
+          if (e.target === profileLabel || e.target.closest('.settings-toggle-slider')) {
+            e.preventDefault();
+            e.stopPropagation();
+            profileToggle.checked = !profileToggle.checked;
+            const show = profileToggle.checked;
+            setSetting('showProfile', show);
+            applySettings();
+          }
+        }, { passive: false });
+      }
     }
   }
 

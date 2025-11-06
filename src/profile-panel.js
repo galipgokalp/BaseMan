@@ -42,8 +42,8 @@
         <h3 class="network-confirm-title">${targetNetworkName}</h3>
         <p class="network-confirm-message">Do you want to switch to this network?</p>
         <div class="network-confirm-buttons">
-          <button type="button" class="network-confirm-btn cancel" data-action="cancel">Cancel</button>
           <button type="button" class="network-confirm-btn confirm" data-action="confirm">Switch</button>
+          <button type="button" class="network-confirm-btn cancel" data-action="cancel">Cancel</button>
         </div>
       </div>
     `;
@@ -51,19 +51,29 @@
     document.body.appendChild(dialog);
     
     const handleClick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const action = e.target.getAttribute('data-action');
+      
+      // Close dialog immediately
+      dialog.remove();
+      
+      // Execute action after dialog is closed
       if (action === 'confirm') {
         onConfirm();
       } else if (action === 'cancel') {
         onCancel();
       }
-      dialog.remove();
     };
     
     const handleBackdrop = (e) => {
       if (e.target === dialog) {
-        onCancel();
+        e.preventDefault();
+        e.stopPropagation();
+        // Close dialog immediately
         dialog.remove();
+        // Execute cancel action
+        onCancel();
       }
     };
     
@@ -77,9 +87,11 @@
     // Close on Escape key
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
-        onCancel();
+        // Close dialog immediately
         dialog.remove();
         document.removeEventListener('keydown', handleEscape);
+        // Execute cancel action
+        onCancel();
       }
     };
     document.addEventListener('keydown', handleEscape);

@@ -364,6 +364,14 @@
   min-width: 100px;
   font-family: inherit;
   transition: all 0.2s ease;
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+  appearance: menulist;
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  min-height: 44px;
 }
 
 .settings-select:hover {
