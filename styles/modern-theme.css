@@ -293,11 +293,8 @@ body.theme-light .canvas-container {
   transform: translateY(0);
 }
 
+/* Leaderboard close button - synchronized with other panels (in header) */
 .leaderboard-close {
-  position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  z-index: 10001;
   background: transparent;
   color: var(--color-text-primary);
   border: none;

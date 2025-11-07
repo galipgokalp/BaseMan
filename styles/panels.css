@@ -1,13 +1,13 @@
 /* ===== Panel Overlay Styles ===== */
 
-/* Leaderboard Panel - Side Panel (same size as other panels) */
+/* Leaderboard Panel - Side Panel (synchronized with other panels) */
 .leaderboard-panel {
   position: fixed;
   top: 50vh;
   right: 0;
   bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   width: min(calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
-  z-index: 10000;
+  z-index: 10001;
   background: linear-gradient(135deg, 
     rgba(20, 20, 32, 0.98) 0%, 
     rgba(10, 10, 15, 0.99) 100%);
@@ -16,14 +16,14 @@
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
+  display: none;
   flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
-  /* Default: hidden */
-  display: none;
 }
 
-/* Show panel when hidden attribute is removed */
+/* Show panel when open class is added or hidden attribute is removed */
+.leaderboard-panel.open,
 .leaderboard-panel:not([hidden]) {
   display: flex;
 }
@@ -32,8 +32,6 @@
 .leaderboard-panel[hidden] {
   display: none !important;
 }
-
-/* Inline styles have highest specificity - they will override class rules */
 
 /* Profile Panel - Side Panel */
 .profile-panel {
@@ -124,7 +122,7 @@
   }
 }
 
-/* Panel Headers - Fixed */
+/* Panel Headers - Fixed (synchronized across all panels) */
 .leaderboard-header,
 .wallet-header,
 .profile-header,
@@ -151,12 +149,7 @@
   margin-right: calc(-1 * var(--spacing-lg));
 }
 
-/* Leaderboard header specific adjustments */
-.leaderboard-panel .leaderboard-header {
-  margin-top: 0;
-  padding-top: 0;
-}
-
+.leaderboard-title,
 .wallet-title,
 .profile-title,
 .settings-title {
@@ -167,6 +160,9 @@
   background-clip: text;
   margin: 0;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Profile User Info */
@@ -276,19 +272,27 @@
   background: linear-gradient(135deg, var(--color-primary-glow) 0%, var(--color-secondary) 100%);
 }
 
-/* Leaderboard specific - content after header should scroll */
-/* Note: position is set in main .leaderboard-panel rule above */
-
-.leaderboard-panel > .leaderboard-close {
-  position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  z-index: 10001;
-  flex-shrink: 0;
+/* Leaderboard close button - synchronized with other panels (in header) */
+.leaderboard-close {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: none;
+  font-size: 1.05rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
 }
 
-.leaderboard-panel > .leaderboard-header {
-  flex-shrink: 0;
+.leaderboard-close:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .leaderboard-panel > .leaderboard-body {

@@ -306,21 +306,21 @@
       // Only skip if state matches and not forced
       // But still ensure DOM is in sync
       const isCurrentlyHidden = panel.hasAttribute('hidden');
-      if (isCurrentlyHidden === !shouldShow) {
+      const hasOpenClass = panel.classList.contains('open');
+      if (isCurrentlyHidden === !shouldShow && hasOpenClass === shouldShow) {
         return;
       }
     }
     
     visible = shouldShow;
     // Show panel immediately (synchronous)
-    // Use both hidden attribute and inline style for maximum compatibility
+    // Use both hidden attribute and open class for consistency with other panels
     if (visible) {
       panel.removeAttribute('hidden');
-      // Force display with inline style (CSS will respect inline styles over class rules)
-      panel.style.display = 'flex';
+      panel.classList.add('open');
     } else {
       panel.setAttribute('hidden', '');
-      panel.style.display = 'none';
+      panel.classList.remove('open');
     }
     if (!visible) {
       stopPolling();
@@ -346,11 +346,13 @@
       const hash = window.location.hash.substring(1);
       visible = hash === 'leaderboard' || hash === 'pac';
     }
-    // Use only hidden attribute - CSS handles display
+    // Use both hidden attribute and open class for consistency with other panels
     if (visible) {
       panel.removeAttribute('hidden');
+      panel.classList.add('open');
     } else {
       panel.setAttribute('hidden', '');
+      panel.classList.remove('open');
     }
 
     if (refreshBtn) {
