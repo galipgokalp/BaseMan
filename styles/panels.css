@@ -80,7 +80,6 @@
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
-  position: relative;
   overflow: hidden;
 }
 
@@ -125,7 +124,6 @@
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
-  position: relative;
   overflow: hidden;
 }
 
