@@ -141,13 +141,14 @@
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
   z-index: 10;
-  padding-top: var(--spacing-sm);
+  padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--spacing-sm);
   padding-left: var(--spacing-lg);
   padding-right: var(--spacing-lg);
   margin-left: calc(-1 * var(--spacing-lg));
   margin-right: calc(-1 * var(--spacing-lg));
   margin-top: calc(-1 * var(--spacing-lg));
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 0;
 }
 
 .leaderboard-title,
@@ -241,7 +242,7 @@
   overflow-x: hidden;
   min-height: 0;
   padding-right: var(--spacing-xs);
-  padding-top: var(--spacing-xs);
+  margin-top: var(--spacing-md);
 }
 
 .leaderboard-body::-webkit-scrollbar,
