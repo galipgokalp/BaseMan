@@ -101,8 +101,15 @@ function ConnectMenuInner() {
 }
 
 function App() {
-  const qc = new QueryClient();
   const isMiniApp = isMiniAppEnvironment();
+  
+  // In mini app environments, DO NOT render anything
+  // Wallet functionality is handled via Wallet panel in bottom navigation
+  if (isMiniApp) {
+    return null;
+  }
+  
+  const qc = new QueryClient();
   const [currentConfig, setCurrentConfig] = useState(config);
   const [isLoading, setIsLoading] = useState(!config);
   

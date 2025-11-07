@@ -211419,8 +211419,11 @@ Message: ${transactionMessage}.
     }, isPending ? "Connecting\u2026" : "Connect");
   }
   function App() {
-    const qc2 = new QueryClient();
     const isMiniApp = isMiniAppEnvironment();
+    if (isMiniApp) {
+      return null;
+    }
+    const qc2 = new QueryClient();
     const [currentConfig, setCurrentConfig] = (0, import_react7.useState)(config3);
     const [isLoading, setIsLoading] = (0, import_react7.useState)(!config3);
     (0, import_react7.useEffect)(() => {
