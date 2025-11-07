@@ -16,58 +16,72 @@
     }
   }
 
+  // Use unified SDK detection utility if available
   function resolveSdk() {
-    // Priority order optimized for mobile environments (Farcaster/Base App)
-    // Try multiple times as SDK may load after page load in mobile webviews
-    const candidates = [
-      // 1. Farcaster mobile (most common) - check multiple ways
-      () => window.fc && window.fc.miniapp,
-      () => window.farcaster && window.farcaster.miniapp,
-      () => window.fc && window.fc.sdk,
-      () => window.farcaster && window.farcaster.sdk,
-      // 2. Base App / ReactNative WebView
-      () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
-      () => window.MiniApp && window.MiniApp.sdk,
-      // 3. Standard SDK namespaces
-      () => window.MiniAppSDK,
-      () => window.FarcasterMiniAppSDK,
-      () => window.sdk,
-      () => window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp),
-      // 4. GlobalThis namespaces (for module bundlers)
-      () =>
-        (window.globalThis &&
-          window.globalThis.MiniAppSDK &&
-          window.globalThis.MiniAppSDK.default) ||
-        null,
-      () =>
-        (window.globalThis &&
-          window.globalThis.miniapp &&
-          (window.globalThis.miniapp.default || window.globalThis.miniapp.sdk)) ||
-        null,
-      // 5. Dynamic import detection (for ESM modules)
-      () => {
+    try {
+      // Use centralized SDK detection if available
+      if (typeof window !== 'undefined' && typeof window.resolveSDK === 'function') {
+        const sdk = window.resolveSDK();
+        if (sdk) return sdk;
+      }
+      
+      // Fallback: platform-aware detection
+      // Priority order optimized for mobile environments (Farcaster/Base App)
+      const isFarcaster = typeof window !== 'undefined' && 
+        typeof window.isFarcasterMiniApp === 'function' && 
+        window.isFarcasterMiniApp();
+      const isBase = typeof window !== 'undefined' && 
+        typeof window.isBaseApp === 'function' && 
+        window.isBaseApp();
+      
+      const candidates = [];
+      
+      // Platform-specific priority
+      if (isFarcaster) {
+        // Farcaster SDK priority
+        candidates.push(
+          () => window.fc && window.fc.miniapp,
+          () => window.farcaster && window.farcaster.miniapp,
+          () => window.fc && window.fc.sdk,
+          () => window.farcaster && window.farcaster.sdk,
+          () => window.MiniAppSDK,
+          () => window.FarcasterMiniAppSDK
+        );
+      } else if (isBase) {
+        // Base App SDK priority
+        candidates.push(
+          () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
+          () => window.MiniApp && window.MiniApp.sdk
+        );
+      }
+      
+      // Generic fallback
+      candidates.push(
+        () => window.sdk,
+        () => window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp),
+        () => window.MiniAppSDK,
+        () => window.FarcasterMiniAppSDK,
+        () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
+        () => window.MiniApp && window.MiniApp.sdk
+      );
+      
+      for (const getter of candidates) {
         try {
-          if (window.__FARCASTER_SDK__) return window.__FARCASTER_SDK__;
-        } catch (_) {}
-        return null;
-      }
-    ];
-    for (const getter of candidates) {
-      try {
-        const value = getter();
-        // Verify it's actually an SDK object with required methods
-        if (value && typeof value === 'object') {
-          // Check for critical SDK methods
-          if ((value.actions && typeof value.actions.ready === 'function') ||
-              (value.wallet && typeof value.wallet.getEthereumProvider === 'function')) {
-            return value;
+          const value = getter();
+          if (value && typeof value === 'object') {
+            if ((value.actions && typeof value.actions.ready === 'function') ||
+                (value.wallet && typeof value.wallet.getEthereumProvider === 'function')) {
+              return value;
+            }
           }
+        } catch (error) {
+          debug(`SDK candidate error: ${error?.message || error}`);
         }
-      } catch (error) {
-        debug(`SDK candidate error: ${error?.message || error}`);
       }
+      return null;
+    } catch (_) {
+      return null;
     }
-    return null;
   }
 
   function resolveEthers() {
