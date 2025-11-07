@@ -362,136 +362,33 @@
       return;
     }
 
-    // Fallback: Ensure panel exists and open it directly
-    console.log('[bottom-nav] WalletPanel API not ready, ensuring panel exists and opening directly');
-    const panelId = 'baseman-wallet-panel';
-    let panel = document.getElementById(panelId);
-    
-    // If panel doesn't exist, create it (same structure as wallet-panel.js)
-    if (!panel && document.body) {
-      console.log('[bottom-nav] Creating wallet panel...');
-      panel = document.createElement('section');
-      panel.id = panelId;
-      panel.className = 'wallet-panel';
-      panel.setAttribute('aria-hidden', 'true');
-      panel.innerHTML = `
-        <header class="wallet-header">
-          <h2 class="wallet-title">Wallet</h2>
-          <button type="button" class="wallet-close" data-close>×</button>
-        </header>
-        <div class="wallet-body">
-          <div class="wallet-section">
-            <h3 class="wallet-section-title">Connection</h3>
-            <div class="wallet-row">
-              <span>Status</span>
-              <span data-wallet-status class="wallet-status">-</span>
-            </div>
-            <div class="wallet-row">
-              <span>Address</span>
-              <span data-wallet-address class="wallet-address">-</span>
-            </div>
-          </div>
-          <div class="wallet-section">
-            <h3 class="wallet-section-title">Network</h3>
-            <div class="wallet-row">
-              <span>Network</span>
-              <span data-network>-</span>
-            </div>
-            <div class="wallet-row">
-              <span>Chain ID</span>
-              <span data-chain-id>-</span>
-            </div>
-          </div>
-          <div class="wallet-section">
-            <h3 class="wallet-section-title">Balances</h3>
-            <div class="wallet-row">
-              <span>ETH</span>
-              <span data-eth-balance>-</span>
-            </div>
-            <div class="wallet-row">
-              <span>USDC</span>
-              <span data-usdc-balance>-</span>
-            </div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(panel);
-      
-      // Wire close button
-      const closeBtn = panel.querySelector('[data-close]');
-      if (closeBtn) {
-        closeBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          panel.classList.remove('open');
-          panel.setAttribute('aria-hidden', 'true');
-          if (window.BottomNav) {
-            window.BottomNav.setActive(null);
+    // Fallback: Wait for wallet-panel.js to initialize
+    console.log('[bottom-nav] WalletPanel API not ready, waiting for initialization...');
+    let attempts = 0;
+    const maxAttempts = 20; // 4 seconds max wait
+    const checkInterval = setInterval(() => {
+      attempts++;
+      if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
+        clearInterval(checkInterval);
+        console.log('[bottom-nav] WalletPanel API now available, using it');
+        window.WalletPanel.show();
+        requestAnimationFrame(() => {
+          if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
+            window.WalletPanel.refresh();
           }
         });
-      }
-      
-      // Close on overlay click
-      panel.addEventListener('click', (e) => {
-        if (e.target === panel) {
-          panel.classList.remove('open');
-          panel.setAttribute('aria-hidden', 'true');
-          if (window.BottomNav) {
-            window.BottomNav.setActive(null);
-          }
+      } else if (attempts >= maxAttempts) {
+        clearInterval(checkInterval);
+        console.warn('[bottom-nav] WalletPanel API not available after waiting');
+        // Last resort: try to open panel directly if it exists
+        const panel = document.getElementById('baseman-wallet-panel');
+        if (panel) {
+          console.log('[bottom-nav] Panel exists, opening directly as fallback');
+          panel.classList.add('open');
+          panel.setAttribute('aria-hidden', 'false');
         }
-      });
-    }
-    
-    // If panel still doesn't exist, wait for wallet-panel.js
-    if (!panel) {
-      console.log('[bottom-nav] Waiting for wallet-panel.js to initialize...');
-      let attempts = 0;
-      const maxAttempts = 10; // 2 seconds max wait
-      const checkInterval = setInterval(() => {
-        attempts++;
-        if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
-          clearInterval(checkInterval);
-          console.log('[bottom-nav] WalletPanel API now available, using it');
-          window.WalletPanel.show();
-          requestAnimationFrame(() => {
-            if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
-              window.WalletPanel.refresh();
-            }
-          });
-        } else {
-          panel = document.getElementById(panelId);
-          if (panel) {
-            clearInterval(checkInterval);
-            console.log('[bottom-nav] Panel found, opening directly');
-            panel.classList.add('open');
-            panel.setAttribute('aria-hidden', 'false');
-            // Trigger refresh if API becomes available
-            requestAnimationFrame(() => {
-              if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
-                window.WalletPanel.refresh();
-              }
-            });
-          } else if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            console.warn('[bottom-nav] Wallet panel not found after waiting');
-          }
-        }
-      }, 200);
-      return;
-    }
-    
-    // Panel exists, open it directly
-    console.log('[bottom-nav] Opening wallet panel directly');
-    panel.classList.add('open');
-    panel.setAttribute('aria-hidden', 'false');
-    
-    // Trigger refresh if API is available
-    requestAnimationFrame(() => {
-      if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
-        window.WalletPanel.refresh();
       }
-    });
+    }, 200);
   }
 
   function openSettings() {
