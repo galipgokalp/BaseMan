@@ -2,6 +2,7 @@ import { createConfig, http } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { injected, walletConnect, metaMask, safe, baseAccount } from 'wagmi/connectors';
+import { isFarcasterMiniApp, isBaseApp, isMiniAppHost } from '../utils/platform-detection.js';
 
 function readEnv(key) {
   if (typeof window !== 'undefined') {
@@ -51,54 +52,9 @@ function getFallbackBaseSepoliaChain() {
   };
 }
 
-// Platform detection functions (exported for use in other modules)
-export function isFarcasterMiniApp() {
-  try {
-    return Boolean(
-      (typeof window !== 'undefined') && (
-        (window.fc && window.fc.miniapp) ||
-        (window.farcaster && window.farcaster.miniapp) ||
-        window.MiniAppSDK ||
-        (window.navigator && window.navigator.userAgent && (
-          window.navigator.userAgent.includes('Farcaster') ||
-          window.navigator.userAgent.includes('Warpcast')
-        ))
-      )
-    );
-  } catch (_) { return false; }
-}
-
-export function isBaseApp() {
-  try {
-    if (typeof window === 'undefined') return false;
-    
-    // Primary indicators for Base App
-    if (window.ReactNativeWebView) {
-      // Additional check: if it's ReactNativeWebView but also Farcaster, it's Farcaster
-      if (isFarcasterMiniApp()) return false;
-      return true;
-    }
-    
-    // User agent check for BaseApp
-    if (window.navigator && window.navigator.userAgent) {
-      const ua = window.navigator.userAgent;
-      if (ua.includes('BaseApp') && !ua.includes('Farcaster') && !ua.includes('Warpcast')) {
-        return true;
-      }
-    }
-    
-    return false;
-  } catch (_) { return false; }
-}
-
-export function isMiniAppHost() {
-  return isFarcasterMiniApp() || isBaseApp();
-}
-
-// Also expose on window for global access
-if (typeof window !== 'undefined') {
-  window.isMiniAppHost = isMiniAppHost;
-}
+// Re-export platform detection functions for backward compatibility
+// All platform detection now uses centralized utility from utils/platform-detection.js
+export { isFarcasterMiniApp, isBaseApp, isMiniAppHost } from '../utils/platform-detection.js';
 
 export function makeWagmiConfig() {
   // Get chain objects, with fallback if imports failed

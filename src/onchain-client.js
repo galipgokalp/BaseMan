@@ -340,42 +340,31 @@
       }
     })();
 
+  // Use centralized platform detection utility
+  // Import will be handled via dynamic import or script tag
   function isMiniAppEnv() {
-    // Treat as mini‑app if the SDK is present or known host hints are present
     try {
-      // 1) Reliable: if we resolved an SDK with wallet.getEthereumProvider
+      // Use centralized detection if available
+      if (typeof window !== 'undefined' && typeof window.isMiniAppEnv === 'function') {
+        return window.isMiniAppEnv();
+      }
+      // Fallback: check for SDK presence (reliable indicator)
       if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
         return true;
       }
-      // 2) Farcaster/Warpcast hints (mobile priority)
-      const hasFC = Boolean(
-        (window.fc && window.fc.miniapp) || 
-        (window.farcaster && window.farcaster.miniapp) ||
-        (window.fc && typeof window.fc === 'object') ||
-        (window.farcaster && typeof window.farcaster === 'object')
-      );
-      if (hasFC) return true;
-      // 3) React Native webview host (Base App and others) - mobile specific
-      if (Boolean(window.ReactNativeWebView)) {
-        return true;
-      }
-      // 4) User agent hints for mobile apps
-      const ua = navigator.userAgent || '';
-      if (ua.includes('Farcaster') || ua.includes('Warpcast') || ua.includes('BaseApp')) {
-        return true;
-      }
-      // 5) MiniKit / MiniApp namespaces
-      if (window.MiniKit || window.MiniAppSDK || (window.MiniApp && window.MiniApp.sdk) || window.FarcasterMiniAppSDK) {
-        return true;
-      }
-      // 6) Check for iframe context (common in mobile webviews)
-      try {
-        if (window.self !== window.top) {
+      // Fallback: check for known host hints
+      if (typeof window !== 'undefined') {
+        const hasFC = Boolean(
+          (window.fc && window.fc.miniapp) || 
+          (window.farcaster && window.farcaster.miniapp)
+        );
+        if (hasFC) return true;
+        if (window.ReactNativeWebView) return true;
+        if (window.MiniKit) return true;
+        const ua = navigator.userAgent || '';
+        if (ua.includes('Farcaster') || ua.includes('Warpcast') || ua.includes('BaseApp')) {
           return true;
         }
-      } catch (_) {
-        // If we can't access top, we might be in a cross-origin iframe
-        return true;
       }
     } catch (_) {}
     return false;
@@ -824,15 +813,10 @@
     async function submitScoreWithPaymaster(callData) {
       // Farcaster Wallet does not support paymaster yet (per miniapps.farcaster.xyz/docs/guides/wallets)
       // Paymaster is only supported in Base App, not in Farcaster/Warpcast
-      const isFarcaster = isMiniAppEnv() && (
-        (window.fc && window.fc.miniapp) ||
-        (window.farcaster && window.farcaster.miniapp) ||
-        window.MiniAppSDK ||
-        (window.navigator && window.navigator.userAgent && (
-          window.navigator.userAgent.includes('Farcaster') ||
-          window.navigator.userAgent.includes('Warpcast')
-        ))
-      );
+      // Use centralized platform detection
+      const isFarcaster = typeof window !== 'undefined' && 
+        typeof window.isFarcasterMiniApp === 'function' && 
+        window.isFarcasterMiniApp();
       
       if (isFarcaster) {
         debug('Farcaster Wallet does not support paymaster; attempting wallet_sendCalls without paymaster');
@@ -907,11 +891,20 @@
     async function sendCalls(callData, paymasterUrl) {
       const hexChainId = (() => { try { return ethers.toBeHex(config.chainId); } catch { return null; } })();
       if (!hexChainId) throw new Error('invalid chainId');
+      
+      // Platform-specific atomic batch setting
+      // Farcaster: sequential execution (atomic değil)
+      // Base App: atomic batch destekliyor
+      const isFarcaster = typeof window !== 'undefined' && 
+        typeof window.isFarcasterMiniApp === 'function' && 
+        window.isFarcasterMiniApp();
+      const atomicRequired = !isFarcaster; // Farcaster: false, Base App: true
+      
       const payload = {
         version: "1.0.0",
         from: state.address,
         chainId: hexChainId,
-        atomicRequired: true,
+        atomicRequired: atomicRequired,
         calls: [ { to: config.registryAddress, data: callData, value: "0x0" } ]
       };
       if (paymasterUrl) {

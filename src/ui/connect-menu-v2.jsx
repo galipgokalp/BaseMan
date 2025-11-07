@@ -8,8 +8,14 @@ import { config as wagmiConfig, makeWagmiConfig, getConfig } from './wagmi-confi
 // Config will be initialized lazily when needed (especially important for mobile apps)
 let config = wagmiConfig || null;
 
+// Use centralized platform detection
 function isMiniAppEnvironment() {
   try {
+    // Use centralized detection if available
+    if (typeof window !== 'undefined' && typeof window.isMiniAppHost === 'function') {
+      return window.isMiniAppHost();
+    }
+    // Fallback for when utility is not yet loaded
     return Boolean(
       (typeof window !== 'undefined') && (
         (window.fc && window.fc.miniapp) ||

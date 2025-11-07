@@ -9,17 +9,26 @@
 
   function getMiniAppProvider() {
     try {
-      // Priority order optimized for mobile (Farcaster/Base App)
-      const sdk =
-        (window.fc && window.fc.miniapp) ||
-        (window.farcaster && window.farcaster.miniapp) ||
-        (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
-        (window.MiniApp && window.MiniApp.sdk) ||
-        window.MiniAppSDK ||
-        window.FarcasterMiniAppSDK ||
-        window.sdk ||
-        (window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp)) ||
-        null;
+      // Use unified SDK detection if available
+      let sdk = null;
+      if (typeof window !== 'undefined' && typeof window.resolveSDK === 'function') {
+        sdk = window.resolveSDK();
+      }
+      
+      // Fallback: direct detection
+      if (!sdk) {
+        sdk =
+          (window.fc && window.fc.miniapp) ||
+          (window.farcaster && window.farcaster.miniapp) ||
+          (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
+          (window.MiniApp && window.MiniApp.sdk) ||
+          window.MiniAppSDK ||
+          window.FarcasterMiniAppSDK ||
+          window.sdk ||
+          (window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp)) ||
+          null;
+      }
+      
       if (!sdk || !sdk.wallet || typeof sdk.wallet.getEthereumProvider !== 'function') return null;
       return sdk.wallet.getEthereumProvider();
     } catch (_) {

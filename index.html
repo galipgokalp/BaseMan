@@ -74,6 +74,8 @@
     </nav>
     <canvas id='atlas' class="atlas-hidden"></canvas>
     <script defer src="vendor/miniapp-sdk/index.min.js"></script>
+    <!-- Centralized platform detection utility (must load early) -->
+    <script type="module" src="src/utils/platform-detection.js"></script>
     <!-- Expose Mini App EIP-1193 provider as window.ethereum for libs expecting injected provider -->
     <script defer src="src/miniapp-ethereum-shim.js"></script>
     <!-- Debug/mock: inject a minimal Mini App SDK + provider in web for local e2e -->

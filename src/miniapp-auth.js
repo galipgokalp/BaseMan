@@ -4,13 +4,21 @@
 // - Retrieves a short‑lived Quick Auth token and forwards it to backend for verification
 
 (function () {
+  // Use centralized platform detection if available
   function isMiniAppEnv() {
     try {
+      // Use centralized detection if available
+      if (typeof window !== 'undefined' && typeof window.isMiniAppHost === 'function') {
+        return window.isMiniAppHost();
+      }
+      // Fallback for when utility is not yet loaded
       return (
         (window.fc && window.fc.miniapp) ||
         (window.farcaster && window.farcaster.miniapp) ||
         window.MiniApp ||
-        (window.miniapp && (window.miniapp.default || window.miniapp.sdk))
+        (window.miniapp && (window.miniapp.default || window.miniapp.sdk)) ||
+        window.MiniKit ||
+        window.ReactNativeWebView
       );
     } catch (_) { return false; }
   }
