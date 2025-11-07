@@ -79,6 +79,25 @@
   flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, 
+    transparent 0%, 
+    var(--color-primary) 50%, 
+    transparent 100%);
+  animation: borderGlowVertical 3s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .wallet-panel.open {
@@ -105,6 +124,25 @@
   flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, 
+    transparent 0%, 
+    var(--color-primary) 50%, 
+    transparent 100%);
+  animation: borderGlowVertical 3s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .settings-panel.open {
