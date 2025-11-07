@@ -149,6 +149,11 @@
   display: flex;
 }
 
+@keyframes borderGlowVertical {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 @keyframes panelSlideIn {
   from {
     opacity: 0;
