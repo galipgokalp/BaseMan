@@ -2,9 +2,29 @@
 
 ## "Cüzdan yapılandırması kullanılamıyor" Hatası
 
+### Entegrasyon
+
+Bu hata **Wagmi + @farcaster/miniapp-wagmi-connector** entegrasyonu ile ilgilidir.
+
+**Kullanılan Paketler:**
+- `wagmi` (^2.19.2) - Ethereum wallet bağlantı kütüphanesi
+- `@farcaster/miniapp-wagmi-connector` (^1.1.0) - Farcaster Mini App için Wagmi connector
+- `@tanstack/react-query` (^5.90.6) - React query kütüphanesi (wagmi için gerekli)
+- `viem` (^2.38.6) - Ethereum utility kütüphanesi (wagmi için gerekli)
+
+**Dosyalar:**
+- `src/ui/wagmi-config.js` - Wagmi config oluşturma
+- `src/ui/connect-menu-v2.jsx` - Connect menu React component
+- `vendor/connect-menu.js` - Bundled connect menu (esbuild ile build edilmiş)
+- `src/miniapp-ethereum-shim.js` - Mini app SDK'dan `window.ethereum` provider'ı expose eder
+
 ### Sorun
 
 Oyun ekranında "Wallet config unavailable" (Cüzdan yapılandırması kullanılamıyor) hatası görünüyor. Bu hata, wagmi config'in başlatılamadığında ortaya çıkar.
+
+**Özellikle mobil uygulamalarda (Farcaster/Base App) görülür:**
+- Web tarayıcıda Connect butonu çalışır
+- Mobil uygulama içinde "Wallet config unavailable" hatası görünür
 
 ### Nedenleri
 
@@ -84,6 +104,36 @@ console.error('[wagmi-config] Error details:', {
      console.error('Error:', e);
    }
    ```
+
+### Mobil Uygulamada Özel Sorunlar
+
+#### Sorun: Mini App Connector Başarısız
+
+**Belirtiler:**
+- Web'de Connect butonu çalışıyor
+- Mobil uygulamada (Farcaster/Base App) "Wallet config unavailable" hatası
+- Console'da: `[wagmi-config] Mini app connector failed`
+
+**Neden:**
+- `@farcaster/miniapp-wagmi-connector` paketi SDK henüz hazır olmadan çağrılıyor olabilir
+- Bundling sırasında connector düzgün initialize edilmemiş olabilir
+
+**Çözüm (Otomatik):**
+1. Mini app connector başarısız olursa, `injected()` connector'ı kullanılır
+2. Bu çalışır çünkü `miniapp-ethereum-shim.js` zaten `window.ethereum`'ı SDK'dan expose eder
+3. O da başarısız olursa, boş connectors array'i ile config oluşturulur (crash etmez)
+
+**Manuel Çözüm:**
+```javascript
+// src/ui/wagmi-config.js içinde
+// Mini app ortamında direkt injected() kullan:
+if (isMiniAppHost()) {
+  return createConfig({
+    ...baseConfig,
+    connectors: [injected()] // Mini app connector yerine
+  });
+}
+```
 
 ### Yaygın Sorunlar ve Çözümleri
 

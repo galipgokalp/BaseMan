@@ -116,15 +116,20 @@ export function makeWagmiConfig() {
   // Try to create config with proper error handling
   try {
     if (isMiniAppHost()) {
+      // In mini app, we can use injected() connector since miniapp-ethereum-shim.js
+      // already exposes window.ethereum from the SDK
+      // This is more reliable than miniAppConnector() which may fail if SDK isn't ready
       try {
+        // Try mini app connector first (preferred)
         const connector = miniAppConnector();
         return createConfig({
           ...baseConfig,
           connectors: [connector]
         });
       } catch (connectorError) {
-        console.error('[wagmi-config] Error creating mini app connector:', connectorError);
-        // Fallback: try without connector or with injected
+        console.warn('[wagmi-config] Mini app connector failed, using injected() fallback:', connectorError?.message || connectorError);
+        // Fallback: use injected() connector
+        // This works because miniapp-ethereum-shim.js exposes window.ethereum from SDK
         try {
           return createConfig({
             ...baseConfig,
@@ -132,7 +137,16 @@ export function makeWagmiConfig() {
           });
         } catch (fallbackError) {
           console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
-          throw fallbackError;
+          // Last resort: create config with empty connectors (won't connect but won't crash)
+          try {
+            return createConfig({
+              ...baseConfig,
+              connectors: []
+            });
+          } catch (emptyConnectorError) {
+            console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
+            throw fallbackError;
+          }
         }
       }
     }

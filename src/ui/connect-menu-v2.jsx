@@ -3,10 +3,25 @@ import { createRoot } from 'react-dom/client';
 import { WagmiProvider, useAccount, useConnect, useSendTransaction, useSendCalls } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { parseEther } from 'viem';
-import { config as wagmiConfig } from './wagmi-config.js';
+import { config as wagmiConfig, makeWagmiConfig } from './wagmi-config.js';
 
 // Safely handle config initialization
-const config = wagmiConfig || null;
+// Try to get config, and if it's null, try to recreate it
+let config = wagmiConfig || null;
+
+// If config is null, try to recreate it (may happen during bundling)
+if (!config) {
+  try {
+    console.warn('[ConnectMenu] Config was null, attempting to recreate...');
+    config = makeWagmiConfig();
+    if (config) {
+      console.log('[ConnectMenu] Config recreated successfully');
+    }
+  } catch (e) {
+    console.error('[ConnectMenu] Failed to recreate config:', e);
+    config = null;
+  }
+}
 
 function isMiniAppEnvironment() {
   try {
@@ -105,9 +120,34 @@ function ConnectMenuInner() {
 
 function App() {
   const qc = new QueryClient();
+  const isMiniApp = isMiniAppEnvironment();
   
-  // If config is not available, show error message (should rarely happen now with fallback chains)
-  if (!config) {
+  // Try to get config one more time (in case it was null during module load)
+  let currentConfig = config;
+  if (!currentConfig) {
+    try {
+      console.warn('[ConnectMenu] Config still null in App, trying to recreate...');
+      currentConfig = makeWagmiConfig();
+      if (currentConfig) {
+        console.log('[ConnectMenu] Config recreated in App successfully');
+        // Update module-level config for next time
+        config = currentConfig;
+      }
+    } catch (e) {
+      console.error('[ConnectMenu] Failed to recreate config in App:', e);
+    }
+  }
+  
+  // If config is not available
+  if (!currentConfig) {
+    // In mini app environments, don't show error - wallet works via SDK
+    // Just return empty/nothing instead of showing error
+    if (isMiniApp) {
+      console.warn('[ConnectMenu] Config unavailable in mini app, hiding menu');
+      return null;
+    }
+    
+    // Web environment - show error message
     return React.createElement('div', {
       style: {
         fontFamily: 'Inter, system-ui, sans-serif',
@@ -122,7 +162,7 @@ function App() {
   }
   
   return (
-    React.createElement(WagmiProvider, { config },
+    React.createElement(WagmiProvider, { config: currentConfig },
       React.createElement(QueryClientProvider, { client: qc },
         React.createElement(ConnectMenuInner, null)
       )

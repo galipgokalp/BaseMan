@@ -171192,7 +171192,7 @@ Message: ${transactionMessage}.
             connectors: [connector]
           });
         } catch (connectorError) {
-          console.error("[wagmi-config] Error creating mini app connector:", connectorError);
+          console.warn("[wagmi-config] Mini app connector failed, using injected() fallback:", connectorError?.message || connectorError);
           try {
             return createConfig({
               ...baseConfig,
@@ -171200,7 +171200,15 @@ Message: ${transactionMessage}.
             });
           } catch (fallbackError) {
             console.error("[wagmi-config] Fallback config creation failed:", fallbackError);
-            throw fallbackError;
+            try {
+              return createConfig({
+                ...baseConfig,
+                connectors: []
+              });
+            } catch (emptyConnectorError) {
+              console.error("[wagmi-config] Empty connector config also failed:", emptyConnectorError);
+              throw fallbackError;
+            }
           }
         }
       }
@@ -171268,6 +171276,18 @@ Message: ${transactionMessage}.
 
   // src/ui/connect-menu-v2.jsx
   var config2 = config || null;
+  if (!config2) {
+    try {
+      console.warn("[ConnectMenu] Config was null, attempting to recreate...");
+      config2 = makeWagmiConfig();
+      if (config2) {
+        console.log("[ConnectMenu] Config recreated successfully");
+      }
+    } catch (e17) {
+      console.error("[ConnectMenu] Failed to recreate config:", e17);
+      config2 = null;
+    }
+  }
   function isMiniAppEnvironment() {
     try {
       return Boolean(
@@ -171358,7 +171378,25 @@ Message: ${transactionMessage}.
   }
   function App() {
     const qc2 = new QueryClient();
-    if (!config2) {
+    const isMiniApp = isMiniAppEnvironment();
+    let currentConfig = config2;
+    if (!currentConfig) {
+      try {
+        console.warn("[ConnectMenu] Config still null in App, trying to recreate...");
+        currentConfig = makeWagmiConfig();
+        if (currentConfig) {
+          console.log("[ConnectMenu] Config recreated in App successfully");
+          config2 = currentConfig;
+        }
+      } catch (e17) {
+        console.error("[ConnectMenu] Failed to recreate config in App:", e17);
+      }
+    }
+    if (!currentConfig) {
+      if (isMiniApp) {
+        console.warn("[ConnectMenu] Config unavailable in mini app, hiding menu");
+        return null;
+      }
       return import_react7.default.createElement("div", {
         style: {
           fontFamily: "Inter, system-ui, sans-serif",
@@ -171373,7 +171411,7 @@ Message: ${transactionMessage}.
     }
     return import_react7.default.createElement(
       WagmiProvider,
-      { config: config2 },
+      { config: currentConfig },
       import_react7.default.createElement(
         QueryClientProvider,
         { client: qc2 },
