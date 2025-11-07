@@ -188,38 +188,57 @@ export function makeWagmiConfig() {
           }
         }
       } else if (isBaseApp()) {
-        // Base App - use baseAccount connector (recommended by docs.base.org)
-        // Fallback to injected() if baseAccount is not available
+        // Base App - use both farcasterMiniApp() and baseAccount() connectors
+        // Per docs.base.org/mini-apps/core-concepts/base-account:
+        // "The farcasterMiniApp() connector automatically connects to the user's Base Account
+        //  when the Mini App launches within the Base App."
+        // Both connectors should be included for full Base Account support
+        const connectors = [];
+        
         try {
-          const connector = baseAccount({
+          // Farcaster connector automatically connects to Base Account in Base App
+          const farcasterConnector = miniAppConnector();
+          connectors.push(farcasterConnector);
+        } catch (farcasterError) {
+          console.warn('[wagmi-config] Farcaster connector failed in Base App:', farcasterError?.message || farcasterError);
+        }
+        
+        try {
+          // Base Account connector for explicit Base Account features
+          const baseAccountConnector = baseAccount({
             appName: 'BaseMan',
             appLogoUrl: 'https://base-man.vercel.app/icon.png'
           });
+          connectors.push(baseAccountConnector);
+        } catch (baseAccountError) {
+          console.warn('[wagmi-config] Base Account connector failed:', baseAccountError?.message || baseAccountError);
+        }
+        
+        if (connectors.length > 0) {
           return createConfig({
             ...baseConfig,
-            connectors: [connector]
+            connectors
           });
-        } catch (baseAccountError) {
-          console.warn('[wagmi-config] Base Account connector failed, using injected() fallback:', baseAccountError?.message || baseAccountError);
-          // Fallback: use injected() connector
-          // This works because miniapp-ethereum-shim.js exposes window.ethereum from SDK
+        }
+        
+        // Fallback: use injected() connector
+        // This works because miniapp-ethereum-shim.js exposes window.ethereum from SDK
+        try {
+          return createConfig({
+            ...baseConfig,
+            connectors: [injected()]
+          });
+        } catch (fallbackError) {
+          console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
+          // Last resort: create config with empty connectors
           try {
             return createConfig({
               ...baseConfig,
-              connectors: [injected()]
+              connectors: []
             });
-          } catch (fallbackError) {
-            console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
-            // Last resort: create config with empty connectors
-            try {
-              return createConfig({
-                ...baseConfig,
-                connectors: []
-              });
-            } catch (emptyConnectorError) {
-              console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
-              throw fallbackError;
-            }
+          } catch (emptyConnectorError) {
+            console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
+            throw fallbackError;
           }
         }
       } else {

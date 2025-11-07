@@ -211099,33 +211099,43 @@ Message: ${transactionMessage}.
             }
           }
         } else if (isBaseApp()) {
+          const connectors = [];
           try {
-            const connector = baseAccount({
+            const farcasterConnector = farcasterMiniApp();
+            connectors.push(farcasterConnector);
+          } catch (farcasterError) {
+            console.warn("[wagmi-config] Farcaster connector failed in Base App:", farcasterError?.message || farcasterError);
+          }
+          try {
+            const baseAccountConnector = baseAccount({
               appName: "BaseMan",
               appLogoUrl: "https://base-man.vercel.app/icon.png"
             });
+            connectors.push(baseAccountConnector);
+          } catch (baseAccountError) {
+            console.warn("[wagmi-config] Base Account connector failed:", baseAccountError?.message || baseAccountError);
+          }
+          if (connectors.length > 0) {
             return createConfig({
               ...baseConfig,
-              connectors: [connector]
+              connectors
             });
-          } catch (baseAccountError) {
-            console.warn("[wagmi-config] Base Account connector failed, using injected() fallback:", baseAccountError?.message || baseAccountError);
+          }
+          try {
+            return createConfig({
+              ...baseConfig,
+              connectors: [injected()]
+            });
+          } catch (fallbackError) {
+            console.error("[wagmi-config] Fallback config creation failed:", fallbackError);
             try {
               return createConfig({
                 ...baseConfig,
-                connectors: [injected()]
+                connectors: []
               });
-            } catch (fallbackError) {
-              console.error("[wagmi-config] Fallback config creation failed:", fallbackError);
-              try {
-                return createConfig({
-                  ...baseConfig,
-                  connectors: []
-                });
-              } catch (emptyConnectorError) {
-                console.error("[wagmi-config] Empty connector config also failed:", emptyConnectorError);
-                throw fallbackError;
-              }
+            } catch (emptyConnectorError) {
+              console.error("[wagmi-config] Empty connector config also failed:", emptyConnectorError);
+              throw fallbackError;
             }
           }
         } else {
