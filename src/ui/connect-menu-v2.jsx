@@ -301,23 +301,71 @@ function initConnectMenu() {
 // Early check: if mini app, don't initialize at all
 // This prevents any connect menu UI from appearing in mobile apps
 (function checkAndSkipIfMiniApp() {
-  const isMiniAppEarly = isMiniAppEnvironment();
+  // Use multiple detection methods for reliability
+  const isMiniAppEarly = isMiniAppEnvironment() || 
+    (typeof window !== 'undefined' && (
+      (window.fc && window.fc.miniapp) ||
+      (window.farcaster && window.farcaster.miniapp) ||
+      window.MiniAppSDK ||
+      window.MiniKit ||
+      window.ReactNativeWebView ||
+      (window.navigator && window.navigator.userAgent && (
+        window.navigator.userAgent.includes('Farcaster') ||
+        window.navigator.userAgent.includes('Warpcast') ||
+        window.navigator.userAgent.includes('BaseApp')
+      ))
+    ));
+    
   if (isMiniAppEarly) {
     console.log('[ConnectMenu] Mini app detected early, skipping all initialization');
-    // Remove container if it exists
+    
+    // Add CSS to hide connect menu immediately
     if (typeof document !== 'undefined') {
+      const style = document.getElementById('hide-connect-menu-miniapp');
+      if (style) {
+        style.textContent = `
+          #connect-root,
+          [id*="connect"],
+          [class*="connect"][class*="root"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            left: -9999px !important;
+          }
+        `;
+      }
+      
+      // Remove container if it exists
       const existing = document.getElementById('connect-root');
       if (existing) {
         existing.remove();
       }
+      
       // Also remove any error messages that might have been rendered
       const errorDivs = document.querySelectorAll('[id*="connect"], [class*="connect"]');
       errorDivs.forEach(el => {
-        if (el.textContent && el.textContent.includes('Wallet config unavailable')) {
+        if (el.textContent && (el.textContent.includes('Wallet config unavailable') || 
+            el.textContent.includes("You're connected!"))) {
           el.remove();
         }
       });
+      
+      // Periodic cleanup in case something gets rendered later
+      let cleanupCount = 0;
+      const cleanupInterval = setInterval(() => {
+        const connectRoot = document.getElementById('connect-root');
+        if (connectRoot) {
+          connectRoot.remove();
+        }
+        cleanupCount++;
+        if (cleanupCount > 20) { // Stop after 10 seconds (20 * 500ms)
+          clearInterval(cleanupInterval);
+        }
+      }, 500);
     }
+    
     mountComplete = true; // Mark as complete to prevent any initialization
     return; // Exit early, don't proceed with initialization
   }

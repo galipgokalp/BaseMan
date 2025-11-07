@@ -211580,20 +211580,46 @@ Message: ${transactionMessage}.
     mountConnectMenu();
   }
   (function checkAndSkipIfMiniApp() {
-    const isMiniAppEarly = isMiniAppEnvironment();
+    const isMiniAppEarly = isMiniAppEnvironment() || typeof window !== "undefined" && (window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniKit || window.ReactNativeWebView || window.navigator && window.navigator.userAgent && (window.navigator.userAgent.includes("Farcaster") || window.navigator.userAgent.includes("Warpcast") || window.navigator.userAgent.includes("BaseApp")));
     if (isMiniAppEarly) {
       console.log("[ConnectMenu] Mini app detected early, skipping all initialization");
       if (typeof document !== "undefined") {
+        const style = document.getElementById("hide-connect-menu-miniapp");
+        if (style) {
+          style.textContent = `
+          #connect-root,
+          [id*="connect"],
+          [class*="connect"][class*="root"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            left: -9999px !important;
+          }
+        `;
+        }
         const existing = document.getElementById("connect-root");
         if (existing) {
           existing.remove();
         }
         const errorDivs = document.querySelectorAll('[id*="connect"], [class*="connect"]');
         errorDivs.forEach((el2) => {
-          if (el2.textContent && el2.textContent.includes("Wallet config unavailable")) {
+          if (el2.textContent && (el2.textContent.includes("Wallet config unavailable") || el2.textContent.includes("You're connected!"))) {
             el2.remove();
           }
         });
+        let cleanupCount = 0;
+        const cleanupInterval = setInterval(() => {
+          const connectRoot = document.getElementById("connect-root");
+          if (connectRoot) {
+            connectRoot.remove();
+          }
+          cleanupCount++;
+          if (cleanupCount > 20) {
+            clearInterval(cleanupInterval);
+          }
+        }, 500);
       }
       mountComplete = true;
       return;
