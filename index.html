@@ -142,18 +142,28 @@
           }
           
           // Remove any divs or buttons with connect-related content
+          // BUT exclude wallet panel and its contents
           const allElements = document.querySelectorAll('div, button, span, a');
           allElements.forEach(function(el) {
+            // Skip if element is inside wallet panel
+            if (el.closest && el.closest('#baseman-wallet-panel')) {
+              return;
+            }
+            // Skip if element is wallet panel itself
+            if (el.id === 'baseman-wallet-panel') {
+              return;
+            }
+            
             const text = (el.textContent || '').toLowerCase();
             const id = (el.id || '').toLowerCase();
             const className = (el.className || '').toLowerCase();
             
-            if (id.includes('connect') || 
-                className.includes('connect') ||
+            // More specific checks - don't match "Connection" in wallet panel
+            if (id.includes('connect') && !id.includes('wallet') || 
+                (className.includes('connect') && !className.includes('wallet')) ||
                 text.includes('wallet config unavailable') || 
-                text.includes("you're connected") ||
-                text.includes('connect') ||
-                text.includes('connecting')) {
+                (text.includes("you're connected") && !text.includes('wallet')) ||
+                (text === 'connect' || text === 'connecting' || text.startsWith('connect '))) {
               el.remove();
             }
           });
@@ -164,44 +174,54 @@
           }
         }, 500);
         
-        // MutationObserver to catch any dynamically added elements
-        if (typeof MutationObserver !== 'undefined') {
-          const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-              mutation.addedNodes.forEach(function(node) {
-                if (node.nodeType === 1) { // Element node
-                  const id = (node.id || '').toLowerCase();
-                  const className = (node.className || '').toLowerCase();
-                  const text = (node.textContent || '').toLowerCase();
-                  
-                  if (id.includes('connect') || 
-                      className.includes('connect') ||
-                      text.includes('wallet config unavailable') ||
-                      text.includes("you're connected") ||
-                      text.includes('connect') ||
-                      text.includes('connecting')) {
-                    node.remove();
+          // MutationObserver to catch any dynamically added elements
+          // BUT exclude wallet panel and its contents
+          if (typeof MutationObserver !== 'undefined') {
+            const observer = new MutationObserver(function(mutations) {
+              mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                  if (node.nodeType === 1) { // Element node
+                    // Skip if element is inside wallet panel
+                    if (node.closest && node.closest('#baseman-wallet-panel')) {
+                      return;
+                    }
+                    // Skip if element is wallet panel itself
+                    if (node.id === 'baseman-wallet-panel') {
+                      return;
+                    }
+                    
+                    const id = (node.id || '').toLowerCase();
+                    const className = (node.className || '').toLowerCase();
+                    const text = (node.textContent || '').toLowerCase();
+                    
+                    // More specific checks - don't match "Connection" in wallet panel
+                    if ((id.includes('connect') && !id.includes('wallet')) || 
+                        (className.includes('connect') && !className.includes('wallet')) ||
+                        text.includes('wallet config unavailable') ||
+                        (text.includes("you're connected") && !text.includes('wallet')) ||
+                        (text === 'connect' || text === 'connecting' || text.startsWith('connect '))) {
+                      node.remove();
+                    }
                   }
-                }
+                });
               });
             });
-          });
-          
-          if (document.body) {
-            observer.observe(document.body, {
-              childList: true,
-              subtree: true
-            });
-          } else {
-            // Wait for body to be available
-            document.addEventListener('DOMContentLoaded', function() {
+            
+            if (document.body) {
               observer.observe(document.body, {
                 childList: true,
                 subtree: true
               });
-            });
+            } else {
+              // Wait for body to be available
+              document.addEventListener('DOMContentLoaded', function() {
+                observer.observe(document.body, {
+                  childList: true,
+                  subtree: true
+                });
+              });
+            }
           }
-        }
       })();
     </script>
     <!-- Optional auto submit for e2e: set ?mock-miniapp=1&auto=1 to trigger a score submission -->
