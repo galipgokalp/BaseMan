@@ -97,7 +97,108 @@
     <script defer src="src/onchain-bootstrap.js?v=202512061200"></script>
     <script defer src="src/onchain-client.js?v=202512061200"></script>
     <!-- React/Wagmi Connect widget (bundled) -->
-    <script defer src="vendor/connect-menu.js"></script>
+    <!-- Only load in web environments, not in mini apps -->
+    <script>
+      (function() {
+        // Early mini app detection before any scripts load
+        const isMiniApp = (typeof window !== 'undefined') && (
+          (window.fc && window.fc.miniapp) ||
+          (window.farcaster && window.farcaster.miniapp) ||
+          window.MiniAppSDK ||
+          window.MiniKit ||
+          window.ReactNativeWebView ||
+          (window.navigator && window.navigator.userAgent && (
+            window.navigator.userAgent.includes('Farcaster') ||
+            window.navigator.userAgent.includes('Warpcast') ||
+            window.navigator.userAgent.includes('BaseApp')
+          ))
+        );
+        
+        if (!isMiniApp) {
+          // Web environment - load connect menu
+          const script = document.createElement('script');
+          script.defer = true;
+          script.src = 'vendor/connect-menu.js';
+          document.head.appendChild(script);
+        } else {
+          // Mini app - don't load connect menu at all
+          console.log('[BaseMan] Mini app detected, skipping connect-menu.js');
+          
+          // Add CSS to hide any connect menu elements that might appear
+          const style = document.createElement('style');
+          style.id = 'hide-connect-menu-force';
+          style.textContent = `
+            #connect-root,
+            [id*="connect"],
+            [class*="connect"][class*="root"],
+            div[style*="Wallet config unavailable"],
+            div[style*="You're connected"] {
+              display: none !important;
+              visibility: hidden !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+              position: absolute !important;
+              left: -9999px !important;
+              width: 0 !important;
+              height: 0 !important;
+              overflow: hidden !important;
+            }
+          `;
+          document.head.appendChild(style);
+          
+          // Periodic cleanup
+          let cleanupCount = 0;
+          const cleanupInterval = setInterval(function() {
+            const connectRoot = document.getElementById('connect-root');
+            if (connectRoot) {
+              connectRoot.remove();
+            }
+            
+            // Remove any divs with error messages
+            const allDivs = document.querySelectorAll('div');
+            allDivs.forEach(function(div) {
+              const text = div.textContent || '';
+              if (text.includes('Wallet config unavailable') || 
+                  text.includes("You're connected!")) {
+                div.remove();
+              }
+            });
+            
+            cleanupCount++;
+            if (cleanupCount > 40) { // 20 seconds
+              clearInterval(cleanupInterval);
+            }
+          }, 500);
+          
+          // MutationObserver to catch any dynamically added elements
+          if (typeof MutationObserver !== 'undefined') {
+            const observer = new MutationObserver(function(mutations) {
+              mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                  if (node.nodeType === 1) { // Element node
+                    const id = node.id || '';
+                    const className = node.className || '';
+                    const text = node.textContent || '';
+                    
+                    if (id.includes('connect') || 
+                        className.includes('connect') ||
+                        text.includes('Wallet config unavailable') ||
+                        text.includes("You're connected!")) {
+                      node.remove();
+                    }
+                  }
+                });
+              });
+            });
+            
+            observer.observe(document.body, {
+              childList: true,
+              subtree: true
+            });
+          }
+        }
+      })();
+    </script>
     <!-- Optional auto submit for e2e: set ?mock-miniapp=1&auto=1 to trigger a score submission -->
     <script defer src="src/debug-autosubmit.js"></script>
     <script defer src="src/leaderboard-panel.js?v=202512061200"></script>
