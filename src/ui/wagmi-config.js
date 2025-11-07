@@ -1,7 +1,7 @@
 import { createConfig, http } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
-import { injected, walletConnect, metaMask, safe } from 'wagmi/connectors';
+import { injected, walletConnect, metaMask, safe, baseAccount } from 'wagmi/connectors';
 
 function readEnv(key) {
   if (typeof window !== 'undefined') {
@@ -51,23 +51,48 @@ function getFallbackBaseSepoliaChain() {
   };
 }
 
-// Platform detection function (exported for use in other modules)
-export function isMiniAppHost() {
+// Platform detection functions (exported for use in other modules)
+export function isFarcasterMiniApp() {
   try {
     return Boolean(
       (typeof window !== 'undefined') && (
         (window.fc && window.fc.miniapp) ||
         (window.farcaster && window.farcaster.miniapp) ||
-        window.MiniAppSDK || window.MiniApp?.sdk ||
-        window.MiniKit || window.ReactNativeWebView ||
+        window.MiniAppSDK ||
         (window.navigator && window.navigator.userAgent && (
           window.navigator.userAgent.includes('Farcaster') ||
-          window.navigator.userAgent.includes('Warpcast') ||
-          window.navigator.userAgent.includes('BaseApp')
+          window.navigator.userAgent.includes('Warpcast')
         ))
       )
     );
   } catch (_) { return false; }
+}
+
+export function isBaseApp() {
+  try {
+    if (typeof window === 'undefined') return false;
+    
+    // Primary indicators for Base App
+    if (window.ReactNativeWebView) {
+      // Additional check: if it's ReactNativeWebView but also Farcaster, it's Farcaster
+      if (isFarcasterMiniApp()) return false;
+      return true;
+    }
+    
+    // User agent check for BaseApp
+    if (window.navigator && window.navigator.userAgent) {
+      const ua = window.navigator.userAgent;
+      if (ua.includes('BaseApp') && !ua.includes('Farcaster') && !ua.includes('Warpcast')) {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (_) { return false; }
+}
+
+export function isMiniAppHost() {
+  return isFarcasterMiniApp() || isBaseApp();
 }
 
 // Also expose on window for global access
@@ -127,28 +152,85 @@ export function makeWagmiConfig() {
   // Try to create config with proper error handling
   try {
     if (isMiniAppHost()) {
-      // In mini app, we can use injected() connector since miniapp-ethereum-shim.js
-      // already exposes window.ethereum from the SDK
-      // This is more reliable than miniAppConnector() which may fail if SDK isn't ready
-      try {
-        // Try mini app connector first (preferred)
-        const connector = miniAppConnector();
-        return createConfig({
-          ...baseConfig,
-          connectors: [connector]
-        });
-      } catch (connectorError) {
-        console.warn('[wagmi-config] Mini app connector failed, using injected() fallback:', connectorError?.message || connectorError);
-        // Fallback: use injected() connector
-        // This works because miniapp-ethereum-shim.js exposes window.ethereum from SDK
+      // Platform-specific connector selection based on official docs:
+      // - Farcaster: @farcaster/miniapp-wagmi-connector
+      // - Base App: baseAccount connector (wagmi/connectors) - recommended by docs.base.org
+      
+      if (isFarcasterMiniApp()) {
+        // Farcaster Mini App - use Farcaster connector
+        try {
+          const connector = miniAppConnector();
+          return createConfig({
+            ...baseConfig,
+            connectors: [connector]
+          });
+        } catch (connectorError) {
+          console.warn('[wagmi-config] Farcaster connector failed, using injected() fallback:', connectorError?.message || connectorError);
+          // Fallback: use injected() connector
+          // This works because miniapp-ethereum-shim.js exposes window.ethereum from SDK
+          try {
+            return createConfig({
+              ...baseConfig,
+              connectors: [injected()]
+            });
+          } catch (fallbackError) {
+            console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
+            // Last resort: create config with empty connectors
+            try {
+              return createConfig({
+                ...baseConfig,
+                connectors: []
+              });
+            } catch (emptyConnectorError) {
+              console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
+              throw fallbackError;
+            }
+          }
+        }
+      } else if (isBaseApp()) {
+        // Base App - use baseAccount connector (recommended by docs.base.org)
+        // Fallback to injected() if baseAccount is not available
+        try {
+          const connector = baseAccount({
+            appName: 'BaseMan',
+            appLogoUrl: 'https://base-man.vercel.app/icon.png'
+          });
+          return createConfig({
+            ...baseConfig,
+            connectors: [connector]
+          });
+        } catch (baseAccountError) {
+          console.warn('[wagmi-config] Base Account connector failed, using injected() fallback:', baseAccountError?.message || baseAccountError);
+          // Fallback: use injected() connector
+          // This works because miniapp-ethereum-shim.js exposes window.ethereum from SDK
+          try {
+            return createConfig({
+              ...baseConfig,
+              connectors: [injected()]
+            });
+          } catch (fallbackError) {
+            console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
+            // Last resort: create config with empty connectors
+            try {
+              return createConfig({
+                ...baseConfig,
+                connectors: []
+              });
+            } catch (emptyConnectorError) {
+              console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
+              throw fallbackError;
+            }
+          }
+        }
+      } else {
+        // Generic mini app - use injected() as fallback
         try {
           return createConfig({
             ...baseConfig,
             connectors: [injected()]
           });
         } catch (fallbackError) {
-          console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
-          // Last resort: create config with empty connectors (won't connect but won't crash)
+          console.error('[wagmi-config] Generic mini app config creation failed:', fallbackError);
           try {
             return createConfig({
               ...baseConfig,
