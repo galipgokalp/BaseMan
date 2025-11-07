@@ -349,7 +349,7 @@
   function openWallet() {
     console.log('[bottom-nav] openWallet called');
     
-    // Try API first
+    // Try API first (preferred method)
     if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
       console.log('[bottom-nav] Using WalletPanel API');
       window.WalletPanel.show();
@@ -362,15 +362,90 @@
       return;
     }
 
-    // Fallback: Directly open wallet panel if API not ready
-    console.log('[bottom-nav] WalletPanel API not ready, using direct fallback');
+    // Fallback: Ensure panel exists and open it directly
+    console.log('[bottom-nav] WalletPanel API not ready, ensuring panel exists and opening directly');
     const panelId = 'baseman-wallet-panel';
     let panel = document.getElementById(panelId);
     
+    // If panel doesn't exist, create it (same structure as wallet-panel.js)
+    if (!panel && document.body) {
+      console.log('[bottom-nav] Creating wallet panel...');
+      panel = document.createElement('section');
+      panel.id = panelId;
+      panel.className = 'wallet-panel';
+      panel.setAttribute('aria-hidden', 'true');
+      panel.innerHTML = `
+        <header class="wallet-header">
+          <h2 class="wallet-title">Wallet</h2>
+          <button type="button" class="wallet-close" data-close>×</button>
+        </header>
+        <div class="wallet-body">
+          <div class="wallet-section">
+            <h3 class="wallet-section-title">Connection</h3>
+            <div class="wallet-row">
+              <span>Status</span>
+              <span data-wallet-status class="wallet-status">-</span>
+            </div>
+            <div class="wallet-row">
+              <span>Address</span>
+              <span data-wallet-address class="wallet-address">-</span>
+            </div>
+          </div>
+          <div class="wallet-section">
+            <h3 class="wallet-section-title">Network</h3>
+            <div class="wallet-row">
+              <span>Network</span>
+              <span data-network>-</span>
+            </div>
+            <div class="wallet-row">
+              <span>Chain ID</span>
+              <span data-chain-id>-</span>
+            </div>
+          </div>
+          <div class="wallet-section">
+            <h3 class="wallet-section-title">Balances</h3>
+            <div class="wallet-row">
+              <span>ETH</span>
+              <span data-eth-balance>-</span>
+            </div>
+            <div class="wallet-row">
+              <span>USDC</span>
+              <span data-usdc-balance>-</span>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(panel);
+      
+      // Wire close button
+      const closeBtn = panel.querySelector('[data-close]');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          panel.classList.remove('open');
+          panel.setAttribute('aria-hidden', 'true');
+          if (window.BottomNav) {
+            window.BottomNav.setActive(null);
+          }
+        });
+      }
+      
+      // Close on overlay click
+      panel.addEventListener('click', (e) => {
+        if (e.target === panel) {
+          panel.classList.remove('open');
+          panel.setAttribute('aria-hidden', 'true');
+          if (window.BottomNav) {
+            window.BottomNav.setActive(null);
+          }
+        }
+      });
+    }
+    
+    // If panel still doesn't exist, wait for wallet-panel.js
     if (!panel) {
-      // Panel doesn't exist, try to create it
-      console.log('[bottom-nav] Wallet panel not found, waiting for wallet-panel.js to initialize...');
-      // Wait a bit for wallet-panel.js to initialize
+      console.log('[bottom-nav] Waiting for wallet-panel.js to initialize...');
       let attempts = 0;
       const maxAttempts = 10; // 2 seconds max wait
       const checkInterval = setInterval(() => {
