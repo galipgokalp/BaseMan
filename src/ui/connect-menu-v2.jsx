@@ -41,8 +41,14 @@ function ConnectMenuInner() {
   const { sendCalls } = useSendCalls();
   const isMiniApp = isMiniAppEnvironment();
 
-  // In mini app environments, show wallet status but don't show connect button
-  // Wallet auto-connects, so we just show the connected state
+  // In mini app environments, DO NOT show any UI
+  // Wallet functionality is handled via Wallet panel in bottom navigation
+  // This connect menu should be completely hidden in mini apps
+  if (isMiniApp) {
+    return null;
+  }
+
+  // Web environment only - show connect UI
   if (isConnected) {
     return (
       React.createElement(React.Fragment, null,
@@ -77,21 +83,6 @@ function ConnectMenuInner() {
         )
       )
     );
-  }
-
-  // In mini app environments, wallet auto-connects, so show a minimal status
-  if (isMiniApp) {
-    return React.createElement('div', {
-      style: {
-        fontFamily: 'Inter, system-ui, sans-serif',
-        padding: '8px 12px',
-        background: 'rgba(0, 0, 0, 0.6)',
-        color: '#a5b4fc',
-        borderRadius: 8,
-        fontSize: '12px',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
-      }
-    }, 'Wallet: Auto-connecting...');
   }
 
   return (
@@ -177,6 +168,18 @@ function App() {
 }
 
 function ensureMountEl() {
+  // In mini app environments, DO NOT create container
+  // Connect menu should not be visible in mini apps
+  const isMiniApp = isMiniAppEnvironment();
+  if (isMiniApp) {
+    // Remove container if it exists
+    const existing = document.getElementById('connect-root');
+    if (existing) {
+      existing.remove();
+    }
+    return null;
+  }
+  
   let el = document.getElementById('connect-root');
   if (!el) {
     el = document.createElement('div');
@@ -212,6 +215,20 @@ let mountAttempted = false;
 let mountComplete = false;
 
 function mountConnectMenu() {
+  // In mini app environments, DO NOT mount connect menu
+  // Wallet functionality is handled via Wallet panel in bottom navigation
+  const isMiniApp = isMiniAppEnvironment();
+  if (isMiniApp) {
+    console.log('[ConnectMenu] Mini app detected, skipping mount');
+    // Remove container if it exists
+    const existing = document.getElementById('connect-root');
+    if (existing) {
+      existing.remove();
+    }
+    mountComplete = true; // Mark as complete to prevent retries
+    return;
+  }
+  
   if (mountAttempted) {
     console.log('[ConnectMenu] Mount already attempted, skipping...');
     return;
@@ -246,6 +263,19 @@ function mountConnectMenu() {
 }
 
 function initConnectMenu() {
+  // In mini app environments, DO NOT initialize connect menu
+  const isMiniApp = isMiniAppEnvironment();
+  if (isMiniApp) {
+    console.log('[ConnectMenu] Mini app detected, skipping initialization');
+    // Remove container if it exists
+    const existing = document.getElementById('connect-root');
+    if (existing) {
+      existing.remove();
+    }
+    mountComplete = true; // Mark as complete to prevent retries
+    return;
+  }
+  
   if (mountComplete) {
     console.log('[ConnectMenu] Already mounted');
     return;

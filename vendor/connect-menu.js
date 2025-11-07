@@ -210955,6 +210955,84 @@ Message: ${transactionMessage}.
     }));
   }
 
+  // src/utils/platform-detection.js
+  init_define_process_env();
+  function isFarcasterMiniApp() {
+    try {
+      if (typeof window === "undefined") return false;
+      const hasFarcasterSDK = Boolean(
+        window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.FarcasterMiniAppSDK
+      );
+      if (hasFarcasterSDK) return true;
+      if (window.navigator && window.navigator.userAgent) {
+        const ua3 = window.navigator.userAgent;
+        if ((ua3.includes("Farcaster") || ua3.includes("Warpcast")) && !ua3.includes("BaseApp")) {
+          return true;
+        }
+      }
+      return false;
+    } catch (_11) {
+      return false;
+    }
+  }
+  function isBaseApp() {
+    try {
+      if (typeof window === "undefined") return false;
+      if (window.ReactNativeWebView) {
+        if (isFarcasterMiniApp()) return false;
+        return true;
+      }
+      if (window.MiniKit) {
+        return true;
+      }
+      if (window.navigator && window.navigator.userAgent) {
+        const ua3 = window.navigator.userAgent;
+        if (ua3.includes("BaseApp") && !ua3.includes("Farcaster") && !ua3.includes("Warpcast")) {
+          return true;
+        }
+      }
+      return false;
+    } catch (_11) {
+      return false;
+    }
+  }
+  function isMiniAppHost() {
+    return isFarcasterMiniApp() || isBaseApp();
+  }
+  function getPlatform() {
+    if (isFarcasterMiniApp()) return "farcaster";
+    if (isBaseApp()) return "base";
+    return "web";
+  }
+  function isMiniAppEnv() {
+    try {
+      if (typeof window === "undefined") return false;
+      if (isMiniAppHost()) return true;
+      const hasSDK = Boolean(
+        window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniKit || window.MiniApp && window.MiniApp.sdk || window.FarcasterMiniAppSDK || window.sdk
+      );
+      if (hasSDK) return true;
+      if (window.ReactNativeWebView) return true;
+      try {
+        if (window.self !== window.top) {
+          return true;
+        }
+      } catch (_11) {
+        return true;
+      }
+      return false;
+    } catch (_11) {
+      return false;
+    }
+  }
+  if (typeof window !== "undefined") {
+    window.isFarcasterMiniApp = isFarcasterMiniApp;
+    window.isBaseApp = isBaseApp;
+    window.isMiniAppHost = isMiniAppHost;
+    window.getPlatform = getPlatform;
+    window.isMiniAppEnv = isMiniAppEnv;
+  }
+
   // src/ui/wagmi-config.js
   function readEnv(key) {
     if (typeof window !== "undefined") {
@@ -210999,39 +211077,6 @@ Message: ${transactionMessage}.
       },
       testnet: true
     };
-  }
-  function isFarcasterMiniApp() {
-    try {
-      return Boolean(
-        typeof window !== "undefined" && (window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.navigator && window.navigator.userAgent && (window.navigator.userAgent.includes("Farcaster") || window.navigator.userAgent.includes("Warpcast")))
-      );
-    } catch (_11) {
-      return false;
-    }
-  }
-  function isBaseApp() {
-    try {
-      if (typeof window === "undefined") return false;
-      if (window.ReactNativeWebView) {
-        if (isFarcasterMiniApp()) return false;
-        return true;
-      }
-      if (window.navigator && window.navigator.userAgent) {
-        const ua3 = window.navigator.userAgent;
-        if (ua3.includes("BaseApp") && !ua3.includes("Farcaster") && !ua3.includes("Warpcast")) {
-          return true;
-        }
-      }
-      return false;
-    } catch (_11) {
-      return false;
-    }
-  }
-  function isMiniAppHost() {
-    return isFarcasterMiniApp() || isBaseApp();
-  }
-  if (typeof window !== "undefined") {
-    window.isMiniAppHost = isMiniAppHost;
   }
   function makeWagmiConfig() {
     let baseChain, baseSepoliaChain;
@@ -211294,6 +211339,9 @@ Message: ${transactionMessage}.
   var config3 = config2 || null;
   function isMiniAppEnvironment() {
     try {
+      if (typeof window !== "undefined" && typeof window.isMiniAppHost === "function") {
+        return window.isMiniAppHost();
+      }
       return Boolean(
         typeof window !== "undefined" && (window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniApp?.sdk || window.MiniKit || window.ReactNativeWebView || window.navigator && window.navigator.userAgent && (window.navigator.userAgent.includes("Farcaster") || window.navigator.userAgent.includes("Warpcast") || window.navigator.userAgent.includes("BaseApp")))
       );
@@ -211307,6 +211355,9 @@ Message: ${transactionMessage}.
     const { sendTransaction: sendTransaction3 } = useSendTransaction();
     const { sendCalls: sendCalls3 } = useSendCalls();
     const isMiniApp = isMiniAppEnvironment();
+    if (isMiniApp) {
+      return null;
+    }
     if (isConnected) {
       return import_react7.default.createElement(
         import_react7.default.Fragment,
@@ -211349,19 +211400,6 @@ Message: ${transactionMessage}.
           }, "Send Batch (2x)")
         )
       );
-    }
-    if (isMiniApp) {
-      return import_react7.default.createElement("div", {
-        style: {
-          fontFamily: "Inter, system-ui, sans-serif",
-          padding: "8px 12px",
-          background: "rgba(0, 0, 0, 0.6)",
-          color: "#a5b4fc",
-          borderRadius: 8,
-          fontSize: "12px",
-          border: "1px solid rgba(255, 255, 255, 0.1)"
-        }
-      }, "Wallet: Auto-connecting...");
     }
     return import_react7.default.createElement("button", {
       type: "button",
@@ -211435,6 +211473,14 @@ Message: ${transactionMessage}.
     );
   }
   function ensureMountEl() {
+    const isMiniApp = isMiniAppEnvironment();
+    if (isMiniApp) {
+      const existing = document.getElementById("connect-root");
+      if (existing) {
+        existing.remove();
+      }
+      return null;
+    }
     let el2 = document.getElementById("connect-root");
     if (!el2) {
       el2 = document.createElement("div");
@@ -211471,6 +211517,16 @@ Message: ${transactionMessage}.
   var mountAttempted = false;
   var mountComplete = false;
   function mountConnectMenu() {
+    const isMiniApp = isMiniAppEnvironment();
+    if (isMiniApp) {
+      console.log("[ConnectMenu] Mini app detected, skipping mount");
+      const existing = document.getElementById("connect-root");
+      if (existing) {
+        existing.remove();
+      }
+      mountComplete = true;
+      return;
+    }
     if (mountAttempted) {
       console.log("[ConnectMenu] Mount already attempted, skipping...");
       return;
@@ -211499,6 +211555,16 @@ Message: ${transactionMessage}.
     }
   }
   function initConnectMenu() {
+    const isMiniApp = isMiniAppEnvironment();
+    if (isMiniApp) {
+      console.log("[ConnectMenu] Mini app detected, skipping initialization");
+      const existing = document.getElementById("connect-root");
+      if (existing) {
+        existing.remove();
+      }
+      mountComplete = true;
+      return;
+    }
     if (mountComplete) {
       console.log("[ConnectMenu] Already mounted");
       return;
