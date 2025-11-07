@@ -37073,12 +37073,12 @@ ${prettyStateOverride(stateOverride)}`;
         return x9 === y12 && (0 !== x9 || 1 / x9 === 1 / y12) || x9 !== x9 && y12 !== y12;
       }
       var objectIs2 = "function" === typeof Object.is ? Object.is : is5;
-      var useState2 = React4.useState;
-      var useEffect5 = React4.useEffect;
+      var useState3 = React4.useState;
+      var useEffect6 = React4.useEffect;
       var useLayoutEffect = React4.useLayoutEffect;
       var useDebugValue = React4.useDebugValue;
       function useSyncExternalStore$2(subscribe2, getSnapshot) {
-        var value2 = getSnapshot(), _useState = useState2({ inst: { value: value2, getSnapshot } }), inst = _useState[0].inst, forceUpdate = _useState[1];
+        var value2 = getSnapshot(), _useState = useState3({ inst: { value: value2, getSnapshot } }), inst = _useState[0].inst, forceUpdate = _useState[1];
         useLayoutEffect(
           function() {
             inst.value = value2;
@@ -37087,7 +37087,7 @@ ${prettyStateOverride(stateOverride)}`;
           },
           [subscribe2, value2, getSnapshot]
         );
-        useEffect5(
+        useEffect6(
           function() {
             checkIfSnapshotChanged(inst) && forceUpdate({ inst });
             return subscribe2(function() {
@@ -37143,7 +37143,7 @@ ${prettyStateOverride(stateOverride)}`;
       var objectIs2 = "function" === typeof Object.is ? Object.is : is5;
       var useSyncExternalStore3 = shim.useSyncExternalStore;
       var useRef3 = React4.useRef;
-      var useEffect5 = React4.useEffect;
+      var useEffect6 = React4.useEffect;
       var useMemo2 = React4.useMemo;
       var useDebugValue = React4.useDebugValue;
       exports.useSyncExternalStoreWithSelector = function(subscribe2, getSnapshot, getServerSnapshot, selector, isEqual3) {
@@ -37187,7 +37187,7 @@ ${prettyStateOverride(stateOverride)}`;
           [getSnapshot, getServerSnapshot, selector, isEqual3]
         );
         var value2 = useSyncExternalStore3(subscribe2, instRef[0], instRef[1]);
-        useEffect5(
+        useEffect6(
           function() {
             inst.hasValue = true;
             inst.value = value2;
@@ -171138,6 +171138,18 @@ Message: ${transactionMessage}.
       testnet: true
     };
   }
+  function isMiniAppHost() {
+    try {
+      return Boolean(
+        typeof window !== "undefined" && (window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniApp?.sdk || window.MiniKit || window.ReactNativeWebView || window.navigator && window.navigator.userAgent && (window.navigator.userAgent.includes("Farcaster") || window.navigator.userAgent.includes("Warpcast") || window.navigator.userAgent.includes("BaseApp")))
+      );
+    } catch (_10) {
+      return false;
+    }
+  }
+  if (typeof window !== "undefined") {
+    window.isMiniAppHost = isMiniAppHost;
+  }
   function makeWagmiConfig() {
     let baseChain, baseSepoliaChain;
     try {
@@ -171161,15 +171173,6 @@ Message: ${transactionMessage}.
     const sepoliaUrl = readEnv("NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL") || readEnv("BASE_SEPOLIA_RPC_URL") || "";
     const mainnetUrl = readEnv("NEXT_PUBLIC_BASE_MAINNET_RPC_URL") || readEnv("BASE_MAINNET_RPC_URL") || "";
     const wcProjectId = (readEnv("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID") || readEnv("WALLETCONNECT_PROJECT_ID") || "").trim();
-    function isMiniAppHost() {
-      try {
-        return Boolean(
-          typeof window !== "undefined" && (window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniApp?.sdk || window.MiniKit || window.ReactNativeWebView)
-        );
-      } catch (_10) {
-        return false;
-      }
-    }
     const transports2 = {};
     try {
       transports2[baseChain.id] = mainnetUrl ? http(mainnetUrl) : http();
@@ -171240,54 +171243,106 @@ Message: ${transactionMessage}.
       throw createError;
     }
   }
-  var config;
-  try {
-    config = makeWagmiConfig();
-    if (!config) {
-      console.warn("[wagmi-config] Config is null - chain objects may not be available. Connect menu may not work.");
-    } else {
-      console.log("[wagmi-config] Config created successfully");
+  var config = null;
+  var configInitialized = false;
+  var configInitializing = false;
+  async function waitForSDK(maxWait = 1e4) {
+    const start = Date.now();
+    while (Date.now() - start < maxWait) {
+      const sdk2 = window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.sdk;
+      if (sdk2) {
+        if (sdk2.actions && typeof sdk2.actions.ready === "function") {
+          try {
+            await Promise.race([
+              sdk2.actions.ready(),
+              new Promise((_10, reject) => setTimeout(() => reject(new Error("ready timeout")), 2e3))
+            ]);
+          } catch (e17) {
+            console.warn("[wagmi-config] SDK ready() failed or timed out, continuing...");
+          }
+        }
+        return true;
+      }
+      if (window.ethereum) {
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-  } catch (error) {
-    console.error("[wagmi-config] Failed to create config:", error);
-    console.error("[wagmi-config] Error details:", {
-      message: error?.message,
-      stack: error?.stack,
-      name: error?.name
-    });
+    return false;
+  }
+  async function initializeConfig() {
+    if (configInitialized || configInitializing) {
+      return config;
+    }
+    configInitializing = true;
     try {
-      console.warn("[wagmi-config] Attempting minimal config as fallback...");
-      const minimalBase = getFallbackBaseChain();
-      const minimalSepolia = getFallbackBaseSepoliaChain();
-      config = createConfig({
-        chains: [minimalSepolia, minimalBase],
-        transports: {
-          [minimalBase.id]: http(),
-          [minimalSepolia.id]: http()
-        },
-        connectors: []
+      const isMiniApp = isMiniAppHost();
+      if (isMiniApp) {
+        console.log("[wagmi-config] Mini app detected, waiting for SDK...");
+        const sdkReady = await waitForSDK(1e4);
+        if (!sdkReady) {
+          console.warn("[wagmi-config] SDK not ready after timeout, proceeding anyway...");
+        } else {
+          console.log("[wagmi-config] SDK ready, creating config...");
+        }
+        let ethereumWaits = 0;
+        while (!window.ethereum && ethereumWaits < 50) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          ethereumWaits++;
+        }
+      }
+      config = makeWagmiConfig();
+      if (!config) {
+        console.warn("[wagmi-config] Config is null - chain objects may not be available.");
+      } else {
+        console.log("[wagmi-config] Config created successfully");
+      }
+    } catch (error) {
+      console.error("[wagmi-config] Failed to create config:", error);
+      console.error("[wagmi-config] Error details:", {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
       });
-      console.log("[wagmi-config] Minimal config created successfully");
-    } catch (fallbackError) {
-      console.error("[wagmi-config] Fallback config also failed:", fallbackError);
-      config = null;
+      try {
+        console.warn("[wagmi-config] Attempting minimal config as fallback...");
+        const minimalBase = getFallbackBaseChain();
+        const minimalSepolia = getFallbackBaseSepoliaChain();
+        config = createConfig({
+          chains: [minimalSepolia, minimalBase],
+          transports: {
+            [minimalBase.id]: http(),
+            [minimalSepolia.id]: http()
+          },
+          connectors: []
+        });
+        console.log("[wagmi-config] Minimal config created successfully");
+      } catch (fallbackError) {
+        console.error("[wagmi-config] Fallback config also failed:", fallbackError);
+        config = null;
+      }
+    } finally {
+      configInitialized = true;
+      configInitializing = false;
     }
+    return config;
+  }
+  async function getConfig() {
+    if (!configInitialized && !configInitializing) {
+      return await initializeConfig();
+    }
+    if (configInitializing) {
+      let waits = 0;
+      while (configInitializing && waits < 100) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        waits++;
+      }
+    }
+    return config;
   }
 
   // src/ui/connect-menu-v2.jsx
   var config2 = config || null;
-  if (!config2) {
-    try {
-      console.warn("[ConnectMenu] Config was null, attempting to recreate...");
-      config2 = makeWagmiConfig();
-      if (config2) {
-        console.log("[ConnectMenu] Config recreated successfully");
-      }
-    } catch (e17) {
-      console.error("[ConnectMenu] Failed to recreate config:", e17);
-      config2 = null;
-    }
-  }
   function isMiniAppEnvironment() {
     try {
       return Boolean(
@@ -171379,18 +171434,29 @@ Message: ${transactionMessage}.
   function App() {
     const qc2 = new QueryClient();
     const isMiniApp = isMiniAppEnvironment();
-    let currentConfig = config2;
-    if (!currentConfig) {
-      try {
-        console.warn("[ConnectMenu] Config still null in App, trying to recreate...");
-        currentConfig = makeWagmiConfig();
-        if (currentConfig) {
-          console.log("[ConnectMenu] Config recreated in App successfully");
-          config2 = currentConfig;
-        }
-      } catch (e17) {
-        console.error("[ConnectMenu] Failed to recreate config in App:", e17);
+    const [currentConfig, setCurrentConfig] = (0, import_react7.useState)(config2);
+    const [isLoading, setIsLoading] = (0, import_react7.useState)(!config2);
+    (0, import_react7.useEffect)(() => {
+      if (currentConfig) {
+        return;
       }
+      setIsLoading(true);
+      getConfig().then((initializedConfig) => {
+        if (initializedConfig) {
+          setCurrentConfig(initializedConfig);
+          config2 = initializedConfig;
+          console.log("[ConnectMenu] Config initialized successfully");
+        } else {
+          console.warn("[ConnectMenu] Config initialization returned null");
+        }
+        setIsLoading(false);
+      }).catch((error) => {
+        console.error("[ConnectMenu] Failed to initialize config:", error);
+        setIsLoading(false);
+      });
+    }, []);
+    if (isLoading && isMiniApp) {
+      return null;
     }
     if (!currentConfig) {
       if (isMiniApp) {

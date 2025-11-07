@@ -1,27 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { WagmiProvider, useAccount, useConnect, useSendTransaction, useSendCalls } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { parseEther } from 'viem';
-import { config as wagmiConfig, makeWagmiConfig } from './wagmi-config.js';
+import { config as wagmiConfig, makeWagmiConfig, getConfig } from './wagmi-config.js';
 
-// Safely handle config initialization
-// Try to get config, and if it's null, try to recreate it
+// Config will be initialized lazily when needed (especially important for mobile apps)
 let config = wagmiConfig || null;
-
-// If config is null, try to recreate it (may happen during bundling)
-if (!config) {
-  try {
-    console.warn('[ConnectMenu] Config was null, attempting to recreate...');
-    config = makeWagmiConfig();
-    if (config) {
-      console.log('[ConnectMenu] Config recreated successfully');
-    }
-  } catch (e) {
-    console.error('[ConnectMenu] Failed to recreate config:', e);
-    config = null;
-  }
-}
 
 function isMiniAppEnvironment() {
   try {
@@ -121,24 +106,39 @@ function ConnectMenuInner() {
 function App() {
   const qc = new QueryClient();
   const isMiniApp = isMiniAppEnvironment();
+  const [currentConfig, setCurrentConfig] = useState(config);
+  const [isLoading, setIsLoading] = useState(!config);
   
-  // Try to get config one more time (in case it was null during module load)
-  let currentConfig = config;
-  if (!currentConfig) {
-    try {
-      console.warn('[ConnectMenu] Config still null in App, trying to recreate...');
-      currentConfig = makeWagmiConfig();
-      if (currentConfig) {
-        console.log('[ConnectMenu] Config recreated in App successfully');
-        // Update module-level config for next time
-        config = currentConfig;
-      }
-    } catch (e) {
-      console.error('[ConnectMenu] Failed to recreate config in App:', e);
+  // Initialize config asynchronously (especially important for mobile apps)
+  useEffect(() => {
+    if (currentConfig) {
+      return; // Config already available
     }
+    
+    setIsLoading(true);
+    
+    // Try to get config with SDK readiness check
+    getConfig().then((initializedConfig) => {
+      if (initializedConfig) {
+        setCurrentConfig(initializedConfig);
+        config = initializedConfig; // Update module-level config
+        console.log('[ConnectMenu] Config initialized successfully');
+      } else {
+        console.warn('[ConnectMenu] Config initialization returned null');
+      }
+      setIsLoading(false);
+    }).catch((error) => {
+      console.error('[ConnectMenu] Failed to initialize config:', error);
+      setIsLoading(false);
+    });
+  }, []);
+  
+  // If loading, show nothing (don't show error immediately)
+  if (isLoading && isMiniApp) {
+    return null; // Wait silently in mini apps
   }
   
-  // If config is not available
+  // If config is not available after initialization
   if (!currentConfig) {
     // In mini app environments, don't show error - wallet works via SDK
     // Just return empty/nothing instead of showing error

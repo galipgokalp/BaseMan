@@ -51,6 +51,30 @@ function getFallbackBaseSepoliaChain() {
   };
 }
 
+// Platform detection function (exported for use in other modules)
+export function isMiniAppHost() {
+  try {
+    return Boolean(
+      (typeof window !== 'undefined') && (
+        (window.fc && window.fc.miniapp) ||
+        (window.farcaster && window.farcaster.miniapp) ||
+        window.MiniAppSDK || window.MiniApp?.sdk ||
+        window.MiniKit || window.ReactNativeWebView ||
+        (window.navigator && window.navigator.userAgent && (
+          window.navigator.userAgent.includes('Farcaster') ||
+          window.navigator.userAgent.includes('Warpcast') ||
+          window.navigator.userAgent.includes('BaseApp')
+        ))
+      )
+    );
+  } catch (_) { return false; }
+}
+
+// Also expose on window for global access
+if (typeof window !== 'undefined') {
+  window.isMiniAppHost = isMiniAppHost;
+}
+
 export function makeWagmiConfig() {
   // Get chain objects, with fallback if imports failed
   let baseChain, baseSepoliaChain;
@@ -82,19 +106,6 @@ export function makeWagmiConfig() {
   const sepoliaUrl = readEnv('NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL') || readEnv('BASE_SEPOLIA_RPC_URL') || '';
   const mainnetUrl = readEnv('NEXT_PUBLIC_BASE_MAINNET_RPC_URL') || readEnv('BASE_MAINNET_RPC_URL') || '';
   const wcProjectId = (readEnv('NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID') || readEnv('WALLETCONNECT_PROJECT_ID') || '').trim();
-
-  function isMiniAppHost() {
-    try {
-      return Boolean(
-        (typeof window !== 'undefined') && (
-          (window.fc && window.fc.miniapp) ||
-          (window.farcaster && window.farcaster.miniapp) ||
-          window.MiniAppSDK || window.MiniApp?.sdk ||
-          window.MiniKit || window.ReactNativeWebView
-        )
-      );
-    } catch (_) { return false; }
-  }
 
   const transports = {};
   // Provide explicit transports for each chain; fall back to default http() if no env URL
@@ -201,40 +212,139 @@ export function pickChainById(chainId) {
   }
 }
 
-// Convenience export mirroring docs usage
-// Wrap in try-catch to handle initialization errors gracefully
-let config;
-try {
-  config = makeWagmiConfig();
-  if (!config) {
-    console.warn('[wagmi-config] Config is null - chain objects may not be available. Connect menu may not work.');
-  } else {
-    console.log('[wagmi-config] Config created successfully');
+// Lazy initialization for mobile app environments
+// In mobile apps, SDK may not be ready when module loads
+// So we delay config creation until it's actually needed
+let config = null;
+let configInitialized = false;
+let configInitializing = false;
+
+// Wait for SDK to be ready (especially important for Farcaster)
+async function waitForSDK(maxWait = 10000) {
+  const start = Date.now();
+  
+  while (Date.now() - start < maxWait) {
+    // Check for Farcaster SDK
+    const sdk = 
+      (window.fc && window.fc.miniapp) ||
+      (window.farcaster && window.farcaster.miniapp) ||
+      window.MiniAppSDK ||
+      window.sdk;
+    
+    if (sdk) {
+      // For Farcaster, wait for ready() if available
+      if (sdk.actions && typeof sdk.actions.ready === 'function') {
+        try {
+          await Promise.race([
+            sdk.actions.ready(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('ready timeout')), 2000))
+          ]);
+        } catch (e) {
+          // If ready() fails or times out, continue anyway
+          console.warn('[wagmi-config] SDK ready() failed or timed out, continuing...');
+        }
+      }
+      return true;
+    }
+    
+    // Check for window.ethereum (shim may have set it)
+    if (window.ethereum) {
+      return true;
+    }
+    
+    // Wait a bit before checking again
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
-} catch (error) {
-  console.error('[wagmi-config] Failed to create config:', error);
-  console.error('[wagmi-config] Error details:', {
-    message: error?.message,
-    stack: error?.stack,
-    name: error?.name
-  });
-  // Try one more time with minimal config as last resort
-  try {
-    console.warn('[wagmi-config] Attempting minimal config as fallback...');
-    const minimalBase = getFallbackBaseChain();
-    const minimalSepolia = getFallbackBaseSepoliaChain();
-    config = createConfig({
-      chains: [minimalSepolia, minimalBase],
-      transports: {
-        [minimalBase.id]: http(),
-        [minimalSepolia.id]: http()
-      },
-      connectors: []
-    });
-    console.log('[wagmi-config] Minimal config created successfully');
-  } catch (fallbackError) {
-    console.error('[wagmi-config] Fallback config also failed:', fallbackError);
-    config = null;
-  }
+  
+  return false;
 }
+
+// Initialize config with proper SDK readiness check
+async function initializeConfig() {
+  if (configInitialized || configInitializing) {
+    return config;
+  }
+  
+  configInitializing = true;
+  
+  try {
+    // In mini app environments, wait for SDK
+    const isMiniApp = isMiniAppHost();
+    if (isMiniApp) {
+      console.log('[wagmi-config] Mini app detected, waiting for SDK...');
+      const sdkReady = await waitForSDK(10000);
+      if (!sdkReady) {
+        console.warn('[wagmi-config] SDK not ready after timeout, proceeding anyway...');
+      } else {
+        console.log('[wagmi-config] SDK ready, creating config...');
+      }
+      
+      // Also wait for window.ethereum if shim is setting it
+      let ethereumWaits = 0;
+      while (!window.ethereum && ethereumWaits < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        ethereumWaits++;
+      }
+    }
+    
+    config = makeWagmiConfig();
+    if (!config) {
+      console.warn('[wagmi-config] Config is null - chain objects may not be available.');
+    } else {
+      console.log('[wagmi-config] Config created successfully');
+    }
+  } catch (error) {
+    console.error('[wagmi-config] Failed to create config:', error);
+    console.error('[wagmi-config] Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name
+    });
+    
+    // Try minimal config as fallback
+    try {
+      console.warn('[wagmi-config] Attempting minimal config as fallback...');
+      const minimalBase = getFallbackBaseChain();
+      const minimalSepolia = getFallbackBaseSepoliaChain();
+      config = createConfig({
+        chains: [minimalSepolia, minimalBase],
+        transports: {
+          [minimalBase.id]: http(),
+          [minimalSepolia.id]: http()
+        },
+        connectors: []
+      });
+      console.log('[wagmi-config] Minimal config created successfully');
+    } catch (fallbackError) {
+      console.error('[wagmi-config] Fallback config also failed:', fallbackError);
+      config = null;
+    }
+  } finally {
+    configInitialized = true;
+    configInitializing = false;
+  }
+  
+  return config;
+}
+
+// Get config (lazy initialization)
+export async function getConfig() {
+  if (!configInitialized && !configInitializing) {
+    return await initializeConfig();
+  }
+  
+  // If already initializing, wait for it
+  if (configInitializing) {
+    let waits = 0;
+    while (configInitializing && waits < 100) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      waits++;
+    }
+  }
+  
+  return config;
+}
+
+// Sync export for compatibility (may return null in mobile apps if SDK not ready)
+// Prefer using getConfig() in async contexts
 export { config };
