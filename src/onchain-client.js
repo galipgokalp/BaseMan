@@ -822,6 +822,23 @@
     }
 
     async function submitScoreWithPaymaster(callData) {
+      // Farcaster Wallet does not support paymaster yet (per miniapps.farcaster.xyz/docs/guides/wallets)
+      // Paymaster is only supported in Base App, not in Farcaster/Warpcast
+      const isFarcaster = isMiniAppEnv() && (
+        (window.fc && window.fc.miniapp) ||
+        (window.farcaster && window.farcaster.miniapp) ||
+        window.MiniAppSDK ||
+        (window.navigator && window.navigator.userAgent && (
+          window.navigator.userAgent.includes('Farcaster') ||
+          window.navigator.userAgent.includes('Warpcast')
+        ))
+      );
+      
+      if (isFarcaster) {
+        debug('Farcaster Wallet does not support paymaster; attempting wallet_sendCalls without paymaster');
+        return await sendCalls(callData, null);
+      }
+      
       if (!config.paymasterUrl) {
         debug('Paymaster URL not configured; attempting wallet_sendCalls without paymaster');
         return await sendCalls(callData, null);
@@ -854,6 +871,7 @@
       if (!hexChainId) return null;
 
       // Paymaster sadece smart wallet (mini‑app) ile kullanılmalı
+      // Base App supports paymaster, Farcaster does not
       if (!isMiniAppEnv()) {
         return null;
       }

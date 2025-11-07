@@ -67,6 +67,10 @@ var DEBUG = false;
 /* Sound handlers added by Dr James Freeman who was sad such a great reverse was a silent movie  */
 
 var audio = new preloadAudio();
+// Make audio globally accessible
+if (typeof window !== 'undefined') {
+  window.audio = audio;
+}
 
 function audioTrack(url, volume) {
     var audio = new Audio(url);
@@ -9516,7 +9520,8 @@ var executive = (function(){
         reqFrame = requestAnimationFrame(tick);
     };
 
-    var executiveObj = {
+    return {
+
         getFramePeriod: function() {
             return framePeriod;
         },
@@ -9547,13 +9552,6 @@ var executive = (function(){
         isPaused: function() { return paused; },
         getFps: function() { return fps; },
     };
-    
-    // Expose executive to window for external access (e.g., settings panel)
-    if (typeof window !== 'undefined') {
-        window.executive = executiveObj;
-    }
-    
-    return executiveObj;
 })();
 
 //@line 1 "src/states.js"
@@ -13614,7 +13612,7 @@ var vcr = (function() {
 //////////////////////////////////////////////////////////////////////////////////////
 // Entry Point
 
-function startGame() {
+window.addEventListener("load", function() {
     loadHighScores();
     initRenderer();
     atlas.create();
@@ -13636,54 +13634,6 @@ function startGame() {
 		switchState(homeState);
 	}
     executive.init();
-}
-
-window.addEventListener("load", function() {
-    // Check if SDK ready event has already fired (for web mode or slow SDK)
-    var gameStarted = false;
-    
-    function tryStartGame() {
-        if (gameStarted) return;
-        gameStarted = true;
-        startGame();
-    }
-    
-    // Check if SDK ready event already fired (event might have fired before load event)
-    if (window.__basemanSDKReadyFired) {
-        tryStartGame();
-        return;
-    }
-    
-    // Listen for SDK ready event (mini app mode)
-    var sdkReadyHandler = function() {
-        window.__basemanSDKReadyFired = true;
-        tryStartGame();
-    };
-    window.addEventListener("baseman-sdk-ready", sdkReadyHandler);
-    
-    // Fallback: if SDK ready event doesn't fire within 3 seconds, start anyway (web mode or SDK not available)
-    // Increased timeout for mobile environments where SDK may load slower
-    setTimeout(function() {
-        if (!gameStarted) {
-            window.removeEventListener("baseman-sdk-ready", sdkReadyHandler);
-            tryStartGame();
-        }
-    }, 3000);
-    
-    // Also try to start immediately if we're not in a mini app environment
-    // Check for common indicators that we're NOT in a mini app
-    var isMiniApp = false;
-    try {
-        isMiniApp = !!(window.fc && window.fc.miniapp) || 
-                   !!(window.farcaster && window.farcaster.miniapp) ||
-                   !!(window.MiniKit) ||
-                   !!(window.ReactNativeWebView);
-    } catch (e) {}
-    
-    if (!isMiniApp) {
-        // Web mode - start immediately
-        tryStartGame();
-    }
 });
 
 })();
