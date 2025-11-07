@@ -521,6 +521,20 @@ body.theme-light .canvas-container {
   display: block;
 }
 
+/* Wallet Panel - Match Profile Panel Frame Style */
+.wallet-panel {
+  border: 2px solid var(--color-border-bright);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--glow-primary);
+}
+
+/* Settings Panel - Match Profile Panel Frame Style */
+.settings-panel {
+  border: 2px solid var(--color-border-bright);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--glow-primary);
+}
+
 .profile-header {
   display: flex;
   justify-content: space-between;

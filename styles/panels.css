@@ -71,7 +71,6 @@
     rgba(20, 20, 32, 0.98) 0%, 
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
-  border-left: 2px solid var(--color-border-bright);
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
@@ -97,7 +96,6 @@
     rgba(20, 20, 32, 0.98) 0%, 
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
-  border-left: 2px solid var(--color-border-bright);
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
