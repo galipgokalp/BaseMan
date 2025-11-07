@@ -298,9 +298,48 @@ function initConnectMenu() {
   mountConnectMenu();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    // Wait for React to load
+// Early check: if mini app, don't initialize at all
+// This prevents any connect menu UI from appearing in mobile apps
+(function checkAndSkipIfMiniApp() {
+  const isMiniAppEarly = isMiniAppEnvironment();
+  if (isMiniAppEarly) {
+    console.log('[ConnectMenu] Mini app detected early, skipping all initialization');
+    // Remove container if it exists
+    if (typeof document !== 'undefined') {
+      const existing = document.getElementById('connect-root');
+      if (existing) {
+        existing.remove();
+      }
+      // Also remove any error messages that might have been rendered
+      const errorDivs = document.querySelectorAll('[id*="connect"], [class*="connect"]');
+      errorDivs.forEach(el => {
+        if (el.textContent && el.textContent.includes('Wallet config unavailable')) {
+          el.remove();
+        }
+      });
+    }
+    mountComplete = true; // Mark as complete to prevent any initialization
+    return; // Exit early, don't proceed with initialization
+  }
+  
+  // Web environment - proceed with initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wait for React to load
+      setTimeout(() => {
+        if (window.__basemanSDKReadyFired) {
+          setTimeout(initConnectMenu, 500);
+        } else {
+          window.addEventListener('baseman-sdk-ready', () => {
+            setTimeout(initConnectMenu, 500);
+          }, { once: true });
+          // Fallback: mount after delay even if SDK ready event doesn't fire
+          setTimeout(initConnectMenu, 2000);
+        }
+      }, 500);
+    }, { once: true });
+  } else {
+    // DOM already ready
     setTimeout(() => {
       if (window.__basemanSDKReadyFired) {
         setTimeout(initConnectMenu, 500);
@@ -308,22 +347,9 @@ if (document.readyState === 'loading') {
         window.addEventListener('baseman-sdk-ready', () => {
           setTimeout(initConnectMenu, 500);
         }, { once: true });
-        // Fallback: mount after delay even if SDK ready event doesn't fire
+        // Fallback for web mode - wait longer for React
         setTimeout(initConnectMenu, 2000);
       }
     }, 500);
-  }, { once: true });
-} else {
-  // DOM already ready
-  setTimeout(() => {
-    if (window.__basemanSDKReadyFired) {
-      setTimeout(initConnectMenu, 500);
-    } else {
-      window.addEventListener('baseman-sdk-ready', () => {
-        setTimeout(initConnectMenu, 500);
-      }, { once: true });
-      // Fallback for web mode - wait longer for React
-      setTimeout(initConnectMenu, 2000);
-    }
-  }, 500);
-}
+  }
+})();

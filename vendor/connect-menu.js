@@ -211579,8 +211579,39 @@ Message: ${transactionMessage}.
     }
     mountConnectMenu();
   }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
+  (function checkAndSkipIfMiniApp() {
+    const isMiniAppEarly = isMiniAppEnvironment();
+    if (isMiniAppEarly) {
+      console.log("[ConnectMenu] Mini app detected early, skipping all initialization");
+      if (typeof document !== "undefined") {
+        const existing = document.getElementById("connect-root");
+        if (existing) {
+          existing.remove();
+        }
+        const errorDivs = document.querySelectorAll('[id*="connect"], [class*="connect"]');
+        errorDivs.forEach((el2) => {
+          if (el2.textContent && el2.textContent.includes("Wallet config unavailable")) {
+            el2.remove();
+          }
+        });
+      }
+      mountComplete = true;
+      return;
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => {
+          if (window.__basemanSDKReadyFired) {
+            setTimeout(initConnectMenu, 500);
+          } else {
+            window.addEventListener("baseman-sdk-ready", () => {
+              setTimeout(initConnectMenu, 500);
+            }, { once: true });
+            setTimeout(initConnectMenu, 2e3);
+          }
+        }, 500);
+      }, { once: true });
+    } else {
       setTimeout(() => {
         if (window.__basemanSDKReadyFired) {
           setTimeout(initConnectMenu, 500);
@@ -211591,19 +211622,8 @@ Message: ${transactionMessage}.
           setTimeout(initConnectMenu, 2e3);
         }
       }, 500);
-    }, { once: true });
-  } else {
-    setTimeout(() => {
-      if (window.__basemanSDKReadyFired) {
-        setTimeout(initConnectMenu, 500);
-      } else {
-        window.addEventListener("baseman-sdk-ready", () => {
-          setTimeout(initConnectMenu, 500);
-        }, { once: true });
-        setTimeout(initConnectMenu, 2e3);
-      }
-    }, 500);
-  }
+    }
+  })();
 })();
 /*! Bundled license information:
 
