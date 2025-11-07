@@ -211182,19 +211182,25 @@ Message: ${transactionMessage}.
   async function waitForSDK(maxWait = 1e4) {
     const start = Date.now();
     while (Date.now() - start < maxWait) {
-      const sdk2 = window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.sdk;
-      if (sdk2) {
-        if (sdk2.actions && typeof sdk2.actions.ready === "function") {
-          try {
-            await Promise.race([
-              sdk2.actions.ready(),
-              new Promise((_11, reject) => setTimeout(() => reject(new Error("ready timeout")), 2e3))
-            ]);
-          } catch (e19) {
-            console.warn("[wagmi-config] SDK ready() failed or timed out, continuing...");
+      if (isFarcasterMiniApp()) {
+        const sdk2 = window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.sdk;
+        if (sdk2) {
+          if (sdk2.actions && typeof sdk2.actions.ready === "function") {
+            try {
+              await Promise.race([
+                sdk2.actions.ready(),
+                new Promise((_11, reject) => setTimeout(() => reject(new Error("ready timeout")), 2e3))
+              ]);
+            } catch (e19) {
+              console.warn("[wagmi-config] SDK ready() failed or timed out, continuing...");
+            }
           }
+          return true;
         }
-        return true;
+      } else if (isBaseApp()) {
+        if (window.ethereum) {
+          return true;
+        }
       }
       if (window.ethereum) {
         return true;

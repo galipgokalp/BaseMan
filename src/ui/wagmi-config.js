@@ -306,30 +306,39 @@ async function waitForSDK(maxWait = 10000) {
   const start = Date.now();
   
   while (Date.now() - start < maxWait) {
-    // Check for Farcaster SDK
-    const sdk = 
-      (window.fc && window.fc.miniapp) ||
-      (window.farcaster && window.farcaster.miniapp) ||
-      window.MiniAppSDK ||
-      window.sdk;
-    
-    if (sdk) {
-      // For Farcaster, wait for ready() if available
-      if (sdk.actions && typeof sdk.actions.ready === 'function') {
-        try {
-          await Promise.race([
-            sdk.actions.ready(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('ready timeout')), 2000))
-          ]);
-        } catch (e) {
-          // If ready() fails or times out, continue anyway
-          console.warn('[wagmi-config] SDK ready() failed or timed out, continuing...');
+    // Platform-specific SDK readiness check
+    if (isFarcasterMiniApp()) {
+      // Check for Farcaster SDK
+      const sdk = 
+        (window.fc && window.fc.miniapp) ||
+        (window.farcaster && window.farcaster.miniapp) ||
+        window.MiniAppSDK ||
+        window.sdk;
+      
+      if (sdk) {
+        // For Farcaster, wait for ready() if available
+        if (sdk.actions && typeof sdk.actions.ready === 'function') {
+          try {
+            await Promise.race([
+              sdk.actions.ready(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('ready timeout')), 2000))
+            ]);
+          } catch (e) {
+            // If ready() fails or times out, continue anyway
+            console.warn('[wagmi-config] SDK ready() failed or timed out, continuing...');
+          }
         }
+        return true;
       }
-      return true;
+    } else if (isBaseApp()) {
+      // For Base App, check for window.ethereum (shim may have set it)
+      // Base App SDK typically exposes provider immediately
+      if (window.ethereum) {
+        return true;
+      }
     }
     
-    // Check for window.ethereum (shim may have set it)
+    // Generic check for window.ethereum (shim may have set it for any platform)
     if (window.ethereum) {
       return true;
     }
