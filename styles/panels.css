@@ -701,6 +701,36 @@
     padding: var(--spacing-md);
   }
   
+  /* Scale down header elements for mobile */
+  .leaderboard-header {
+    padding-top: var(--spacing-xs);
+    padding-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .leaderboard-title {
+    font-size: 0.7rem;
+  }
+  
+  .leaderboard-refresh {
+    padding: 6px;
+    min-height: 36px;
+    min-width: 36px;
+  }
+  
+  .leaderboard-refresh svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .leaderboard-close {
+    font-size: 0.95rem;
+    width: 28px;
+    height: 28px;
+    min-height: 36px;
+    min-width: 36px;
+  }
+  
   .network-confirm-content {
     max-width: 90vw;
     padding: var(--spacing-md);

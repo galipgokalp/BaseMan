@@ -775,14 +775,40 @@ body.theme-light .profile-network-logo svg rect {
   }
   
   .leaderboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding-top: var(--spacing-xs);
+    padding-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .leaderboard-title {
+    font-size: 0.7rem;
+    flex: 1;
+    min-width: 0;
   }
   
   .leaderboard-refresh {
-    align-self: flex-end;
-    min-width: 80px; /* Ensure touch target is large enough */
+    align-self: center;
+    padding: 6px;
+    min-height: 36px;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+  
+  .leaderboard-refresh svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .leaderboard-close {
+    font-size: 0.95rem;
+    width: 28px;
+    height: 28px;
+    min-height: 36px;
+    min-width: 36px;
+    flex-shrink: 0;
   }
   
   .profile-panel {
