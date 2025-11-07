@@ -347,8 +347,11 @@
   }
 
   function openWallet() {
-    // Immediate panel opening
+    console.log('[bottom-nav] openWallet called');
+    
+    // Try API first
     if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
+      console.log('[bottom-nav] Using WalletPanel API');
       window.WalletPanel.show();
       // Refresh in background
       requestAnimationFrame(() => {
@@ -359,51 +362,61 @@
       return;
     }
 
-    // Fallback: Try to find connect menu immediately
-    let connectRoot = document.getElementById('connect-root');
+    // Fallback: Directly open wallet panel if API not ready
+    console.log('[bottom-nav] WalletPanel API not ready, using direct fallback');
+    const panelId = 'baseman-wallet-panel';
+    let panel = document.getElementById(panelId);
     
-    if (connectRoot) {
-      handleConnectMenu(connectRoot);
-      dispatchWalletEvent();
-    } else {
-      // Try to find connect menu quickly (reduced attempts)
+    if (!panel) {
+      // Panel doesn't exist, try to create it
+      console.log('[bottom-nav] Wallet panel not found, waiting for wallet-panel.js to initialize...');
+      // Wait a bit for wallet-panel.js to initialize
       let attempts = 0;
-      const maxAttempts = 5; // Reduced from 20 to 5 (1 second max wait)
+      const maxAttempts = 10; // 2 seconds max wait
       const checkInterval = setInterval(() => {
         attempts++;
-        connectRoot = document.getElementById('connect-root');
-        if (connectRoot) {
+        if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
           clearInterval(checkInterval);
-          handleConnectMenu(connectRoot);
-          dispatchWalletEvent();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          dispatchWalletEvent();
+          console.log('[bottom-nav] WalletPanel API now available, using it');
+          window.WalletPanel.show();
+          requestAnimationFrame(() => {
+            if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
+              window.WalletPanel.refresh();
+            }
+          });
+        } else {
+          panel = document.getElementById(panelId);
+          if (panel) {
+            clearInterval(checkInterval);
+            console.log('[bottom-nav] Panel found, opening directly');
+            panel.classList.add('open');
+            panel.setAttribute('aria-hidden', 'false');
+            // Trigger refresh if API becomes available
+            requestAnimationFrame(() => {
+              if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
+                window.WalletPanel.refresh();
+              }
+            });
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            console.warn('[bottom-nav] Wallet panel not found after waiting');
+          }
         }
       }, 200);
+      return;
     }
-  }
-  
-  function handleConnectMenu(connectRoot) {
-    if (!connectRoot) return;
     
-    // Scroll to connect menu if needed
-    connectRoot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Panel exists, open it directly
+    console.log('[bottom-nav] Opening wallet panel directly');
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
     
-    // Try to trigger focus on connect button if visible
+    // Trigger refresh if API is available
     requestAnimationFrame(() => {
-      const connectButton = connectRoot.querySelector('button');
-      if (connectButton && !connectButton.disabled) {
-        connectButton.focus();
+      if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
+        window.WalletPanel.refresh();
       }
     });
-  }
-  
-  function dispatchWalletEvent() {
-    const walletEvent = new CustomEvent('baseman-open-wallet', {
-      detail: { source: 'bottom-nav' }
-    });
-    window.dispatchEvent(walletEvent);
   }
 
   function openSettings() {
@@ -462,4 +475,5 @@
   // Start initialization immediately
   initWhenReady();
 })();
+
 

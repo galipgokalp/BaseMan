@@ -369,28 +369,19 @@
     isOpen: () => isOpen
   };
 
-  // Wait for DOM and SDK ready
+  // Initialize immediately - don't wait for SDK
+  // Panel should be available as soon as DOM is ready
   function initWhenReady() {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
-        if (window.__basemanSDKReadyFired) {
-          setTimeout(init, 100);
-        } else {
-          window.addEventListener('baseman-sdk-ready', () => {
-            setTimeout(init, 100);
-          }, { once: true });
-          setTimeout(init, 1000);
-        }
+        // Initialize immediately
+        init();
       }, { once: true });
+      // Fallback: init immediately if DOMContentLoaded takes too long
+      setTimeout(init, 100);
     } else {
-      if (window.__basemanSDKReadyFired) {
-        setTimeout(init, 100);
-      } else {
-        window.addEventListener('baseman-sdk-ready', () => {
-          setTimeout(init, 100);
-        }, { once: true });
-        setTimeout(init, 1000);
-      }
+      // DOM already ready - init immediately
+      init();
     }
   }
 
