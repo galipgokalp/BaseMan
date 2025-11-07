@@ -97,103 +97,108 @@
     <script defer src="src/onchain-bootstrap.js?v=202512061200"></script>
     <script defer src="src/onchain-client.js?v=202512061200"></script>
     <!-- React/Wagmi Connect widget (bundled) -->
-    <!-- Only load in web environments, not in mini apps -->
+    <!-- Connect UI is completely disabled - wallet functionality is handled via Wallet panel -->
     <script>
       (function() {
-        // Early mini app detection before any scripts load
-        const isMiniApp = (typeof window !== 'undefined') && (
-          (window.fc && window.fc.miniapp) ||
-          (window.farcaster && window.farcaster.miniapp) ||
-          window.MiniAppSDK ||
-          window.MiniKit ||
-          window.ReactNativeWebView ||
-          (window.navigator && window.navigator.userAgent && (
-            window.navigator.userAgent.includes('Farcaster') ||
-            window.navigator.userAgent.includes('Warpcast') ||
-            window.navigator.userAgent.includes('BaseApp')
-          ))
-        );
+        // Always hide connect menu - don't load it at all
+        console.log('[BaseMan] Connect UI disabled - wallet functionality via Wallet panel');
         
-        if (!isMiniApp) {
-          // Web environment - load connect menu
-          const script = document.createElement('script');
-          script.defer = true;
-          script.src = 'vendor/connect-menu.js';
-          document.head.appendChild(script);
-        } else {
-          // Mini app - don't load connect menu at all
-          console.log('[BaseMan] Mini app detected, skipping connect-menu.js');
+        // Add CSS to hide any connect menu elements that might appear
+        const style = document.createElement('style');
+        style.id = 'hide-connect-menu-force';
+        style.textContent = `
+          #connect-root,
+          [id*="connect"],
+          [id*="Connect"],
+          [class*="connect"],
+          [class*="Connect"],
+          [class*="connect"][class*="root"],
+          div[style*="Wallet config unavailable"],
+          div[style*="You're connected"],
+          div[style*="Connect"],
+          button[style*="Connect"],
+          button:contains("Connect"),
+          button:contains("Connecting") {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            left: -9999px !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            z-index: -9999 !important;
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // Periodic cleanup
+        let cleanupCount = 0;
+        const cleanupInterval = setInterval(function() {
+          const connectRoot = document.getElementById('connect-root');
+          if (connectRoot) {
+            connectRoot.remove();
+          }
           
-          // Add CSS to hide any connect menu elements that might appear
-          const style = document.createElement('style');
-          style.id = 'hide-connect-menu-force';
-          style.textContent = `
-            #connect-root,
-            [id*="connect"],
-            [class*="connect"][class*="root"],
-            div[style*="Wallet config unavailable"],
-            div[style*="You're connected"] {
-              display: none !important;
-              visibility: hidden !important;
-              opacity: 0 !important;
-              pointer-events: none !important;
-              position: absolute !important;
-              left: -9999px !important;
-              width: 0 !important;
-              height: 0 !important;
-              overflow: hidden !important;
-            }
-          `;
-          document.head.appendChild(style);
-          
-          // Periodic cleanup
-          let cleanupCount = 0;
-          const cleanupInterval = setInterval(function() {
-            const connectRoot = document.getElementById('connect-root');
-            if (connectRoot) {
-              connectRoot.remove();
-            }
+          // Remove any divs or buttons with connect-related content
+          const allElements = document.querySelectorAll('div, button, span, a');
+          allElements.forEach(function(el) {
+            const text = (el.textContent || '').toLowerCase();
+            const id = (el.id || '').toLowerCase();
+            const className = (el.className || '').toLowerCase();
             
-            // Remove any divs with error messages
-            const allDivs = document.querySelectorAll('div');
-            allDivs.forEach(function(div) {
-              const text = div.textContent || '';
-              if (text.includes('Wallet config unavailable') || 
-                  text.includes("You're connected!")) {
-                div.remove();
-              }
-            });
-            
-            cleanupCount++;
-            if (cleanupCount > 40) { // 20 seconds
-              clearInterval(cleanupInterval);
+            if (id.includes('connect') || 
+                className.includes('connect') ||
+                text.includes('wallet config unavailable') || 
+                text.includes("you're connected") ||
+                text.includes('connect') ||
+                text.includes('connecting')) {
+              el.remove();
             }
-          }, 500);
+          });
           
-          // MutationObserver to catch any dynamically added elements
-          if (typeof MutationObserver !== 'undefined') {
-            const observer = new MutationObserver(function(mutations) {
-              mutations.forEach(function(mutation) {
-                mutation.addedNodes.forEach(function(node) {
-                  if (node.nodeType === 1) { // Element node
-                    const id = node.id || '';
-                    const className = node.className || '';
-                    const text = node.textContent || '';
-                    
-                    if (id.includes('connect') || 
-                        className.includes('connect') ||
-                        text.includes('Wallet config unavailable') ||
-                        text.includes("You're connected!")) {
-                      node.remove();
-                    }
+          cleanupCount++;
+          if (cleanupCount > 40) { // 20 seconds
+            clearInterval(cleanupInterval);
+          }
+        }, 500);
+        
+        // MutationObserver to catch any dynamically added elements
+        if (typeof MutationObserver !== 'undefined') {
+          const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) { // Element node
+                  const id = (node.id || '').toLowerCase();
+                  const className = (node.className || '').toLowerCase();
+                  const text = (node.textContent || '').toLowerCase();
+                  
+                  if (id.includes('connect') || 
+                      className.includes('connect') ||
+                      text.includes('wallet config unavailable') ||
+                      text.includes("you're connected") ||
+                      text.includes('connect') ||
+                      text.includes('connecting')) {
+                    node.remove();
                   }
-                });
+                }
               });
             });
-            
+          });
+          
+          if (document.body) {
             observer.observe(document.body, {
               childList: true,
               subtree: true
+            });
+          } else {
+            // Wait for body to be available
+            document.addEventListener('DOMContentLoaded', function() {
+              observer.observe(document.body, {
+                childList: true,
+                subtree: true
+              });
             });
           }
         }
