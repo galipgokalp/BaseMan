@@ -23,15 +23,49 @@
     } catch (_) { return false; }
   }
 
+  // Use unified SDK detection if available
   function getSDK() {
     try {
-      const candidates = [
+      // Use centralized SDK detection if available
+      if (typeof window !== 'undefined' && typeof window.getSDK === 'function') {
+        const sdk = window.getSDK();
+        if (sdk) return sdk;
+      }
+      
+      // Fallback: platform-aware detection
+      const isFarcaster = typeof window !== 'undefined' && 
+        typeof window.isFarcasterMiniApp === 'function' && 
+        window.isFarcasterMiniApp();
+      const isBase = typeof window !== 'undefined' && 
+        typeof window.isBaseApp === 'function' && 
+        window.isBaseApp();
+      
+      const candidates = [];
+      
+      // Platform-specific priority
+      if (isFarcaster) {
+        candidates.push(
+          () => window.fc && window.fc.miniapp,
+          () => window.farcaster && window.farcaster.miniapp,
+          () => window.MiniAppSDK,
+          () => window.FarcasterMiniAppSDK
+        );
+      } else if (isBase) {
+        candidates.push(
+          () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
+          () => window.MiniApp && window.MiniApp.sdk
+        );
+      }
+      
+      // Generic fallback
+      candidates.push(
         () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
         () => window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp),
         () => window.MiniAppSDK,
         () => window.FarcasterMiniAppSDK,
-        () => window.MiniApp && window.MiniApp.sdk,
-      ];
+        () => window.MiniApp && window.MiniApp.sdk
+      );
+      
       for (const f of candidates) {
         const v = f();
         if (v) return v;
