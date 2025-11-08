@@ -937,10 +937,17 @@
         return result;
       } catch (error) {
         const message = error?.message || error;
-        debug(`wallet_sendCalls (paymaster) failed: ${message}; retrying without capabilities…`);
-        try { return await sendCalls(callData, null); } catch (_) {}
-        debug('wallet_sendCalls (no paymaster) failed; trying eth_sendTransaction fallback…');
-        try { return await sendEthTransaction(callData); } catch (_) {}
+        debug(`submitScoreWithPaymaster: wallet_sendCalls (paymaster) failed: ${message}; retrying without capabilities…`);
+        try { 
+          const retryResult = await sendCalls(callData, null);
+          if (retryResult) {
+            debug(`submitScoreWithPaymaster: Retry without paymaster succeeded`);
+            return retryResult;
+          }
+        } catch (retryError) {
+          debug(`submitScoreWithPaymaster: Retry without paymaster failed: ${retryError?.message || retryError}`);
+        }
+        debug('submitScoreWithPaymaster: wallet_sendCalls (no paymaster) failed; returning null for outer fallback');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:error', meta: { message: String(message) } }) }).catch(()=>{});} catch(_) {}
         return null;
       }
@@ -988,131 +995,210 @@
     }
 
     async function submitScore() {
-      if (state.submitting) return;
-      if (typeof window.getScore !== "function") return;
+      if (state.submitting) {
+        debug('submitScore: Already submitting, skipping');
+        return;
+      }
+      if (typeof window.getScore !== "function") {
+        debug('submitScore: getScore function not available');
+        return;
+      }
 
       const score = BigInt(window.getScore());
-      if (score <= 0n) return;
+      if (score <= 0n) {
+        debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
+        return;
+      }
 
       const durationMs =
         state.runStartedAt !== null
           ? Math.max(0, Math.floor(performance.now() - state.runStartedAt))
           : 0;
 
+      debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
+
       try {
         state.submitting = true;
 
         // Request accounts if needed (may prompt passkey, but user initiated transaction)
+        debug('submitScore: Ensuring wallet connection...');
         await ensureWallet(true);
         if (!state.address) {
-          throw new Error("Wallet connection required");
+          const errorMsg = "Wallet connection required";
+          debug(`submitScore: ${errorMsg}`);
+          throw new Error(errorMsg);
         }
+        debug(`submitScore: Wallet connected - address=${state.address}`);
 
+        debug('submitScore: Requesting signature from backend...');
         const { signature, deadline, score: signedScore, nonce } = await requestScoreSignature(
           score,
           durationMs
         );
+        debug(`submitScore: Signature received - deadline=${deadline}, nonce=${nonce || 'N/A'}`);
 
         const scoreValue = signedScore ? BigInt(signedScore) : score;
         const deadlineValue = BigInt(deadline);
 
-        let paymasterHandled = false;
+        // Check if we have contract interface to encode call data
         const contractInterface = state.contract && state.contract.interface;
-        if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
-          // Decide EIP-712 version at runtime (prefer env, else introspect contract.eip712Version())
-          let eip712v = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim())) || '';
-          let isV2 = eip712v === '2' || eip712v === '';
-          if (!isV2 && eip712v !== '1') {
-            try {
-              if (typeof state.contract.eip712Version === 'function') {
-                const v = await state.contract.eip712Version();
-                if (typeof v === 'string' && v.trim() === '2') {
-                  isV2 = true;
-                  debug('Detected EIP-712 version from contract: 2');
-                }
-              }
-            } catch (detectErr) {
-              debug(`EIP-712 version autodetect failed: ${detectErr?.message || detectErr}`);
-            }
-          }
-          let callData;
-          if (isV2) {
-            let nonceValue = null;
-            try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
-            if (nonceValue === null) {
-              debug('V2 requires nonce but none was provided; aborting');
-              throw new Error('Missing nonce for V2 signature');
-            }
-            callData = contractInterface.encodeFunctionData("submitScore", [
-              state.address,
-              scoreValue,
-              deadlineValue,
-              nonceValue,
-              signature
-            ]);
-          } else {
-            callData = contractInterface.encodeFunctionData("submitScore", [
-              state.address,
-              scoreValue,
-              deadlineValue,
-              signature
-            ]);
-          }
-          const paymasterResult = await submitScoreWithPaymaster(callData);
-          if (paymasterResult) {
-            let identifier = null;
-            if (typeof paymasterResult === "string") {
-              identifier = paymasterResult;
-            } else if (typeof paymasterResult === "object") {
-              if (typeof paymasterResult.id === "string") {
-                identifier = paymasterResult.id;
-              } else if (typeof paymasterResult.hash === "string") {
-                identifier = paymasterResult.hash;
-              }
-            }
+        if (!contractInterface || typeof contractInterface.encodeFunctionData !== "function") {
+          debug('submitScore: Contract interface not available, cannot encode call data');
+          throw new Error("Contract interface not available");
+        }
 
-            if (identifier) {
-              paymasterHandled = true;
-              debug(`Paymaster-backed submission started (id: ${identifier}).`);
-              if (
-                typeof paymasterResult === "object" &&
-                typeof paymasterResult.id === "string"
-              ) {
-                setTimeout(() => {
-                  if (!state.provider || typeof state.provider.request !== "function") return;
-                  state.provider
-                    .request({
-                      method: "wallet_getCallsStatus",
-                      params: [paymasterResult.id]
-                    })
-                    .then((status) => {
-                      debug(
-                        `wallet_getCallsStatus response: ${
-                          status ? JSON.stringify(status) : "empty response"
-                        }`
-                      );
-                    })
-                    .catch((statusError) => {
-                      debug(
-                        `wallet_getCallsStatus error: ${
-                          statusError?.message || statusError
-                        }`
-                      );
-                    });
-                }, 3000);
+        // Decide EIP-712 version at runtime (prefer env, else introspect contract.eip712Version())
+        let eip712v = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim())) || '';
+        let isV2 = eip712v === '2' || eip712v === '';
+        if (!isV2 && eip712v !== '1') {
+          try {
+            if (typeof state.contract.eip712Version === 'function') {
+              const v = await state.contract.eip712Version();
+              if (typeof v === 'string' && v.trim() === '2') {
+                isV2 = true;
+                debug('submitScore: Detected EIP-712 version from contract: 2');
               }
             }
+          } catch (detectErr) {
+            debug(`submitScore: EIP-712 version autodetect failed: ${detectErr?.message || detectErr}`);
           }
+        }
+        
+        let callData;
+        if (isV2) {
+          let nonceValue = null;
+          try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
+          if (nonceValue === null) {
+            debug('submitScore: V2 requires nonce but none was provided; aborting');
+            throw new Error('Missing nonce for V2 signature');
+          }
+          callData = contractInterface.encodeFunctionData("submitScore", [
+            state.address,
+            scoreValue,
+            deadlineValue,
+            nonceValue,
+            signature
+          ]);
+          debug(`submitScore: Call data encoded (V2) - score=${scoreValue.toString()}, nonce=${nonceValue.toString()}`);
+        } else {
+          callData = contractInterface.encodeFunctionData("submitScore", [
+            state.address,
+            scoreValue,
+            deadlineValue,
+            signature
+          ]);
+          debug(`submitScore: Call data encoded (V1) - score=${scoreValue.toString()}`);
+        }
+        
+        let paymasterHandled = false;
+        debug('submitScore: Submitting transaction with paymaster...');
+        const paymasterResult = await submitScoreWithPaymaster(callData);
+        if (paymasterResult) {
+          let identifier = null;
+          if (typeof paymasterResult === "string") {
+            identifier = paymasterResult;
+          } else if (typeof paymasterResult === "object") {
+            if (typeof paymasterResult.id === "string") {
+              identifier = paymasterResult.id;
+            } else if (typeof paymasterResult.hash === "string") {
+              identifier = paymasterResult.hash;
+            }
+          }
+
+          if (identifier) {
+            paymasterHandled = true;
+            debug(`submitScore: Paymaster-backed submission started (id: ${identifier})`);
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted', meta: { identifier, score: scoreValue.toString(), address: state.address } }) }).catch(()=>{});} catch(_) {}
+            
+            if (
+              typeof paymasterResult === "object" &&
+              typeof paymasterResult.id === "string"
+            ) {
+              setTimeout(() => {
+                if (!state.provider || typeof state.provider.request !== "function") return;
+                state.provider
+                  .request({
+                    method: "wallet_getCallsStatus",
+                    params: [paymasterResult.id]
+                  })
+                  .then((status) => {
+                    debug(
+                      `submitScore: wallet_getCallsStatus response: ${
+                        status ? JSON.stringify(status) : "empty response"
+                      }`
+                    );
+                  })
+                  .catch((statusError) => {
+                    debug(
+                      `submitScore: wallet_getCallsStatus error: ${
+                        statusError?.message || statusError
+                      }`
+                    );
+                  });
+              }, 3000);
+            }
+            debug('submitScore: Transaction submitted successfully via paymaster');
+            return;
+          } else {
+            debug('submitScore: Paymaster result received but no identifier found');
+          }
+        } else {
+          debug('submitScore: Paymaster submission returned null/undefined');
         }
 
         if (paymasterHandled) {
+          debug('submitScore: Paymaster handled, exiting');
           return;
-        } else if (config.paymasterUrl) {
-          debug("Paymaster submission not completed, sending standard transaction.");
+        }
+        
+        // If paymaster failed or not available, try wallet_sendCalls without paymaster (mini-app mode)
+        // This is important: mini-app environments should use wallet_sendCalls even without paymaster
+        // Note: submitScoreWithPaymaster already tries sendCalls without paymaster for Farcaster,
+        // but if it still fails or returns null, we try again here as a safety fallback
+        if (isMiniAppEnv() && !paymasterHandled) {
+          debug("submitScore: Paymaster not available or failed, trying wallet_sendCalls without paymaster as fallback...");
+          try {
+            if (!state.provider || typeof state.provider.request !== "function") {
+              debug('submitScore: No provider available for wallet_sendCalls');
+              throw new Error("No provider available");
+            }
+            const result = await sendCalls(callData, null); // Try without paymaster
+            if (result) {
+              let identifier = null;
+              if (typeof result === "string") {
+                identifier = result;
+              } else if (typeof result === "object") {
+                if (typeof result.id === "string") {
+                  identifier = result.id;
+                } else if (typeof result.hash === "string") {
+                  identifier = result.hash;
+                }
+              }
+              if (identifier) {
+                debug(`submitScore: Transaction submitted via wallet_sendCalls fallback (id: ${identifier})`);
+                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:no-paymaster', meta: { identifier, score: scoreValue.toString(), address: state.address } }) }).catch(()=>{});} catch(_) {}
+                return;
+              } else {
+                debug('submitScore: wallet_sendCalls returned result but no identifier found');
+              }
+            } else {
+              debug('submitScore: wallet_sendCalls returned null/undefined');
+            }
+          } catch (sendCallsError) {
+            debug(`submitScore: wallet_sendCalls fallback failed: ${sendCallsError?.message || sendCallsError}`);
+            // Continue - no more fallbacks available for mini-app mode
+          }
+        }
+        
+        // If we reach here, all mini-app transaction attempts failed
+        if (isMiniAppEnv()) {
+          debug('submitScore: All mini-app transaction attempts failed - no more fallbacks available');
+          throw new Error("Failed to submit score: all transaction methods failed");
         }
 
         // Fallback standard transaction (EOA/web only); detect V2 and include nonce if required
         if (!isMiniAppEnv() && state.contract && typeof state.contract.submitScore === 'function') {
+          debug("submitScore: Using EOA fallback transaction (web mode)");
         let eip712v2 = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim()));
         eip712v2 = (eip712v2 === '2' || eip712v2 === '' || eip712v2 == null);
         if (!eip712v2) {
@@ -1143,10 +1229,33 @@
           debug('Skipping EOA fallback path (mini-app or no Contract instance)');
         }
       } catch (error) {
-        debug(`submitScore error: ${error?.message || error}`);
+        const errorMsg = error?.message || String(error);
+        debug(`submitScore ERROR: ${errorMsg}`);
+        console.error('[BaseMan] submitScore failed:', error);
+        
+        // Log detailed error information
+        try { 
+          fetch('/api/app-log', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+              event: 'score:submission:error', 
+              meta: { 
+                error: errorMsg,
+                score: score?.toString() || 'unknown',
+                address: state.address || 'unknown',
+                stack: error?.stack || null
+              } 
+            }) 
+          }).catch(()=>{});
+        } catch(_) {}
+        
+        // TODO: Show user-friendly error message (future improvement)
+        // For now, errors are only logged to console and debug overlay
       } finally {
         state.submitting = false;
         state.runStartedAt = null;
+        debug('submitScore: Finished (submitting flag cleared)');
       }
     }
 
