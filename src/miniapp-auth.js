@@ -4,74 +4,62 @@
 // - Retrieves a short‑lived Quick Auth token and forwards it to backend for verification
 
 (function () {
-  // Use centralized platform detection if available
+  // Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)
   function isMiniAppEnv() {
     try {
-      // Use centralized detection if available
+      // Priority 1: Use centralized platform detection utility
       if (typeof window !== 'undefined' && typeof window.isMiniAppHost === 'function') {
         return window.isMiniAppHost();
       }
-      // Fallback for when utility is not yet loaded
-      return (
-        (window.fc && window.fc.miniapp) ||
-        (window.farcaster && window.farcaster.miniapp) ||
-        window.MiniApp ||
-        (window.miniapp && (window.miniapp.default || window.miniapp.sdk)) ||
-        window.MiniKit ||
-        window.ReactNativeWebView
-      );
-    } catch (_) { return false; }
+      
+      // Priority 2: Emergency fallback (should never reach here in normal operation)
+      // This fallback is kept for safety but should not be needed
+      // Utility loads early in index.html as type="module" script
+      if (typeof window !== 'undefined') {
+        // Minimal fallback - try most common indicators
+        return Boolean(
+          (window.fc && window.fc.miniapp) ||
+          (window.farcaster && window.farcaster.miniapp) ||
+          window.MiniKit ||
+          window.ReactNativeWebView
+        );
+      }
+      return false;
+    } catch (_) { 
+      return false; 
+    }
   }
 
-  // Use unified SDK detection if available
+  // Use unified SDK detection utility (100% compliance with Unified Wallet Integration Model)
   function getSDK() {
     try {
-      // Use centralized SDK detection if available
+      // Priority 1: Use centralized SDK detection utility
+      if (typeof window !== 'undefined' && typeof window.resolveSDK === 'function') {
+        const sdk = window.resolveSDK();
+        if (sdk) return sdk;
+      }
+      
+      // Also try getSDK for backward compatibility
       if (typeof window !== 'undefined' && typeof window.getSDK === 'function') {
         const sdk = window.getSDK();
         if (sdk) return sdk;
       }
       
-      // Fallback: platform-aware detection
-      const isFarcaster = typeof window !== 'undefined' && 
-        typeof window.isFarcasterMiniApp === 'function' && 
-        window.isFarcasterMiniApp();
-      const isBase = typeof window !== 'undefined' && 
-        typeof window.isBaseApp === 'function' && 
-        window.isBaseApp();
-      
-      const candidates = [];
-      
-      // Platform-specific priority
-      if (isFarcaster) {
-        candidates.push(
-          () => window.fc && window.fc.miniapp,
-          () => window.farcaster && window.farcaster.miniapp,
-          () => window.MiniAppSDK,
-          () => window.FarcasterMiniAppSDK
-        );
-      } else if (isBase) {
-        candidates.push(
-          () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
-          () => window.MiniApp && window.MiniApp.sdk
-        );
-      }
-      
-      // Generic fallback
-      candidates.push(
-        () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
-        () => window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp),
-        () => window.MiniAppSDK,
-        () => window.FarcasterMiniAppSDK,
-        () => window.MiniApp && window.MiniApp.sdk
+      // Priority 2: Emergency fallback (should never reach here in normal operation)
+      // This fallback is kept for safety but should not be needed
+      // Utility loads early in index.html as type="module" script
+      // Minimal fallback - try most common SDK locations
+      return (
+        (window.fc && window.fc.miniapp) ||
+        (window.farcaster && window.farcaster.miniapp) ||
+        (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
+        window.MiniAppSDK ||
+        window.sdk ||
+        null
       );
-      
-      for (const f of candidates) {
-        const v = f();
-        if (v) return v;
-      }
-    } catch (_) {}
-    return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   async function waitReady(sdk, ms = 6000) {

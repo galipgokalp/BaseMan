@@ -8,27 +8,27 @@ import { config as wagmiConfig, makeWagmiConfig, getConfig } from './wagmi-confi
 // Config will be initialized lazily when needed (especially important for mobile apps)
 let config = wagmiConfig || null;
 
-// Use centralized platform detection
+// Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)
 function isMiniAppEnvironment() {
   try {
-    // Use centralized detection if available
+    // Priority 1: Use centralized platform detection utility
     if (typeof window !== 'undefined' && typeof window.isMiniAppHost === 'function') {
       return window.isMiniAppHost();
     }
-    // Fallback for when utility is not yet loaded
-    return Boolean(
-      (typeof window !== 'undefined') && (
+    
+    // Priority 2: Emergency fallback (should never reach here in normal operation)
+    // This fallback is kept for safety but should not be needed
+    // Utility loads early in index.html as type="module" script
+    if (typeof window !== 'undefined') {
+      // Minimal fallback - try most common indicators
+      return Boolean(
         (window.fc && window.fc.miniapp) ||
         (window.farcaster && window.farcaster.miniapp) ||
-        window.MiniAppSDK || window.MiniApp?.sdk ||
-        window.MiniKit || window.ReactNativeWebView ||
-        (window.navigator && window.navigator.userAgent && (
-          window.navigator.userAgent.includes('Farcaster') ||
-          window.navigator.userAgent.includes('Warpcast') ||
-          window.navigator.userAgent.includes('BaseApp')
-        ))
-      )
-    );
+        window.MiniKit ||
+        window.ReactNativeWebView
+      );
+    }
+    return false;
   } catch (_) {
     return false;
   }

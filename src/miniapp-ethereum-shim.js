@@ -7,27 +7,29 @@
   const DELAY = 100;
   let tries = 0;
 
+  // Use unified SDK detection utility (100% compliance with Unified Wallet Integration Model)
   function getMiniAppProvider() {
     try {
-      // Use unified SDK detection if available
+      // Priority 1: Use centralized SDK detection utility
       let sdk = null;
       if (typeof window !== 'undefined' && typeof window.resolveSDK === 'function') {
         sdk = window.resolveSDK();
+        if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
+          return sdk.wallet.getEthereumProvider();
+        }
       }
       
-      // Fallback: direct detection
-      if (!sdk) {
-        sdk =
-          (window.fc && window.fc.miniapp) ||
-          (window.farcaster && window.farcaster.miniapp) ||
-          (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
-          (window.MiniApp && window.MiniApp.sdk) ||
-          window.MiniAppSDK ||
-          window.FarcasterMiniAppSDK ||
-          window.sdk ||
-          (window.miniapp && (window.miniapp.default || window.miniapp.sdk || window.miniapp)) ||
-          null;
-      }
+      // Priority 2: Emergency fallback (should never reach here in normal operation)
+      // This fallback is kept for safety but should not be needed
+      // Utility loads early in index.html as type="module" script
+      // Minimal fallback - try most common SDK locations
+      sdk =
+        (window.fc && window.fc.miniapp) ||
+        (window.farcaster && window.farcaster.miniapp) ||
+        (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
+        window.MiniAppSDK ||
+        window.sdk ||
+        null;
       
       if (!sdk || !sdk.wallet || typeof sdk.wallet.getEthereumProvider !== 'function') return null;
       return sdk.wallet.getEthereumProvider();

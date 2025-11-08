@@ -28,9 +28,15 @@ Reference documentation files (do not modify, these are external references):
 
 Analysis and status reports:
 
+- **Unified Wallet Integration Model**: `UNIFIED_WALLET_INTEGRATION_MODEL.md` — Common wallet integration model for Farcaster and Base App
+- **Wallet Integration Compliance**: `WALLET_INTEGRATION_COMPLIANCE.md` — BaseMan's compliance with unified wallet integration model
 - **Integration Analysis**: `INTEGRATION_ANALYSIS.md` — Platform integrations, wallet integrations, paymaster, and status report
+- **Base App Wallet Connection Guide**: `BASE_APP_WALLET_CONNECTION_GUIDE.md` — Base App wallet connection best practices
+- **Passkey Prompt Fix**: `PASSKEY_PROMPT_FIX.md` — Fix for unnecessary passkey prompts in Base App
+- **Wallet Connection Status Analysis**: `WALLET_CONNECTION_STATUS_ANALYSIS.md` — Analysis of wallet connection status in mini-apps
 - **Code Review Report**: `CODE_REVIEW_REPORT.md` — Code base review with improvement suggestions
 - **Mini App Safety Analysis**: `MINI_APP_SAFETY_ANALYSIS.md` — Safety analysis for mini-app improvements
+- **InnerHTML Safety Analysis**: `INNERHTML_SAFETY_ANALYSIS.md` — Analysis of innerHTML security improvements
 
 ## Guides
 
