@@ -454,7 +454,7 @@ body.theme-light .canvas-container {
 .profile-network-link {
   cursor: pointer;
   color: var(--color-primary);
-  font-size: 0.9rem;
+  font-size: 0.63rem;
   font-weight: 600;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -462,7 +462,7 @@ body.theme-light .canvas-container {
   gap: var(--spacing-sm);
   padding: var(--spacing-xs) 0;
   min-height: 44px;
-  line-height: 1;
+  line-height: 1.4;
   touch-action: manipulation;
   text-decoration: none;
   user-select: none;

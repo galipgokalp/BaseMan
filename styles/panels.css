@@ -783,6 +783,11 @@
     height: 40px;
   }
   
+  /* Scale down profile network link for mobile */
+  .profile-network-link {
+    font-size: 0.56rem;
+  }
+  
   /* Scale down wallet address for mobile */
   .wallet-address {
     font-size: 0.52rem;
