@@ -90,6 +90,8 @@
     <script type="module" src="src/utils/logger.js"></script>
     <!-- Unified SDK detection utility (depends on platform-detection) -->
     <script type="module" src="src/utils/sdk-detection.js"></script>
+    <!-- Connect menu suppressor (depends on platform-detection, loads after it) -->
+    <script defer src="src/utils/connect-menu-suppressor.js"></script>
     <!-- Expose Mini App EIP-1193 provider as window.ethereum for libs expecting injected provider -->
     <script defer src="src/miniapp-ethereum-shim.js"></script>
     <!-- Debug/mock: inject a minimal Mini App SDK + provider in web for local e2e -->
@@ -105,133 +107,7 @@
     <script defer src="src/onchain-bootstrap.js?v=202512061200"></script>
     <script defer src="src/onchain-client.js?v=202512061200"></script>
     <!-- React/Wagmi Connect widget (bundled) -->
-    <!-- Connect UI is completely disabled - wallet functionality is handled via Wallet panel -->
-    <script>
-      (function() {
-        // Always hide connect menu - don't load it at all
-        console.log('[BaseMan] Connect UI disabled - wallet functionality via Wallet panel');
-        
-        // Add CSS to hide any connect menu elements that might appear
-        const style = document.createElement('style');
-        style.id = 'hide-connect-menu-force';
-        style.textContent = `
-          #connect-root,
-          [id*="connect"],
-          [id*="Connect"],
-          [class*="connect"],
-          [class*="Connect"],
-          [class*="connect"][class*="root"],
-          div[style*="Wallet config unavailable"],
-          div[style*="You're connected"],
-          div[style*="Connect"],
-          button[style*="Connect"],
-          button:contains("Connect"),
-          button:contains("Connecting") {
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-            position: absolute !important;
-            left: -9999px !important;
-            width: 0 !important;
-            height: 0 !important;
-            overflow: hidden !important;
-            z-index: -9999 !important;
-          }
-        `;
-        document.head.appendChild(style);
-        
-        // Periodic cleanup
-        let cleanupCount = 0;
-        const cleanupInterval = setInterval(function() {
-          const connectRoot = document.getElementById('connect-root');
-          if (connectRoot) {
-            connectRoot.remove();
-          }
-          
-          // Remove any divs or buttons with connect-related content
-          // BUT exclude wallet panel and its contents
-          const allElements = document.querySelectorAll('div, button, span, a');
-          allElements.forEach(function(el) {
-            // Skip if element is inside wallet panel
-            if (el.closest && el.closest('#baseman-wallet-panel')) {
-              return;
-            }
-            // Skip if element is wallet panel itself
-            if (el.id === 'baseman-wallet-panel') {
-              return;
-            }
-            
-            const text = (el.textContent || '').toLowerCase();
-            const id = (el.id || '').toLowerCase();
-            const className = (el.className || '').toLowerCase();
-            
-            // More specific checks - don't match "Connection" in wallet panel
-            if (id.includes('connect') && !id.includes('wallet') || 
-                (className.includes('connect') && !className.includes('wallet')) ||
-                text.includes('wallet config unavailable') || 
-                (text.includes("you're connected") && !text.includes('wallet')) ||
-                (text === 'connect' || text === 'connecting' || text.startsWith('connect '))) {
-              el.remove();
-            }
-          });
-          
-          cleanupCount++;
-          if (cleanupCount > 40) { // 20 seconds
-            clearInterval(cleanupInterval);
-          }
-        }, 500);
-        
-          // MutationObserver to catch any dynamically added elements
-          // BUT exclude wallet panel and its contents
-          if (typeof MutationObserver !== 'undefined') {
-            const observer = new MutationObserver(function(mutations) {
-              mutations.forEach(function(mutation) {
-                mutation.addedNodes.forEach(function(node) {
-                  if (node.nodeType === 1) { // Element node
-                    // Skip if element is inside wallet panel
-                    if (node.closest && node.closest('#baseman-wallet-panel')) {
-                      return;
-                    }
-                    // Skip if element is wallet panel itself
-                    if (node.id === 'baseman-wallet-panel') {
-                      return;
-                    }
-                    
-                    const id = (node.id || '').toLowerCase();
-                    const className = (node.className || '').toLowerCase();
-                    const text = (node.textContent || '').toLowerCase();
-                    
-                    // More specific checks - don't match "Connection" in wallet panel
-                    if ((id.includes('connect') && !id.includes('wallet')) || 
-                        (className.includes('connect') && !className.includes('wallet')) ||
-                        text.includes('wallet config unavailable') ||
-                        (text.includes("you're connected") && !text.includes('wallet')) ||
-                        (text === 'connect' || text === 'connecting' || text.startsWith('connect '))) {
-                      node.remove();
-                    }
-                  }
-                });
-              });
-            });
-            
-            if (document.body) {
-              observer.observe(document.body, {
-                childList: true,
-                subtree: true
-              });
-            } else {
-              // Wait for body to be available
-              document.addEventListener('DOMContentLoaded', function() {
-                observer.observe(document.body, {
-                  childList: true,
-                  subtree: true
-                });
-              });
-            }
-          }
-      })();
-    </script>
+    <!-- Connect UI is suppressed in mini-app environments via connect-menu-suppressor.js -->
     <!-- Optional auto submit for e2e: set ?mock-miniapp=1&auto=1 to trigger a score submission -->
     <script defer src="src/debug-autosubmit.js"></script>
     <script defer src="src/leaderboard-panel.js?v=202512061200"></script>
