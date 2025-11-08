@@ -3,6 +3,8 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Documentation Index](#documentation-index)
+  - [Reference Documentation](#reference-documentation)
+  - [Analysis & Reports](#analysis--reports)
   - [Guides](#guides)
   - [Common](#common)
   - [Quick Project Setup (Repo)](#quick-project-setup-repo)
@@ -14,16 +16,44 @@
 
 This folder contains working copies of documentation for Base, Farcaster Mini Apps, and Coinbase Developer Platform (Paymaster). Use this index to navigate and keep content in sync.
 
+## Reference Documentation
+
+Reference documentation files (do not modify, these are external references):
+
+- **Base Mini Apps**: `Base_MiniApps_Docs.md` — merged into a single lossless document.
+- **Farcaster Mini Apps**: `Farcaster_MiniApps_Docs.md`
+- **CDP Paymaster**: `CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`
+
+## Analysis & Reports
+
+Analysis and status reports:
+
+- **Integration Analysis**: `INTEGRATION_ANALYSIS.md` — Platform integrations, wallet integrations, paymaster, and status report
+- **Code Review Report**: `CODE_REVIEW_REPORT.md` — Code base review with improvement suggestions
+- **Mini App Safety Analysis**: `MINI_APP_SAFETY_ANALYSIS.md` — Safety analysis for mini-app improvements
+
 ## Guides
 
-- Base: Base_MiniApps_Docs.md — merged into a single lossless document.
-- Farcaster Mini Apps: Farcaster_MiniApps_Docs.md
-- CDP Paymaster: CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md
+Development and debugging guides:
+
+- **Development Guide**: `DEVELOPMENT_GUIDE.md` — Wallet integration, Wagmi config, troubleshooting, and best practices
+- **Debug Guide**: `DEBUG_GUIDE.md` — Console logs access and UI debug procedures
+- **UI Design Guide**: `UI_DESIGN_GUIDE.md` — Modern theme design and UI layout recommendations
 
 ## Common
 
-- Troubleshooting Index: common/troubleshooting.md
-- Telemetry Index: common/telemetry.md
+Shared documentation:
+
+- **Troubleshooting Index**: `common/troubleshooting.md`
+- **Telemetry Index**: `common/telemetry.md`
+
+## Other
+
+Additional documentation:
+
+- **Roadmap**: `ROADMAP.md` — Project roadmap
+- **Glossary**: `glossary.md` — Terminology and definitions
+- **Environment Example**: `env.example` — Environment variables template
 
 ## Quick Project Setup (Repo)
 
@@ -41,8 +71,14 @@ This folder contains working copies of documentation for Base, Farcaster Mini Ap
 - Lint/Links/Spell/Format: `npm run docs:verify` and `npm run docs:format`
 - Ignore example links: edit `docs/link-ignore.json` to add patterns you want the link checker to skip (placeholders like `your-app.com`, `localhost`, `example.com` are preconfigured).
 
-Notes
+## Notes
 
-- Base dokümanı tek dosyada birleştirilmiştir (`Base_MiniApps_Docs.md`).
-- Başlıkları değiştirirseniz TOC’yi güncelleyin: `npm run docs:toc`.
+- Base dokümanı tek dosyada birleştirilmişti (`Base_MiniApps_Docs.md`).
+- Documentation reorganization completed (2025-01-06):
+  - 8 analysis files merged into `INTEGRATION_ANALYSIS.md`
+  - 3 guide files merged into `DEVELOPMENT_GUIDE.md`
+  - 2 debug files merged into `DEBUG_GUIDE.md`
+  - 2 design files merged into `UI_DESIGN_GUIDE.md`
+  - Old files removed (content preserved in merged files, git history available)
+- Başlıkları değiştirirseniz TOC'yi güncelleyin: `npm run docs:toc`.
 - Glossary: `docs/glossary.md`; Environment örneği: `docs/env.example`.

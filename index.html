@@ -86,6 +86,8 @@
     <script defer src="vendor/miniapp-sdk/index.min.js"></script>
     <!-- Centralized platform detection utility (must load early) -->
     <script type="module" src="src/utils/platform-detection.js"></script>
+    <!-- Logger utility (should load early, before other scripts) -->
+    <script type="module" src="src/utils/logger.js"></script>
     <!-- Unified SDK detection utility (depends on platform-detection) -->
     <script type="module" src="src/utils/sdk-detection.js"></script>
     <!-- Expose Mini App EIP-1193 provider as window.ethereum for libs expecting injected provider -->

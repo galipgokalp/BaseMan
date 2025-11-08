@@ -38,7 +38,8 @@ body {
   font-size: 1.5em;
 }
 
-.leaderboard-panel {
+/* NOTE: Leaderboard panel styles moved to panels.css */
+/* .leaderboard-panel {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -47,39 +48,12 @@ body {
   border-radius: 12px;
   padding: 12px 16px 16px;
   backdrop-filter: blur(6px);
-}
+} */
 
-.leaderboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.leaderboard-title {
-  font-size: clamp(1.4rem, 3vw, 1.8rem);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: #ffe14f;
-  font-weight: 600;
-}
-
-.leaderboard-refresh {
-  background: rgba(255, 255, 0, 0.15);
-  border: 1px solid rgba(255, 255, 0, 0.45);
-  color: #ffe14f;
-  border-radius: 8px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.leaderboard-refresh:hover {
-  background: rgba(255, 255, 0, 0.25);
-}
+/* NOTE: Leaderboard header, title, refresh styles moved to panels.css and modern-theme.css */
+/* .leaderboard-header { ... } - moved to panels.css */
+/* .leaderboard-title { ... } - moved to panels.css */
+/* .leaderboard-refresh { ... } - moved to modern-theme.css */
 
 .leaderboard-status {
   font-size: 0.85rem;
@@ -276,6 +250,8 @@ body {
 }
 
 /* ===== Profile panel ===== */
+/* NOTE: Profile panel styles moved to panels.css and modern-theme.css */
+/* Profile button styles are kept here as they're not panel-specific */
 .profile-btn {
   position: fixed;
   top: 16px;
@@ -290,29 +266,15 @@ body {
   font: 600 12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-.profile-panel {
-  position: fixed;
-  right: 16px;
-  top: 56px;
-  width: min(92vw, 420px);
-  max-height: 60vh;
-  overflow: auto;
-  z-index: 10001;
-  background: rgba(10, 10, 10, 0.95);
-  border: 2px solid rgba(255, 255, 0, 0.35);
-  border-radius: 12px;
-  padding: 10px 12px;
-  display: none;
-}
+/* NOTE: Old profile panel styles removed - see panels.css for current styles */
+/* .profile-panel { ... } - moved to panels.css */
+/* .profile-header { ... } - moved to panels.css */
+/* .profile-title { ... } - moved to panels.css */
+/* .profile-close { ... } - moved to panels.css */
+/* .profile-body { ... } - moved to panels.css */
+/* .profile-row { ... } - moved to panels.css */
 
-.profile-panel.open { display: block; }
-
-.profile-header { display: flex; justify-content: space-between; align-items: center; }
-.profile-title { font-size: 1rem; color: #ffe14f; margin: 0; }
-.profile-close { background: transparent; color: #fff; border: none; font-size: 1.2rem; cursor: pointer; }
-
-.profile-body { display: flex; flex-direction: column; gap: 8px; }
-.profile-row { display: flex; justify-content: space-between; font-size: 0.9rem; }
+/* Profile-specific action styles (not panel-specific) */
 .profile-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .profile-action { cursor: pointer; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.05); color: #fff; }
 .profile-input { width: 100px; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); color: #fff; background: rgba(255,255,255,.05); }

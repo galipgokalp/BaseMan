@@ -5,14 +5,18 @@
   let attempts = 0;
 
   const debug = createDebugOverlay();
-  console.log("[BaseMan] onchain-client bootstrap");
+  // Use logger if available, fallback to console.log for backward compatibility
+  const log = (typeof window !== 'undefined' && window.logger) ? window.logger.log : console.log;
+  log("[BaseMan] onchain-client bootstrap");
 
   function showFailure(message) {
     debug(`HATA: ${message}`);
     if (typeof window.__showModuleFailure === "function") {
       window.__showModuleFailure(message);
     } else {
-      console.error("[BaseMan] " + message);
+      // Use logger if available, fallback to console.error for backward compatibility
+      const error = (typeof window !== 'undefined' && window.logger) ? window.logger.error : console.error;
+      error("[BaseMan] " + message);
     }
   }
 

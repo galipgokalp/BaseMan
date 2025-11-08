@@ -184,61 +184,11 @@ body.theme-light .canvas-container {
 }
 
 /* ===== Leaderboard Panel - Enhanced ===== */
-.leaderboard-panel {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  background: linear-gradient(135deg, 
-    rgba(20, 20, 32, 0.95) 0%, 
-    rgba(10, 10, 15, 0.98) 100%);
-  border: 2px solid var(--color-border-bright);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  backdrop-filter: blur(12px) saturate(180%);
-  box-shadow: var(--shadow-lg), var(--glow-primary);
-  position: relative;
-  overflow: hidden;
-}
-
-.leaderboard-panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    var(--color-primary) 50%, 
-    transparent 100%);
-  animation: borderGlow 3s ease-in-out infinite;
-}
-
+/* NOTE: Core panel styles are in panels.css - only theme-specific overrides here */
+/* Leaderboard panel border glow animation (theme-specific) */
 @keyframes borderGlow {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
-}
-
-.leaderboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.leaderboard-title {
-  font-size: clamp(1.05rem, 2.8vw, 1.4rem);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
-  text-shadow: 0 0 20px rgba(255, 225, 79, 0.3);
-  position: relative;
 }
 
 .leaderboard-refresh {
@@ -304,28 +254,7 @@ body.theme-light .canvas-container {
   transform: translateY(0);
 }
 
-/* Leaderboard close button - synchronized with other panels (in header) */
-.leaderboard-close {
-  background: transparent;
-  color: var(--color-text-primary);
-  border: none;
-  font-size: 1.05rem;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-  min-height: 44px;
-  min-width: 44px;
-  touch-action: manipulation;
-}
-
-.leaderboard-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
+/* NOTE: Leaderboard close button styles are in panels.css */
 
 /* ===== Leaderboard Items - Enhanced ===== */
 .leaderboard-item {
@@ -483,43 +412,8 @@ body.theme-light .canvas-container {
   transform: translateY(0);
 }
 
-.profile-panel {
-  position: fixed;
-  right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
-  top: 50vh;
-  width: min(calc(100vw - var(--spacing-md) * 2 - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 420px);
-  max-height: calc(50vh - 64px - env(safe-area-inset-bottom, 0px));
-  max-height: calc(50dvh - 64px - env(safe-area-inset-bottom, 0px));
-  overflow: auto;
-  z-index: 10001;
-  background: linear-gradient(135deg, 
-    rgba(20, 20, 32, 0.98) 0%, 
-    rgba(10, 10, 15, 0.99) 100%);
-  border: 2px solid var(--color-border-bright);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
-  backdrop-filter: blur(16px) saturate(180%);
-  box-shadow: var(--shadow-lg), var(--glow-primary);
-  display: none;
-  animation: panelSlideIn 0.3s ease-out;
-  box-sizing: border-box;
-}
-
-@keyframes panelSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.profile-panel.open {
-  display: block;
-}
+/* NOTE: Profile panel core styles are in panels.css - only theme-specific overrides here */
+/* panelSlideIn animation is defined in panels.css */
 
 /* Wallet Panel - Match Profile Panel Frame Style */
 .wallet-panel {
@@ -535,111 +429,8 @@ body.theme-light .canvas-container {
   box-shadow: var(--shadow-lg), var(--glow-primary);
 }
 
-.profile-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.profile-title {
-  font-size: 0.84rem;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  font-weight: 700;
-}
-
-/* Profile User Info */
-.profile-user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex: 1;
-}
-
-.profile-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--color-primary);
-  box-shadow: 0 2px 8px rgba(255, 225, 79, 0.3);
-  flex-shrink: 0;
-}
-
-.profile-user-details {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  flex: 1;
-}
-
-.profile-username {
-  font-size: 0.84rem;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.profile-close {
-  background: transparent;
-  color: var(--color-text-primary);
-  border: none;
-  font-size: 1.05rem;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-}
-
-.profile-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--color-primary);
-}
-
-.profile-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.profile-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.665rem;
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.profile-row:last-child {
-  border-bottom: none;
-}
-
-.profile-row span:first-child {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.profile-row span:last-child {
-  color: var(--color-primary);
-  font-weight: 600;
-}
+/* NOTE: Profile panel header, title, body, row, close, user info styles are in panels.css */
+/* Only theme-specific overrides should be here */
 
 .profile-action {
   cursor: pointer;
@@ -730,31 +521,7 @@ body.theme-light .profile-network-logo svg rect {
   margin-top: var(--spacing-md);
 }
 
-/* ===== Scrollbar Styling ===== */
-.leaderboard-scroll::-webkit-scrollbar,
-.profile-panel::-webkit-scrollbar {
-  width: 8px;
-}
-
-.leaderboard-scroll::-webkit-scrollbar-track,
-.profile-panel::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-full);
-}
-
-.leaderboard-scroll::-webkit-scrollbar-thumb,
-.profile-panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  border-radius: var(--radius-full);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-.leaderboard-scroll::-webkit-scrollbar-thumb:hover,
-.profile-panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, var(--color-primary-glow) 0%, var(--color-secondary) 100%);
-  background-clip: padding-box;
-}
+/* NOTE: Scrollbar styling for panels is in panels.css */
 
 /* ===== Responsive Design ===== */
 /* Mobile optimization for Farcaster/Base App mini apps */
@@ -776,60 +543,12 @@ body.theme-light .profile-network-logo svg rect {
     border-width: 1.5px;
   }
   
-  .leaderboard-panel {
-    padding: var(--spacing-md);
-    width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
-    box-sizing: border-box;
-  }
-  
+  /* NOTE: Panel mobile styles are in panels.css - only theme-specific overrides here */
+  /* Leaderboard item mobile styles (theme-specific) */
   .leaderboard-item {
     grid-template-columns: 1fr;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm);
-  }
-  
-  .leaderboard-header {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--spacing-xs);
-    padding-top: var(--spacing-xs);
-    padding-bottom: var(--spacing-xs);
-    margin-bottom: var(--spacing-sm);
-  }
-  
-  .leaderboard-title {
-    font-size: 0.7rem;
-    flex: 1;
-    min-width: 0;
-  }
-  
-  .leaderboard-refresh {
-    align-self: center;
-    padding: 6px;
-    min-height: 36px;
-    min-width: 36px;
-    flex-shrink: 0;
-  }
-  
-  .leaderboard-refresh svg {
-    width: 16px;
-    height: 16px;
-  }
-  
-  .leaderboard-close {
-    font-size: 0.95rem;
-    width: 28px;
-    height: 28px;
-    min-height: 36px;
-    min-width: 36px;
-    flex-shrink: 0;
-  }
-  
-  .profile-panel {
-    width: calc(100vw - var(--spacing-md) * 2 - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
-    right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
-    left: calc(var(--spacing-md) + env(safe-area-inset-left, 0px));
-    max-width: none;
   }
   
   .profile-btn {
@@ -846,10 +565,7 @@ body.theme-light .profile-network-logo svg rect {
     max-width: 100%;
   }
   
-  .leaderboard-panel {
-    /* Ensure full width usage in portrait */
-    width: 100%;
-  }
+  /* NOTE: Panel portrait styles are in panels.css */
 }
 
 /* Landscape mode (not recommended for mini apps, but handle gracefully) */
@@ -858,15 +574,7 @@ body.theme-light .profile-network-logo svg rect {
     padding: var(--spacing-sm);
   }
   
-  .leaderboard-panel {
-    max-height: calc(50vh - env(safe-area-inset-bottom, 0px) - 64px);
-    max-height: calc(50dvh - env(safe-area-inset-bottom, 0px) - 64px);
-  }
-  
-  .profile-panel {
-    max-height: calc(50vh - env(safe-area-inset-bottom, 0px) - 64px);
-    max-height: calc(50dvh - env(safe-area-inset-bottom, 0px) - 64px);
-  }
+  /* NOTE: Panel landscape styles are in panels.css */
 }
 
 /* ===== Bottom Navigation Bar ===== */
