@@ -52,4 +52,9 @@ coverage.json
 vendor/miniapp-sdk/
 vendor/ethers/
 
+# Test files (development/testing)
+TEST_RESULTS.md
+test-*.html
+*.test.html
+
 # (docs/ is tracked for the canonical guide)
