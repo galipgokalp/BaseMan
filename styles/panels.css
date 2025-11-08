@@ -13,6 +13,8 @@
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
   border-left: 2px solid var(--color-border-bright);
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
@@ -20,6 +22,8 @@
   flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
+  overflow: hidden;
 }
 
 /* Show panel when open class is added or hidden attribute is removed */
@@ -46,6 +50,8 @@
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
   border-left: 2px solid var(--color-border-bright);
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
@@ -53,6 +59,8 @@
   flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
+  overflow: hidden;
 }
 
 .profile-panel.open {
@@ -71,6 +79,9 @@
     rgba(20, 20, 32, 0.98) 0%, 
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
+  border-left: 2px solid var(--color-border-bright);
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
@@ -78,6 +89,8 @@
   flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
+  overflow: hidden;
 }
 
 .wallet-panel.open {
@@ -96,6 +109,9 @@
     rgba(20, 20, 32, 0.98) 0%, 
     rgba(10, 10, 15, 0.99) 100%);
   backdrop-filter: blur(16px) saturate(180%);
+  border-left: 2px solid var(--color-border-bright);
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
@@ -103,6 +119,8 @@
   flex-direction: column;
   box-sizing: border-box;
   animation: panelSlideIn 0.3s ease-out;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 225, 79, 0.1);
+  overflow: hidden;
 }
 
 .settings-panel.open {
@@ -698,23 +716,29 @@
   .leaderboard-panel {
     width: 100vw;
     right: 0;
-  }
-  
-  .leaderboard-panel {
     padding: var(--spacing-md);
   }
   
-  /* Scale down header elements for mobile */
-  .leaderboard-header {
+  /* Scale down header elements for mobile - all panels */
+  .leaderboard-header,
+  .wallet-header,
+  .profile-header,
+  .settings-header {
     padding-top: var(--spacing-xs);
     padding-bottom: var(--spacing-xs);
     margin-bottom: var(--spacing-sm);
   }
   
-  .leaderboard-title {
+  /* Scale down titles for mobile - all panels */
+  .leaderboard-title,
+  .wallet-title,
+  .profile-title,
+  .settings-title,
+  .profile-username {
     font-size: 0.7rem;
   }
   
+  /* Scale down refresh button for mobile (leaderboard only) */
   .leaderboard-refresh {
     padding: 6px;
     min-height: 36px;
@@ -726,7 +750,11 @@
     height: 16px;
   }
   
-  .leaderboard-close {
+  /* Scale down close buttons for mobile - all panels */
+  .leaderboard-close,
+  .wallet-close,
+  .profile-close,
+  .settings-close {
     font-size: 0.95rem;
     width: 28px;
     height: 28px;
@@ -734,9 +762,80 @@
     min-width: 36px;
   }
   
+  /* Scale down section titles for mobile */
+  .wallet-section-title,
+  .profile-section-title,
+  .settings-section-title {
+    font-size: 0.56rem;
+  }
+  
+  /* Scale down row text for mobile */
+  .wallet-row,
+  .profile-row,
+  .settings-row {
+    font-size: 0.56rem;
+    padding: var(--spacing-xs) 0;
+  }
+  
+  /* Scale down profile avatar for mobile */
+  .profile-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  
+  /* Scale down wallet address for mobile */
+  .wallet-address {
+    font-size: 0.52rem;
+  }
+  
+  /* Scale down wallet status for mobile */
+  .wallet-status {
+    font-size: 0.5rem;
+    padding: 3px 6px;
+  }
+  
+  /* Scale down settings toggle for mobile */
+  .settings-toggle {
+    width: 52px;
+    height: 24px;
+  }
+  
+  .settings-toggle-slider::before {
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 2px;
+  }
+  
+  .settings-toggle input:checked + .settings-toggle-slider::before {
+    transform: translateX(26px);
+  }
+  
+  /* Scale down settings select for mobile */
+  .settings-select {
+    font-size: 0.56rem;
+    padding: 5px 10px;
+    min-height: 40px;
+  }
+  
+  /* Scale down network confirm dialog for mobile */
   .network-confirm-content {
     max-width: 90vw;
     padding: var(--spacing-md);
+  }
+  
+  .network-confirm-title {
+    font-size: 0.7rem;
+  }
+  
+  .network-confirm-message {
+    font-size: 0.56rem;
+  }
+  
+  .network-confirm-btn {
+    font-size: 0.56rem;
+    min-height: 40px;
+    padding: var(--spacing-xs) var(--spacing-sm);
   }
 }
 

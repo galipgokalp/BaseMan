@@ -415,19 +415,9 @@ body.theme-light .canvas-container {
 /* NOTE: Profile panel core styles are in panels.css - only theme-specific overrides here */
 /* panelSlideIn animation is defined in panels.css */
 
-/* Wallet Panel - Match Profile Panel Frame Style */
-.wallet-panel {
-  border: 2px solid var(--color-border-bright);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), var(--glow-primary);
-}
-
-/* Settings Panel - Match Profile Panel Frame Style */
-.settings-panel {
-  border: 2px solid var(--color-border-bright);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), var(--glow-primary);
-}
+/* NOTE: Wallet and Settings panel border, border-radius, and box-shadow styles 
+   are now in panels.css for consistency with leaderboard and profile panels.
+   Only theme-specific overrides should be added here if needed. */
 
 /* NOTE: Profile panel header, title, body, row, close, user info styles are in panels.css */
 /* Only theme-specific overrides should be here */
