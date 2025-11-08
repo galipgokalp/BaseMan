@@ -539,7 +539,10 @@
           attachProviderEvents(provider);
           debug(`Wallet ready (mini‑app): ${state.address}`);
 
-          try { await discoverPaymasterUrl(provider, config.chainId); } catch (_) {}
+          // PAYMASTER DISABLED: Sponsorless mode - users pay gas fee
+          // Paymaster discovery is disabled until paymaster integration is ready
+          // try { await discoverPaymasterUrl(provider, config.chainId); } catch (_) {}
+          debug('Paymaster discovery disabled - sponsorless mode (users pay gas fee)');
           emitWalletStatus(true, null);
           return state;
         } catch (error) {
@@ -834,36 +837,107 @@
       }
     }
 
+    /**
+     * Get wallet capabilities using wallet_getCapabilities (EIP-5792)
+     * 
+     * According to Farcaster and Base App documentation:
+     * - Can be called without params (returns capabilities for current account)
+     * - Can be called with address param (returns capabilities for specific account)
+     * - Returns capabilities object with chain-specific and global capabilities
+     * 
+     * @param {Object} provider - Ethereum provider
+     * @param {string|null} address - Optional address to check capabilities for
+     * @returns {Promise<Object|null>} Capabilities object or null if unavailable
+     */
     async function getCapabilities(provider, address) {
-      if (!provider || typeof provider.request !== 'function') return null;
+      if (!provider || typeof provider.request !== 'function') {
+        debug('getCapabilities: Provider not available');
+        return null;
+      }
+      
       let caps = null;
+      
+      // Try without address first (current account capabilities)
       try {
         caps = await provider.request({ method: 'wallet_getCapabilities' });
-      } catch (_) {}
-      if (!caps && address) {
+        if (caps && typeof caps === 'object') {
+          debug(`getCapabilities: Retrieved capabilities (without address): ${Object.keys(caps).join(', ')}`);
+          return caps;
+        }
+      } catch (error) {
+        debug(`getCapabilities: Failed to get capabilities (without address): ${error?.message || error}`);
+      }
+      
+      // Try with address if provided
+      if (!caps && address && typeof address === 'string' && address.startsWith('0x')) {
         try {
           caps = await provider.request({ method: 'wallet_getCapabilities', params: [address] });
-        } catch (_) {}
+          if (caps && typeof caps === 'object') {
+            debug(`getCapabilities: Retrieved capabilities (with address): ${Object.keys(caps).join(', ')}`);
+            return caps;
+          }
+        } catch (error) {
+          debug(`getCapabilities: Failed to get capabilities (with address): ${error?.message || error}`);
+        }
       }
+      
       return caps || null;
     }
 
+    /**
+     * Check if paymaster is supported for a given chain
+     * 
+     * According to Farcaster and Base App documentation:
+     * - Farcaster: Paymaster not supported
+     * - Base App: Paymaster supported via paymasterService capability
+     * - Capabilities can be chain-specific or global
+     * 
+     * @param {Object} caps - Capabilities object from wallet_getCapabilities
+     * @param {number} chainId - Chain ID to check
+     * @returns {boolean} True if paymaster is supported
+     */
     function isPaymasterSupported(caps, chainId) {
       try {
-        if (!caps || typeof caps !== 'object') return false;
-        const byFlat = caps?.paymasterService?.supported === true || caps?.org?.cdp?.paymaster?.supported === true;
-        const byCaps = caps?.capabilities?.paymasterService?.supported === true || caps?.capabilities?.['org.cdp.paymaster']?.supported === true;
-        const hex = (() => { try { return ethers.toBeHex(chainId); } catch (_) { return null; } })();
+        if (!caps || typeof caps !== 'object') {
+          debug('isPaymasterSupported: No capabilities provided');
+          return false;
+        }
+        
+        // Convert chainId to different formats for checking
+        const hex = (() => { 
+          try { 
+            return ethers.toBeHex(chainId); 
+          } catch (_) { 
+            return null; 
+          } 
+        })();
         const caip = `eip155:${chainId}`;
-        const byChainLoose =
-          caps?.[String(chainId)]?.paymasterService?.supported === true ||
-          (hex && caps?.[hex]?.paymasterService?.supported === true) ||
-          caps?.[caip]?.paymasterService?.supported === true ||
-          caps?.chains?.[caip]?.paymasterService?.supported === true ||
-          caps?.chains?.[String(chainId)]?.paymasterService?.supported === true ||
-          (hex && caps?.chains?.[hex]?.paymasterService?.supported === true);
-        return Boolean(byFlat || byCaps || byChainLoose);
-      } catch (_) {
+        const chainIdStr = String(chainId);
+        
+        // Check global capabilities (flat structure)
+        const byFlat = caps?.paymasterService?.supported === true || 
+                      caps?.org?.cdp?.paymaster?.supported === true;
+        
+        // Check nested capabilities structure
+        const byCaps = caps?.capabilities?.paymasterService?.supported === true || 
+                      caps?.capabilities?.['org.cdp.paymaster']?.supported === true;
+        
+        // Check chain-specific capabilities (multiple formats)
+        const byChainId = caps?.[chainIdStr]?.paymasterService?.supported === true ||
+                         (hex && caps?.[hex]?.paymasterService?.supported === true) ||
+                         caps?.[caip]?.paymasterService?.supported === true;
+        
+        // Check chains object structure
+        const byChains = caps?.chains?.[caip]?.paymasterService?.supported === true ||
+                        caps?.chains?.[chainIdStr]?.paymasterService?.supported === true ||
+                        (hex && caps?.chains?.[hex]?.paymasterService?.supported === true);
+        
+        const supported = byFlat || byCaps || byChainId || byChains;
+        debug(`isPaymasterSupported: chainId=${chainId}, supported=${supported}`);
+        
+        return supported;
+      } catch (error) {
+        debug(`isPaymasterSupported: Error checking capabilities: ${error?.message || error}`);
         return false;
       }
     }
@@ -953,32 +1027,155 @@
       }
     }
 
+    /**
+     * Send contract interaction calls using wallet_sendCalls (EIP-5792)
+     * 
+     * According to Farcaster and Base App documentation:
+     * - Farcaster: Sequential execution (atomicRequired: false)
+     * - Base App: Atomic batch supported (atomicRequired: true)
+     * - Version: "1.0" or "2.0.0" (using "1.0" for compatibility)
+     * - Paymaster: paymasterService: { url: "..." } format
+     * 
+     * @param {string} callData - Encoded contract function call data
+     * @param {string|null} paymasterUrl - Paymaster service URL (null for sponsorless mode)
+     * @returns {Promise<Object>} Transaction result with id or hash
+     */
     async function sendCalls(callData, paymasterUrl) {
-      const hexChainId = (() => { try { return ethers.toBeHex(config.chainId); } catch { return null; } })();
-      if (!hexChainId) throw new Error('invalid chainId');
+      // Validate chainId
+      const hexChainId = (() => { 
+        try { 
+          return ethers.toBeHex(config.chainId); 
+        } catch (error) {
+          debug(`chainId conversion error: ${error?.message || error}`);
+          return null;
+        }
+      })();
+      if (!hexChainId) {
+        throw new Error(`Invalid chainId: ${config.chainId}`);
+      }
+      
+      // Validate address
+      if (!state.address || typeof state.address !== 'string') {
+        throw new Error('Wallet address not available');
+      }
+      
+      // Validate provider
+      if (!state.provider || typeof state.provider.request !== 'function') {
+        throw new Error('Ethereum provider not available');
+      }
+      
+      // Validate callData
+      if (!callData || typeof callData !== 'string' || !callData.startsWith('0x')) {
+        throw new Error('Invalid callData format');
+      }
       
       // Platform-specific atomic batch setting
-      // Farcaster: sequential execution (atomic değil)
-      // Base App: atomic batch destekliyor
+      // According to docs:
+      // - Farcaster: Sequential execution (atomicRequired: false)
+      // - Base App: Atomic batch supported (atomicRequired: true)
       const isFarcaster = typeof window !== 'undefined' && 
         typeof window.isFarcasterMiniApp === 'function' && 
         window.isFarcasterMiniApp();
       const atomicRequired = !isFarcaster; // Farcaster: false, Base App: true
       
+      // Build payload according to EIP-5792 and platform documentation
+      // Version format: "1.0" for compatibility (docs show both "1.0" and "2.0.0")
       const payload = {
-        version: "1.0.0",
+        version: "1.0", // Using "1.0" for maximum compatibility
         from: state.address,
         chainId: hexChainId,
         atomicRequired: atomicRequired,
-        calls: [ { to: config.registryAddress, data: callData, value: "0x0" } ]
+        calls: [ 
+          { 
+            to: config.registryAddress, 
+            data: callData, 
+            value: "0x0" 
+          } 
+        ]
       };
-      if (paymasterUrl) {
-        payload.capabilities = { paymasterService: { url: paymasterUrl, optional: false } };
+      
+      // Add paymaster capabilities if provided (sponsorless mode: paymasterUrl is null)
+      // According to docs: paymasterService: { url: "..." } format
+      if (paymasterUrl && typeof paymasterUrl === 'string' && paymasterUrl.trim().length > 0) {
+        payload.capabilities = { 
+          paymasterService: { 
+            url: paymasterUrl,
+            optional: false // Required paymaster for sponsored transactions
+          } 
+        };
       }
-      debug(`Sending wallet_sendCalls (${paymasterUrl ? 'with paymaster' : 'no paymaster'})`);
-      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:start', meta: { chainId: hexChainId, url: paymasterUrl || null } }) }).catch(()=>{});} catch(_) {}
-      const result = await state.provider.request({ method: 'wallet_sendCalls', params: [payload] });
-      return result;
+      
+      debug(`Sending wallet_sendCalls: version=${payload.version}, atomicRequired=${atomicRequired}, paymaster=${paymasterUrl ? 'yes' : 'no'}, chainId=${hexChainId}`);
+      try { 
+        fetch('/api/app-log', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ 
+            event: 'wallet_sendCalls:start', 
+            meta: { 
+              version: payload.version,
+              chainId: hexChainId, 
+              atomicRequired: atomicRequired,
+              url: paymasterUrl || null,
+              from: state.address,
+              to: config.registryAddress
+            } 
+          }) 
+        }).catch(()=>{}); 
+      } catch(_) {}
+      
+      try {
+        // Send transaction using wallet_sendCalls (EIP-5792)
+        const result = await state.provider.request({ 
+          method: 'wallet_sendCalls', 
+          params: [payload] 
+        });
+        
+        // Log success
+        debug(`wallet_sendCalls success: ${JSON.stringify(result)}`);
+        try { 
+          fetch('/api/app-log', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+              event: 'wallet_sendCalls:success', 
+              meta: { 
+                result: result,
+                version: payload.version,
+                chainId: hexChainId 
+              } 
+            }) 
+          }).catch(()=>{}); 
+        } catch(_) {}
+        
+        return result;
+      } catch (error) {
+        const errorMsg = error?.message || String(error);
+        const errorCode = error?.code || error?.error?.code || null;
+        debug(`wallet_sendCalls error: ${errorMsg} (code: ${errorCode})`);
+        console.error('[BaseMan] wallet_sendCalls failed:', error);
+        
+        // Log error with details
+        try { 
+          fetch('/api/app-log', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+              event: 'wallet_sendCalls:error', 
+              meta: { 
+                error: errorMsg,
+                code: errorCode,
+                version: payload.version,
+                chainId: hexChainId,
+                payload: payload
+              } 
+            }) 
+          }).catch(()=>{}); 
+        } catch(_) {}
+        
+        // Re-throw with additional context
+        throw new Error(`Transaction failed: ${errorMsg}${errorCode ? ` (code: ${errorCode})` : ''}`);
+      }
     }
 
     // Last‑resort fallback for hosts without EIP‑5792: try eth_sendTransaction
@@ -995,18 +1192,26 @@
     }
 
     async function submitScore() {
+      debug('submitScore: Function called');
+      console.log('[BaseMan] submitScore: Function called');
+      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:called', meta: { timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+
       if (state.submitting) {
         debug('submitScore: Already submitting, skipping');
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:already-submitting' }) }).catch(()=>{});} catch(_) {}
         return;
       }
       if (typeof window.getScore !== "function") {
         debug('submitScore: getScore function not available');
+        console.warn('[BaseMan] submitScore: getScore function not available');
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-unavailable' }) }).catch(()=>{});} catch(_) {}
         return;
       }
 
       const score = BigInt(window.getScore());
       if (score <= 0n) {
         debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:score-zero', meta: { score: score.toString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
 
@@ -1016,6 +1221,8 @@
           : 0;
 
       debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
+      console.log(`[BaseMan] submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
+      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:starting', meta: { score: score.toString(), durationMs } }) }).catch(()=>{});} catch(_) {}
 
       try {
         state.submitting = true;
@@ -1090,79 +1297,23 @@
           debug(`submitScore: Call data encoded (V1) - score=${scoreValue.toString()}`);
         }
         
-        let paymasterHandled = false;
-        debug('submitScore: Submitting transaction with paymaster...');
-        const paymasterResult = await submitScoreWithPaymaster(callData);
-        if (paymasterResult) {
-          let identifier = null;
-          if (typeof paymasterResult === "string") {
-            identifier = paymasterResult;
-          } else if (typeof paymasterResult === "object") {
-            if (typeof paymasterResult.id === "string") {
-              identifier = paymasterResult.id;
-            } else if (typeof paymasterResult.hash === "string") {
-              identifier = paymasterResult.hash;
-            }
-          }
+        // SPONSORLESS MODE: Paymaster is disabled, user pays gas fee
+        // This is the desired behavior: users pay gas fee with ETH (Base Mainnet) or Test ETH (Base Sepolia)
+        // Paymaster integration will be added later
+        debug('submitScore: Submitting transaction WITHOUT paymaster (sponsorless mode - user pays gas fee)');
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submission:sponsorless', meta: { score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
 
-          if (identifier) {
-            paymasterHandled = true;
-            debug(`submitScore: Paymaster-backed submission started (id: ${identifier})`);
-            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted', meta: { identifier, score: scoreValue.toString(), address: state.address } }) }).catch(()=>{});} catch(_) {}
-            
-            if (
-              typeof paymasterResult === "object" &&
-              typeof paymasterResult.id === "string"
-            ) {
-              setTimeout(() => {
-                if (!state.provider || typeof state.provider.request !== "function") return;
-                state.provider
-                  .request({
-                    method: "wallet_getCallsStatus",
-                    params: [paymasterResult.id]
-                  })
-                  .then((status) => {
-                    debug(
-                      `submitScore: wallet_getCallsStatus response: ${
-                        status ? JSON.stringify(status) : "empty response"
-                      }`
-                    );
-                  })
-                  .catch((statusError) => {
-                    debug(
-                      `submitScore: wallet_getCallsStatus error: ${
-                        statusError?.message || statusError
-                      }`
-                    );
-                  });
-              }, 3000);
-            }
-            debug('submitScore: Transaction submitted successfully via paymaster');
-            return;
-          } else {
-            debug('submitScore: Paymaster result received but no identifier found');
-          }
-        } else {
-          debug('submitScore: Paymaster submission returned null/undefined');
-        }
-
-        if (paymasterHandled) {
-          debug('submitScore: Paymaster handled, exiting');
-          return;
-        }
-        
-        // If paymaster failed or not available, try wallet_sendCalls without paymaster (mini-app mode)
-        // This is important: mini-app environments should use wallet_sendCalls even without paymaster
-        // Note: submitScoreWithPaymaster already tries sendCalls without paymaster for Farcaster,
-        // but if it still fails or returns null, we try again here as a safety fallback
-        if (isMiniAppEnv() && !paymasterHandled) {
-          debug("submitScore: Paymaster not available or failed, trying wallet_sendCalls without paymaster as fallback...");
+        // For mini-app environments (Farcaster/Base App), use wallet_sendCalls without paymaster
+        if (isMiniAppEnv()) {
+          debug("submitScore: Mini-app environment detected - using wallet_sendCalls without paymaster");
           try {
             if (!state.provider || typeof state.provider.request !== "function") {
               debug('submitScore: No provider available for wallet_sendCalls');
               throw new Error("No provider available");
             }
-            const result = await sendCalls(callData, null); // Try without paymaster
+            
+            // Send transaction without paymaster (user pays gas)
+            const result = await sendCalls(callData, null); // null = no paymaster
             if (result) {
               let identifier = null;
               if (typeof result === "string") {
@@ -1175,59 +1326,50 @@
                 }
               }
               if (identifier) {
-                debug(`submitScore: Transaction submitted via wallet_sendCalls fallback (id: ${identifier})`);
-                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:no-paymaster', meta: { identifier, score: scoreValue.toString(), address: state.address } }) }).catch(()=>{});} catch(_) {}
+                debug(`submitScore: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
+                console.log(`[BaseMan] Score submission transaction started: ${identifier}`);
+                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
+                
+                // Optionally check transaction status after a delay
+                if (typeof result === "object" && typeof result.id === "string") {
+                  setTimeout(() => {
+                    if (!state.provider || typeof state.provider.request !== "function") return;
+                    state.provider
+                      .request({
+                        method: "wallet_getCallsStatus",
+                        params: [result.id]
+                      })
+                      .then((status) => {
+                        debug(`submitScore: wallet_getCallsStatus response: ${status ? JSON.stringify(status) : "empty response"}`);
+                        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:transaction:status', meta: { id: result.id, status } }) }).catch(()=>{});} catch(_) {}
+                      })
+                      .catch((statusError) => {
+                        debug(`submitScore: wallet_getCallsStatus error: ${statusError?.message || statusError}`);
+                      });
+                  }, 3000);
+                }
                 return;
               } else {
                 debug('submitScore: wallet_sendCalls returned result but no identifier found');
+                throw new Error("Transaction submitted but no identifier returned");
               }
             } else {
               debug('submitScore: wallet_sendCalls returned null/undefined');
+              throw new Error("Transaction submission returned no result");
             }
           } catch (sendCallsError) {
-            debug(`submitScore: wallet_sendCalls fallback failed: ${sendCallsError?.message || sendCallsError}`);
-            // Continue - no more fallbacks available for mini-app mode
+            const errorMsg = sendCallsError?.message || String(sendCallsError);
+            debug(`submitScore: wallet_sendCalls failed: ${errorMsg}`);
+            console.error('[BaseMan] Score submission failed:', sendCallsError);
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submission:error', meta: { error: errorMsg, score: scoreValue.toString(), address: state.address } }) }).catch(()=>{});} catch(_) {}
+            throw new Error(`Failed to submit score: ${errorMsg}`);
           }
         }
         
-        // If we reach here, all mini-app transaction attempts failed
-        if (isMiniAppEnv()) {
-          debug('submitScore: All mini-app transaction attempts failed - no more fallbacks available');
-          throw new Error("Failed to submit score: all transaction methods failed");
-        }
-
-        // Fallback standard transaction (EOA/web only); detect V2 and include nonce if required
-        if (!isMiniAppEnv() && state.contract && typeof state.contract.submitScore === 'function') {
-          debug("submitScore: Using EOA fallback transaction (web mode)");
-        let eip712v2 = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim()));
-        eip712v2 = (eip712v2 === '2' || eip712v2 === '' || eip712v2 == null);
-        if (!eip712v2) {
-          try {
-            if (state.contract && typeof state.contract.eip712Version === 'function') {
-              const v = await state.contract.eip712Version();
-              eip712v2 = (typeof v === 'string' && v.trim() === '2');
-              if (eip712v2) debug('Detected EIP-712 version from contract for submitScore fallback: 2');
-            }
-          } catch (detectErr) {
-            debug(`EIP-712 version autodetect (submit fallback) failed: ${detectErr?.message || detectErr}`);
-          }
-        }
-
-        let tx;
-        if (eip712v2) {
-          let nonceValue = null;
-          try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
-          if (nonceValue === null) throw new Error('Missing nonce for V2 signature');
-          tx = await state.contract.submitScore(state.address, scoreValue, deadlineValue, nonceValue, signature);
-        } else {
-          tx = await state.contract.submitScore(state.address, scoreValue, deadlineValue, signature);
-        }
-
-        debug(`submitScore tx: ${tx.hash}`);
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'fallback:tx', meta: { hash: tx.hash } }) }).catch(()=>{});} catch(_) {}
-        } else {
-          debug('Skipping EOA fallback path (mini-app or no Contract instance)');
-        }
+        // For web/EOA environments (non-mini-app), this should not happen
+        // Mini-app environments are required for BaseMan
+        debug('submitScore: Non-mini-app environment detected - this should not happen in BaseMan');
+        throw new Error("Mini-app environment required. BaseMan only works in Farcaster or Base App mini-app environments.");
       } catch (error) {
         const errorMsg = error?.message || String(error);
         debug(`submitScore ERROR: ${errorMsg}`);
@@ -1304,17 +1446,43 @@
               signature
             ]);
           }
-          const paymasterResult = await submitScoreWithPaymaster(callData);
-          if (paymasterResult) {
-            paymasterHandled = true;
-            debug("Paymaster-backed quest completion started.");
+          
+          // SPONSORLESS MODE: Paymaster disabled, user pays gas fee
+          debug('completeQuest: Submitting transaction WITHOUT paymaster (sponsorless mode - user pays gas fee)');
+          if (isMiniAppEnv()) {
+            try {
+              if (!state.provider || typeof state.provider.request !== "function") {
+                throw new Error("No provider available");
+              }
+              const result = await sendCalls(callData, null); // null = no paymaster
+              if (result) {
+                let identifier = null;
+                if (typeof result === "string") {
+                  identifier = result;
+                } else if (typeof result === "object") {
+                  if (typeof result.id === "string") {
+                    identifier = result.id;
+                  } else if (typeof result.hash === "string") {
+                    identifier = result.hash;
+                  }
+                }
+                if (identifier) {
+                  debug(`completeQuest: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
+                  console.log(`[BaseMan] Quest completion transaction started: ${identifier}`);
+                  return;
+                }
+              }
+            } catch (questError) {
+              debug(`completeQuest: Transaction failed: ${questError?.message || questError}`);
+              throw questError;
+            }
+          } else {
+            throw new Error("Mini-app environment required for quest completion");
           }
-        }
-
-        if (paymasterHandled) {
           return;
         }
 
+        // Legacy fallback (should not be reached)
         if (!isMiniAppEnv() && state.contract && typeof state.contract.completeQuest === 'function') {
         let eip712v2 = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim()));
         eip712v2 = (eip712v2 === '2' || eip712v2 === '' || eip712v2 == null);
@@ -1355,6 +1523,9 @@
     }
 
     function patchStateHooks(attempt = 0) {
+      debug(`patchStateHooks: Attempt ${attempt + 1}`);
+      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:attempt', meta: { attempt: attempt + 1 } }) }).catch(()=>{});} catch(_) {}
+
       const ensureRunStart = () => {
         if (state.runStartedAt === null) {
           handleRunStart();
@@ -1362,60 +1533,118 @@
       };
 
       const patchInit = (target, flagKey, hook, label) => {
-        if (!target?.init || target[flagKey]) {
-          return;
+        if (!target) {
+          debug(`${label}: State not available yet`);
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:missing', meta: { label } }) }).catch(()=>{});} catch(_) {}
+          return false;
+        }
+        if (!target.init) {
+          debug(`${label}: init method not available`);
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-init', meta: { label } }) }).catch(()=>{});} catch(_) {}
+          return false;
+        }
+        if (target[flagKey]) {
+          debug(`${label}: Already patched`);
+          return true;
         }
         const original = target.init.bind(target);
         target.init = function patchedInit(...args) {
+          debug(`${label}: init called (patched)`);
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label } }) }).catch(()=>{});} catch(_) {}
           try {
             hook?.apply(this, args);
+            debug(`${label}: hook executed successfully`);
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label } }) }).catch(()=>{});} catch(_) {}
           } catch (error) {
-            debug(`${label} hook error: ${error?.message || error}`);
+            const errorMsg = error?.message || String(error);
+            debug(`${label} hook error: ${errorMsg}`);
+            console.error(`[BaseMan] ${label} hook error:`, error);
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg } }) }).catch(()=>{});} catch(_) {}
           }
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init', meta: { label } }) }).catch(()=>{});} catch(_) {}
           return original(...args);
         };
         target[flagKey] = true;
-        debug(`${label} patch'lendi`);
+        debug(`${label} patched successfully`);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:patched', meta: { label } }) }).catch(()=>{});} catch(_) {}
+        return true;
       };
 
-      patchInit(window.newGameState, "_patchedForOnchain", handleRunStart, "newGameState.init");
-      patchInit(window.readyState, "_patchedForOnchainReady", ensureRunStart, "readyState.init");
-      patchInit(
-        window.readyNewState,
-        "_patchedForOnchainReadyNew",
-        ensureRunStart,
-        "readyNewState.init"
-      );
-      patchInit(
-        window.readyRestartState,
-        "_patchedForOnchainReadyRestart",
-        ensureRunStart,
-        "readyRestartState.init"
-      );
-      patchInit(window.overState, "_patchedForOnchain", submitScore, "overState.init");
-      patchInit(window.finishState, "_patchedForOnchainFinish", submitScore, "finishState.init");
+      const results = {
+        newGameState: patchInit(window.newGameState, "_patchedForOnchain", handleRunStart, "newGameState.init"),
+        readyState: patchInit(window.readyState, "_patchedForOnchainReady", ensureRunStart, "readyState.init"),
+        readyNewState: patchInit(window.readyNewState, "_patchedForOnchainReadyNew", ensureRunStart, "readyNewState.init"),
+        readyRestartState: patchInit(window.readyRestartState, "_patchedForOnchainReadyRestart", ensureRunStart, "readyRestartState.init"),
+        overState: patchInit(window.overState, "_patchedForOnchain", submitScore, "overState.init"),
+        finishState: patchInit(window.finishState, "_patchedForOnchainFinish", submitScore, "finishState.init"),
+      };
 
-      const shouldRetry =
-        !window.newGameState ||
-        !window.newGameState._patchedForOnchain ||
-        !window.overState ||
-        !window.overState._patchedForOnchain ||
-        !window.finishState ||
-        !window.finishState._patchedForOnchainFinish ||
-        !window.readyState ||
-        !window.readyState._patchedForOnchainReady ||
-        !window.readyNewState ||
-        !window.readyNewState._patchedForOnchainReadyNew ||
-        !window.readyRestartState ||
-        !window.readyRestartState._patchedForOnchainReadyRestart;
-
-      if (shouldRetry && attempt < 10) {
-        setTimeout(() => patchStateHooks(attempt + 1), 250);
+      const allPatched = Object.values(results).every(r => r === true);
+      
+      if (allPatched) {
+        debug('patchStateHooks: All states patched successfully');
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:success', meta: { attempt: attempt + 1 } }) }).catch(()=>{});} catch(_) {}
+      } else {
+        const missing = Object.entries(results).filter(([_, patched]) => !patched).map(([name, _]) => name);
+        debug(`patchStateHooks: Some states not patched yet: ${missing.join(', ')}`);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:partial', meta: { attempt: attempt + 1, missing } }) }).catch(()=>{});} catch(_) {}
+        
+        if (attempt < 20) { // Increased from 10 to 20 attempts
+          setTimeout(() => patchStateHooks(attempt + 1), 500); // Increased from 250ms to 500ms
+        } else {
+          debug('patchStateHooks: Max attempts reached, some states may not be patched');
+          console.warn('[BaseMan] patchStateHooks: Max attempts reached. Missing states:', missing);
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:max-attempts', meta: { missing } }) }).catch(()=>{});} catch(_) {}
+        }
       }
     }
 
-    patchStateHooks();
+    // Try to patch game states after they are loaded
+    // pacman.js loads in <head> and initializes states on window load event
+    // We need to wait for that to complete before patching
+    
+    function schedulePatchStateHooks() {
+      // Try immediately (states might already be available)
+      patchStateHooks();
+      
+      // Also try after a delay to ensure states are loaded
+      setTimeout(() => patchStateHooks(), 100);
+      setTimeout(() => patchStateHooks(), 500);
+      setTimeout(() => patchStateHooks(), 1000);
+      setTimeout(() => patchStateHooks(), 2000);
+      setTimeout(() => patchStateHooks(), 3000);
+    }
+    
+    // If window is already loaded, schedule immediately
+    if (document.readyState === 'complete') {
+      // Window load event already fired
+      schedulePatchStateHooks();
+    } else if (document.readyState === 'interactive') {
+      // DOM is ready but resources might still be loading
+      schedulePatchStateHooks();
+      // Also wait for load event
+      window.addEventListener('load', () => {
+        setTimeout(() => patchStateHooks(), 500);
+        setTimeout(() => patchStateHooks(), 1000);
+        setTimeout(() => patchStateHooks(), 2000);
+      }, { once: true });
+    } else {
+      // Wait for DOMContentLoaded first
+      document.addEventListener('DOMContentLoaded', () => {
+        schedulePatchStateHooks();
+      }, { once: true });
+      
+      // Then wait for window load event (when pacman.js initializes states)
+      window.addEventListener('load', () => {
+        debug('Window load event fired - scheduling patchStateHooks');
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'window:load', meta: { timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+        // Try multiple times with increasing delays
+        setTimeout(() => patchStateHooks(), 100);
+        setTimeout(() => patchStateHooks(), 500);
+        setTimeout(() => patchStateHooks(), 1000);
+        setTimeout(() => patchStateHooks(), 2000);
+        setTimeout(() => patchStateHooks(), 3000);
+      }, { once: true });
+    }
 
     window.BaseManOnchain = {
       ensureWallet,

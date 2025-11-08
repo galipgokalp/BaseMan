@@ -10794,6 +10794,11 @@ var newGameState = (function() {
     };
 })();
 
+// Expose newGameState to window for onchain-client.js
+if (typeof window !== 'undefined') {
+    window.newGameState = newGameState;
+}
+
 ////////////////////////////////////////////////////
 // Ready state
 // (state when map is displayed and pausing before play)
@@ -10832,6 +10837,11 @@ var readyState =  (function(){
     };
 })();
 
+// Expose readyState to window for onchain-client.js
+if (typeof window !== 'undefined') {
+    window.readyState = readyState;
+}
+
 ////////////////////////////////////////////////////
 // Ready New Level state
 // (ready state when pausing before new level)
@@ -10864,6 +10874,11 @@ var readyNewState = newChildObject(readyState, {
     },
 });
 
+// Expose readyNewState to window for onchain-client.js
+if (typeof window !== 'undefined') {
+    window.readyNewState = readyNewState;
+}
+
 ////////////////////////////////////////////////////
 // Ready Restart Level state
 // (ready state when pausing before restarted level)
@@ -10880,6 +10895,11 @@ var readyRestartState = newChildObject(readyState, {
         readyState.init.call(this);
     },
 });
+
+// Expose readyRestartState to window for onchain-client.js
+if (typeof window !== 'undefined') {
+    window.readyRestartState = readyRestartState;
+}
 
 ////////////////////////////////////////////////////
 // Play state
@@ -11213,6 +11233,11 @@ var finishState = (function(){
     });
 })();
 
+// Expose finishState to window for onchain-client.js
+if (typeof window !== 'undefined') {
+    window.finishState = finishState;
+}
+
 ////////////////////////////////////////////////////
 // Game Over state
 // (state when player has lost last life)
@@ -11237,6 +11262,11 @@ var overState = (function() {
         },
     };
 })();
+
+// Expose overState to window for onchain-client.js
+if (typeof window !== 'undefined') {
+    window.overState = overState;
+}
 
 //@line 1 "src/input.js"
 //////////////////////////////////////////////////////////////////////////////////////

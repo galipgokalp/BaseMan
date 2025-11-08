@@ -783,14 +783,20 @@
   async function loadDebugLogs(contentEl) {
     if (!contentEl) return;
 
+    // Show loading state
+    contentEl.innerHTML = '<div class="settings-debug-logs-empty">Loading logs...</div>';
+
     try {
       // Try to get logs from API endpoint
       const response = await fetch('/api/app-log');
       if (response.ok) {
         const data = await response.json();
         const logs = data.logs || [];
+        console.log('[settings-panel] Loaded logs from API:', logs.length);
         renderDebugLogs(contentEl, logs);
         return;
+      } else {
+        console.warn('[settings-panel] API endpoint returned error:', response.status, response.statusText);
       }
     } catch (error) {
       console.warn('[settings-panel] Failed to load logs from API:', error);
@@ -800,6 +806,7 @@
     try {
       if (window.ConsoleLogger && typeof window.ConsoleLogger.getLogs === 'function') {
         const logs = window.ConsoleLogger.getLogs();
+        console.log('[settings-panel] Loaded logs from ConsoleLogger:', logs.length);
         renderDebugLogs(contentEl, logs.map(log => ({
           ts: log.timestamp,
           event: log.type,
@@ -807,13 +814,15 @@
           meta: log.meta || {}
         })));
         return;
+      } else {
+        console.warn('[settings-panel] ConsoleLogger API not available');
       }
     } catch (error) {
       console.warn('[settings-panel] Failed to load logs from ConsoleLogger:', error);
     }
 
     // No logs available
-    contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available</div>';
+    contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Make sure you have played a game and check the console for errors.</div>';
   }
 
   function renderDebugLogs(contentEl, logs) {
@@ -831,24 +840,35 @@
       return tsB - tsA;
     });
 
-    // Filter for score submission related logs
-    const scoreLogs = sortedLogs.filter(log => {
-      const event = log.event || log.type || '';
-      const message = log.message || '';
-      return event.includes('score') || 
-             event.includes('submitScore') || 
-             message.includes('submitScore') ||
-             message.includes('score:') ||
-             event.includes('transaction') ||
-             event.includes('wallet');
-    });
+    // Show all logs (not just score submission related) for debugging
+    // Filter can be removed or made optional in the future
+    const scoreLogs = sortedLogs; // Show all logs for now to help debug
+    
+    // Optional: Filter for score submission related logs only
+    // const scoreLogs = sortedLogs.filter(log => {
+    //   const event = log.event || log.type || '';
+    //   const message = log.message || '';
+    //   return event.includes('score') || 
+    //          event.includes('submitScore') || 
+    //          message.includes('submitScore') ||
+    //          message.includes('score:') ||
+    //          event.includes('transaction') ||
+    //          event.includes('wallet') ||
+    //          event.includes('BaseMan') ||
+    //          message.includes('BaseMan') ||
+    //          event.includes('onchain') ||
+    //          message.includes('onchain');
+    // });
 
     if (scoreLogs.length === 0) {
-      contentEl.innerHTML = '<div class="settings-debug-logs-empty">No score submission logs available</div>';
+      contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Try playing a game and check again.</div>';
       return;
     }
 
-    const html = scoreLogs.map(log => {
+    // Limit to last 50 logs for performance
+    const displayLogs = scoreLogs.slice(0, 50);
+    
+    let html = displayLogs.map(log => {
       const ts = log.ts || log.timestamp || '';
       const event = log.event || log.type || 'unknown';
       const message = log.message || '';
@@ -856,23 +876,34 @@
       const timeStr = ts ? new Date(ts).toLocaleTimeString() : '';
       
       let logClass = 'settings-debug-log';
-      if (event.includes('error') || message.includes('ERROR')) {
+      if (event.includes('error') || message.includes('ERROR') || message.toLowerCase().includes('error')) {
         logClass += ' settings-debug-log-error';
-      } else if (event.includes('warn') || message.includes('WARNING')) {
+      } else if (event.includes('warn') || message.includes('WARNING') || message.toLowerCase().includes('warning')) {
         logClass += ' settings-debug-log-warn';
-      } else if (event.includes('success') || message.includes('successfully')) {
+      } else if (event.includes('success') || message.includes('successfully') || message.toLowerCase().includes('success')) {
         logClass += ' settings-debug-log-success';
+      } else if (event.includes('submitScore') || message.includes('submitScore')) {
+        logClass += ' settings-debug-log-success'; // Highlight score submission logs
+      } else if (event.includes('patchStateHooks') || message.includes('patchStateHooks')) {
+        logClass += ' settings-debug-log-warn'; // Highlight patch hooks logs
       }
+
+      // Truncate very long messages
+      const displayMessage = message.length > 500 ? message.substring(0, 500) + '...' : message;
 
       return `
         <div class="${logClass}">
           <div class="settings-debug-log-time">${timeStr}</div>
-          <div class="settings-debug-log-event">${event}</div>
-          <div class="settings-debug-log-message">${escapeHtml(message)}</div>
+          <div class="settings-debug-log-event">${escapeHtml(event)}</div>
+          <div class="settings-debug-log-message">${escapeHtml(displayMessage)}</div>
           ${Object.keys(meta).length > 0 ? `<div class="settings-debug-log-meta">${escapeHtml(JSON.stringify(meta, null, 2))}</div>` : ''}
         </div>
       `;
     }).join('');
+    
+    if (scoreLogs.length > 50) {
+      html += `<div class="settings-debug-logs-empty" style="padding: var(--spacing-sm); text-align: center; color: var(--color-text-muted); font-size: 0.5rem;">Showing last 50 of ${scoreLogs.length} logs</div>`;
+    }
 
     contentEl.innerHTML = html;
     
