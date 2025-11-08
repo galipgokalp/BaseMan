@@ -121,19 +121,41 @@
       const isReady = onchain.isWalletReady && onchain.isWalletReady();
       if (!isReady) {
         updateStatus('Not connected', 'disconnected');
+        // Clear address and balances when not ready
+        const addrEl = panel.querySelector('[data-wallet-address]');
+        if (addrEl) {
+          addrEl.textContent = '-';
+          addrEl.title = '';
+        }
+        const ethEl = panel.querySelector('[data-eth-balance]');
+        const usdcEl = panel.querySelector('[data-usdc-balance]');
+        if (ethEl) ethEl.textContent = '-';
+        if (usdcEl) usdcEl.textContent = '-';
         return;
       }
 
-      updateStatus('Connected', 'connected');
-
-      // Get address
+      // Get address first to verify connection
       const address = onchain.getWalletAddress && onchain.getWalletAddress();
-      if (address) {
+      
+      // Verify address is valid
+      if (!address || typeof address !== 'string' || address.length !== 42 || !address.startsWith('0x')) {
+        updateStatus('Connected (Invalid Address)', 'disconnected');
         const addrEl = panel.querySelector('[data-wallet-address]');
         if (addrEl) {
-          addrEl.textContent = abbreviate(address);
-          addrEl.title = address;
+          addrEl.textContent = '-';
+          addrEl.title = '';
         }
+        return;
+      }
+
+      // Address is valid - show connected status
+      updateStatus('Connected', 'connected');
+      
+      // Update address display
+      const addrEl = panel.querySelector('[data-wallet-address]');
+      if (addrEl) {
+        addrEl.textContent = abbreviate(address);
+        addrEl.title = address;
       }
 
       // Get network and chain ID
