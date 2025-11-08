@@ -44,7 +44,8 @@ Development and debugging guides:
 
 - **User Experience Flow**: `USER_EXPERIENCE_FLOW.md` — Complete user experience flow for wallet-connected users playing the game
 - **Score Submission Flow**: `SCORE_SUBMISSION_FLOW.md` — How scores are submitted to the contract
-- **Score Submission Debug Guide**: `SCORE_SUBMISSION_DEBUG_GUIDE.md` — **NEW** Debug guide for score submission issues (why scores don't appear in contract)
+- **Score Submission Debug Guide**: `SCORE_SUBMISSION_DEBUG_GUIDE.md` — Debug guide for score submission issues (why scores don't appear in contract)
+- **Mobile Debug Logs Guide**: `MOBILE_DEBUG_LOGS_GUIDE.md` — **NEW** How to view debug logs in mobile mini-app environments (Farcaster/Base App)
 - **Development Guide**: `DEVELOPMENT_GUIDE.md` — Wallet integration, Wagmi config, troubleshooting, and best practices
 - **Debug Guide**: `DEBUG_GUIDE.md` — Console logs access and UI debug procedures
 - **UI Design Guide**: `UI_DESIGN_GUIDE.md` — Modern theme design and UI layout recommendations

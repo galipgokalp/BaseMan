@@ -107,6 +107,30 @@
               <span>Farcaster / Base App</span>
             </div>
           </div>
+          <div class="settings-section">
+            <h3 class="settings-section-title">Debug Logs</h3>
+            <div class="settings-row">
+              <span>View recent logs</span>
+              <button type="button" class="settings-button" data-debug-logs-view>View Logs</button>
+            </div>
+            <div class="settings-row">
+              <span>Clear logs</span>
+              <button type="button" class="settings-button" data-debug-logs-clear>Clear</button>
+            </div>
+            <div class="settings-row">
+              <span>Export logs</span>
+              <button type="button" class="settings-button" data-debug-logs-export>Export</button>
+            </div>
+            <div class="settings-debug-logs-container" data-debug-logs-container style="display: none;">
+              <div class="settings-debug-logs-header">
+                <span>Recent Logs</span>
+                <button type="button" class="settings-debug-logs-close" data-debug-logs-close>×</button>
+              </div>
+              <div class="settings-debug-logs-content" data-debug-logs-content>
+                <div class="settings-debug-logs-empty">No logs available</div>
+              </div>
+            </div>
+          </div>
         </div>
       `;
       document.body.appendChild(panel);
@@ -690,6 +714,232 @@
         profileLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
       }
     }
+
+    // Debug Logs buttons
+    const debugLogsViewBtn = panel.querySelector('[data-debug-logs-view]');
+    if (debugLogsViewBtn && !wiredElements.has(debugLogsViewBtn)) {
+      wiredElements.add(debugLogsViewBtn);
+      const handleViewLogs = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showDebugLogs(panel);
+      };
+      debugLogsViewBtn.addEventListener('click', handleViewLogs, { passive: false });
+      debugLogsViewBtn.addEventListener('touchend', handleViewLogs, { passive: false });
+    }
+
+    const debugLogsClearBtn = panel.querySelector('[data-debug-logs-clear]');
+    if (debugLogsClearBtn && !wiredElements.has(debugLogsClearBtn)) {
+      wiredElements.add(debugLogsClearBtn);
+      const handleClearLogs = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearDebugLogs(panel);
+      };
+      debugLogsClearBtn.addEventListener('click', handleClearLogs, { passive: false });
+      debugLogsClearBtn.addEventListener('touchend', handleClearLogs, { passive: false });
+    }
+
+    const debugLogsExportBtn = panel.querySelector('[data-debug-logs-export]');
+    if (debugLogsExportBtn && !wiredElements.has(debugLogsExportBtn)) {
+      wiredElements.add(debugLogsExportBtn);
+      const handleExportLogs = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        exportDebugLogs();
+      };
+      debugLogsExportBtn.addEventListener('click', handleExportLogs, { passive: false });
+      debugLogsExportBtn.addEventListener('touchend', handleExportLogs, { passive: false });
+    }
+
+    const debugLogsCloseBtn = panel.querySelector('[data-debug-logs-close]');
+    if (debugLogsCloseBtn && !wiredElements.has(debugLogsCloseBtn)) {
+      wiredElements.add(debugLogsCloseBtn);
+      const handleCloseLogs = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        hideDebugLogs(panel);
+      };
+      debugLogsCloseBtn.addEventListener('click', handleCloseLogs, { passive: false });
+      debugLogsCloseBtn.addEventListener('touchend', handleCloseLogs, { passive: false });
+    }
+  }
+
+  function showDebugLogs(panel) {
+    const container = panel.querySelector('[data-debug-logs-container]');
+    const content = panel.querySelector('[data-debug-logs-content]');
+    if (!container || !content) return;
+
+    container.style.display = 'block';
+    loadDebugLogs(content);
+  }
+
+  function hideDebugLogs(panel) {
+    const container = panel.querySelector('[data-debug-logs-container]');
+    if (!container) return;
+    container.style.display = 'none';
+  }
+
+  async function loadDebugLogs(contentEl) {
+    if (!contentEl) return;
+
+    try {
+      // Try to get logs from API endpoint
+      const response = await fetch('/api/app-log');
+      if (response.ok) {
+        const data = await response.json();
+        const logs = data.logs || [];
+        renderDebugLogs(contentEl, logs);
+        return;
+      }
+    } catch (error) {
+      console.warn('[settings-panel] Failed to load logs from API:', error);
+    }
+
+    // Fallback: Try to get logs from ConsoleLogger API
+    try {
+      if (window.ConsoleLogger && typeof window.ConsoleLogger.getLogs === 'function') {
+        const logs = window.ConsoleLogger.getLogs();
+        renderDebugLogs(contentEl, logs.map(log => ({
+          ts: log.timestamp,
+          event: log.type,
+          message: log.message,
+          meta: log.meta || {}
+        })));
+        return;
+      }
+    } catch (error) {
+      console.warn('[settings-panel] Failed to load logs from ConsoleLogger:', error);
+    }
+
+    // No logs available
+    contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available</div>';
+  }
+
+  function renderDebugLogs(contentEl, logs) {
+    if (!contentEl) return;
+
+    if (!logs || logs.length === 0) {
+      contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available</div>';
+      return;
+    }
+
+    // Sort logs by timestamp (newest first)
+    const sortedLogs = logs.slice().sort((a, b) => {
+      const tsA = new Date(a.ts || a.timestamp || 0).getTime();
+      const tsB = new Date(b.ts || b.timestamp || 0).getTime();
+      return tsB - tsA;
+    });
+
+    // Filter for score submission related logs
+    const scoreLogs = sortedLogs.filter(log => {
+      const event = log.event || log.type || '';
+      const message = log.message || '';
+      return event.includes('score') || 
+             event.includes('submitScore') || 
+             message.includes('submitScore') ||
+             message.includes('score:') ||
+             event.includes('transaction') ||
+             event.includes('wallet');
+    });
+
+    if (scoreLogs.length === 0) {
+      contentEl.innerHTML = '<div class="settings-debug-logs-empty">No score submission logs available</div>';
+      return;
+    }
+
+    const html = scoreLogs.map(log => {
+      const ts = log.ts || log.timestamp || '';
+      const event = log.event || log.type || 'unknown';
+      const message = log.message || '';
+      const meta = log.meta || {};
+      const timeStr = ts ? new Date(ts).toLocaleTimeString() : '';
+      
+      let logClass = 'settings-debug-log';
+      if (event.includes('error') || message.includes('ERROR')) {
+        logClass += ' settings-debug-log-error';
+      } else if (event.includes('warn') || message.includes('WARNING')) {
+        logClass += ' settings-debug-log-warn';
+      } else if (event.includes('success') || message.includes('successfully')) {
+        logClass += ' settings-debug-log-success';
+      }
+
+      return `
+        <div class="${logClass}">
+          <div class="settings-debug-log-time">${timeStr}</div>
+          <div class="settings-debug-log-event">${event}</div>
+          <div class="settings-debug-log-message">${escapeHtml(message)}</div>
+          ${Object.keys(meta).length > 0 ? `<div class="settings-debug-log-meta">${escapeHtml(JSON.stringify(meta, null, 2))}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    contentEl.innerHTML = html;
+    
+    // Scroll to top
+    contentEl.scrollTop = 0;
+  }
+
+  function clearDebugLogs(panel) {
+    if (!confirm('Are you sure you want to clear all logs?')) {
+      return;
+    }
+
+    try {
+      // Clear ConsoleLogger logs
+      if (window.ConsoleLogger && typeof window.ConsoleLogger.clear === 'function') {
+        window.ConsoleLogger.clear();
+      }
+    } catch (error) {
+      console.warn('[settings-panel] Failed to clear ConsoleLogger logs:', error);
+    }
+
+    // Clear displayed logs
+    const content = panel.querySelector('[data-debug-logs-content]');
+    if (content) {
+      content.innerHTML = '<div class="settings-debug-logs-empty">Logs cleared</div>';
+    }
+
+    // Hide logs container
+    hideDebugLogs(panel);
+  }
+
+  function exportDebugLogs() {
+    try {
+      // Try to export from ConsoleLogger API
+      if (window.ConsoleLogger && typeof window.ConsoleLogger.export === 'function') {
+        window.ConsoleLogger.export();
+        return;
+      }
+    } catch (error) {
+      console.warn('[settings-panel] Failed to export logs from ConsoleLogger:', error);
+    }
+
+    // Fallback: Fetch from API and export
+    fetch('/api/app-log')
+      .then(response => response.json())
+      .then(data => {
+        const logs = data.logs || [];
+        const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `baseman-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('[settings-panel] Failed to export logs:', error);
+        alert('Failed to export logs. Please try again.');
+      });
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   function init() {
