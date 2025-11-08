@@ -341,22 +341,13 @@
       panel.setAttribute('aria-hidden', 'false');
       panel.style.display = 'block';
 
-      // Trigger wallet connection and refresh in background (non-blocking)
+      // Refresh panel in background (non-blocking)
+      // NOTE: Do NOT call ensureWallet() or signIn() here to avoid passkey prompts.
+      // Base App mini apps are automatically connected - wallet info is available without requesting.
       requestAnimationFrame(() => {
-        (async () => {
-          try {
-            if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
-              await window.BaseManOnchain.ensureWallet();
-            } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
-              await window.sdk.actions.signIn({ acceptAuthAddress: true });
-            }
-          } catch (err) {}
-
-          // Refresh panel if refresh function exists
-          if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.refresh === 'function') {
-            window.ProfilePanel.refresh();
-          }
-        })();
+        if (typeof window.ProfilePanel !== 'undefined' && typeof window.ProfilePanel.refresh === 'function') {
+          window.ProfilePanel.refresh();
+        }
       });
     }
   }

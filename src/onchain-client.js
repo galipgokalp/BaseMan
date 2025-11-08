@@ -406,8 +406,9 @@
       return null;
     }
 
-    async function ensureWallet() {
-      if (state.contract) {
+    async function ensureWallet(requestAccounts = false) {
+      // If wallet is already fully initialized (has contract), return early
+      if (state.contract && state.address) {
         return state;
       }
 
@@ -439,7 +440,8 @@
 
           let address = null;
           try {
-            // First try to get existing accounts
+            // First try to get existing accounts (read-only, no passkey prompt)
+            // In Base App mini apps, accounts should be available automatically without requesting.
             const accounts = await provider.request({ method: 'eth_accounts' });
             if (Array.isArray(accounts) && accounts.length) {
               address = accounts[0];
@@ -449,8 +451,59 @@
             debug(`eth_accounts error: ${eaErr?.message || eaErr}`);
           }
           
-          // If no account found, request access
-          if (!address) {
+          // In mini app environments, only call eth_requestAccounts if explicitly requested (e.g., during transaction).
+          // Base App mini apps are automatically connected - if eth_accounts returns nothing,
+          // we only request accounts when user initiates a transaction (submitScore/completeQuest).
+          // This follows Base App documentation: "Mini Apps are automatically connected to user's Base Account"
+          if (!address && isMiniAppEnv()) {
+            // If requestAccounts is true (transaction initiated), request account access (may prompt passkey)
+            if (requestAccounts) {
+              try {
+                debug("Transaction initiated - requesting account access (may prompt passkey)...");
+                const req = await provider.request({ method: 'eth_requestAccounts' });
+                if (Array.isArray(req) && req.length) {
+                  address = req[0];
+                  debug(`Account access granted for transaction: ${address}`);
+                }
+              } catch (reqErr) {
+                // Handle different error formats
+                let errMsg = '';
+                if (reqErr && typeof reqErr === 'object') {
+                  errMsg = reqErr.message || 
+                           (reqErr.error && typeof reqErr.error === 'object' ? reqErr.error.message : null) ||
+                           (reqErr.error && typeof reqErr.error !== 'object' ? String(reqErr.error) : null) ||
+                           (reqErr.code ? `Error ${reqErr.code}` : null) ||
+                           String(reqErr);
+                } else {
+                  errMsg = String(reqErr);
+                }
+                
+                debug(`eth_requestAccounts error during transaction: ${errMsg}`);
+                
+                // User might have rejected the request
+                if (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User')) {
+                  throw new Error('User rejected wallet connection');
+                }
+                
+                throw new Error(`Failed to request accounts for transaction: ${errMsg}`);
+              }
+            } else {
+              // Not requesting accounts (e.g., panel opened) - return state without address
+              debug("No account from eth_accounts in mini app - wallet will be connected on first transaction");
+              // Don't throw error - wallet will be connected when needed (on first transaction)
+              // Return state with provider but no address - this allows UI to show "Not connected" status
+              state.signer = null;
+              state.address = null;
+              state.contract = { interface: new ethers.Interface(CONTRACT_ABI) };
+              state.provider = provider;
+              attachProviderEvents(provider);
+              emitWalletStatus(false, 'Wallet not connected - will connect on first transaction');
+              return state;
+            }
+          }
+          
+          // Only request accounts if NOT in mini app environment (web mode)
+          if (!address && !isMiniAppEnv()) {
             try {
               debug("Requesting account access...");
               const req = await provider.request({ method: 'eth_requestAccounts' });
@@ -962,7 +1015,8 @@
       try {
         state.submitting = true;
 
-        await ensureWallet();
+        // Request accounts if needed (may prompt passkey, but user initiated transaction)
+        await ensureWallet(true);
         if (!state.address) {
           throw new Error("Wallet connection required");
         }
@@ -1113,7 +1167,8 @@
       if (state.submitting) return;
       try {
         state.submitting = true;
-        await ensureWallet();
+        // Request accounts if needed (may prompt passkey, but user initiated transaction)
+        await ensureWallet(true);
         if (!state.address) {
           throw new Error("Wallet connection required");
         }

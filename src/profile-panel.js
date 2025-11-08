@@ -318,12 +318,14 @@
     }
 
     try {
-      if (!window.BaseManOnchain || typeof window.BaseManOnchain.ensureWallet !== 'function') {
+      if (!window.BaseManOnchain) {
         addrEl.textContent = '-';
         netEl.textContent = '-';
         return;
       }
-      await window.BaseManOnchain.ensureWallet();
+      // NOTE: Do NOT call ensureWallet() here to avoid passkey prompts.
+      // Base App mini apps are automatically connected - wallet info is available without requesting.
+      // Only check current wallet status (if already connected).
       const cfg = window.BaseManOnchainConfig || {};
       const chainId = Number(cfg.chainId || 84532);
       netEl.textContent = networkLabel(chainId);
@@ -530,26 +532,11 @@
 
     if (isOpen) {
       // Refresh panel in background (non-blocking)
+      // NOTE: Do NOT call ensureWallet() or signIn() here to avoid passkey prompts.
+      // Base App mini apps are automatically connected - wallet info is available without requesting.
+      // Only refresh panel to show current wallet status (if already connected).
       requestAnimationFrame(() => {
         refresh(shell.panel);
-      });
-      
-      // Ensure wallet is connected in background (non-blocking)
-      requestAnimationFrame(() => {
-        (async () => {
-          try {
-            if (window.BaseManOnchain && typeof window.BaseManOnchain.ensureWallet === 'function') {
-              await window.BaseManOnchain.ensureWallet();
-              // Refresh after wallet connection
-              refresh(shell.panel);
-            } else if (window.sdk && window.sdk.actions && typeof window.sdk.actions.signIn === 'function') {
-              await window.sdk.actions.signIn({ acceptAuthAddress: true });
-              refresh(shell.panel);
-            }
-          } catch (err) {
-            // Silent fail - don't block UI
-          }
-        })();
       });
     }
   }
