@@ -954,6 +954,12 @@
     const copyBtn = panel.querySelector('[data-debug-logs-copy]');
     const originalText = copyBtn ? copyBtn.textContent : '📋 Copy';
     
+    // Show loading feedback
+    if (copyBtn) {
+      copyBtn.textContent = '⏳ Copying...';
+      copyBtn.disabled = true;
+    }
+    
     try {
       // Try to get logs from API endpoint first
       let logs = [];
@@ -962,6 +968,9 @@
         if (response.ok) {
           const data = await response.json();
           logs = data.logs || [];
+          console.log('[settings-panel] Fetched logs from API:', logs.length);
+        } else {
+          console.warn('[settings-panel] API endpoint returned error:', response.status, response.statusText);
         }
       } catch (apiError) {
         console.warn('[settings-panel] Failed to fetch logs from API:', apiError);
@@ -978,14 +987,15 @@
               message: log.message,
               meta: log.meta || {}
             }));
+            console.log('[settings-panel] Fetched logs from ConsoleLogger:', logs.length);
           }
         } catch (loggerError) {
           console.warn('[settings-panel] Failed to get logs from ConsoleLogger:', loggerError);
         }
       }
 
+      // Final fallback: Try to get logs from currently displayed content
       if (logs.length === 0) {
-        // Try to get logs from currently displayed content
         const contentEl = panel.querySelector('[data-debug-logs-content]');
         if (contentEl) {
           const logElements = contentEl.querySelectorAll('.settings-debug-log');
@@ -999,12 +1009,23 @@
               return `[${time}] ${event}: ${message}${meta ? '\n' + meta : ''}`;
             });
             const textToCopy = logTexts.join('\n\n---\n\n');
-            await copyToClipboard(textToCopy);
-            showCopyFeedback(copyBtn, '✓ Copied!', true);
-            return;
+            
+            if (textToCopy && textToCopy.trim().length > 0) {
+              console.log('[settings-panel] Copying logs from displayed content:', logTexts.length, 'logs');
+              await copyToClipboard(textToCopy);
+              showCopyFeedback(copyBtn, '✓ Copied!', true);
+              return;
+            }
           }
         }
-        alert('No logs available to copy.');
+        
+        // No logs found anywhere
+        console.warn('[settings-panel] No logs available to copy');
+        if (copyBtn) {
+          copyBtn.disabled = false;
+        }
+        showCopyFeedback(copyBtn, '✗ No logs', false);
+        alert('No logs available to copy. Please play a game first and then try again.');
         return;
       }
 
@@ -1035,28 +1056,98 @@
 
       const textToCopy = formattedLogs.join('\n\n---\n\n');
       
+      if (!textToCopy || textToCopy.trim().length === 0) {
+        throw new Error('No log content to copy');
+      }
+      
+      console.log('[settings-panel] Copying', sortedLogs.length, 'formatted logs to clipboard');
       await copyToClipboard(textToCopy);
       showCopyFeedback(copyBtn, '✓ Copied!', true);
     } catch (error) {
       console.error('[settings-panel] Failed to copy logs:', error);
+      const errorMessage = error?.message || String(error);
       showCopyFeedback(copyBtn, '✗ Failed', false);
-      alert('Failed to copy logs to clipboard. Please try again.');
+      
+      // More helpful error message
+      let userMessage = 'Failed to copy logs to clipboard.';
+      if (errorMessage.includes('clipboard')) {
+        userMessage += '\n\nYour browser may not support clipboard access, or you may need to grant permission.';
+      } else if (errorMessage.includes('manual')) {
+        userMessage = errorMessage;
+      }
+      
+      alert(userMessage);
+    } finally {
+      // Re-enable button
+      if (copyBtn) {
+        copyBtn.disabled = false;
+      }
     }
   }
 
   async function copyToClipboard(text) {
+    if (!text || typeof text !== 'string') {
+      throw new Error('Invalid text to copy');
+    }
+
+    // Try modern Clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      // Fallback for older browsers
+      try {
+        await navigator.clipboard.writeText(text);
+        console.log('[settings-panel] Text copied to clipboard using Clipboard API');
+        return;
+      } catch (clipboardError) {
+        console.warn('[settings-panel] Clipboard API failed, trying fallback:', clipboardError);
+        // Fall through to fallback method
+      }
+    }
+
+    // Fallback method for older browsers or when Clipboard API fails
+    try {
       const textarea = document.createElement('textarea');
       textarea.value = text;
       textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.width = '2em';
+      textarea.style.height = '2em';
+      textarea.style.padding = '0';
+      textarea.style.border = 'none';
+      textarea.style.outline = 'none';
+      textarea.style.boxShadow = 'none';
+      textarea.style.background = 'transparent';
       textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
+      textarea.setAttribute('readonly', '');
+      textarea.setAttribute('aria-hidden', 'true');
+      
       document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
+      
+      // For mobile devices, use setSelectionRange
+      if (navigator.userAgent.match(/ipad|iphone/i)) {
+        const range = document.createRange();
+        range.selectNodeContents(textarea);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        textarea.setSelectionRange(0, 999999);
+      } else {
+        textarea.select();
+        textarea.setSelectionRange(0, 999999); // For mobile devices
+      }
+      
+      const successful = document.execCommand('copy');
       document.body.removeChild(textarea);
+      
+      if (!successful) {
+        throw new Error('execCommand copy failed');
+      }
+      
+      console.log('[settings-panel] Text copied to clipboard using fallback method');
+    } catch (fallbackError) {
+      console.error('[settings-panel] Fallback copy method also failed:', fallbackError);
+      // Last resort: Show the text in an alert or prompt so user can manually copy
+      throw new Error('Failed to copy to clipboard. Please copy manually from the logs view.');
     }
   }
 

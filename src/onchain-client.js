@@ -1031,9 +1031,8 @@
      * Send contract interaction calls using wallet_sendCalls (EIP-5792)
      * 
      * According to Farcaster and Base App documentation:
-     * - Farcaster: Sequential execution (atomicRequired: false)
-     * - Base App: Atomic batch supported (atomicRequired: true)
-     * - Version: "1.0" or "2.0.0" (using "1.0" for compatibility)
+     * - Farcaster: Sequential execution (atomicRequired: false), version: "1.0"
+     * - Base App: Atomic batch supported (atomicRequired: true), version: "2.0.0" (REQUIRED)
      * - Paymaster: paymasterService: { url: "..." } format
      * 
      * @param {string} callData - Encoded contract function call data
@@ -1069,19 +1068,19 @@
         throw new Error('Invalid callData format');
       }
       
-      // Platform-specific atomic batch setting
+      // Platform-specific version and atomic batch setting
       // According to docs:
-      // - Farcaster: Sequential execution (atomicRequired: false)
-      // - Base App: Atomic batch supported (atomicRequired: true)
+      // - Farcaster: Sequential execution (atomicRequired: false), version: "1.0"
+      // - Base App: Atomic batch supported (atomicRequired: true), version: "2.0.0" (REQUIRED)
       const isFarcaster = typeof window !== 'undefined' && 
         typeof window.isFarcasterMiniApp === 'function' && 
         window.isFarcasterMiniApp();
       const atomicRequired = !isFarcaster; // Farcaster: false, Base App: true
+      const version = isFarcaster ? "1.0" : "2.0.0"; // Base App requires "2.0.0"
       
       // Build payload according to EIP-5792 and platform documentation
-      // Version format: "1.0" for compatibility (docs show both "1.0" and "2.0.0")
       const payload = {
-        version: "1.0", // Using "1.0" for maximum compatibility
+        version: version, // Platform-specific version: Farcaster "1.0", Base App "2.0.0"
         from: state.address,
         chainId: hexChainId,
         atomicRequired: atomicRequired,

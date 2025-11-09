@@ -71,10 +71,15 @@ const callData = contractInterface.encodeFunctionData("submitScore", [
 
 **EIP-5792 Standardı:**
 ```javascript
+// Platform-specific version detection
+const isFarcaster = window.isFarcasterMiniApp && window.isFarcasterMiniApp();
+const version = isFarcaster ? "1.0" : "2.0.0"; // Base App requires "2.0.0"
+const atomicRequired = !isFarcaster; // Farcaster: false, Base App: true
+
 const result = await provider.request({
   method: 'wallet_sendCalls',
   params: [{
-    version: "1.0", // Compatibility version
+    version: version, // Platform-specific: Farcaster "1.0", Base App "2.0.0"
     from: userAddress,
     chainId: "0x14a34", // Base Sepolia (hex)
     atomicRequired: atomicRequired, // Farcaster: false, Base App: true
@@ -99,7 +104,7 @@ const result = await provider.request({
 | Platform | Atomic Batch | Version | Paymaster |
 |----------|--------------|---------|-----------|
 | **Farcaster** | ❌ Sequential | "1.0" | ❌ Not supported |
-| **Base App** | ✅ Atomic | "1.0" | ✅ Supported |
+| **Base App** | ✅ Atomic | "2.0.0" (REQUIRED) | ✅ Supported |
 
 ### 5. Transaction Status Kontrolü
 
@@ -138,10 +143,11 @@ async function sendCalls(callData, paymasterUrl) {
   // Platform detection
   const isFarcaster = window.isFarcasterMiniApp();
   const atomicRequired = !isFarcaster; // Farcaster: false, Base App: true
+  const version = isFarcaster ? "1.0" : "2.0.0"; // Base App requires "2.0.0"
   
   // Build payload
   const payload = {
-    version: "1.0",
+    version: version, // Platform-specific: Farcaster "1.0", Base App "2.0.0"
     from: state.address,
     chainId: hexChainId,
     atomicRequired: atomicRequired,
@@ -294,13 +300,17 @@ console.log('Capabilities:', caps);
 
 ```javascript
 // Test transaction
+const isFarcaster = window.isFarcasterMiniApp && window.isFarcasterMiniApp();
+const version = isFarcaster ? "1.0" : "2.0.0";
+const atomicRequired = !isFarcaster;
+
 const result = await provider.request({
   method: 'wallet_sendCalls',
   params: [{
-    version: "1.0",
+    version: version, // Platform-specific: Farcaster "1.0", Base App "2.0.0"
     from: address,
     chainId: "0x14a34",
-    atomicRequired: false,
+    atomicRequired: atomicRequired,
     calls: [{
       to: "0x...",
       data: "0x...",
@@ -399,7 +409,7 @@ console.log('Transaction status:', status);
 - [x] Ethereum provider alımı (`sdk.wallet.getEthereumProvider()`)
 - [x] `wallet_sendCalls` kullanımı (EIP-5792)
 - [x] Atomic batch (`atomicRequired: true`)
-- [x] Version formatı ("1.0")
+- [x] Version formatı ("2.0.0" - REQUIRED)
 - [x] Paymaster desteği (Base App'te destekleniyor, şu anda devre dışı)
 
 ### EIP-5792 Compliance
@@ -414,7 +424,7 @@ console.log('Transaction status:', status);
 
 ## 📝 Notlar
 
-- **Version:** "1.0" kullanılıyor (maksimum uyumluluk için)
+- **Version:** Platform-specific - Farcaster "1.0", Base App "2.0.0" (REQUIRED)
 - **Atomic Batch:** Farcaster'da false, Base App'te true
 - **Paymaster:** Sponsorless mode'da devre dışı
 - **Error Handling:** Detaylı loglama ve hata mesajları

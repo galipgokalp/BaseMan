@@ -785,14 +785,20 @@
   font-family: inherit;
 }
 
-.settings-debug-logs-copy:hover {
+.settings-debug-logs-copy:hover:not(:disabled) {
   background: rgba(255, 225, 79, 0.2);
   border-color: var(--color-primary);
   transform: translateY(-1px);
 }
 
-.settings-debug-logs-copy:active {
+.settings-debug-logs-copy:active:not(:disabled) {
   transform: scale(0.98);
+}
+
+.settings-debug-logs-copy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .settings-debug-logs-close {
@@ -942,6 +948,11 @@
           padding: 3px 6px;
           min-height: 24px;
           min-width: 50px;
+        }
+        
+        .settings-debug-logs-copy:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
   /* Panel mobile optimizations */
