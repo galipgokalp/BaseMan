@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { registryAddress } from "./_lib/registry.js";
+import { registryAddress, getRegistryContext, getRegistryChainIdNumber } from "./_lib/registry.js";
 import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
 
 const DEFAULT_SQL_BASE = "https://api.cdp.coinbase.com";
@@ -54,12 +54,41 @@ function sanitizeLimit(value) {
   return Math.min(parsed, 100);
 }
 
-function buildQuery(limit) {
+function buildQuery(limit, chainId = null) {
   // Handle missing registry address gracefully
-  if (!registryAddress) {
+  // Determine chain ID: use provided chainId, or try to get from registry context, or default to Base Mainnet (8453)
+  const targetChainId = chainId !== null 
+    ? Number(chainId) 
+    : (getRegistryChainIdNumber() || 8453); // Default to Base Mainnet (8453) if not specified
+  
+  // Determine table name based on chain ID
+  // Base Mainnet (8453) uses 'base.events', Base Sepolia (84532) uses 'base_sepolia.events'
+  const eventsTable = targetChainId === 84532 ? 'base_sepolia.events' : 'base.events';
+  
+  // Get registry address for the target chain
+  let registry;
+  try {
+    if (targetChainId === 8453) {
+      // Base Mainnet
+      const ctx = getRegistryContext('base');
+      registry = ctx.address ? ethers.getAddress(ctx.address).toLowerCase() : null;
+    } else if (targetChainId === 84532) {
+      // Base Sepolia
+      const ctx = getRegistryContext('base-sepolia');
+      registry = ctx.address ? ethers.getAddress(ctx.address).toLowerCase() : null;
+    } else {
+      // Fallback to default registry address
+      registry = registryAddress ? ethers.getAddress(registryAddress).toLowerCase() : null;
+    }
+  } catch (error) {
+    console.warn(`[leaderboard] Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
+    registry = registryAddress ? ethers.getAddress(registryAddress).toLowerCase() : null;
+  }
+  
+  if (!registry) {
     return ""; // Return empty string if registry not configured
   }
-  const registry = ethers.getAddress(registryAddress).toLowerCase();
+  
   // Use normalized events table and parameters JSON.
   // On CDP SQL (ClickHouse), use JSONExtract* functions and 1-based array index for topics.
   return `
@@ -68,7 +97,7 @@ WITH events AS (
     lower(CAST(parameters['player'] AS String)) AS player,
     toFloat64OrNull(CAST(parameters['newTotal'] AS String)) AS total,
     toInt64(toUnixTimestamp(block_timestamp)) AS block_ts
-  FROM base.events
+  FROM ${eventsTable}
   WHERE lower(address) = lower('${registry}')
     AND topics[1] IN ('${SCORE_ADDED_TOPIC}')
 )
@@ -346,22 +375,48 @@ function pickRpcUrl(chain) {
   return process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL || process.env.BASE_SEPOLIA_RPC_URL;
 }
 
-async function fetchFromRpcFallback(limit) {
+async function fetchFromRpcFallback(limit, chainId = null) {
   try {
+    // Determine chain ID: use provided chainId, or try to get from registry context, or default to Base Mainnet (8453)
+    const targetChainId = chainId !== null 
+      ? Number(chainId) 
+      : (getRegistryChainIdNumber() || 8453); // Default to Base Mainnet (8453) if not specified
+    
+    // Get registry address for the target chain
+    let address;
+    try {
+      if (targetChainId === 8453) {
+        // Base Mainnet
+        const ctx = getRegistryContext('base');
+        address = ctx.address ? ethers.getAddress(ctx.address) : null;
+      } else if (targetChainId === 84532) {
+        // Base Sepolia
+        const ctx = getRegistryContext('base-sepolia');
+        address = ctx.address ? ethers.getAddress(ctx.address) : null;
+      } else {
+        // Fallback to default registry address
+        address = registryAddress ? ethers.getAddress(registryAddress) : null;
+      }
+    } catch (error) {
+      console.warn(`[leaderboard] Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
+      address = registryAddress ? ethers.getAddress(registryAddress) : null;
+    }
+    
     // Handle missing registry address gracefully
-    if (!registryAddress) {
-      console.warn("[leaderboard] RPC fallback skipped: registry address not configured");
+    if (!address) {
+      console.warn(`[leaderboard] RPC fallback skipped: registry address not configured for chain ${targetChainId}`);
       return [];
     }
-    const address = ethers.getAddress(registryAddress);
-    const chain = Number.parseInt(process.env.REGISTRY_CHAIN_ID || process.env.BASE_SEPOLIA_REGISTRY_CHAIN_ID || "84532", 10);
-    const rpcUrl = pickRpcUrl(chain);
-    if (!rpcUrl) throw new Error("No RPC URL configured for fallback");
+    
+    const rpcUrl = pickRpcUrl(targetChainId);
+    if (!rpcUrl) throw new Error(`No RPC URL configured for fallback (chain ${targetChainId})`);
 
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const latest = await provider.getBlockNumber();
     const windowBlocks = Number.parseInt(process.env.LEADERBOARD_FALLBACK_WINDOW_BLOCKS || "50000", 10);
     const fromBlock = Math.max(0, latest - windowBlocks);
+    
+    console.log(`[leaderboard] RPC fallback: chain=${targetChainId}, address=${address}, fromBlock=${fromBlock}, toBlock=${latest}`);
 
     // Fetch logs in chunks to avoid provider limits
     const chunkMax = Number.parseInt(process.env.LEADERBOARD_FALLBACK_CHUNK_SIZE || "4000", 10);
@@ -461,21 +516,58 @@ export default async function handler(req, res) {
     });
   }
 
+  // Parse chain ID from query parameter (default to Base Mainnet 8453)
+  // Supported values: "8453" (Base Mainnet), "84532" (Base Sepolia), or "base", "base-sepolia"
+  let chainId = null;
+  if (req.query.chain) {
+    const chainParam = String(req.query.chain).trim().toLowerCase();
+    if (chainParam === "8453" || chainParam === "base" || chainParam === "base-mainnet") {
+      chainId = 8453;
+    } else if (chainParam === "84532" || chainParam === "base-sepolia" || chainParam === "basesepolia") {
+      chainId = 84532;
+    } else {
+      // Try to parse as number
+      const parsed = Number.parseInt(chainParam, 10);
+      if (Number.isFinite(parsed) && (parsed === 8453 || parsed === 84532)) {
+        chainId = parsed;
+      }
+    }
+  }
+  
+  // Default to Base Mainnet (8453) if not specified
+  if (chainId === null) {
+    chainId = 8453; // Base Mainnet
+  }
+
   // If no SQL key, fall back to RPC so the app still functions in dev
   const limit = sanitizeLimit(req.query.limit);
   if (!SQL_API_KEY) {
     try {
-      const fallback = await fetchFromRpcFallback(limit);
+      const fallback = await fetchFromRpcFallback(limit, chainId);
       const items = await enrichWithProfiles(fallback);
-      return res.status(200).json({ source: "rpc-fallback", limit, count: items.length, items, updatedAt: new Date().toISOString() });
+      return res.status(200).json({ 
+        source: "rpc-fallback", 
+        chainId,
+        limit, 
+        count: items.length, 
+        items, 
+        updatedAt: new Date().toISOString() 
+      });
     } catch (_) {
-      return res.status(200).json({ source: "rpc-fallback", limit, count: 0, items: [], updatedAt: new Date().toISOString() });
+      return res.status(200).json({ 
+        source: "rpc-fallback", 
+        chainId,
+        limit, 
+        count: 0, 
+        items: [], 
+        updatedAt: new Date().toISOString() 
+      });
     }
   }
 
   try {
     
-    const statement = buildQuery(limit);
+    const statement = buildQuery(limit, chainId);
     let rows = [];
     
     // Skip SQL query if registry address is not configured
@@ -483,11 +575,11 @@ export default async function handler(req, res) {
       try {
         rows = await runQuery(statement);
       } catch (sqlError) {
-        console.warn("[leaderboard] SQL query failed:", sqlError?.message || sqlError);
+        console.warn(`[leaderboard] SQL query failed for chain ${chainId}:`, sqlError?.message || sqlError);
         rows = [];
       }
     } else {
-      console.warn("[leaderboard] SQL query skipped: registry address not configured");
+      console.warn(`[leaderboard] SQL query skipped: registry address not configured for chain ${chainId}`);
       rows = [];
     }
 
@@ -495,7 +587,7 @@ export default async function handler(req, res) {
 
     if (!items.length) {
       // Try RPC fallback for quick freshness
-      const fallback = await fetchFromRpcFallback(limit);
+      const fallback = await fetchFromRpcFallback(limit, chainId);
       if (fallback.length) {
         items = fallback;
       }
@@ -515,6 +607,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       source: "cdp-sql-api",
+      chainId,
       limit,
       count: enriched.length,
       items: enriched,

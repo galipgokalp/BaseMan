@@ -244,7 +244,31 @@
     statusEl.textContent = "Updating leaderboard…";
 
     try {
-      const response = await fetch(`/api/leaderboard?limit=${limit}`, {
+      // Determine chain ID for leaderboard:
+      // 1. Use chain from BaseManOnchainConfig if available
+      // 2. Default to Base Mainnet (8453) for production use
+      // Base Mainnet is the primary network for score tracking
+      let chainId = 8453; // Default to Base Mainnet
+      try {
+        const config = window.BaseManOnchainConfig;
+        if (config && config.chainId) {
+          const configChainId = Number(config.chainId);
+          // Only use config chain if it's a valid Base network
+          if (configChainId === 8453 || configChainId === 84532) {
+            chainId = configChainId;
+          }
+        }
+      } catch (error) {
+        console.warn('[leaderboard-panel] Failed to get chain ID from config:', error);
+        // Keep default (Base Mainnet)
+      }
+      
+      // For production, always use Base Mainnet (8453) to show main network scores
+      // Users can still see Sepolia scores by switching network in Profile panel
+      // But default Leaderboard shows Base Mainnet scores
+      const leaderboardChainId = 8453; // Always use Base Mainnet for leaderboard
+      
+      const response = await fetch(`/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}`, {
         headers: { Accept: "application/json" },
         cache: "no-store"
       });
