@@ -1296,7 +1296,8 @@
             debug('submitScore: V2 requires nonce but none was provided; aborting');
             throw new Error('Missing nonce for V2 signature');
           }
-          callData = contractInterface.encodeFunctionData("submitScore", [
+          // Use full function signature to avoid ambiguity with V1
+          callData = contractInterface.encodeFunctionData("submitScore(address,uint256,uint256,uint256,bytes)", [
             state.address,
             scoreValue,
             deadlineValue,
@@ -1305,7 +1306,8 @@
           ]);
           debug(`submitScore: Call data encoded (V2) - score=${scoreValue.toString()}, nonce=${nonceValue.toString()}`);
         } else {
-          callData = contractInterface.encodeFunctionData("submitScore", [
+          // Use full function signature to avoid ambiguity with V2
+          callData = contractInterface.encodeFunctionData("submitScore(address,uint256,uint256,bytes)", [
             state.address,
             scoreValue,
             deadlineValue,
@@ -1448,7 +1450,8 @@
               debug('V2 requires nonce for quest but none was provided; aborting');
               throw new Error('Missing nonce for V2 quest signature');
             }
-            callData = contractInterface.encodeFunctionData("completeQuest", [
+            // Use full function signature to avoid ambiguity with V1
+            callData = contractInterface.encodeFunctionData("completeQuest(address,uint256,uint256,uint256,bytes)", [
               state.address,
               qid,
               deadlineValue,
@@ -1456,7 +1459,8 @@
               signature
             ]);
           } else {
-            callData = contractInterface.encodeFunctionData("completeQuest", [
+            // Use full function signature to avoid ambiguity with V2
+            callData = contractInterface.encodeFunctionData("completeQuest(address,uint256,uint256,bytes)", [
               state.address,
               qid,
               deadlineValue,
