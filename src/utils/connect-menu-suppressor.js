@@ -119,7 +119,12 @@
         
         const text = (el.textContent || '').toLowerCase();
         const id = (el.id || '').toLowerCase();
-        const className = (el.className || '').toLowerCase();
+        // Safely get className (handle cases where className might not be a string)
+        const className = (el && el.className && typeof el.className === 'string') 
+          ? el.className.toLowerCase() 
+          : (el && el.className && typeof el.className.toString === 'function')
+            ? el.className.toString().toLowerCase()
+            : '';
         
         // More specific checks - don't match "Connection" in wallet panel
         if (id.includes('connect') && !id.includes('wallet') || 
@@ -154,7 +159,12 @@
               }
               
               const id = (node.id || '').toLowerCase();
-              const className = (node.className || '').toLowerCase();
+              // Safely get className (handle cases where className might not be a string)
+              const className = (node && node.className && typeof node.className === 'string') 
+                ? node.className.toLowerCase() 
+                : (node && node.className && typeof node.className.toString === 'function')
+                  ? node.className.toString().toLowerCase()
+                  : '';
               const text = (node.textContent || '').toLowerCase();
               
               // More specific checks - don't match "Connection" in wallet panel

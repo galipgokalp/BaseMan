@@ -758,6 +758,43 @@
   color: var(--color-text-primary);
 }
 
+.settings-debug-logs-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.settings-debug-logs-copy {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 0.63rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  min-height: 28px;
+  min-width: 60px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.settings-debug-logs-copy:hover {
+  background: rgba(255, 225, 79, 0.2);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.settings-debug-logs-copy:active {
+  transform: scale(0.98);
+}
+
 .settings-debug-logs-close {
   background: transparent;
   border: none;
@@ -894,10 +931,18 @@
     font-size: 0.5rem;
   }
 
-  .settings-debug-log-meta {
-    font-size: 0.45rem;
-    max-height: 80px;
-  }
+        .settings-debug-log-meta {
+          font-size: 0.45rem;
+          max-height: 80px;
+        }
+
+        /* Copy button mobile optimizations */
+        .settings-debug-logs-copy {
+          font-size: 0.56rem;
+          padding: 3px 6px;
+          min-height: 24px;
+          min-width: 50px;
+        }
 
   /* Panel mobile optimizations */
   .profile-panel,

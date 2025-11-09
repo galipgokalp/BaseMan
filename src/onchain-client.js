@@ -1194,24 +1194,41 @@
     async function submitScore() {
       debug('submitScore: Function called');
       console.log('[BaseMan] submitScore: Function called');
-      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:called', meta: { timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:called', meta: { timestamp: new Date().toISOString(), stack: new Error().stack } }) }).catch(()=>{});} catch(_) {}
 
+      // Check if already submitting
       if (state.submitting) {
         debug('submitScore: Already submitting, skipping');
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:already-submitting' }) }).catch(()=>{});} catch(_) {}
+        console.log('[BaseMan] submitScore: Already submitting, skipping');
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:already-submitting', meta: { timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
+      
+      // Check if getScore function is available
       if (typeof window.getScore !== "function") {
         debug('submitScore: getScore function not available');
         console.warn('[BaseMan] submitScore: getScore function not available');
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-unavailable' }) }).catch(()=>{});} catch(_) {}
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-unavailable', meta: { timestamp: new Date().toISOString(), windowGetScore: typeof window.getScore } }) }).catch(()=>{});} catch(_) {}
         return;
       }
 
-      const score = BigInt(window.getScore());
+      // Get score value
+      let score;
+      try {
+        const scoreValue = window.getScore();
+        debug(`submitScore: getScore() returned: ${scoreValue} (type: ${typeof scoreValue})`);
+        score = BigInt(scoreValue);
+      } catch (scoreError) {
+        debug(`submitScore: Error getting score: ${scoreError?.message || scoreError}`);
+        console.error('[BaseMan] submitScore: Error getting score:', scoreError);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-error', meta: { error: scoreError?.message || String(scoreError) } }) }).catch(()=>{});} catch(_) {}
+        return;
+      }
+      
       if (score <= 0n) {
         debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:score-zero', meta: { score: score.toString() } }) }).catch(()=>{});} catch(_) {}
+        console.log(`[BaseMan] submitScore: Score is 0 or negative (${score.toString()}), skipping`);
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:score-zero', meta: { score: score.toString(), timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
 
@@ -1532,7 +1549,7 @@
         }
       };
 
-      const patchInit = (target, flagKey, hook, label) => {
+        const patchInit = (target, flagKey, hook, label) => {
         if (!target) {
           debug(`${label}: State not available yet`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:missing', meta: { label } }) }).catch(()=>{});} catch(_) {}
@@ -1550,18 +1567,36 @@
         const original = target.init.bind(target);
         target.init = function patchedInit(...args) {
           debug(`${label}: init called (patched)`);
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label } }) }).catch(()=>{});} catch(_) {}
+          console.log(`[BaseMan] ${label}: init called (patched)`);
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+          
+          // Execute hook BEFORE original init (important for submitScore)
           try {
-            hook?.apply(this, args);
-            debug(`${label}: hook executed successfully`);
-            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label } }) }).catch(()=>{});} catch(_) {}
+            debug(`${label}: Executing hook BEFORE original init...`);
+            console.log(`[BaseMan] ${label}: Executing hook...`);
+            const hookResult = hook?.apply(this, args);
+            debug(`${label}: hook executed successfully, result:`, hookResult);
+            console.log(`[BaseMan] ${label}: hook executed successfully`);
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
           } catch (error) {
             const errorMsg = error?.message || String(error);
             debug(`${label} hook error: ${errorMsg}`);
             console.error(`[BaseMan] ${label} hook error:`, error);
-            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg } }) }).catch(()=>{});} catch(_) {}
+            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+            // Don't throw - continue with original init even if hook fails
           }
-          return original(...args);
+          
+          // Execute original init AFTER hook
+          debug(`${label}: Executing original init...`);
+          try {
+            const originalResult = original(...args);
+            debug(`${label}: original init executed, result:`, originalResult);
+            return originalResult;
+          } catch (originalError) {
+            debug(`${label}: original init error: ${originalError?.message || originalError}`);
+            console.error(`[BaseMan] ${label}: original init error:`, originalError);
+            throw originalError;
+          }
         };
         target[flagKey] = true;
         debug(`${label} patched successfully`);

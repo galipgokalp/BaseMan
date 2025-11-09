@@ -377,28 +377,54 @@
       }
 
       // Contract read: getScore
+      // NOTE: Farcaster Wallet does not support eth_call, so this will fail silently
+      // This is expected behavior - we show '-' when contract read is unavailable
       try {
         if (window.ethers && window.BaseManOnchain && window.BaseManOnchain.ensureWallet) {
           // Use onchain-client's state if exposed; otherwise, call via RPC if needed.
           const reg = (window.BaseManOnchainConfig && window.BaseManOnchainConfig.registryAddress) || null;
           if (reg && window.ethers && window.sdk) {
             const provider = await window.sdk.wallet.getEthereumProvider();
+            if (!provider) {
+              throw new Error('Provider not available');
+            }
+            
+            // Check if provider supports eth_call before attempting contract read
+            // Farcaster Wallet does not support eth_call, so we skip contract read
             const browser = new window.ethers.BrowserProvider(provider);
             const signer = await browser.getSigner();
             const contract = new window.ethers.Contract(reg, [
               'function getScore(address player) view returns (tuple(uint256 highScore,uint256 totalScore,uint256 lastUpdatedAt))'
             ], signer);
-            const result = await contract.getScore(effectiveAddress);
-            const total = result?.totalScore ? BigInt(result.totalScore).toString() : '0';
-            const high = result?.highScore ? BigInt(result.highScore).toString() : '0';
-            scoreEl.textContent = total;
-            if (bestScoreEl) bestScoreEl.textContent = high;
-            // Games played and average would need additional contract calls or API
-            if (gamesPlayedEl) gamesPlayedEl.textContent = '-'; // TODO: Calculate from history
-            if (avgScoreEl) avgScoreEl.textContent = total !== '0' ? (Number(total) / 1).toFixed(0) : '-'; // TODO: Calculate properly
+            
+            // Attempt contract read with timeout and error handling
+            // If eth_call is not supported (Farcaster Wallet), this will fail gracefully
+            try {
+              const result = await Promise.race([
+                contract.getScore(effectiveAddress),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Contract read timeout')), 5000))
+              ]);
+              const total = result?.totalScore ? BigInt(result.totalScore).toString() : '0';
+              const high = result?.highScore ? BigInt(result.highScore).toString() : '0';
+              scoreEl.textContent = total;
+              if (bestScoreEl) bestScoreEl.textContent = high;
+              // Games played and average would need additional contract calls or API
+              if (gamesPlayedEl) gamesPlayedEl.textContent = '-'; // TODO: Calculate from history
+              if (avgScoreEl) avgScoreEl.textContent = total !== '0' ? (Number(total) / 1).toFixed(0) : '-'; // TODO: Calculate properly
+            } catch (readError) {
+              // Contract read failed (likely eth_call not supported by Farcaster Wallet)
+              // This is expected - silently show '-' for scores
+              console.debug('[profile] Contract read not available (eth_call not supported):', readError?.message || readError);
+              scoreEl.textContent = '-';
+              if (bestScoreEl) bestScoreEl.textContent = '-';
+              if (gamesPlayedEl) gamesPlayedEl.textContent = '-';
+              if (avgScoreEl) avgScoreEl.textContent = '-';
+            }
           }
         }
-      } catch (_) {
+      } catch (err) {
+        // Provider or SDK not available - show '-' for scores
+        console.debug('[profile] Contract read error:', err?.message || err);
         scoreEl.textContent = '-';
         if (bestScoreEl) bestScoreEl.textContent = '-';
         if (gamesPlayedEl) gamesPlayedEl.textContent = '-';

@@ -124,7 +124,10 @@
             <div class="settings-debug-logs-container" data-debug-logs-container style="display: none;">
               <div class="settings-debug-logs-header">
                 <span>Recent Logs</span>
-                <button type="button" class="settings-debug-logs-close" data-debug-logs-close>×</button>
+                <div class="settings-debug-logs-header-actions">
+                  <button type="button" class="settings-debug-logs-copy" data-debug-logs-copy title="Copy all logs to clipboard">📋 Copy</button>
+                  <button type="button" class="settings-debug-logs-close" data-debug-logs-close>×</button>
+                </div>
               </div>
               <div class="settings-debug-logs-content" data-debug-logs-content>
                 <div class="settings-debug-logs-empty">No logs available</div>
@@ -752,6 +755,18 @@
       debugLogsExportBtn.addEventListener('touchend', handleExportLogs, { passive: false });
     }
 
+    const debugLogsCopyBtn = panel.querySelector('[data-debug-logs-copy]');
+    if (debugLogsCopyBtn && !wiredElements.has(debugLogsCopyBtn)) {
+      wiredElements.add(debugLogsCopyBtn);
+      const handleCopyLogs = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        copyAllLogs(panel);
+      };
+      debugLogsCopyBtn.addEventListener('click', handleCopyLogs, { passive: false });
+      debugLogsCopyBtn.addEventListener('touchend', handleCopyLogs, { passive: false });
+    }
+
     const debugLogsCloseBtn = panel.querySelector('[data-debug-logs-close]');
     if (debugLogsCloseBtn && !wiredElements.has(debugLogsCloseBtn)) {
       wiredElements.add(debugLogsCloseBtn);
@@ -933,6 +948,127 @@
 
     // Hide logs container
     hideDebugLogs(panel);
+  }
+
+  async function copyAllLogs(panel) {
+    const copyBtn = panel.querySelector('[data-debug-logs-copy]');
+    const originalText = copyBtn ? copyBtn.textContent : '📋 Copy';
+    
+    try {
+      // Try to get logs from API endpoint first
+      let logs = [];
+      try {
+        const response = await fetch('/api/app-log');
+        if (response.ok) {
+          const data = await response.json();
+          logs = data.logs || [];
+        }
+      } catch (apiError) {
+        console.warn('[settings-panel] Failed to fetch logs from API:', apiError);
+      }
+
+      // Fallback: Try to get logs from ConsoleLogger API
+      if (logs.length === 0) {
+        try {
+          if (window.ConsoleLogger && typeof window.ConsoleLogger.getLogs === 'function') {
+            const consoleLogs = window.ConsoleLogger.getLogs();
+            logs = consoleLogs.map(log => ({
+              ts: log.timestamp,
+              event: log.type,
+              message: log.message,
+              meta: log.meta || {}
+            }));
+          }
+        } catch (loggerError) {
+          console.warn('[settings-panel] Failed to get logs from ConsoleLogger:', loggerError);
+        }
+      }
+
+      if (logs.length === 0) {
+        // Try to get logs from currently displayed content
+        const contentEl = panel.querySelector('[data-debug-logs-content]');
+        if (contentEl) {
+          const logElements = contentEl.querySelectorAll('.settings-debug-log');
+          if (logElements.length > 0) {
+            // Extract text from displayed logs
+            const logTexts = Array.from(logElements).map(el => {
+              const time = el.querySelector('.settings-debug-log-time')?.textContent || '';
+              const event = el.querySelector('.settings-debug-log-event')?.textContent || '';
+              const message = el.querySelector('.settings-debug-log-message')?.textContent || '';
+              const meta = el.querySelector('.settings-debug-log-meta')?.textContent || '';
+              return `[${time}] ${event}: ${message}${meta ? '\n' + meta : ''}`;
+            });
+            const textToCopy = logTexts.join('\n\n---\n\n');
+            await copyToClipboard(textToCopy);
+            showCopyFeedback(copyBtn, '✓ Copied!', true);
+            return;
+          }
+        }
+        alert('No logs available to copy.');
+        return;
+      }
+
+      // Sort logs by timestamp (newest first)
+      const sortedLogs = logs.slice().sort((a, b) => {
+        const tsA = new Date(a.ts || a.timestamp || 0).getTime();
+        const tsB = new Date(b.ts || b.timestamp || 0).getTime();
+        return tsB - tsA;
+      });
+
+      // Format logs as readable text
+      const formattedLogs = sortedLogs.map(log => {
+        const ts = log.ts || log.timestamp || '';
+        const event = log.event || log.type || 'unknown';
+        const message = log.message || '';
+        const meta = log.meta || {};
+        const timeStr = ts ? new Date(ts).toLocaleString() : 'No timestamp';
+        
+        let logText = `[${timeStr}] ${event}`;
+        if (message) {
+          logText += `\n  Message: ${message}`;
+        }
+        if (Object.keys(meta).length > 0) {
+          logText += `\n  Meta: ${JSON.stringify(meta, null, 2).split('\n').join('\n  ')}`;
+        }
+        return logText;
+      });
+
+      const textToCopy = formattedLogs.join('\n\n---\n\n');
+      
+      await copyToClipboard(textToCopy);
+      showCopyFeedback(copyBtn, '✓ Copied!', true);
+    } catch (error) {
+      console.error('[settings-panel] Failed to copy logs:', error);
+      showCopyFeedback(copyBtn, '✗ Failed', false);
+      alert('Failed to copy logs to clipboard. Please try again.');
+    }
+  }
+
+  async function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  }
+
+  function showCopyFeedback(button, text, success) {
+    if (!button) return;
+    const originalText = button.textContent;
+    button.textContent = text;
+    button.style.color = success ? '#4caf50' : '#f44336';
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.style.color = '';
+    }, 2000);
   }
 
   function exportDebugLogs() {
