@@ -357,20 +357,58 @@
     try {
       // Priority 1: Use centralized platform detection utility
       if (typeof window !== 'undefined' && typeof window.isMiniAppEnv === 'function') {
-        return window.isMiniAppEnv();
+        const result = window.isMiniAppEnv();
+        if (result) {
+          debug('isMiniAppEnv: Detected via centralized utility');
+          return result;
+        }
       }
       
-      // Priority 2: Emergency fallback (should never reach here in normal operation)
-      // This fallback is kept for safety but should not be needed
-      // Utility loads early in index.html as type="module" script
+      // Priority 2: Check for SDK presence (more reliable indicator)
       if (typeof window !== 'undefined') {
-        // Minimal fallback - try most common indicators
-        if (window.farcaster || (window.fc && window.fc.miniapp)) return true;
-        if (window.MiniKit) return true;
-        if (window.ReactNativeWebView) return true;
+        // Check for Farcaster SDK
+        if (window.fc && window.fc.miniapp) {
+          debug('isMiniAppEnv: Detected Farcaster SDK');
+          return true;
+        }
+        if (window.farcaster && window.farcaster.miniapp) {
+          debug('isMiniAppEnv: Detected Farcaster SDK (alternative)');
+          return true;
+        }
+        
+        // Check for Base App SDK
+        if (window.MiniKit) {
+          debug('isMiniAppEnv: Detected Base App SDK (MiniKit)');
+          return true;
+        }
+        
+        // Check for ReactNative WebView (Base App indicator)
+        if (window.ReactNativeWebView) {
+          debug('isMiniAppEnv: Detected ReactNativeWebView (Base App)');
+          return true;
+        }
+        
+        // Check for generic SDK indicators
+        if (window.MiniAppSDK || window.FarcasterMiniAppSDK || (window.sdk && window.sdk.wallet)) {
+          debug('isMiniAppEnv: Detected generic SDK');
+          return true;
+        }
+        
+        // Check user agent as last resort
+        if (window.navigator && window.navigator.userAgent) {
+          const ua = window.navigator.userAgent;
+          if ((ua.includes('Farcaster') || ua.includes('Warpcast') || ua.includes('BaseApp')) && 
+              !ua.includes('Chrome') && !ua.includes('Safari') && !ua.includes('Firefox')) {
+            debug('isMiniAppEnv: Detected via user agent');
+            return true;
+          }
+        }
       }
+      
+      debug('isMiniAppEnv: No mini app environment detected');
       return false;
-    } catch (_) {
+    } catch (error) {
+      debug(`isMiniAppEnv error: ${error?.message || error}`);
       return false;
     }
   }
@@ -399,8 +437,14 @@
         return state;
       }
 
-      // Mini‑app: use SDK EIP‑1193 provider (smart wallet). Avoid proactive signIn to prevent passkey prompts.
-      if (isMiniAppEnv()) {
+      // Check if SDK is available (more reliable than isMiniAppEnv for some cases)
+      const hasSDK = sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function';
+      const isMiniApp = isMiniAppEnv() || hasSDK; // Use SDK presence as fallback
+      
+      if (isMiniApp) {
+        if (hasSDK && !isMiniAppEnv()) {
+          debug('ensureWallet: SDK detected but isMiniAppEnv() returned false - using SDK anyway');
+        }
         try {
           // Do NOT call signIn proactively. Some hosts will prompt passkey on signIn.
           // We rely on provider injection and request accounts. If strictly required, enable via env/flag.
@@ -425,6 +469,18 @@
           
           // Mini‑app providers may not support wallet_switchEthereumChain; skip enforcing switch
 
+          // Detect Base App specifically
+          const isBaseAppDetected = (() => {
+            try {
+              if (typeof window !== 'undefined' && typeof window.isBaseApp === 'function') {
+                return window.isBaseApp();
+              }
+              return Boolean(window.MiniKit || window.ReactNativeWebView);
+            } catch (_) {
+              return false;
+            }
+          })();
+          
           let address = null;
           try {
             // First try to get existing accounts (read-only, no passkey prompt)
@@ -442,15 +498,28 @@
           // Base App mini apps are automatically connected - if eth_accounts returns nothing,
           // we only request accounts when user initiates a transaction (submitScore/completeQuest).
           // This follows Base App documentation: "Mini Apps are automatically connected to user's Base Account"
-          if (!address && isMiniAppEnv()) {
+          // Use SDK presence as fallback if isMiniAppEnv() returns false
+          // IMPORTANT: For Base App, always request accounts during transaction to ensure wallet connection
+          const isMiniAppCheck = isMiniAppEnv() || hasSDK;
+          if (!address && (isMiniAppCheck || isBaseAppDetected)) {
             // If requestAccounts is true (transaction initiated), request account access (may prompt passkey)
-            if (requestAccounts) {
+            // For Base App, always request accounts during transaction to ensure proper wallet connection
+            if (requestAccounts || isBaseAppDetected) {
               try {
                 debug("Transaction initiated - requesting account access (may prompt passkey)...");
-                const req = await provider.request({ method: 'eth_requestAccounts' });
+                console.log('[BaseMan] Requesting wallet connection for transaction...');
+                // Add timeout to prevent hanging
+                const requestPromise = provider.request({ method: 'eth_requestAccounts' });
+                const timeoutPromise = new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Wallet connection request timed out after 30 seconds')), 30000)
+                );
+                const req = await Promise.race([requestPromise, timeoutPromise]);
                 if (Array.isArray(req) && req.length) {
                   address = req[0];
                   debug(`Account access granted for transaction: ${address}`);
+                  console.log(`[BaseMan] Wallet connected: ${address}`);
+                } else {
+                  throw new Error('No accounts returned from eth_requestAccounts');
                 }
               } catch (reqErr) {
                 // Handle different error formats
@@ -466,13 +535,19 @@
                 }
                 
                 debug(`eth_requestAccounts error during transaction: ${errMsg}`);
+                console.error(`[BaseMan] Wallet connection failed: ${errMsg}`);
                 
-                // User might have rejected the request
-                if (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User')) {
+                // User might have rejected the request - this is OK, don't throw error
+                if (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User rejected') || errMsg.includes('User cancelled')) {
                   throw new Error('User rejected wallet connection');
                 }
                 
-                throw new Error(`Failed to request accounts for transaction: ${errMsg}`);
+                // For other errors, provide more context
+                if (errMsg.includes('timeout')) {
+                  throw new Error('Wallet connection timed out. Please try again.');
+                }
+                
+                throw new Error(`Failed to connect wallet: ${errMsg}`);
               }
             } else {
               // Not requesting accounts (e.g., panel opened) - return state without address
@@ -1244,14 +1319,31 @@
         state.submitting = true;
 
         // Request accounts if needed (may prompt passkey, but user initiated transaction)
+        // For Base App users, always request accounts to ensure wallet connection
         debug('submitScore: Ensuring wallet connection...');
-        await ensureWallet(true);
+        console.log('[BaseMan] submitScore: Ensuring wallet connection for score submission...');
+        try {
+          await ensureWallet(true); // Always request accounts for transaction
+        } catch (walletError) {
+          const walletErrorMsg = walletError?.message || String(walletError);
+          debug(`submitScore: Wallet connection failed: ${walletErrorMsg}`);
+          console.error(`[BaseMan] submitScore: Wallet connection failed: ${walletErrorMsg}`);
+          
+          // If wallet connection fails, provide helpful error message
+          if (walletErrorMsg.includes('reject') || walletErrorMsg.includes('denied') || walletErrorMsg.includes('User rejected')) {
+            throw new Error('Wallet connection was rejected. Please approve the connection request to submit your score.');
+          }
+          throw new Error(`Failed to connect wallet: ${walletErrorMsg}`);
+        }
+        
         if (!state.address) {
-          const errorMsg = "Wallet connection required";
+          const errorMsg = "Wallet connection required - no address available";
           debug(`submitScore: ${errorMsg}`);
+          console.error(`[BaseMan] submitScore: ${errorMsg}`);
           throw new Error(errorMsg);
         }
         debug(`submitScore: Wallet connected - address=${state.address}`);
+        console.log(`[BaseMan] submitScore: Wallet connected successfully - address=${state.address}`);
 
         debug('submitScore: Requesting signature from backend...');
         const { signature, deadline, score: signedScore, nonce } = await requestScoreSignature(
@@ -1322,7 +1414,28 @@
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submission:sponsorless', meta: { score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
 
         // For mini-app environments (Farcaster/Base App), use wallet_sendCalls without paymaster
-        if (isMiniAppEnv()) {
+        // Check SDK presence as fallback if isMiniAppEnv() returns false
+        // Also check for Base App specifically
+        const hasSDK = sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function';
+        const isBaseAppSpecific = (() => {
+          try {
+            if (typeof window !== 'undefined' && typeof window.isBaseApp === 'function') {
+              return window.isBaseApp();
+            }
+            return Boolean(window.MiniKit || window.ReactNativeWebView);
+          } catch (_) {
+            return false;
+          }
+        })();
+        const isMiniApp = isMiniAppEnv() || hasSDK || isBaseAppSpecific;
+        
+        if (isMiniApp) {
+          if (hasSDK && !isMiniAppEnv()) {
+            debug("submitScore: SDK detected but isMiniAppEnv() returned false - using SDK anyway");
+          }
+          if (isBaseAppSpecific) {
+            debug("submitScore: Base App detected - using wallet_sendCalls without paymaster");
+          }
           debug("submitScore: Mini-app environment detected - using wallet_sendCalls without paymaster");
           try {
             if (!state.provider || typeof state.provider.request !== "function") {
@@ -1410,8 +1523,14 @@
           }).catch(()=>{});
         } catch(_) {}
         
-        // TODO: Show user-friendly error message (future improvement)
-        // For now, errors are only logged to console and debug overlay
+        // Show user-friendly error message for critical errors
+        // Don't show error if user rejected (that's expected behavior)
+        if (!errorMsg.includes('reject') && !errorMsg.includes('denied') && !errorMsg.includes('User rejected')) {
+          // Show error in console (already done above)
+          // In the future, we could show a toast notification here
+          // For now, errors are logged to console and debug overlay
+          console.error(`[BaseMan] Score submission failed: ${errorMsg}`);
+        }
       } finally {
         state.submitting = false;
         state.runStartedAt = null;
@@ -1552,7 +1671,7 @@
         }
       };
 
-        const patchInit = (target, flagKey, hook, label) => {
+        const patchInit = (target, flagKey, hook, label, isAsync = false) => {
         if (!target) {
           debug(`${label}: State not available yet`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:missing', meta: { label } }) }).catch(()=>{});} catch(_) {}
@@ -1574,22 +1693,56 @@
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
           
           // Execute hook BEFORE original init (important for submitScore)
-          try {
-            debug(`${label}: Executing hook BEFORE original init...`);
-            console.log(`[BaseMan] ${label}: Executing hook...`);
-            const hookResult = hook?.apply(this, args);
-            debug(`${label}: hook executed successfully, result:`, hookResult);
-            console.log(`[BaseMan] ${label}: hook executed successfully`);
-            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
-          } catch (error) {
-            const errorMsg = error?.message || String(error);
-            debug(`${label} hook error: ${errorMsg}`);
-            console.error(`[BaseMan] ${label} hook error:`, error);
-            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
-            // Don't throw - continue with original init even if hook fails
+          // Handle async hooks properly
+          if (isAsync) {
+            // For async hooks, execute asynchronously and don't block original init
+            (async () => {
+              try {
+                debug(`${label}: Executing async hook BEFORE original init...`);
+                console.log(`[BaseMan] ${label}: Executing async hook...`);
+                const hookResult = await hook?.apply(this, args);
+                debug(`${label}: async hook executed successfully, result:`, hookResult);
+                console.log(`[BaseMan] ${label}: async hook executed successfully`);
+                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+              } catch (error) {
+                const errorMsg = error?.message || String(error);
+                debug(`${label} async hook error: ${errorMsg}`);
+                console.error(`[BaseMan] ${label} async hook error:`, error);
+                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+                // Show user-friendly error message for critical errors
+                if (label.includes('overState') || label.includes('finishState')) {
+                  // Only show error if it's a wallet connection issue (not user rejection)
+                  if (!errorMsg.includes('reject') && !errorMsg.includes('denied') && !errorMsg.includes('User rejected')) {
+                    try {
+                      // Try to show error in a non-blocking way
+                      setTimeout(() => {
+                        console.error(`[BaseMan] Score submission failed: ${errorMsg}`);
+                        // Could show a toast notification here in the future
+                      }, 100);
+                    } catch (_) {}
+                  }
+                }
+              }
+            })();
+          } else {
+            // For sync hooks, execute synchronously
+            try {
+              debug(`${label}: Executing hook BEFORE original init...`);
+              console.log(`[BaseMan] ${label}: Executing hook...`);
+              const hookResult = hook?.apply(this, args);
+              debug(`${label}: hook executed successfully, result:`, hookResult);
+              console.log(`[BaseMan] ${label}: hook executed successfully`);
+              try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+            } catch (error) {
+              const errorMsg = error?.message || String(error);
+              debug(`${label} hook error: ${errorMsg}`);
+              console.error(`[BaseMan] ${label} hook error:`, error);
+              try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+              // Don't throw - continue with original init even if hook fails
+            }
           }
           
-          // Execute original init AFTER hook
+          // Execute original init AFTER hook (don't wait for async hooks)
           debug(`${label}: Executing original init...`);
           try {
             const originalResult = original(...args);
@@ -1608,12 +1761,12 @@
       };
 
       const results = {
-        newGameState: patchInit(window.newGameState, "_patchedForOnchain", handleRunStart, "newGameState.init"),
-        readyState: patchInit(window.readyState, "_patchedForOnchainReady", ensureRunStart, "readyState.init"),
-        readyNewState: patchInit(window.readyNewState, "_patchedForOnchainReadyNew", ensureRunStart, "readyNewState.init"),
-        readyRestartState: patchInit(window.readyRestartState, "_patchedForOnchainReadyRestart", ensureRunStart, "readyRestartState.init"),
-        overState: patchInit(window.overState, "_patchedForOnchain", submitScore, "overState.init"),
-        finishState: patchInit(window.finishState, "_patchedForOnchainFinish", submitScore, "finishState.init"),
+        newGameState: patchInit(window.newGameState, "_patchedForOnchain", handleRunStart, "newGameState.init", false),
+        readyState: patchInit(window.readyState, "_patchedForOnchainReady", ensureRunStart, "readyState.init", false),
+        readyNewState: patchInit(window.readyNewState, "_patchedForOnchainReadyNew", ensureRunStart, "readyNewState.init", false),
+        readyRestartState: patchInit(window.readyRestartState, "_patchedForOnchainReadyRestart", ensureRunStart, "readyRestartState.init", false),
+        overState: patchInit(window.overState, "_patchedForOnchain", submitScore, "overState.init", true), // async hook
+        finishState: patchInit(window.finishState, "_patchedForOnchainFinish", submitScore, "finishState.init", true), // async hook
       };
 
       const allPatched = Object.values(results).every(r => r === true);
