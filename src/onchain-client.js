@@ -1267,8 +1267,26 @@
 
     async function submitScore() {
       debug('submitScore: Function called');
-      console.log('[BaseMan] submitScore: Function called');
-      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:called', meta: { timestamp: new Date().toISOString(), stack: new Error().stack } }) }).catch(()=>{});} catch(_) {}
+      console.log('[BaseMan] submitScore: Function called - START');
+      console.log('[BaseMan] submitScore: Stack trace:', new Error().stack);
+      try { 
+        fetch('/api/app-log', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ 
+            event: 'submitScore:called', 
+            meta: { 
+              timestamp: new Date().toISOString(), 
+              stack: new Error().stack,
+              userAgent: navigator.userAgent,
+              url: window.location.href,
+              isMiniApp: isMiniAppEnv(),
+              hasSDK: !!(sdk && sdk.wallet),
+              stateAddress: state.address || null
+            } 
+          }) 
+        }).catch(()=>{});
+      } catch(_) {}
 
       // Check if already submitting
       if (state.submitting) {
@@ -1673,18 +1691,37 @@
 
         const patchInit = (target, flagKey, hook, label, isAsync = false) => {
         if (!target) {
-          debug(`${label}: State not available yet`);
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:missing', meta: { label } }) }).catch(()=>{});} catch(_) {}
+          const errorMsg = `${label}: State not available yet (target is ${typeof target})`;
+          debug(errorMsg);
+          console.warn(`[BaseMan] ${errorMsg}`);
+          console.warn(`[BaseMan] Available window states:`, {
+            overState: typeof window.overState,
+            finishState: typeof window.finishState,
+            newGameState: typeof window.newGameState,
+            readyState: typeof window.readyState
+          });
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:missing', meta: { label, targetType: typeof target, availableStates: { overState: !!window.overState, finishState: !!window.finishState } } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
         if (!target.init) {
-          debug(`${label}: init method not available`);
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-init', meta: { label } }) }).catch(()=>{});} catch(_) {}
+          const errorMsg = `${label}: init method not available (target type: ${typeof target})`;
+          debug(errorMsg);
+          console.warn(`[BaseMan] ${errorMsg}`);
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-init', meta: { label, targetType: typeof target } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
         if (target[flagKey]) {
           debug(`${label}: Already patched`);
           return true;
+        }
+        
+        // Validate hook function exists
+        if (!hook || typeof hook !== 'function') {
+          const errorMsg = `${label}: Hook function is not available (hook type: ${typeof hook})`;
+          debug(errorMsg);
+          console.error(`[BaseMan] ${errorMsg}`);
+          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-hook', meta: { label, hookType: typeof hook } }) }).catch(()=>{});} catch(_) {}
+          return false;
         }
         const original = target.init.bind(target);
         target.init = function patchedInit(...args) {
@@ -1696,19 +1733,64 @@
           // Handle async hooks properly
           if (isAsync) {
             // For async hooks, execute asynchronously and don't block original init
+            // BUT: Log immediately that we're starting the async hook
+            debug(`${label}: Starting async hook BEFORE original init...`);
+            console.log(`[BaseMan] ${label}: Starting async hook (submitScore)...`);
+            try { 
+              fetch('/api/app-log', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                  event: 'state:init:hook:start', 
+                  meta: { label, timestamp: new Date().toISOString(), stack: new Error().stack } 
+                }) 
+              }).catch(()=>{});
+            } catch(_) {}
+            
+            // Execute async hook in background
             (async () => {
               try {
-                debug(`${label}: Executing async hook BEFORE original init...`);
-                console.log(`[BaseMan] ${label}: Executing async hook...`);
+                debug(`${label}: Executing async hook (awaiting)...`);
+                console.log(`[BaseMan] ${label}: Executing async hook (awaiting)...`);
+                
+                // IMPORTANT: Actually call the hook function and await it
                 const hookResult = await hook?.apply(this, args);
-                debug(`${label}: async hook executed successfully, result:`, hookResult);
-                console.log(`[BaseMan] ${label}: async hook executed successfully`);
-                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+                
+                debug(`${label}: async hook completed successfully, result:`, hookResult);
+                console.log(`[BaseMan] ${label}: async hook completed successfully`);
+                try { 
+                  fetch('/api/app-log', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                      event: 'state:init:hook:success', 
+                      meta: { label, timestamp: new Date().toISOString(), result: hookResult ? 'success' : 'no-result' } 
+                    }) 
+                  }).catch(()=>{});
+                } catch(_) {}
               } catch (error) {
                 const errorMsg = error?.message || String(error);
-                debug(`${label} async hook error: ${errorMsg}`);
-                console.error(`[BaseMan] ${label} async hook error:`, error);
-                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
+                const errorStack = error?.stack || new Error().stack;
+                debug(`${label} async hook ERROR: ${errorMsg}`);
+                console.error(`[BaseMan] ${label} async hook ERROR:`, error);
+                console.error(`[BaseMan] ${label} async hook ERROR stack:`, errorStack);
+                try { 
+                  fetch('/api/app-log', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                      event: 'state:init:hook:error', 
+                      meta: { 
+                        label, 
+                        error: errorMsg, 
+                        stack: errorStack, 
+                        timestamp: new Date().toISOString(),
+                        errorName: error?.name || 'Error',
+                        errorCode: error?.code || null
+                      } 
+                    }) 
+                  }).catch(()=>{});
+                } catch(_) {}
                 // Show user-friendly error message for critical errors
                 if (label.includes('overState') || label.includes('finishState')) {
                   // Only show error if it's a wallet connection issue (not user rejection)
@@ -1759,6 +1841,41 @@
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:patched', meta: { label } }) }).catch(()=>{});} catch(_) {}
         return true;
       };
+
+      // CRITICAL: Check if states are available before patching
+      const stateCheck = {
+        newGameState: !!window.newGameState,
+        readyState: !!window.readyState,
+        readyNewState: !!window.readyNewState,
+        readyRestartState: !!window.readyRestartState,
+        overState: !!window.overState,
+        finishState: !!window.finishState
+      };
+      
+      debug(`patchStateHooks: State availability check:`, stateCheck);
+      console.log('[BaseMan] patchStateHooks: State availability:', stateCheck);
+      
+      if (!stateCheck.overState || !stateCheck.finishState) {
+        const missing = Object.entries(stateCheck).filter(([_, available]) => !available).map(([name]) => name);
+        debug(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
+        console.warn(`[BaseMan] patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
+        console.warn(`[BaseMan] window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
+        try { 
+          fetch('/api/app-log', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+              event: 'patchStateHooks:critical-missing-states', 
+              meta: { 
+                attempt: attempt + 1,
+                missing,
+                available: stateCheck,
+                windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('state'))
+              } 
+            }) 
+          }).catch(()=>{});
+        } catch(_) {}
+      }
 
       const results = {
         newGameState: patchInit(window.newGameState, "_patchedForOnchain", handleRunStart, "newGameState.init", false),
