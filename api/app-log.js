@@ -13,10 +13,50 @@ globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      const dump = Array.isArray(globalThis.__APP_LOGS) ? globalThis.__APP_LOGS.slice(-RING_SIZE) : [];
-      return res.status(200).json({ logs: dump });
+      let dump = Array.isArray(globalThis.__APP_LOGS) ? globalThis.__APP_LOGS.slice(-RING_SIZE) : [];
+      
+      // Filter by event type if provided
+      if (req.query.event) {
+        const eventFilter = String(req.query.event).trim();
+        dump = dump.filter(entry => entry.event === eventFilter);
+      }
+      
+      // Filter by address if provided (check meta.address or meta.stateAddress)
+      if (req.query.address) {
+        const addressFilter = String(req.query.address).trim().toLowerCase();
+        dump = dump.filter(entry => {
+          if (!entry.meta) return false;
+          const addr = entry.meta.address || entry.meta.stateAddress || entry.meta.from;
+          return addr && String(addr).toLowerCase() === addressFilter;
+        });
+      }
+      
+      // Filter by event pattern (contains)
+      if (req.query.contains) {
+        const containsFilter = String(req.query.contains).trim().toLowerCase();
+        dump = dump.filter(entry => {
+          const eventMatch = entry.event && entry.event.toLowerCase().includes(containsFilter);
+          const messageMatch = entry.message && entry.message.toLowerCase().includes(containsFilter);
+          return eventMatch || messageMatch;
+        });
+      }
+      
+      // Limit results
+      const limit = req.query.limit ? Math.min(parseInt(req.query.limit, 10) || 200, 500) : 200;
+      dump = dump.slice(-limit);
+      
+      return res.status(200).json({ 
+        logs: dump,
+        total: dump.length,
+        filters: {
+          event: req.query.event || null,
+          address: req.query.address || null,
+          contains: req.query.contains || null,
+          limit: limit
+        }
+      });
     } catch (err) {
-      return res.status(500).json({ error: 'dump failed' });
+      return res.status(500).json({ error: 'dump failed', details: err?.message || String(err) });
     }
   }
   if (req.method !== 'POST') {

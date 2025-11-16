@@ -1282,6 +1282,7 @@
                 code: errorCode,
                 version: payload.version,
                 chainId: hexChainId,
+                address: state.address || null, // Add address for filtering
                 payload: payload
               } 
             }) 
@@ -1323,7 +1324,8 @@
               url: window.location.href,
               isMiniApp: isMiniAppEnv(),
               hasSDK: !!(sdk && sdk.wallet),
-              stateAddress: state.address || null
+              address: state.address || null, // Use 'address' for consistent filtering
+              stateAddress: state.address || null // Keep for backward compatibility
             } 
           }) 
         }).catch(()=>{});
@@ -1623,7 +1625,8 @@
               meta: { 
                 error: errorMsg,
                 score: score?.toString() || 'unknown',
-                address: state.address || 'unknown',
+                address: state.address || null, // Use null instead of 'unknown' for filtering
+                stateAddress: state.address || null, // Keep for backward compatibility
                 stack: error?.stack || null
               } 
             }) 

@@ -125,6 +125,7 @@
               <div class="settings-debug-logs-header">
                 <span>Recent Logs</span>
                 <div class="settings-debug-logs-header-actions">
+                  <input type="text" class="settings-debug-logs-filter" data-debug-logs-filter placeholder="Filter by address or event..." style="flex: 1; padding: 4px 8px; margin-right: 8px; font-size: 0.75rem; border: 1px solid var(--color-border, #ccc); border-radius: 4px;" />
                   <button type="button" class="settings-debug-logs-copy" data-debug-logs-copy title="Copy all logs to clipboard">📋 Copy</button>
                   <button type="button" class="settings-debug-logs-close" data-debug-logs-close>×</button>
                 </div>
@@ -778,6 +779,28 @@
       debugLogsCloseBtn.addEventListener('click', handleCloseLogs, { passive: false });
       debugLogsCloseBtn.addEventListener('touchend', handleCloseLogs, { passive: false });
     }
+
+    // Debug Logs filter input
+    const debugLogsFilter = panel.querySelector('[data-debug-logs-filter]');
+    if (debugLogsFilter && !wiredElements.has(debugLogsFilter)) {
+      wiredElements.add(debugLogsFilter);
+      let filterTimeout = null;
+      const handleFilterChange = () => {
+        // Debounce filter input
+        if (filterTimeout) {
+          clearTimeout(filterTimeout);
+        }
+        filterTimeout = setTimeout(() => {
+          const filterValue = debugLogsFilter.value.trim();
+          const content = panel.querySelector('[data-debug-logs-content]');
+          if (content) {
+            loadDebugLogs(content, filterValue);
+          }
+        }, 300);
+      };
+      debugLogsFilter.addEventListener('input', handleFilterChange, { passive: true });
+      debugLogsFilter.addEventListener('keyup', handleFilterChange, { passive: true });
+    }
   }
 
   function showDebugLogs(panel) {
@@ -795,20 +818,44 @@
     container.style.display = 'none';
   }
 
-  async function loadDebugLogs(contentEl) {
+  async function loadDebugLogs(contentEl, filter = '') {
     if (!contentEl) return;
 
     // Show loading state
     contentEl.innerHTML = '<div class="settings-debug-logs-empty">Loading logs...</div>';
 
     try {
-      // Try to get logs from API endpoint
-      const response = await fetch('/api/app-log');
+      // Build query string with filters
+      const params = new URLSearchParams();
+      if (filter) {
+        // Try to detect if filter is an address (starts with 0x and is 42 chars)
+        if (filter.startsWith('0x') && filter.length === 42) {
+          params.set('address', filter);
+        } else if (filter.includes(':')) {
+          // If contains colon, might be event:value format
+          const parts = filter.split(':');
+          if (parts.length === 2) {
+            params.set('event', parts[0].trim());
+            if (parts[1].trim()) {
+              params.set('contains', parts[1].trim());
+            }
+          } else {
+            params.set('contains', filter);
+          }
+        } else {
+          // Default: search in event or message
+          params.set('contains', filter);
+        }
+      }
+      
+      // Try to get logs from API endpoint with filters
+      const apiUrl = '/api/app-log' + (params.toString() ? '?' + params.toString() : '');
+      const response = await fetch(apiUrl);
       if (response.ok) {
         const data = await response.json();
         const logs = data.logs || [];
-        console.log('[settings-panel] Loaded logs from API:', logs.length);
-        renderDebugLogs(contentEl, logs);
+        console.log('[settings-panel] Loaded logs from API:', logs.length, filter ? `(filtered by: ${filter})` : '');
+        renderDebugLogs(contentEl, logs, filter);
         return;
       } else {
         console.warn('[settings-panel] API endpoint returned error:', response.status, response.statusText);
@@ -840,11 +887,11 @@
     contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Make sure you have played a game and check the console for errors.</div>';
   }
 
-  function renderDebugLogs(contentEl, logs) {
+  function renderDebugLogs(contentEl, logs, filter = '') {
     if (!contentEl) return;
 
     if (!logs || logs.length === 0) {
-      contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available</div>';
+      contentEl.innerHTML = `<div class="settings-debug-logs-empty">No logs available${filter ? ` matching "${filter}"` : ''}</div>`;
       return;
     }
 
