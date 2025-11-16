@@ -6,7 +6,6 @@
   const topListEl = panel.querySelector("[data-list-top]");
   const restListEl = panel.querySelector("[data-list-rest]");
   const scrollWrapper = panel.querySelector("[data-scroll-wrapper]");
-  const refreshBtn = panel.querySelector("[data-refresh]");
   const limit = Number(panel.dataset.limit || "10");
 
   let loading = false;
@@ -225,7 +224,7 @@
   };
 
   const renderError = (message) => {
-    statusEl.textContent = message;
+    statusEl.textContent = "";
     if (topListEl) {
       topListEl.innerHTML = "";
     }
@@ -241,7 +240,7 @@
     if (loading) return;
     if (!visible) return;
     loading = true;
-    statusEl.textContent = "Updating leaderboard…";
+    statusEl.textContent = "";
 
     try {
       // Determine chain ID for leaderboard:
@@ -281,15 +280,7 @@
       const rendered = renderRows(Array.isArray(payload.items) ? payload.items : []);
 
       if (rendered) {
-        const total = rendered.total ?? payload.items?.length ?? 0;
-        const pinned = rendered.pinned ?? Math.min(total, 5);
-        const scrollable = rendered.scrollable ?? Math.max(0, total - pinned);
-        const updateText =
-          (payload?.updatedAt && (formatRelativeTime(payload.updatedAt) || formatTimestamp(payload.updatedAt))) ||
-          "-";
-        statusEl.textContent = `Total: ${total} • Top ${pinned} pinned${
-          scrollable ? ` • ${scrollable} scrollable` : ""
-        } • Updated: ${updateText}`;
+        statusEl.textContent = "";
       }
     } catch (error) {
       console.error("[leaderboard-panel] load failed", error);
@@ -310,7 +301,15 @@
   const startPolling = () => {
     stopPolling();
     if (!visible) return;
-    timerId = window.setInterval(loadLeaderboard, 30000);
+    // Auto-refresh every 15 seconds in background (non-blocking)
+    timerId = window.setInterval(() => {
+      if (visible && document.visibilityState === 'visible') {
+        // Only update if panel is visible and page is active
+        requestAnimationFrame(() => {
+          loadLeaderboard();
+        });
+      }
+    }, 15000);
   };
 
   const stopPolling = () => {
@@ -377,15 +376,6 @@
     } else {
       panel.setAttribute('hidden', '');
       panel.classList.remove('open');
-    }
-
-    if (refreshBtn) {
-      refreshBtn.addEventListener("click", () => {
-        if (!visible) {
-          setVisible(true);
-        }
-        loadLeaderboard();
-      });
     }
 
     // Close button event listener

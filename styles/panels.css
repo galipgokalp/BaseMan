@@ -144,7 +144,29 @@
 }
 
 /* Panel Headers - Fixed (synchronized across all panels) */
-.leaderboard-header,
+.leaderboard-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 32, 0.98) 0%, 
+    rgba(10, 10, 15, 0.99) 100%);
+  backdrop-filter: blur(16px) saturate(180%);
+  z-index: 10;
+  padding-top: var(--spacing-sm);
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+}
+
 .wallet-header,
 .profile-header,
 .settings-header {
@@ -170,7 +192,19 @@
   margin-bottom: var(--spacing-md);
 }
 
-.leaderboard-title,
+.leaderboard-title {
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .wallet-title,
 .profile-title,
 .settings-title {
@@ -295,15 +329,18 @@
   background: linear-gradient(135deg, var(--color-primary-glow) 0%, var(--color-secondary) 100%);
 }
 
-/* Leaderboard close button - synchronized with other panels (in header) */
+/* Leaderboard close button - positioned at top right corner */
 .leaderboard-close {
+  position: absolute;
+  top: calc(var(--spacing-sm) + env(safe-area-inset-top, 0px));
+  right: calc(var(--spacing-sm) + env(safe-area-inset-right, 0px));
   background: transparent;
   color: var(--color-text-primary);
   border: none;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -312,6 +349,7 @@
   min-height: 44px;
   min-width: 44px;
   touch-action: manipulation;
+  z-index: 10002;
 }
 
 .leaderboard-close:hover {
@@ -976,7 +1014,10 @@
   }
   
   /* Scale down titles for mobile - all panels */
-  .leaderboard-title,
+  .leaderboard-title {
+    font-size: 1rem;
+  }
+  
   .wallet-title,
   .profile-title,
   .settings-title,
@@ -984,20 +1025,17 @@
     font-size: 0.7rem;
   }
   
-  /* Scale down refresh button for mobile (leaderboard only) */
-  .leaderboard-refresh {
-    padding: 6px;
-    min-height: 36px;
-    min-width: 36px;
-  }
-  
-  .leaderboard-refresh svg {
-    width: 16px;
-    height: 16px;
-  }
-  
   /* Scale down close buttons for mobile - all panels */
-  .leaderboard-close,
+  .leaderboard-close {
+    font-size: 1.1rem;
+    width: 32px;
+    height: 32px;
+    min-height: 40px;
+    min-width: 40px;
+    top: calc(var(--spacing-xs) + env(safe-area-inset-top, 0px));
+    right: calc(var(--spacing-xs) + env(safe-area-inset-right, 0px));
+  }
+  
   .wallet-close,
   .profile-close,
   .settings-close {
