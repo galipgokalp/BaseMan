@@ -1486,24 +1486,72 @@
             return false;
           }
         })();
-        const isMiniApp = isMiniAppEnv() || hasSDK || isBaseAppSpecific;
+        const isFarcasterSpecific = (() => {
+          try {
+            if (typeof window !== 'undefined' && typeof window.isFarcasterMiniApp === 'function') {
+              return window.isFarcasterMiniApp();
+            }
+            return Boolean(window.fc || (window.farcaster && window.farcaster.miniapp));
+          } catch (_) {
+            return false;
+          }
+        })();
+        const isMiniApp = isMiniAppEnv() || hasSDK || isBaseAppSpecific || isFarcasterSpecific;
         
         if (isMiniApp) {
           if (hasSDK && !isMiniAppEnv()) {
             debug("submitScore: SDK detected but isMiniAppEnv() returned false - using SDK anyway");
           }
           if (isBaseAppSpecific) {
-            debug("submitScore: Base App detected - using wallet_sendCalls without paymaster");
+            debug("submitScore: Base App detected - attempting wallet_sendCalls first, will fallback to eth_sendTransaction if unsupported");
           }
-          debug("submitScore: Mini-app environment detected - using wallet_sendCalls without paymaster");
+          if (isFarcasterSpecific) {
+            debug("submitScore: Farcaster detected - using wallet_sendCalls without paymaster");
+          }
+          debug("submitScore: Mini-app environment detected - attempting wallet_sendCalls without paymaster");
           try {
             if (!state.provider || typeof state.provider.request !== "function") {
               debug('submitScore: No provider available for wallet_sendCalls');
               throw new Error("No provider available");
             }
             
-            // Send transaction without paymaster (user pays gas)
-            const result = await sendCalls(callData, null); // null = no paymaster
+            // Try wallet_sendCalls first (EIP-5792)
+            let result = null;
+            try {
+              debug("submitScore: Attempting wallet_sendCalls (EIP-5792)...");
+              result = await sendCalls(callData, null); // null = no paymaster
+            } catch (sendCallsError) {
+              const sendCallsErrorMsg = sendCallsError?.message || String(sendCallsError);
+              const sendCallsErrorCode = sendCallsError?.code || sendCallsError?.error?.code || null;
+              
+              // Check if error is "unsupported method" - Base App may not support wallet_sendCalls
+              if (sendCallsErrorCode === 4200 || sendCallsErrorMsg.includes('UnsupportedMethodError') || sendCallsErrorMsg.includes('does not support the requested method')) {
+                debug(`submitScore: wallet_sendCalls not supported (code: ${sendCallsErrorCode}), falling back to eth_sendTransaction`);
+                console.warn(`[BaseMan] submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
+                
+                // Fallback to eth_sendTransaction for Base App
+                if (isBaseAppSpecific || !isFarcasterSpecific) {
+                  try {
+                    debug("submitScore: Using eth_sendTransaction fallback for Base App");
+                    result = await sendEthTransaction(callData);
+                    if (result) {
+                      debug(`submitScore: eth_sendTransaction success: ${JSON.stringify(result)}`);
+                      console.log(`[BaseMan] Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
+                    }
+                  } catch (ethTxError) {
+                    const ethTxErrorMsg = ethTxError?.message || String(ethTxError);
+                    debug(`submitScore: eth_sendTransaction also failed: ${ethTxErrorMsg}`);
+                    throw new Error(`Both wallet_sendCalls and eth_sendTransaction failed: ${ethTxErrorMsg}`);
+                  }
+                } else {
+                  // For Farcaster, re-throw the original error
+                  throw sendCallsError;
+                }
+              } else {
+                // For other errors, re-throw
+                throw sendCallsError;
+              }
+            }
             if (result) {
               let identifier = null;
               if (typeof result === "string") {
