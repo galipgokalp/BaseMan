@@ -314,19 +314,27 @@
         const network = await provider.getNetwork();
         const balance = await provider.getBalance(address);
 
-        diagnosticResults.walletTest = { success: true, address, chainId: Number(network.chainId) };
+        // Convert BigInt chainId to number for comparison
+        const chainIdNumber = Number(network.chainId);
+        const chainIdString = network.chainId.toString();
+
+        diagnosticResults.walletTest = { success: true, address, chainId: chainIdNumber };
 
         resultDiv.innerHTML = '<div class="status success">✅ Wallet connected successfully!</div>';
         const details = document.createElement('div');
         details.style.marginTop = '10px';
         addKeyValue(details, 'Address', `<span class="address">${address}</span>`);
-        addKeyValue(details, 'Chain ID', network.chainId.toString(), Number(network.chainId) === CONFIG.chainId ? '' : 'warning');
+
+        // Check if chain ID matches (handle both BigInt and Number comparison)
+        const chainIdMatches = chainIdString === CONFIG.chainId.toString() || chainIdNumber === CONFIG.chainId;
+
+        addKeyValue(details, 'Chain ID', chainIdString, chainIdMatches ? '' : 'warning');
         addKeyValue(details, 'Balance', `${ethers.formatEther(balance)} ETH`);
 
-        if (Number(network.chainId) !== CONFIG.chainId) {
+        if (!chainIdMatches) {
           const warning = document.createElement('div');
           warning.className = 'status warning';
-          warning.innerHTML = `⚠️ Wrong network! Please switch to Base Mainnet (Chain ID: ${CONFIG.chainId})`;
+          warning.innerHTML = `⚠️ Wrong network! Connected to Chain ID: ${chainIdString}, Expected: ${CONFIG.chainId} (Base Mainnet)`;
           details.appendChild(warning);
         }
 
