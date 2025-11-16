@@ -522,32 +522,53 @@
                   throw new Error('No accounts returned from eth_requestAccounts');
                 }
               } catch (reqErr) {
-                // Handle different error formats
+                // Handle different error formats SAFELY
                 let errMsg = '';
-                if (reqErr && typeof reqErr === 'object') {
-                  errMsg = reqErr.message || 
-                           (reqErr.error && typeof reqErr.error === 'object' ? reqErr.error.message : null) ||
-                           (reqErr.error && typeof reqErr.error !== 'object' ? String(reqErr.error) : null) ||
-                           (reqErr.code ? `Error ${reqErr.code}` : null) ||
-                           String(reqErr);
-                } else {
-                  errMsg = String(reqErr);
+                try {
+                  if (reqErr && typeof reqErr === 'object') {
+                    // Try message first
+                    if (reqErr.message) {
+                      errMsg = String(reqErr.message);
+                    } 
+                    // Try error object safely
+                    else if (reqErr.error) {
+                      if (typeof reqErr.error === 'object') {
+                        errMsg = reqErr.error.message || String(reqErr.error);
+                      } else {
+                        errMsg = String(reqErr.error);
+                      }
+                    }
+                    // Try code
+                    else if (reqErr.code !== undefined) {
+                      errMsg = `Error ${reqErr.code}`;
+                    }
+                    // Fallback to string conversion
+                    else {
+                      errMsg = String(reqErr);
+                    }
+                  } else {
+                    errMsg = String(reqErr);
+                  }
+                } catch (parseError) {
+                  // If parsing fails, use a safe fallback
+                  errMsg = `Wallet connection error: ${String(reqErr)}`;
+                  debug(`Error parsing reqErr: ${parseError?.message || parseError}`);
                 }
                 
                 debug(`eth_requestAccounts error during transaction: ${errMsg}`);
-                console.error(`[BaseMan] Wallet connection failed: ${errMsg}`);
+                console.error(`[BaseMan] Wallet connection failed: ${errMsg}`, reqErr);
                 
                 // User might have rejected the request - this is OK, don't throw error
-                if (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User rejected') || errMsg.includes('User cancelled')) {
+                if (errMsg && (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User rejected') || errMsg.includes('User cancelled'))) {
                   throw new Error('User rejected wallet connection');
                 }
                 
                 // For other errors, provide more context
-                if (errMsg.includes('timeout')) {
+                if (errMsg && errMsg.includes('timeout')) {
                   throw new Error('Wallet connection timed out. Please try again.');
                 }
                 
-                throw new Error(`Failed to connect wallet: ${errMsg}`);
+                throw new Error(`Failed to connect wallet: ${errMsg || 'Unknown error'}`);
               }
             } else {
               // Not requesting accounts (e.g., panel opened) - return state without address
@@ -574,32 +595,52 @@
                 debug(`Account access granted: ${address}`);
               }
             } catch (reqErr) {
-              // Handle different error formats
+              // Handle different error formats SAFELY
               let errMsg = '';
-              if (reqErr && typeof reqErr === 'object') {
-                // Safely extract error message from various formats
-                errMsg = reqErr.message || 
-                         (reqErr.error && typeof reqErr.error === 'object' ? reqErr.error.message : null) ||
-                         (reqErr.error && typeof reqErr.error !== 'object' ? String(reqErr.error) : null) ||
-                         (reqErr.code ? `Error ${reqErr.code}` : null) ||
-                         String(reqErr);
-              } else {
-                errMsg = String(reqErr);
+              try {
+                if (reqErr && typeof reqErr === 'object') {
+                  // Try message first
+                  if (reqErr.message) {
+                    errMsg = String(reqErr.message);
+                  } 
+                  // Try error object safely
+                  else if (reqErr.error) {
+                    if (typeof reqErr.error === 'object') {
+                      errMsg = reqErr.error.message || String(reqErr.error);
+                    } else {
+                      errMsg = String(reqErr.error);
+                    }
+                  }
+                  // Try code
+                  else if (reqErr.code !== undefined) {
+                    errMsg = `Error ${reqErr.code}`;
+                  }
+                  // Fallback to string conversion
+                  else {
+                    errMsg = String(reqErr);
+                  }
+                } else {
+                  errMsg = String(reqErr);
+                }
+              } catch (parseError) {
+                // If parsing fails, use a safe fallback
+                errMsg = `Wallet connection error: ${String(reqErr)}`;
+                debug(`Error parsing reqErr (web mode): ${parseError?.message || parseError}`);
               }
               
               debug(`eth_requestAccounts error: ${errMsg}`);
               
               // User might have rejected the request
-              if (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User')) {
+              if (errMsg && (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User rejected') || errMsg.includes('User cancelled'))) {
                 throw new Error('User rejected wallet connection');
               }
               
               // Web mode detection - if not in mini app, provide helpful message
-              if (!isMiniAppEnv() && (errMsg.includes('Cannot read properties of undefined') || errMsg.includes('undefined'))) {
+              if (!isMiniAppEnv() && errMsg && (errMsg.includes('Cannot read properties of undefined') || errMsg.includes('undefined'))) {
                 throw new Error('Wallet not available in web mode. Please use Farcaster or Base App mobile app.');
               }
               
-              throw new Error(`Failed to request accounts: ${errMsg}`);
+              throw new Error(`Failed to request accounts: ${errMsg || 'Unknown error'}`);
             }
           }
           
