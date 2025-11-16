@@ -1970,19 +1970,27 @@
       }
 
       const results = {
-        newGameState: patchInit(window.newGameState, "_patchedForOnchain", handleRunStart, "newGameState.init", false),
+        newGameState: patchInit(window.newGameState, "_patchedForOnchainNewGame", handleRunStart, "newGameState.init", false),
         readyState: patchInit(window.readyState, "_patchedForOnchainReady", ensureRunStart, "readyState.init", false),
         readyNewState: patchInit(window.readyNewState, "_patchedForOnchainReadyNew", ensureRunStart, "readyNewState.init", false),
         readyRestartState: patchInit(window.readyRestartState, "_patchedForOnchainReadyRestart", ensureRunStart, "readyRestartState.init", false),
-        overState: patchInit(window.overState, "_patchedForOnchain", submitScore, "overState.init", true), // async hook
+        overState: patchInit(window.overState, "_patchedForOnchainOver", submitScore, "overState.init", true), // async hook - UNIQUE FLAG KEY
         finishState: patchInit(window.finishState, "_patchedForOnchainFinish", submitScore, "finishState.init", true), // async hook
       };
 
       const allPatched = Object.values(results).every(r => r === true);
-      
+
+      // Log which states were successfully patched for debugging
+      const patchedStates = Object.entries(results).filter(([_, patched]) => patched).map(([name]) => name);
+      const failedStates = Object.entries(results).filter(([_, patched]) => !patched).map(([name]) => name);
+
+      debug(`patchStateHooks: Results - Patched: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
+      console.log(`[BaseMan] patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
+
       if (allPatched) {
-        debug('patchStateHooks: All states patched successfully');
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:success', meta: { attempt: attempt + 1 } }) }).catch(()=>{});} catch(_) {}
+        debug('patchStateHooks: All states patched successfully (including overState and finishState for score submission)');
+        console.log('[BaseMan] patchStateHooks: ✅ All states patched successfully - score submission hooks active');
+        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:success', meta: { attempt: attempt + 1, patchedStates } }) }).catch(()=>{});} catch(_) {}
       } else {
         const missing = Object.entries(results).filter(([_, patched]) => !patched).map(([name, _]) => name);
         debug(`patchStateHooks: Some states not patched yet: ${missing.join(', ')}`);
