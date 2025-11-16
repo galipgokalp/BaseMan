@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BaseMan - Production Debug</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      color: #00ff00;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 {
+      color: #ffff00;
+      border-bottom: 2px solid #ffff00;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    h2 {
+      color: #00ffff;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    .section {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .status { padding: 10px; margin: 10px 0; border-radius: 3px; }
+    .status.success { background: #003300; border-left: 4px solid #00ff00; }
+    .status.error { background: #330000; border-left: 4px solid #ff0000; color: #ff6666; }
+    .status.warning { background: #332200; border-left: 4px solid #ffaa00; color: #ffcc66; }
+    .status.loading { background: #002233; border-left: 4px solid #0088ff; color: #66ccff; }
+
+    .key-value {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 10px;
+      margin: 5px 0;
+      padding: 5px;
+    }
+    .key { color: #ffff00; }
+    .value { color: #00ff00; word-break: break-all; }
+    .value.error { color: #ff6666; }
+    .value.warning { color: #ffcc66; }
+
+    button {
+      background: #003300;
+      color: #00ff00;
+      border: 2px solid #00ff00;
+      padding: 10px 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 1em;
+      cursor: pointer;
+      border-radius: 3px;
+      margin: 10px 5px 10px 0;
+    }
+    button:hover { background: #004400; }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    pre {
+      background: #000;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+      color: #00ff00;
+      border: 1px solid #333;
+    }
+
+    .icon { margin-right: 8px; }
+    .address {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    a { color: #00aaff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 BaseMan Production Debug</h1>
+
+    <div class="section">
+      <div class="status loading" id="status">
+        <span class="icon">⏳</span>
+        <span>Initializing diagnostic checks...</span>
+      </div>
+    </div>
+
+    <h2>1️⃣ Environment Configuration</h2>
+    <div class="section" id="env-config">
+      <div class="status loading">Loading environment variables...</div>
+    </div>
+
+    <h2>2️⃣ Smart Contract Status</h2>
+    <div class="section" id="contract-status">
+      <div class="status loading">Checking contract on Base Mainnet...</div>
+    </div>
+
+    <h2>3️⃣ Backend API Test</h2>
+    <div class="section" id="api-test">
+      <button onclick="testScoreSignAPI()" id="test-api-btn">Test /api/score-sign</button>
+      <div id="api-result"></div>
+    </div>
+
+    <h2>4️⃣ Wallet Connection Test</h2>
+    <div class="section" id="wallet-test">
+      <button onclick="testWalletConnection()" id="test-wallet-btn">Test Wallet Connection</button>
+      <div id="wallet-result"></div>
+    </div>
+
+    <h2>5️⃣ Diagnostic Summary</h2>
+    <div class="section" id="summary">
+      <div class="status loading">Running checks...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@6.15.0/+esm';
+    window.ethers = ethers;
+
+    // Configuration
+    const CONFIG = {
+      registryAddress: '0x2fd9492E5f0F9559152bB5d4d23843072bCF17E2',
+      chainId: 8453,
+      rpcUrl: 'https://mainnet.base.org',
+      scoreSignEndpoint: '/api/score-sign',
+      debugEnvEndpoint: '/api/debug-env'
+    };
+
+    const CONTRACT_ABI = [
+      "function authorizer() view returns (address)",
+      "function paused() view returns (bool)",
+      "function eip712Version() view returns (string)",
+      "function getScore(address player) view returns (tuple(uint256 highScore, uint256 totalScore, uint256 lastUpdatedAt))"
+    ];
+
+    let diagnosticResults = {
+      envConfig: null,
+      contractCheck: null,
+      apiTest: null,
+      walletTest: null
+    };
+
+    // Utility functions
+    function showStatus(elementId, type, message) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = `<div class="status ${type}"><span class="icon">${getIcon(type)}</span>${message}</div>`;
+    }
+
+    function getIcon(type) {
+      const icons = { success: '✅', error: '❌', warning: '⚠️', loading: '⏳', info: 'ℹ️' };
+      return icons[type] || 'ℹ️';
+    }
+
+    function addKeyValue(container, key, value, valueClass = '') {
+      const div = document.createElement('div');
+      div.className = 'key-value';
+      div.innerHTML = `
+        <div class="key">${key}:</div>
+        <div class="value ${valueClass}">${value}</div>
+      `;
+      container.appendChild(div);
+    }
+
+    // 1. Check environment configuration
+    async function checkEnvironment() {
+      const container = document.getElementById('env-config');
+      container.innerHTML = '';
+
+      try {
+        const response = await fetch(CONFIG.debugEnvEndpoint);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const result = await response.json();
+        const data = result.normalized || result.env || result;
+        diagnosticResults.envConfig = data;
+
+        addKeyValue(container, 'Registry Address', data.registryAddress || '❌ NOT SET', data.registryAddress ? '' : 'error');
+        addKeyValue(container, 'Chain ID', data.chainId || '❌ NOT SET', data.chainId === '8453' ? '' : 'warning');
+        addKeyValue(container, 'EIP-712 Version', data.eip712Version || '❌ NOT SET', data.eip712Version === '2' ? '' : 'warning');
+        addKeyValue(container, 'Default Target', data.defaultTarget || '❌ NOT SET', data.defaultTarget === 'base' ? '' : 'warning');
+
+        const registryMatch = data.registryAddress?.toLowerCase() === CONFIG.registryAddress.toLowerCase();
+        if (!registryMatch && data.registryAddress) {
+          const warning = document.createElement('div');
+          warning.className = 'status warning';
+          warning.innerHTML = `⚠️ Registry address mismatch! Expected: ${CONFIG.registryAddress}, Got: ${data.registryAddress}`;
+          container.appendChild(warning);
+        }
+      } catch (error) {
+        container.innerHTML = `<div class="status error">❌ Failed to load environment: ${error.message}</div>`;
+        diagnosticResults.envConfig = { error: error.message };
+      }
+    }
+
+    // 2. Check contract status
+    async function checkContract() {
+      const container = document.getElementById('contract-status');
+      container.innerHTML = '<div class="status loading">⏳ Connecting to Base Mainnet RPC...</div>';
+
+      try {
+        const provider = new ethers.JsonRpcProvider(CONFIG.rpcUrl);
+        const contract = new ethers.Contract(CONFIG.registryAddress, CONTRACT_ABI, provider);
+
+        container.innerHTML = '';
+
+        // Get contract data
+        const [authorizer, paused, version] = await Promise.all([
+          contract.authorizer(),
+          contract.paused(),
+          contract.eip712Version()
+        ]);
+
+        diagnosticResults.contractCheck = { authorizer, paused, version };
+
+        addKeyValue(container, 'Contract Address', `<a href="https://basescan.org/address/${CONFIG.registryAddress}" target="_blank" class="address">${CONFIG.registryAddress}</a>`);
+        addKeyValue(container, 'Authorizer Address', `<span class="address">${authorizer}</span>`);
+        addKeyValue(container, 'Paused', paused ? '🔴 YES (CRITICAL!)' : '✅ No', paused ? 'error' : '');
+        addKeyValue(container, 'EIP-712 Version', version);
+
+        if (paused) {
+          const warning = document.createElement('div');
+          warning.className = 'status error';
+          warning.innerHTML = '❌ CONTRACT IS PAUSED! Score submissions will fail. Contact contract owner to unpause.';
+          container.appendChild(warning);
+        }
+      } catch (error) {
+        container.innerHTML = `<div class="status error">❌ Failed to read contract: ${error.message}</div>`;
+        diagnosticResults.contractCheck = { error: error.message };
+      }
+    }
+
+    // 3. Test score-sign API
+    window.testScoreSignAPI = async function() {
+      const resultDiv = document.getElementById('api-result');
+      const btn = document.getElementById('test-api-btn');
+
+      btn.disabled = true;
+      resultDiv.innerHTML = '<div class="status loading">⏳ Testing /api/score-sign endpoint...</div>';
+
+      try {
+        const testAddress = '0x0000000000000000000000000000000000000001';
+        const response = await fetch(CONFIG.scoreSignEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerAddress: testAddress,
+            score: '1000',
+            durationMs: 60000,
+            level: 1,
+            chain: 'base'
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        diagnosticResults.apiTest = { success: true, data };
+
+        resultDiv.innerHTML = '<div class="status success">✅ API is working correctly!</div>';
+        const details = document.createElement('div');
+        details.style.marginTop = '10px';
+        addKeyValue(details, 'Signature', data.signature ? `${data.signature.substring(0, 20)}...` : '❌ Missing');
+        addKeyValue(details, 'Deadline', data.deadline || '❌ Missing');
+        addKeyValue(details, 'Nonce', data.nonce || 'N/A (V1)');
+        addKeyValue(details, 'Chain ID', data.chainId || '❌ Missing');
+        resultDiv.appendChild(details);
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="status error">❌ API Test Failed: ${error.message}</div>`;
+        diagnosticResults.apiTest = { success: false, error: error.message };
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    // 4. Test wallet connection
+    window.testWalletConnection = async function() {
+      const resultDiv = document.getElementById('wallet-result');
+      const btn = document.getElementById('test-wallet-btn');
+
+      btn.disabled = true;
+      resultDiv.innerHTML = '<div class="status loading">⏳ Connecting to wallet...</div>';
+
+      try {
+        if (!window.ethereum) {
+          throw new Error('No wallet detected. Please use a Web3-enabled browser or app.');
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.send('eth_requestAccounts', []);
+
+        if (!accounts || accounts.length === 0) {
+          throw new Error('No accounts returned from wallet');
+        }
+
+        const address = accounts[0];
+        const network = await provider.getNetwork();
+        const balance = await provider.getBalance(address);
+
+        diagnosticResults.walletTest = { success: true, address, chainId: Number(network.chainId) };
+
+        resultDiv.innerHTML = '<div class="status success">✅ Wallet connected successfully!</div>';
+        const details = document.createElement('div');
+        details.style.marginTop = '10px';
+        addKeyValue(details, 'Address', `<span class="address">${address}</span>`);
+        addKeyValue(details, 'Chain ID', network.chainId.toString(), Number(network.chainId) === CONFIG.chainId ? '' : 'warning');
+        addKeyValue(details, 'Balance', `${ethers.formatEther(balance)} ETH`);
+
+        if (Number(network.chainId) !== CONFIG.chainId) {
+          const warning = document.createElement('div');
+          warning.className = 'status warning';
+          warning.innerHTML = `⚠️ Wrong network! Please switch to Base Mainnet (Chain ID: ${CONFIG.chainId})`;
+          details.appendChild(warning);
+        }
+
+        resultDiv.appendChild(details);
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="status error">❌ Wallet Test Failed: ${error.message}</div>`;
+        diagnosticResults.walletTest = { success: false, error: error.message };
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    // Generate summary
+    function generateSummary() {
+      const container = document.getElementById('summary');
+      container.innerHTML = '';
+
+      const issues = [];
+      const warnings = [];
+
+      // Check contract paused
+      if (diagnosticResults.contractCheck?.paused === true) {
+        issues.push('Contract is PAUSED - score submissions will fail');
+      }
+
+      // Check if contract has error
+      if (diagnosticResults.contractCheck?.error) {
+        issues.push(`Cannot read contract: ${diagnosticResults.contractCheck.error}`);
+      }
+
+      // Check API test
+      if (diagnosticResults.apiTest?.success === false) {
+        issues.push(`API test failed: ${diagnosticResults.apiTest.error}`);
+      }
+
+      // Check env config
+      if (!diagnosticResults.envConfig?.registryAddress) {
+        issues.push('Registry address not configured in environment variables');
+      }
+
+      if (diagnosticResults.envConfig?.chainId !== '8453') {
+        warnings.push(`Chain ID is ${diagnosticResults.envConfig?.chainId || 'not set'}, expected 8453 (Base Mainnet)`);
+      }
+
+      if (diagnosticResults.envConfig?.eip712Version !== '2') {
+        warnings.push(`EIP-712 version is ${diagnosticResults.envConfig?.eip712Version || 'not set'}, expected 2`);
+      }
+
+      // Display results
+      if (issues.length === 0 && warnings.length === 0) {
+        container.innerHTML = '<div class="status success">✅ All checks passed! Configuration looks good.</div>';
+      } else {
+        if (issues.length > 0) {
+          const issuesDiv = document.createElement('div');
+          issuesDiv.className = 'status error';
+          issuesDiv.innerHTML = '<strong>❌ Critical Issues:</strong><ul>' +
+            issues.map(i => `<li>${i}</li>`).join('') + '</ul>';
+          container.appendChild(issuesDiv);
+        }
+
+        if (warnings.length > 0) {
+          const warningsDiv = document.createElement('div');
+          warningsDiv.className = 'status warning';
+          warningsDiv.innerHTML = '<strong>⚠️ Warnings:</strong><ul>' +
+            warnings.map(w => `<li>${w}</li>`).join('') + '</ul>';
+          container.appendChild(warningsDiv);
+        }
+      }
+
+      // Show next steps
+      const nextSteps = document.createElement('div');
+      nextSteps.style.marginTop = '20px';
+      nextSteps.innerHTML = `
+        <h3 style="color: #00ffff; margin-bottom: 10px;">📌 Next Steps:</h3>
+        <ol style="margin-left: 20px; color: #ffff00;">
+          <li>Share this page with other users who are experiencing issues</li>
+          <li>Check Vercel Function Logs for errors: <a href="https://vercel.com" target="_blank">Vercel Dashboard</a></li>
+          <li>Check BaseScan for failed transactions: <a href="https://basescan.org/address/${CONFIG.registryAddress}" target="_blank">View on BaseScan</a></li>
+          <li>Ask users to check their browser console (F12) when submitting scores</li>
+        </ol>
+      `;
+      container.appendChild(nextSteps);
+
+      // Update main status
+      if (issues.length > 0) {
+        showStatus('status', 'error', `Diagnostic complete - ${issues.length} critical issue(s) found`);
+      } else if (warnings.length > 0) {
+        showStatus('status', 'warning', `Diagnostic complete - ${warnings.length} warning(s) found`);
+      } else {
+        showStatus('status', 'success', 'Diagnostic complete - All systems operational');
+      }
+    }
+
+    // Run diagnostics on load
+    async function runDiagnostics() {
+      showStatus('status', 'loading', 'Running diagnostic checks...');
+
+      await checkEnvironment();
+      await checkContract();
+
+      // Auto-test API after a short delay
+      setTimeout(() => {
+        testScoreSignAPI();
+      }, 1000);
+
+      // Generate summary after all checks
+      setTimeout(() => {
+        generateSummary();
+      }, 2000);
+    }
+
+    // Start diagnostics
+    runDiagnostics();
+  </script>
+</body>
+</html>
