@@ -288,9 +288,18 @@
     ];
     
     gameSoundTracks.forEach(function(trackName) {
-      if (window.audio[trackName] && !window.audio[trackName]._wrapped) {
-        const originalPlay = window.audio[trackName].play;
-        const originalStartLoop = window.audio[trackName].startLoop;
+      if (window.audio[trackName]) {
+        // Always re-wrap to ensure we use the latest getSetting function
+        // Store original functions if not already stored
+        if (!window.audio[trackName]._originalPlay) {
+          window.audio[trackName]._originalPlay = window.audio[trackName].play;
+        }
+        if (!window.audio[trackName]._originalStartLoop) {
+          window.audio[trackName]._originalStartLoop = window.audio[trackName].startLoop;
+        }
+        
+        const originalPlay = window.audio[trackName]._originalPlay;
+        const originalStartLoop = window.audio[trackName]._originalStartLoop;
         
         window.audio[trackName].play = function(noResetTime) {
           const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
