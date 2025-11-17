@@ -147,13 +147,30 @@ var hud = (function(){
             }
             window.__hudUpdateCount++;
             if (window.__hudUpdateCount % 180 === 0) { // Log every 3 seconds at 60fps
-                logHUD('[HUD] Update check:', {
+                // Try to identify current state
+                var stateName = 'unknown';
+                if (typeof state !== 'undefined' && state) {
+                    if (state === playState) stateName = 'playState';
+                    else if (state === newGameState) stateName = 'newGameState';
+                    else if (state === readyNewState) stateName = 'readyNewState';
+                    else if (state === readyRestartState) stateName = 'readyRestartState';
+                    else if (state === finishState) stateName = 'finishState';
+                    else if (state === deadState) stateName = 'deadState';
+                    else if (state === overState) stateName = 'overState';
+                    else if (state === homeState) stateName = 'homeState';
+                    else if (state === readyState) stateName = 'readyState';
+                    else stateName = 'other';
+                }
+                logHUD('Update check:', {
                     valid: valid,
                     on: on,
-                    currentState: typeof state !== 'undefined' ? (state.name || 'unknown') : 'undefined',
+                    currentState: stateName,
                     soundBtn: !!soundBtn,
                     tileSize: typeof tileSize !== 'undefined' ? tileSize : 'undefined',
-                    mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined'
+                    mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined',
+                    stateExists: typeof state !== 'undefined',
+                    playStateExists: typeof playState !== 'undefined',
+                    newGameStateExists: typeof newGameState !== 'undefined'
                 });
             }
             
