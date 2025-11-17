@@ -121,6 +121,16 @@ var hud = (function(){
     return {
 
         update: function() {
+            // Log that update is being called (first few times to verify it's working)
+            if (typeof window.__hudUpdateCount === 'undefined') {
+                window.__hudUpdateCount = 0;
+                logHUD('HUD.update() called for the first time');
+            }
+            window.__hudUpdateCount++;
+            if (window.__hudUpdateCount <= 5) {
+                logHUD('HUD.update() called', {count: window.__hudUpdateCount});
+            }
+            
             // Initialize sound button if not already done
             initSoundButton();
             
