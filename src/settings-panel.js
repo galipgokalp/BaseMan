@@ -1225,7 +1225,8 @@
     isOpen: () => isOpen,
     getSetting: getSetting,
     setSetting: setSetting,
-    applySettings: applySettings
+    applySettings: applySettings,
+    wrapAudioTracks: wrapAudioTracks
   };
   
   // Alias for compatibility with in-game menu

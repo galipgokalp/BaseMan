@@ -4208,28 +4208,52 @@ var hud = (function(){
             mapWidth: mapWidth
         });
         
-        // Make button larger and more visible
-        var soundBtnSize = tileSize * 5; // Increased to 40px for better visibility
-        // Position in top-right corner to avoid score display
-        // Use mapWidth to position from right edge
-        var soundBtnX = mapWidth - soundBtnSize - tileSize;
-        var soundBtnY = tileSize;
+        // Make button smaller and position in top-right corner
+        var soundBtnSize = tileSize * 3; // 24px - smaller to not interfere with game
+        // Position in top-right corner, with small margin from edges
+        // Ensure button is visible on screen
+        var soundBtnX = mapWidth - soundBtnSize - 4; // 4px margin from right edge
+        var soundBtnY = 4; // 4px margin from top edge
         
         // Quick sound toggle button
         soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
-            var currentState = window.__basemanGameSoundEffectsEnabled !== false;
+            logHUD('Sound button clicked');
+            // Get current state from settings
+            var currentState = true;
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.getSetting) {
+                currentState = window.BaseManSettings.getSetting('gameSoundEffects', true);
+            } else if (typeof window.__basemanGameSoundEffectsEnabled !== 'undefined') {
+                currentState = window.__basemanGameSoundEffectsEnabled !== false;
+            }
             var newState = !currentState;
+            logHUD('Toggling sound:', {from: currentState, to: newState});
+            
+            // Update setting
             if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
                 window.BaseManSettings.setSetting('gameSoundEffects', newState);
                 window.BaseManSettings.applySettings();
+                logHUD('Sound setting updated via BaseManSettings');
             } else {
                 window.__basemanGameSoundEffectsEnabled = newState;
+                logHUD('Sound setting updated via global variable');
+            }
+            
+            // Force re-wrap audio tracks to apply change immediately
+            if (typeof window.BaseManSettings !== 'undefined' && typeof window.BaseManSettings.wrapAudioTracks === 'function') {
+                window.BaseManSettings.wrapAudioTracks();
+                logHUD('Audio tracks re-wrapped');
             }
         });
         
         // Draw sound icon (speaker with sound waves or muted)
         soundBtn.setIcon(function(ctx, x, y, frame) {
-            var isMuted = window.__basemanGameSoundEffectsEnabled === false;
+            // Get muted state from settings
+            var isMuted = false;
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.getSetting) {
+                isMuted = !window.BaseManSettings.getSetting('gameSoundEffects', true);
+            } else if (typeof window.__basemanGameSoundEffectsEnabled !== 'undefined') {
+                isMuted = window.__basemanGameSoundEffectsEnabled === false;
+            }
             var size = soundBtnSize; // Use closure variable
             
             // Use brighter colors for better visibility
