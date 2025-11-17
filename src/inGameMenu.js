@@ -50,6 +50,30 @@ var inGameMenu = (function() {
     menu.addTextButton("RESUME", function() {
         menu.disable();
     });
+    menu.addToggleTextButton("SOUND EFFECTS",
+        function() {
+            return window.__basemanGameSoundEffectsEnabled !== false;
+        },
+        function(on) {
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
+                window.BaseManSettings.setSetting('gameSoundEffects', on);
+                window.BaseManSettings.applySettings();
+            } else {
+                window.__basemanGameSoundEffectsEnabled = on;
+            }
+        });
+    menu.addToggleTextButton("INTRO MUSIC",
+        function() {
+            return window.__basemanIntroMusicEnabled !== false;
+        },
+        function(on) {
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
+                window.BaseManSettings.setSetting('introMusic', on);
+                window.BaseManSettings.applySettings();
+            } else {
+                window.__basemanIntroMusicEnabled = on;
+            }
+        });
     menu.addTextButton("QUIT", function() {
         showConfirm("QUIT GAME?", function() {
             switchState(homeState, 60);
@@ -63,6 +87,30 @@ var inGameMenu = (function() {
         hideMainMenu();
         vcr.onHudEnable();
     });
+    practiceMenu.addToggleTextButton("SOUND EFFECTS",
+        function() {
+            return window.__basemanGameSoundEffectsEnabled !== false;
+        },
+        function(on) {
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
+                window.BaseManSettings.setSetting('gameSoundEffects', on);
+                window.BaseManSettings.applySettings();
+            } else {
+                window.__basemanGameSoundEffectsEnabled = on;
+            }
+        });
+    practiceMenu.addToggleTextButton("INTRO MUSIC",
+        function() {
+            return window.__basemanIntroMusicEnabled !== false;
+        },
+        function(on) {
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
+                window.BaseManSettings.setSetting('introMusic', on);
+                window.BaseManSettings.applySettings();
+            } else {
+                window.__basemanIntroMusicEnabled = on;
+            }
+        });
     practiceMenu.addTextButton("RESTART LEVEL", function() {
         showConfirm("RESTART LEVEL?", function() {
             level--;

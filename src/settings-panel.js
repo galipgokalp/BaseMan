@@ -1222,8 +1222,14 @@
     hide: () => setVisible(false),
     toggle: () => setVisible(!isOpen),
     refresh: () => refresh(),
-    isOpen: () => isOpen
+    isOpen: () => isOpen,
+    getSetting: getSetting,
+    setSetting: setSetting,
+    applySettings: applySettings
   };
+  
+  // Alias for compatibility with in-game menu
+  window.BaseManSettings = window.SettingsPanel;
 
   // Wait for DOM and SDK ready
   function initWhenReady() {
