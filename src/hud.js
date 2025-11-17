@@ -4,23 +4,38 @@ var hud = (function(){
     var on = false;
     var soundBtn = null;
     
+    // Helper function to log to both console and ConsoleLogger
+    var logHUD = function(message, data) {
+        if (data) {
+            console.log(message, data);
+            if (typeof window.ConsoleLogger !== 'undefined' && window.ConsoleLogger.log) {
+                window.ConsoleLogger.log(message + ' ' + JSON.stringify(data));
+            }
+        } else {
+            console.log(message);
+            if (typeof window.ConsoleLogger !== 'undefined' && window.ConsoleLogger.log) {
+                window.ConsoleLogger.log(message);
+            }
+        }
+    };
+    
     // Initialize sound button with lazy evaluation
     var initSoundButton = function() {
         if (soundBtn) {
-            console.log('[HUD] initSoundButton: Button already exists');
+            logHUD('[HUD] initSoundButton: Button already exists');
             return; // Already initialized
         }
         
         // Ensure tileSize and mapWidth are available
         if (typeof tileSize === 'undefined' || typeof mapWidth === 'undefined') {
-            console.log('[HUD] initSoundButton: Not ready yet', {
+            logHUD('[HUD] initSoundButton: Not ready yet', {
                 tileSize: typeof tileSize !== 'undefined' ? tileSize : 'undefined',
                 mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined'
             });
             return; // Not ready yet
         }
         
-        console.log('[HUD] initSoundButton: Starting initialization', {
+        logHUD('[HUD] initSoundButton: Starting initialization', {
             tileSize: tileSize,
             mapWidth: mapWidth
         });
@@ -98,7 +113,7 @@ var hud = (function(){
         };
         
         // Debug: Log button creation
-        console.log('[HUD] Sound button created:', {
+        logHUD('[HUD] Sound button created:', {
             x: soundBtnX,
             y: soundBtnY,
             size: soundBtnSize,
@@ -121,7 +136,7 @@ var hud = (function(){
             }
             window.__hudUpdateCount++;
             if (window.__hudUpdateCount % 180 === 0) { // Log every 3 seconds at 60fps
-                console.log('[HUD] Update check:', {
+                logHUD('[HUD] Update check:', {
                     valid: valid,
                     on: on,
                     currentState: typeof state !== 'undefined' ? (state.name || 'unknown') : 'undefined',
@@ -133,15 +148,15 @@ var hud = (function(){
             
             if (valid != on) {
                 on = valid;
-                console.log('[HUD] State changed:', {on: on, valid: valid, soundBtn: !!soundBtn});
+                logHUD('[HUD] State changed:', {on: on, valid: valid, soundBtn: !!soundBtn});
                 if (on) {
                     inGameMenu.onHudEnable();
                     vcr.onHudEnable();
                     if (soundBtn) {
                         soundBtn.enable();
-                        console.log('[HUD] Sound button enabled');
+                        logHUD('[HUD] Sound button enabled');
                     } else {
-                        console.warn('[HUD] Sound button is null when trying to enable');
+                        logHUD('[HUD] Sound button is null when trying to enable');
                     }
                 }
                 else {
@@ -166,7 +181,7 @@ var hud = (function(){
             }
             window.__hudDebugCount++;
             if (window.__hudDebugCount % 60 === 0) { // Log every 60 frames (1 second at 60fps)
-                console.log('[HUD] Draw check:', {
+                logHUD('[HUD] Draw check:', {
                     on: on,
                     soundBtn: !!soundBtn,
                     isEnabled: soundBtn ? soundBtn.isEnabled : false,
@@ -182,7 +197,7 @@ var hud = (function(){
                 try {
                     soundBtn.draw(ctx);
                 } catch (e) {
-                    console.error('[HUD] Error drawing sound button:', e);
+                    logHUD('[HUD] Error drawing sound button: ' + (e.message || String(e)));
                 }
             }
         },
