@@ -13,9 +13,12 @@ var hud = (function(){
             return; // Not ready yet
         }
         
-        var soundBtnSize = tileSize * 1.5;
+        // Make button larger and more visible
+        var soundBtnSize = tileSize * 3; // Make it even larger for visibility
+        // Position in top-right corner of map area, with some padding
+        // Use mapWidth - padding to ensure it's visible
         var soundBtnX = mapWidth - soundBtnSize - tileSize;
-        var soundBtnY = tileSize * 0.5;
+        var soundBtnY = tileSize;
         
         // Quick sound toggle button
         soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
@@ -70,7 +73,16 @@ var hud = (function(){
         
         // Make button more visible with brighter border
         soundBtn.borderFocusColor = "#FFE14F";
-        soundBtn.borderBlurColor = "#888";
+        soundBtn.borderBlurColor = "#FFE14F"; // Make border always visible
+        
+        // Debug: Log button creation
+        console.log('[HUD] Sound button created:', {
+            x: soundBtnX,
+            y: soundBtnY,
+            size: soundBtnSize,
+            mapWidth: mapWidth,
+            mapHeight: typeof mapHeight !== 'undefined' ? mapHeight : 'undefined'
+        });
     };
 
     return {
@@ -105,12 +117,12 @@ var hud = (function(){
             inGameMenu.draw(ctx);
             vcr.draw(ctx);
             if (on && soundBtn && soundBtn.isEnabled && !inGameMenu.isOpen()) {
-                // Use renderer.renderFunc to ensure correct coordinate system
-                if (typeof renderer !== 'undefined' && renderer && renderer.renderFunc) {
-                    renderer.renderFunc(soundBtn.draw, soundBtn);
-                } else {
-                    // Fallback to direct draw if renderer not available
+                // Draw directly using ctx (same as inGameMenu does)
+                // The ctx is already in map coordinate system from renderer
+                try {
                     soundBtn.draw(ctx);
+                } catch (e) {
+                    console.error('[HUD] Error drawing sound button:', e);
                 }
             }
         },
