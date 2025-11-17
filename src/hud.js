@@ -8,10 +8,12 @@ var hud = (function(){
     // ConsoleLogger automatically captures console.log, so we just use console.log
     // But we format it clearly with [HUD] prefix so it's easy to find
     var logHUD = function(message, data) {
+        // Remove duplicate [HUD] prefix if present
+        var cleanMessage = message.startsWith('[HUD] ') ? message.substring(6) : message;
         if (data) {
-            console.log('[HUD] ' + message, data);
+            console.log('[HUD] ' + cleanMessage, data);
         } else {
-            console.log('[HUD] ' + message);
+            console.log('[HUD] ' + cleanMessage);
         }
     };
     
@@ -37,7 +39,7 @@ var hud = (function(){
         });
         
         // Make button larger and more visible
-        var soundBtnSize = tileSize * 3; // Make it even larger for visibility
+        var soundBtnSize = tileSize * 4; // Increased to 32px for better visibility
         // Position in top-left corner of map area for better visibility
         // This ensures it's always visible and doesn't conflict with score display
         var soundBtnX = tileSize * 0.5;
@@ -197,13 +199,15 @@ var hud = (function(){
                 });
             }
             
-            if (on && soundBtn && soundBtn.isEnabled && !inGameMenu.isOpen()) {
+            // Draw sound button when HUD is active, even if menu is open (but draw it behind menu)
+            // Menu will overlay it, but button should still be visible when menu is closed
+            if (on && soundBtn && soundBtn.isEnabled) {
                 // Draw directly using ctx (same as inGameMenu does)
                 // The ctx is already in map coordinate system from renderer
                 try {
                     soundBtn.draw(ctx);
                 } catch (e) {
-                    logHUD('[HUD] Error drawing sound button: ' + (e.message || String(e)));
+                    logHUD('Error drawing sound button: ' + (e.message || String(e)));
                 }
             }
         },
