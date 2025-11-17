@@ -4210,10 +4210,11 @@ var hud = (function(){
         
         // Make button smaller and position in top-right corner
         var soundBtnSize = tileSize * 3; // 24px - smaller to not interfere with game
-        // Position in top-right corner, with small margin from edges
-        // Ensure button is visible on screen
-        var soundBtnX = mapWidth - soundBtnSize - 4; // 4px margin from right edge
-        var soundBtnY = 4; // 4px margin from top edge
+        // Position in top-right corner, as close to edge as possible
+        // mapWidth includes mapPad*2, so we need to account for that
+        // Button coordinates are in map coordinate system (after translate)
+        var soundBtnX = mapWidth - soundBtnSize - 2; // 2px margin from right edge (minimal)
+        var soundBtnY = 2; // 2px margin from top edge (minimal)
         
         // Quick sound toggle button
         soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
