@@ -5,17 +5,13 @@ var hud = (function(){
     var soundBtn = null;
     
     // Helper function to log to both console and ConsoleLogger
+    // ConsoleLogger automatically captures console.log, so we just use console.log
+    // But we format it clearly with [HUD] prefix so it's easy to find
     var logHUD = function(message, data) {
         if (data) {
-            console.log(message, data);
-            if (typeof window.ConsoleLogger !== 'undefined' && window.ConsoleLogger.log) {
-                window.ConsoleLogger.log(message + ' ' + JSON.stringify(data));
-            }
+            console.log('[HUD] ' + message, data);
         } else {
-            console.log(message);
-            if (typeof window.ConsoleLogger !== 'undefined' && window.ConsoleLogger.log) {
-                window.ConsoleLogger.log(message);
-            }
+            console.log('[HUD] ' + message);
         }
     };
     
