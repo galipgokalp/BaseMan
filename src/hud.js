@@ -105,7 +105,13 @@ var hud = (function(){
             inGameMenu.draw(ctx);
             vcr.draw(ctx);
             if (on && soundBtn && soundBtn.isEnabled && !inGameMenu.isOpen()) {
-                soundBtn.draw(ctx);
+                // Use renderer.renderFunc to ensure correct coordinate system
+                if (typeof renderer !== 'undefined' && renderer && renderer.renderFunc) {
+                    renderer.renderFunc(soundBtn.draw, soundBtn);
+                } else {
+                    // Fallback to direct draw if renderer not available
+                    soundBtn.draw(ctx);
+                }
             }
         },
         isValidState: function() {
