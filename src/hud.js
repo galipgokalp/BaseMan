@@ -15,10 +15,10 @@ var hud = (function(){
         
         // Make button larger and more visible
         var soundBtnSize = tileSize * 3; // Make it even larger for visibility
-        // Position in top-right corner of map area, with some padding
-        // Use mapWidth - padding to ensure it's visible
-        var soundBtnX = mapWidth - soundBtnSize - tileSize;
-        var soundBtnY = tileSize;
+        // Position in top-left corner of map area for better visibility
+        // This ensures it's always visible and doesn't conflict with score display
+        var soundBtnX = tileSize * 0.5;
+        var soundBtnY = tileSize * 0.5;
         
         // Quick sound toggle button
         soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
@@ -71,9 +71,19 @@ var hud = (function(){
             }
         });
         
-        // Make button more visible with brighter border
+        // Make button more visible with brighter border and background
         soundBtn.borderFocusColor = "#FFE14F";
         soundBtn.borderBlurColor = "#FFE14F"; // Make border always visible
+        
+        // Override button draw to make it more visible
+        var originalDraw = soundBtn.draw;
+        soundBtn.draw = function(ctx) {
+            // Draw a brighter background for visibility
+            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+            ctx.fillRect(this.x - 2, this.y - 2, this.w + 4, this.h + 4);
+            // Call original draw
+            originalDraw.call(this, ctx);
+        };
         
         // Debug: Log button creation
         console.log('[HUD] Sound button created:', {
@@ -94,11 +104,15 @@ var hud = (function(){
             var valid = this.isValidState();
             if (valid != on) {
                 on = valid;
+                console.log('[HUD] State changed:', {on: on, valid: valid, soundBtn: !!soundBtn});
                 if (on) {
                     inGameMenu.onHudEnable();
                     vcr.onHudEnable();
                     if (soundBtn) {
                         soundBtn.enable();
+                        console.log('[HUD] Sound button enabled');
+                    } else {
+                        console.warn('[HUD] Sound button is null when trying to enable');
                     }
                 }
                 else {
@@ -116,6 +130,23 @@ var hud = (function(){
         draw: function(ctx) {
             inGameMenu.draw(ctx);
             vcr.draw(ctx);
+            
+            // Debug: Log draw conditions
+            if (typeof window.__hudDebugCount === 'undefined') {
+                window.__hudDebugCount = 0;
+            }
+            window.__hudDebugCount++;
+            if (window.__hudDebugCount % 60 === 0) { // Log every 60 frames (1 second at 60fps)
+                console.log('[HUD] Draw check:', {
+                    on: on,
+                    soundBtn: !!soundBtn,
+                    isEnabled: soundBtn ? soundBtn.isEnabled : false,
+                    menuOpen: inGameMenu.isOpen(),
+                    shouldDraw: on && soundBtn && soundBtn.isEnabled && !inGameMenu.isOpen(),
+                    buttonPos: soundBtn ? {x: soundBtn.x, y: soundBtn.y, w: soundBtn.w, h: soundBtn.h} : null
+                });
+            }
+            
             if (on && soundBtn && soundBtn.isEnabled && !inGameMenu.isOpen()) {
                 // Draw directly using ctx (same as inGameMenu does)
                 // The ctx is already in map coordinate system from renderer
