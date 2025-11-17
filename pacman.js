@@ -4191,8 +4191,7 @@ var hud = (function(){
     // Initialize sound button with lazy evaluation
     var initSoundButton = function() {
         if (soundBtn) {
-            logHUD('[HUD] initSoundButton: Button already exists');
-            return; // Already initialized
+            return; // Already initialized - no need to log every frame
         }
         
         // Ensure tileSize and mapWidth are available
@@ -4210,11 +4209,11 @@ var hud = (function(){
         });
         
         // Make button larger and more visible
-        var soundBtnSize = tileSize * 4; // Increased to 32px for better visibility
-        // Position in top-left corner of map area for better visibility
-        // This ensures it's always visible and doesn't conflict with score display
-        var soundBtnX = tileSize * 0.5;
-        var soundBtnY = tileSize * 0.5;
+        var soundBtnSize = tileSize * 5; // Increased to 40px for better visibility
+        // Position in top-right corner to avoid score display
+        // Use mapWidth to position from right edge
+        var soundBtnX = mapWidth - soundBtnSize - tileSize;
+        var soundBtnY = tileSize;
         
         // Quick sound toggle button
         soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
@@ -4274,9 +4273,13 @@ var hud = (function(){
         // Override button draw to make it more visible
         var originalDraw = soundBtn.draw;
         soundBtn.draw = function(ctx) {
-            // Draw a brighter background for visibility
-            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-            ctx.fillRect(this.x - 2, this.y - 2, this.w + 4, this.h + 4);
+            // Draw a very visible background
+            ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+            ctx.fillRect(this.x - 3, this.y - 3, this.w + 6, this.h + 6);
+            // Draw bright border
+            ctx.strokeStyle = "#FFE14F";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(this.x - 2, this.y - 2, this.w + 4, this.h + 4);
             // Call original draw
             originalDraw.call(this, ctx);
         };
