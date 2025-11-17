@@ -6,12 +6,24 @@ var hud = (function(){
     
     // Initialize sound button with lazy evaluation
     var initSoundButton = function() {
-        if (soundBtn) return; // Already initialized
+        if (soundBtn) {
+            console.log('[HUD] initSoundButton: Button already exists');
+            return; // Already initialized
+        }
         
         // Ensure tileSize and mapWidth are available
         if (typeof tileSize === 'undefined' || typeof mapWidth === 'undefined') {
+            console.log('[HUD] initSoundButton: Not ready yet', {
+                tileSize: typeof tileSize !== 'undefined' ? tileSize : 'undefined',
+                mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined'
+            });
             return; // Not ready yet
         }
+        
+        console.log('[HUD] initSoundButton: Starting initialization', {
+            tileSize: tileSize,
+            mapWidth: mapWidth
+        });
         
         // Make button larger and more visible
         var soundBtnSize = tileSize * 3; // Make it even larger for visibility
@@ -102,6 +114,23 @@ var hud = (function(){
             initSoundButton();
             
             var valid = this.isValidState();
+            
+            // Debug: Log state check periodically
+            if (typeof window.__hudUpdateCount === 'undefined') {
+                window.__hudUpdateCount = 0;
+            }
+            window.__hudUpdateCount++;
+            if (window.__hudUpdateCount % 180 === 0) { // Log every 3 seconds at 60fps
+                console.log('[HUD] Update check:', {
+                    valid: valid,
+                    on: on,
+                    currentState: typeof state !== 'undefined' ? (state.name || 'unknown') : 'undefined',
+                    soundBtn: !!soundBtn,
+                    tileSize: typeof tileSize !== 'undefined' ? tileSize : 'undefined',
+                    mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined'
+                });
+            }
+            
             if (valid != on) {
                 on = valid;
                 console.log('[HUD] State changed:', {on: on, valid: valid, soundBtn: !!soundBtn});
