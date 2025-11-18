@@ -114,9 +114,9 @@ var hud = (function(){
             var centerX = x;
             var centerY = y;
             
-            // Modern color scheme - bright yellow when on, red when muted
-            ctx.strokeStyle = isMuted ? "#FF4444" : "#FFD700";
-            ctx.fillStyle = isMuted ? "#FF4444" : "#FFD700";
+            // Modern color scheme - green when on, red when muted
+            ctx.strokeStyle = isMuted ? "#FF4444" : "#4CAF50";
+            ctx.fillStyle = isMuted ? "#FF4444" : "#4CAF50";
             ctx.lineWidth = isMuted ? 2.5 : 2;
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
