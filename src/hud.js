@@ -3,7 +3,28 @@ var hud = (function(){
 
     var on = false;
     var soundBtn = null;
-    
+    var soundButtonImage = null;
+    var soundButtonImageLoaded = false;
+
+    // Load sound button image
+    var loadSoundButtonImage = function() {
+        if (soundButtonImage) return;
+        soundButtonImage = new Image();
+        soundButtonImage.onload = function() {
+            soundButtonImageLoaded = true;
+            console.log('[HUD] Sound button image loaded');
+        };
+        soundButtonImage.onerror = function() {
+            console.error('[HUD] Failed to load sound button image');
+        };
+        soundButtonImage.src = 'sprites/sound-buttons.png';
+    };
+
+    // Call image loading immediately
+    if (typeof window !== 'undefined') {
+        loadSoundButtonImage();
+    }
+
     // Helper function to log to both console and ConsoleLogger
     // ConsoleLogger automatically captures console.log, so we just use console.log
     // But we format it clearly with [HUD] prefix so it's easy to find
@@ -95,7 +116,7 @@ var hud = (function(){
             }
         });
         
-        // Draw sound icon (speaker with sound waves or muted) - green when on, red when muted
+        // Draw sound icon using loaded image
         soundBtn.setIcon(function(ctx, x, y, frame) {
             // Get muted state from settings (check both intro music and sound effects)
             var isMuted = false;
@@ -104,72 +125,79 @@ var hud = (function(){
                 var introMusic = window.BaseManSettings.getSetting('introMusic', true);
                 isMuted = !(soundEffects || introMusic);
             } else {
-                var soundEffects = (typeof window.__basemanGameSoundEffectsEnabled !== 'undefined') 
+                var soundEffects = (typeof window.__basemanGameSoundEffectsEnabled !== 'undefined')
                     ? window.__basemanGameSoundEffectsEnabled !== false : true;
-                var introMusic = (typeof window.__basemanIntroMusicEnabled !== 'undefined') 
+                var introMusic = (typeof window.__basemanIntroMusicEnabled !== 'undefined')
                     ? window.__basemanIntroMusicEnabled !== false : true;
                 isMuted = !(soundEffects || introMusic);
             }
-            var size = soundBtnSize; // Use closure variable
-            var centerX = x;
-            var centerY = y;
-            
-            // Color scheme - green (#4CAF50) when on, red (#FF4444) when muted
-            var iconColor = isMuted ? "#FF4444" : "#4CAF50";
-            ctx.strokeStyle = iconColor;
-            ctx.fillStyle = iconColor;
-            ctx.lineWidth = isMuted ? 3 : 2.5;
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-            
-            // Speaker dimensions (consistent for both states)
-            var speakerW = size * 0.35;
-            var speakerH = size * 0.45;
-            var speakerX = centerX - size * 0.25;
-            var speakerY = centerY - speakerH / 2;
-            
-            // Draw speaker body (rectangle)
-            ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
-            
-            // Draw speaker cone (triangle pointing right)
-            ctx.beginPath();
-            ctx.moveTo(speakerX + speakerW, speakerY);
-            ctx.lineTo(speakerX + speakerW + size * 0.12, centerY);
-            ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
-            ctx.closePath();
-            ctx.fill();
-            
-            if (!isMuted) {
-                // Sound ON - Draw sound waves (3 curved arcs)
-                var waveStartX = speakerX + speakerW + size * 0.15;
-                var waveY = centerY;
-                var waveRadius1 = size * 0.1;
-                var waveRadius2 = size * 0.18;
-                var waveRadius3 = size * 0.26;
-                
-                ctx.beginPath();
-                ctx.arc(waveStartX, waveY, waveRadius1, -0.5, 0.5, false);
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.arc(waveStartX, waveY, waveRadius2, -0.7, 0.7, false);
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.arc(waveStartX, waveY, waveRadius3, -0.9, 0.9, false);
-                ctx.stroke();
+
+            // Use loaded image if available
+            if (soundButtonImageLoaded && soundButtonImage) {
+                var size = soundBtnSize;
+
+                // Original image dimensions: 139x353
+                // Top button (green/on): 0, 0, 139, 176
+                // Bottom button (red/off): 0, 177, 139, 176
+                var sourceX = 0;
+                var sourceY = isMuted ? 177 : 0;
+                var sourceWidth = 139;
+                var sourceHeight = 176;
+
+                // Center the image in the button area
+                var padding = size * 0.1; // 10% padding
+                var drawSize = size - (padding * 2);
+                var drawX = x + padding;
+                var drawY = y + padding;
+
+                ctx.drawImage(
+                    soundButtonImage,
+                    sourceX, sourceY, sourceWidth, sourceHeight,
+                    drawX, drawY, drawSize, drawSize
+                );
             } else {
-                // Sound OFF - Draw diagonal slash through the waves area
-                ctx.strokeStyle = "#FF4444";
-                ctx.lineWidth = 3;
-                var lineStartX = speakerX + speakerW + size * 0.12;
-                var lineEndX = centerX + size * 0.3;
-                var lineOffset = size * 0.22;
-                
+                // Fallback: Draw simple speaker icon if image not loaded
+                var size = soundBtnSize;
+                var centerX = x + size / 2;
+                var centerY = y + size / 2;
+
+                var iconColor = isMuted ? "#FF4444" : "#4CAF50";
+                ctx.strokeStyle = iconColor;
+                ctx.fillStyle = iconColor;
+                ctx.lineWidth = isMuted ? 3 : 2.5;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+
+                var speakerW = size * 0.35;
+                var speakerH = size * 0.45;
+                var speakerX = centerX - size * 0.25;
+                var speakerY = centerY - speakerH / 2;
+
+                ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
+
                 ctx.beginPath();
-                ctx.moveTo(lineStartX, centerY - lineOffset);
-                ctx.lineTo(lineEndX, centerY + lineOffset);
-                ctx.stroke();
+                ctx.moveTo(speakerX + speakerW, speakerY);
+                ctx.lineTo(speakerX + speakerW + size * 0.12, centerY);
+                ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
+                ctx.closePath();
+                ctx.fill();
+
+                if (!isMuted) {
+                    var waveStartX = speakerX + speakerW + size * 0.15;
+                    ctx.beginPath();
+                    ctx.arc(waveStartX, centerY, size * 0.1, -0.5, 0.5, false);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(waveStartX, centerY, size * 0.18, -0.7, 0.7, false);
+                    ctx.stroke();
+                } else {
+                    ctx.strokeStyle = "#FF4444";
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(speakerX + speakerW + size * 0.12, centerY - size * 0.22);
+                    ctx.lineTo(centerX + size * 0.3, centerY + size * 0.22);
+                    ctx.stroke();
+                }
             }
         });
         
