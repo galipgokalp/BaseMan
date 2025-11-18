@@ -253,10 +253,18 @@
       return;
     }
 
-    // Wrap coffeeBreakMusic (intro music)
-    if (window.audio.coffeeBreakMusic && !window.audio.coffeeBreakMusic._wrapped) {
-      const originalPlay = window.audio.coffeeBreakMusic.play;
-      const originalStartLoop = window.audio.coffeeBreakMusic.startLoop;
+    // Wrap coffeeBreakMusic (intro music) - always re-wrap to ensure latest settings
+    if (window.audio.coffeeBreakMusic) {
+      // Store original functions if not already stored
+      if (!window.audio.coffeeBreakMusic._originalPlay) {
+        window.audio.coffeeBreakMusic._originalPlay = window.audio.coffeeBreakMusic.play;
+      }
+      if (!window.audio.coffeeBreakMusic._originalStartLoop) {
+        window.audio.coffeeBreakMusic._originalStartLoop = window.audio.coffeeBreakMusic.startLoop;
+      }
+      
+      const originalPlay = window.audio.coffeeBreakMusic._originalPlay;
+      const originalStartLoop = window.audio.coffeeBreakMusic._originalStartLoop;
       
       window.audio.coffeeBreakMusic.play = function(noResetTime) {
         const introMusicEnabled = getSetting('introMusic', true);
