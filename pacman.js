@@ -4174,28 +4174,6 @@ var hud = (function(){
 
     var on = false;
     var soundBtn = null;
-    var soundButtonImage = null;
-    var soundButtonImageLoaded = false;
-
-    // Load sound button image
-    var loadSoundButtonImage = function() {
-        if (soundButtonImage) return;
-        soundButtonImage = new Image();
-        soundButtonImage.onload = function() {
-            soundButtonImageLoaded = true;
-            console.log('[HUD] Sound button image loaded');
-        };
-        soundButtonImage.onerror = function() {
-            console.error('[HUD] Failed to load sound button image');
-        };
-        // Use custom sound button icon provided in BaseManSS
-        soundButtonImage.src = 'sprites/ses_buton_ikon_ornegi.jpg';
-    };
-
-    // Call image loading immediately
-    if (typeof window !== 'undefined') {
-        loadSoundButtonImage();
-    }
 
     // Helper function to log to both console and ConsoleLogger
     // ConsoleLogger automatically captures console.log, so we just use console.log
@@ -4207,6 +4185,28 @@ var hud = (function(){
             console.log('[HUD] ' + cleanMessage, data);
         } else {
             console.log('[HUD] ' + cleanMessage);
+        }
+    };
+    
+    // Helper function to draw rounded rectangle (for compatibility)
+    var drawRoundedRect = function(ctx, x, y, width, height, radius) {
+        if (typeof ctx.roundRect === 'function') {
+            // Use native roundRect if available
+            ctx.beginPath();
+            ctx.roundRect(x, y, width, height, radius);
+        } else {
+            // Fallback: manual rounded rectangle path
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
         }
     };
     
@@ -4288,7 +4288,7 @@ var hud = (function(){
             }
         });
         
-        // Draw sound icon using loaded image
+        // Draw modern sound button icon
         soundBtn.setIcon(function(ctx, x, y, frame) {
             // Get muted state from settings (check both intro music and sound effects)
             var isMuted = false;
@@ -4305,26 +4305,100 @@ var hud = (function(){
             }
 
             var size = soundBtnSize;
-
-            // Draw colored button background depending on mute state
+            var centerX = x + size / 2;
+            var centerY = y + size / 2;
+            
             ctx.save();
-            ctx.fillStyle = isMuted ? "#FF4444" : "#4CAF50"; // red when muted, green when on
-            ctx.fillRect(x, y, size, size);
-            ctx.restore();
-
-            // Use loaded image if available and draw it centered on top of the colored background
-            if (soundButtonImageLoaded && soundButtonImage) {
-                var padding = size * 0.15; // a bit more padding so the color is visible
-                var drawSize = size - (padding * 2);
-                var drawX = x + padding;
-                var drawY = y + padding;
-
-                ctx.drawImage(
-                    soundButtonImage,
-                    0, 0, soundButtonImage.width, soundButtonImage.height,
-                    drawX, drawY, drawSize, drawSize
-                );
+            
+            // Modern rounded button background with gradient effect
+            var bgColor = isMuted ? "#FF4444" : "#4CAF50"; // Red when muted, green when on
+            var radius = size * 0.15; // Rounded corners
+            
+            // Draw shadow
+            ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+            drawRoundedRect(ctx, x + 1, y + 1, size, size, radius);
+            ctx.fill();
+            
+            // Draw button background with gradient effect
+            var gradient = ctx.createLinearGradient(x, y, x, y + size);
+            if (isMuted) {
+                gradient.addColorStop(0, "#FF6B6B");
+                gradient.addColorStop(1, "#FF4444");
+            } else {
+                gradient.addColorStop(0, "#66BB6A");
+                gradient.addColorStop(1, "#4CAF50");
             }
+            ctx.fillStyle = gradient;
+            drawRoundedRect(ctx, x, y, size, size, radius);
+            ctx.fill();
+            
+            // Draw border
+            ctx.strokeStyle = isMuted ? "#FF2222" : "#388E3C";
+            ctx.lineWidth = 1.5;
+            drawRoundedRect(ctx, x, y, size, size, radius);
+            ctx.stroke();
+            
+            // Draw speaker icon (white/light color)
+            ctx.fillStyle = "#FFFFFF";
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            
+            // Speaker body (rectangle with rounded corners)
+            var speakerW = size * 0.32;
+            var speakerH = size * 0.4;
+            var speakerX = centerX - size * 0.28;
+            var speakerY = centerY - speakerH / 2;
+            var speakerRadius = size * 0.06;
+            
+            drawRoundedRect(ctx, speakerX, speakerY, speakerW, speakerH, speakerRadius);
+            ctx.fill();
+            
+            // Speaker cone (triangle pointing right)
+            ctx.beginPath();
+            ctx.moveTo(speakerX + speakerW, speakerY);
+            ctx.lineTo(speakerX + speakerW + size * 0.1, centerY);
+            ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
+            ctx.closePath();
+            ctx.fill();
+            
+            if (!isMuted) {
+                // Sound ON - Draw sound waves (3 curved arcs)
+                var waveStartX = speakerX + speakerW + size * 0.12;
+                var waveY = centerY;
+                ctx.strokeStyle = "#FFFFFF";
+                ctx.lineWidth = 2.5;
+                
+                // First wave (small)
+                ctx.beginPath();
+                ctx.arc(waveStartX, waveY, size * 0.08, -0.5, 0.5, false);
+                ctx.stroke();
+                
+                // Second wave (medium)
+                ctx.beginPath();
+                ctx.arc(waveStartX, waveY, size * 0.14, -0.7, 0.7, false);
+                ctx.stroke();
+                
+                // Third wave (large)
+                ctx.beginPath();
+                ctx.arc(waveStartX, waveY, size * 0.2, -0.9, 0.9, false);
+                ctx.stroke();
+            } else {
+                // Sound OFF - Draw diagonal slash
+                ctx.strokeStyle = "#FFFFFF";
+                ctx.lineWidth = 3;
+                var lineStartX = speakerX + speakerW + size * 0.1;
+                var lineEndX = centerX + size * 0.25;
+                var lineOffset = size * 0.18;
+                
+                ctx.beginPath();
+                ctx.moveTo(lineStartX, centerY - lineOffset);
+                ctx.lineTo(lineEndX, centerY + lineOffset);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
         });
         
         // Make button more visible with brighter border and background
