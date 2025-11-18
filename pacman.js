@@ -4188,7 +4188,8 @@ var hud = (function(){
         soundButtonImage.onerror = function() {
             console.error('[HUD] Failed to load sound button image');
         };
-        soundButtonImage.src = 'sprites/sound-buttons.png';
+        // Use custom sound button icon provided in BaseManSS
+        soundButtonImage.src = 'sprites/ses_buton_ikon_ornegi.jpg';
     };
 
     // Call image loading immediately
@@ -4303,72 +4304,26 @@ var hud = (function(){
                 isMuted = !(soundEffects || introMusic);
             }
 
-            // Use loaded image if available
+            var size = soundBtnSize;
+
+            // Draw colored button background depending on mute state
+            ctx.save();
+            ctx.fillStyle = isMuted ? "#FF4444" : "#4CAF50"; // red when muted, green when on
+            ctx.fillRect(x, y, size, size);
+            ctx.restore();
+
+            // Use loaded image if available and draw it centered on top of the colored background
             if (soundButtonImageLoaded && soundButtonImage) {
-                var size = soundBtnSize;
-
-                // Original image dimensions: 139x353
-                // Top button (green/on): 0, 0, 139, 176
-                // Bottom button (red/off): 0, 177, 139, 176
-                var sourceX = 0;
-                var sourceY = isMuted ? 177 : 0;
-                var sourceWidth = 139;
-                var sourceHeight = 176;
-
-                // Center the image in the button area
-                var padding = size * 0.1; // 10% padding
+                var padding = size * 0.15; // a bit more padding so the color is visible
                 var drawSize = size - (padding * 2);
                 var drawX = x + padding;
                 var drawY = y + padding;
 
                 ctx.drawImage(
                     soundButtonImage,
-                    sourceX, sourceY, sourceWidth, sourceHeight,
+                    0, 0, soundButtonImage.width, soundButtonImage.height,
                     drawX, drawY, drawSize, drawSize
                 );
-            } else {
-                // Fallback: Draw simple speaker icon if image not loaded
-                var size = soundBtnSize;
-                var centerX = x + size / 2;
-                var centerY = y + size / 2;
-
-                var iconColor = isMuted ? "#FF4444" : "#4CAF50";
-                ctx.strokeStyle = iconColor;
-                ctx.fillStyle = iconColor;
-                ctx.lineWidth = isMuted ? 3 : 2.5;
-                ctx.lineCap = "round";
-                ctx.lineJoin = "round";
-
-                var speakerW = size * 0.35;
-                var speakerH = size * 0.45;
-                var speakerX = centerX - size * 0.25;
-                var speakerY = centerY - speakerH / 2;
-
-                ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
-
-                ctx.beginPath();
-                ctx.moveTo(speakerX + speakerW, speakerY);
-                ctx.lineTo(speakerX + speakerW + size * 0.12, centerY);
-                ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
-                ctx.closePath();
-                ctx.fill();
-
-                if (!isMuted) {
-                    var waveStartX = speakerX + speakerW + size * 0.15;
-                    ctx.beginPath();
-                    ctx.arc(waveStartX, centerY, size * 0.1, -0.5, 0.5, false);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.arc(waveStartX, centerY, size * 0.18, -0.7, 0.7, false);
-                    ctx.stroke();
-                } else {
-                    ctx.strokeStyle = "#FF4444";
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(speakerX + speakerW + size * 0.12, centerY - size * 0.22);
-                    ctx.lineTo(centerX + size * 0.3, centerY + size * 0.22);
-                    ctx.stroke();
-                }
             }
         });
         
