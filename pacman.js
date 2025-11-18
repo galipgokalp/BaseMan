@@ -4210,11 +4210,16 @@ var hud = (function(){
         
         // Make button smaller and position in top-right corner
         var soundBtnSize = tileSize * 3; // 24px - smaller to not interfere with game
-        // Position in top-right corner, as close to edge as possible
-        // Button coordinates are in map coordinate system (after translate in renderer)
-        // mapWidth = 226, so position at the very right edge
-        var soundBtnX = mapWidth - soundBtnSize; // No margin - absolute right edge
-        var soundBtnY = 0; // No margin - absolute top edge
+        // Position in top-right corner of the screen
+        // Context is already translated by (mapMargin+mapPad, mapMargin+mapPad)
+        // To position at screen top-right, we need to account for this translation
+        // screenWidth = mapWidth + 2*mapMargin
+        // In map coordinates (after translate): x = screenWidth - soundBtnSize - mapMargin - mapPad
+        // Simplified: x = mapWidth + mapMargin - soundBtnSize - mapPad
+        var mapMargin = 4 * tileSize; // 32px
+        var mapPad = tileSize / 8; // 1px
+        var soundBtnX = mapWidth + mapMargin - soundBtnSize - mapPad; // Screen right edge in map coords
+        var soundBtnY = -mapMargin - mapPad; // Screen top edge in map coords (negative because translate)
         
         // Quick sound toggle button
         soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
