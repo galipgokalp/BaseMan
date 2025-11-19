@@ -4266,6 +4266,107 @@ var hud = (function(){
             }
         });
         
+        // Draw simple speaker icon: green when sound on, red when muted
+        soundBtn.setIcon(function(ctx, x, y, frame) {
+            // Get muted state
+            var isMuted = false;
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.getSetting) {
+                var soundEffects = window.BaseManSettings.getSetting('gameSoundEffects', true);
+                var introMusic = window.BaseManSettings.getSetting('introMusic', true);
+                isMuted = !(soundEffects || introMusic);
+            } else {
+                var soundEffects = (typeof window.__basemanGameSoundEffectsEnabled !== 'undefined')
+                    ? window.__basemanGameSoundEffectsEnabled !== false : true;
+                var introMusic = (typeof window.__basemanIntroMusicEnabled !== 'undefined')
+                    ? window.__basemanIntroMusicEnabled !== false : true;
+                isMuted = !(soundEffects || introMusic);
+            }
+
+            var size = soundBtnSize;
+            var centerX = x + size / 2;
+            var centerY = y + size / 2;
+            
+            ctx.save();
+            
+            // Color: green when sound on, red when muted
+            var color = isMuted ? "#FF4444" : "#4CAF50";
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            
+            if (!isMuted) {
+                // Sound ON - Draw speaker icon (green)
+                // Speaker body (rectangle)
+                var speakerW = size * 0.35;
+                var speakerH = size * 0.5;
+                var speakerX = centerX - size * 0.3;
+                var speakerY = centerY - speakerH / 2;
+                
+                ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
+                
+                // Speaker cone (triangle pointing right)
+                ctx.beginPath();
+                ctx.moveTo(speakerX + speakerW, speakerY);
+                ctx.lineTo(speakerX + speakerW + size * 0.12, centerY);
+                ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Sound waves (3 curved arcs)
+                var waveStartX = speakerX + speakerW + size * 0.15;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                
+                // Small wave
+                ctx.beginPath();
+                ctx.arc(waveStartX, centerY, size * 0.08, -0.5, 0.5, false);
+                ctx.stroke();
+                
+                // Medium wave
+                ctx.beginPath();
+                ctx.arc(waveStartX, centerY, size * 0.13, -0.7, 0.7, false);
+                ctx.stroke();
+                
+                // Large wave
+                ctx.beginPath();
+                ctx.arc(waveStartX, centerY, size * 0.18, -0.9, 0.9, false);
+                ctx.stroke();
+            } else {
+                // Sound OFF - Draw speaker with slash (red)
+                // Speaker body (rectangle)
+                var speakerW = size * 0.35;
+                var speakerH = size * 0.5;
+                var speakerX = centerX - size * 0.3;
+                var speakerY = centerY - speakerH / 2;
+                
+                ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
+                
+                // Speaker cone (triangle pointing right)
+                ctx.beginPath();
+                ctx.moveTo(speakerX + speakerW, speakerY);
+                ctx.lineTo(speakerX + speakerW + size * 0.12, centerY);
+                ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Diagonal slash (mute indicator)
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                var lineStartX = speakerX + speakerW + size * 0.1;
+                var lineEndX = centerX + size * 0.22;
+                var lineOffset = size * 0.2;
+                
+                ctx.beginPath();
+                ctx.moveTo(lineStartX, centerY - lineOffset);
+                ctx.lineTo(lineEndX, centerY + lineOffset);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        });
+        
         // Debug: Log button creation
         logHUD('[HUD] Sound button created:', {
             x: soundBtnX,
