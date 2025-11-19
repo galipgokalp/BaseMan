@@ -2,7 +2,6 @@
 var hud = (function(){
 
     var on = false;
-    var soundBtn = null;
 
     // Helper function to log to both console and ConsoleLogger
     // ConsoleLogger automatically captures console.log, so we just use console.log
@@ -15,100 +14,6 @@ var hud = (function(){
         } else {
             console.log('[HUD] ' + cleanMessage);
         }
-    };
-
-    // Initialize sound button
-    var initSoundButton = function() {
-        if (soundBtn) return;
-        
-        var soundBtnSize = tileSize * 3;
-        var soundBtnX = mapWidth - mapMargin - soundBtnSize - tileSize;
-        var soundBtnY = mapHeight - mapMargin - soundBtnSize - tileSize;
-        
-        soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
-            var isMuted = window.__basemanGameSoundEffectsEnabled === false;
-            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
-                window.BaseManSettings.setSetting('gameSoundEffects', !isMuted);
-                window.BaseManSettings.applySettings();
-            } else {
-                window.__basemanGameSoundEffectsEnabled = !isMuted;
-            }
-            soundBtn.setIcon(function(ctx, centerX, centerY, frame) {
-                var isMuted = window.__basemanGameSoundEffectsEnabled === false;
-                var size = soundBtnSize;
-                var iconColor = isMuted ? '#FF0000' : '#00FF00';
-                
-                // Draw speaker body (rounded rectangle)
-                var bodyW = size * 0.4;
-                var bodyH = size * 0.5;
-                var bodyX = centerX - bodyW * 0.6;
-                var bodyY = centerY - bodyH * 0.5;
-                var cornerRadius = size * 0.05;
-                
-                ctx.fillStyle = iconColor;
-                ctx.beginPath();
-                ctx.moveTo(bodyX + cornerRadius, bodyY);
-                ctx.lineTo(bodyX + bodyW - cornerRadius, bodyY);
-                ctx.quadraticCurveTo(bodyX + bodyW, bodyY, bodyX + bodyW, bodyY + cornerRadius);
-                ctx.lineTo(bodyX + bodyW, bodyY + bodyH - cornerRadius);
-                ctx.quadraticCurveTo(bodyX + bodyW, bodyY + bodyH, bodyX + bodyW - cornerRadius, bodyY + bodyH);
-                ctx.lineTo(bodyX + cornerRadius, bodyY + bodyH);
-                ctx.quadraticCurveTo(bodyX, bodyY + bodyH, bodyX, bodyY + bodyH - cornerRadius);
-                ctx.lineTo(bodyX, bodyY + cornerRadius);
-                ctx.quadraticCurveTo(bodyX, bodyY, bodyX + cornerRadius, bodyY);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Draw speaker cone
-                var coneW = size * 0.15;
-                var coneH = size * 0.3;
-                var coneX = bodyX + bodyW;
-                var coneY = centerY - coneH * 0.5;
-                
-                ctx.fillStyle = iconColor;
-                ctx.beginPath();
-                ctx.moveTo(coneX, coneY);
-                ctx.lineTo(coneX + coneW, centerY - coneH * 0.25);
-                ctx.lineTo(coneX + coneW, centerY + coneH * 0.25);
-                ctx.lineTo(coneX, coneY + coneH);
-                ctx.closePath();
-                ctx.fill();
-                
-                if (isMuted) {
-                    // Draw slash line for muted state
-                    ctx.strokeStyle = iconColor;
-                    ctx.lineWidth = size * 0.08;
-                    ctx.beginPath();
-                    ctx.moveTo(coneX + coneW + size * 0.1, coneY - size * 0.1);
-                    ctx.lineTo(coneX + coneW + size * 0.5, coneY + coneH + size * 0.1);
-                    ctx.stroke();
-                } else {
-                    // Draw sound waves for unmuted state
-                    ctx.strokeStyle = iconColor;
-                    ctx.lineWidth = size * 0.06;
-                    var waveX = coneX + coneW;
-                    var waveY = centerY;
-                    var waveRadius1 = size * 0.12;
-                    var waveRadius2 = size * 0.2;
-                    var waveRadius3 = size * 0.28;
-                    
-                    ctx.beginPath();
-                    ctx.arc(waveX, waveY, waveRadius1, -Math.PI * 0.25, Math.PI * 0.25);
-                    ctx.stroke();
-                    
-                    ctx.beginPath();
-                    ctx.arc(waveX, waveY, waveRadius2, -Math.PI * 0.3, Math.PI * 0.3);
-                    ctx.stroke();
-                    
-                    ctx.beginPath();
-                    ctx.arc(waveX, waveY, waveRadius3, -Math.PI * 0.35, Math.PI * 0.35);
-                    ctx.stroke();
-                }
-            });
-        });
-        
-        soundBtn.borderBlurColor = "#333";
-        soundBtn.borderFocusColor = "#EEE";
     };
 
     return {
@@ -164,27 +69,16 @@ var hud = (function(){
                 if (on) {
                     inGameMenu.onHudEnable();
                     vcr.onHudEnable();
-                    initSoundButton();
-                    if (soundBtn) soundBtn.enable();
                 }
                 else {
                     inGameMenu.onHudDisable();
                     vcr.onHudDisable();
-                    if (soundBtn) soundBtn.disable();
                 }
-            }
-            
-            if (on && soundBtn) {
-                soundBtn.update();
             }
         },
         draw: function(ctx) {
             inGameMenu.draw(ctx);
             vcr.draw(ctx);
-            
-            if (on && soundBtn) {
-                soundBtn.draw(ctx);
-            }
             
             // Debug: Log draw conditions
             if (typeof window.__hudDebugCount === 'undefined') {
