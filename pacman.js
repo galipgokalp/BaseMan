@@ -9854,6 +9854,9 @@ var homeState = (function(){
 
     return {
         init: function() {
+            // Enable menu immediately to prevent flickering/flashing effect
+            // Menu should be available regardless of wallet status
+            menu.enable();
             ensureWalletListener();
             syncWalletState();
             audio.coffeeBreakMusic.startLoop();
