@@ -4401,23 +4401,8 @@ var hud = (function(){
             ctx.restore();
         });
         
-        // Make button more visible with brighter border and background
-        soundBtn.borderFocusColor = "#FFE14F";
-        soundBtn.borderBlurColor = "#FFE14F"; // Make border always visible
-        
-        // Override button draw to make it more visible
-        var originalDraw = soundBtn.draw;
-        soundBtn.draw = function(ctx) {
-            // Draw a very visible background
-            ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-            ctx.fillRect(this.x - 3, this.y - 3, this.w + 6, this.h + 6);
-            // Draw bright border
-            ctx.strokeStyle = "#FFE14F";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(this.x - 2, this.y - 2, this.w + 4, this.h + 4);
-            // Call original draw
-            originalDraw.call(this, ctx);
-        };
+        // Button already has modern design with shadow and gradient
+        // No need for extra background/border override
         
         // Debug: Log button creation
         logHUD('[HUD] Sound button created:', {
