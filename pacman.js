@@ -4268,6 +4268,7 @@ var hud = (function(){
         
         // Draw simple speaker icon: green when sound on, red when muted
         soundBtn.setIcon(function(ctx, x, y, frame) {
+            // x, y are the center coordinates from Button.draw()
             // Get muted state
             var isMuted = false;
             if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.getSetting) {
@@ -4283,8 +4284,8 @@ var hud = (function(){
             }
 
             var size = soundBtnSize;
-            var centerX = x + size / 2;
-            var centerY = y + size / 2;
+            var centerX = x; // x is already the center
+            var centerY = y; // y is already the center
             
             ctx.save();
             
@@ -4366,6 +4367,10 @@ var hud = (function(){
             
             ctx.restore();
         });
+        
+        // Make button more visible
+        soundBtn.borderBlurColor = "#FFFFFF"; // White border for visibility
+        soundBtn.borderFocusColor = "#FFFF00"; // Yellow when focused
         
         // Debug: Log button creation
         logHUD('[HUD] Sound button created:', {
