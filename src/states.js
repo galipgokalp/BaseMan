@@ -447,9 +447,17 @@ var gameTitleState = (function() {
     return {
         init: function() {
             resetTitle();
-            forEachCharBtn(function (btn) {
-                btn.enable();
-            });
+            // Only enable yellowBtn (toggle button) for MS PAC-MAN and OTTO modes
+            if (gameMode == GAME_MSPACMAN || gameMode == GAME_OTTO) {
+                yellowBtn.enable();
+            } else {
+                yellowBtn.disable();
+            }
+            // Always enable ghost buttons
+            redBtn.enable();
+            pinkBtn.enable();
+            cyanBtn.enable();
+            orangeBtn.enable();
         },
         shutdown: function() {
             forEachCharBtn(function (btn) {
