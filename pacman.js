@@ -4291,77 +4291,75 @@ var hud = (function(){
             
             ctx.save();
             
-            // Color: green when sound on, red when muted
+            // Color: green when sound on, red when muted - entire icon is solid color
             var color = isMuted ? "#FF4444" : "#4CAF50";
             ctx.fillStyle = color;
             ctx.strokeStyle = color;
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 3;
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
             
             if (!isMuted) {
-                // Sound ON - Draw speaker icon (green)
-                // Based on reference image: speaker with sound waves
-                var speakerW = size * 0.32;
-                var speakerH = size * 0.48;
-                var speakerX = centerX - size * 0.28;
+                // Sound ON - Draw speaker icon (completely green)
+                var speakerW = size * 0.35;
+                var speakerH = size * 0.5;
+                var speakerX = centerX - size * 0.3;
                 var speakerY = centerY - speakerH / 2;
                 
-                // Speaker body (rounded rectangle)
+                // Speaker body (rectangle)
                 ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
                 
                 // Speaker cone (triangle pointing right)
                 ctx.beginPath();
                 ctx.moveTo(speakerX + speakerW, speakerY);
-                ctx.lineTo(speakerX + speakerW + size * 0.14, centerY);
+                ctx.lineTo(speakerX + speakerW + size * 0.15, centerY);
                 ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
                 ctx.closePath();
                 ctx.fill();
                 
-                // Sound waves (3 curved arcs, more pronounced)
-                var waveStartX = speakerX + speakerW + size * 0.18;
+                // Sound waves (3 curved arcs - all green, thicker)
+                var waveStartX = speakerX + speakerW + size * 0.2;
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 2.5;
+                ctx.lineWidth = 3;
                 
                 // Small wave
                 ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.1, -0.6, 0.6, false);
+                ctx.arc(waveStartX, centerY, size * 0.12, -0.5, 0.5, false);
                 ctx.stroke();
                 
                 // Medium wave
                 ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.16, -0.8, 0.8, false);
+                ctx.arc(waveStartX, centerY, size * 0.18, -0.7, 0.7, false);
                 ctx.stroke();
                 
                 // Large wave
                 ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.22, -1.0, 1.0, false);
+                ctx.arc(waveStartX, centerY, size * 0.24, -0.9, 0.9, false);
                 ctx.stroke();
             } else {
-                // Sound OFF - Draw muted speaker icon (red)
-                // Based on reference image: speaker with diagonal slash
-                var speakerW = size * 0.32;
-                var speakerH = size * 0.48;
-                var speakerX = centerX - size * 0.28;
+                // Sound OFF - Draw muted speaker icon (completely red)
+                var speakerW = size * 0.35;
+                var speakerH = size * 0.5;
+                var speakerX = centerX - size * 0.3;
                 var speakerY = centerY - speakerH / 2;
                 
-                // Speaker body (rounded rectangle)
+                // Speaker body (rectangle)
                 ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
                 
                 // Speaker cone (triangle pointing right)
                 ctx.beginPath();
                 ctx.moveTo(speakerX + speakerW, speakerY);
-                ctx.lineTo(speakerX + speakerW + size * 0.14, centerY);
+                ctx.lineTo(speakerX + speakerW + size * 0.15, centerY);
                 ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
                 ctx.closePath();
                 ctx.fill();
                 
-                // Diagonal slash (mute indicator - thicker and more visible)
+                // Diagonal slash (mute indicator - thick red line)
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 3.5;
-                var lineStartX = speakerX + speakerW + size * 0.08;
-                var lineEndX = centerX + size * 0.25;
-                var lineOffset = size * 0.22;
+                ctx.lineWidth = 4;
+                var lineStartX = speakerX + speakerW + size * 0.1;
+                var lineEndX = centerX + size * 0.28;
+                var lineOffset = size * 0.25;
                 
                 ctx.beginPath();
                 ctx.moveTo(lineStartX, centerY - lineOffset);
