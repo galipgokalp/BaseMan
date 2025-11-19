@@ -46,26 +46,6 @@
                 </span>
               </label>
             </div>
-            <div class="settings-row settings-toggle-row">
-              <span>Intro Music</span>
-              <label class="settings-toggle">
-                <input type="checkbox" data-setting="introMusic" checked />
-                <span class="settings-toggle-slider">
-                  <span class="settings-toggle-label">Off</span>
-                  <span class="settings-toggle-label">On</span>
-                </span>
-              </label>
-            </div>
-            <div class="settings-row settings-toggle-row">
-              <span>Game Sound Effects</span>
-              <label class="settings-toggle">
-                <input type="checkbox" data-setting="gameSoundEffects" checked />
-                <span class="settings-toggle-slider">
-                  <span class="settings-toggle-label">Off</span>
-                  <span class="settings-toggle-label">On</span>
-                </span>
-              </label>
-            </div>
             <div class="settings-row settings-select-row">
               <span>Game Difficulty</span>
               <select class="settings-select" data-setting="difficulty">
@@ -175,20 +155,6 @@
     if (themeToggle) {
       const theme = getSetting('theme', 'dark');
       themeToggle.checked = theme === 'light';
-    }
-
-    // Load intro music setting
-    const introMusicToggle = panel.querySelector('[data-setting="introMusic"]');
-    if (introMusicToggle) {
-      const introMusicEnabled = getSetting('introMusic', true);
-      introMusicToggle.checked = introMusicEnabled;
-    }
-    
-    // Load game sound effects setting
-    const gameSoundEffectsToggle = panel.querySelector('[data-setting="gameSoundEffects"]');
-    if (gameSoundEffectsToggle) {
-      const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
-      gameSoundEffectsToggle.checked = gameSoundEffectsEnabled;
     }
 
     // Load difficulty
@@ -525,98 +491,6 @@
         };
         themeLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
         themeLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
-      }
-    }
-
-    // Intro Music toggle
-    const introMusicToggle = panel.querySelector('[data-setting="introMusic"]');
-    if (introMusicToggle && !wiredElements.has(introMusicToggle)) {
-      wiredElements.add(introMusicToggle);
-      const introMusicEnabled = getSetting('introMusic', true);
-      introMusicToggle.checked = introMusicEnabled;
-      
-      const handleIntroMusicChange = (e) => {
-        if (e.type === 'change') {
-          e.stopPropagation();
-        } else {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        const input = e.target.type === 'checkbox' ? e.target : introMusicToggle;
-        const enabled = input.checked;
-        setSetting('introMusic', enabled);
-        applySettings();
-      };
-      
-      introMusicToggle.addEventListener('change', handleIntroMusicChange, { passive: true });
-      introMusicToggle.addEventListener('click', handleIntroMusicChange, { passive: false, capture: true });
-      introMusicToggle.addEventListener('touchstart', (e) => {
-        e.stopPropagation();
-      }, { passive: true });
-      introMusicToggle.addEventListener('touchend', handleIntroMusicChange, { passive: false, capture: true });
-      
-      const introMusicLabel = introMusicToggle.closest('.settings-toggle');
-      if (introMusicLabel && !wiredElements.has(introMusicLabel)) {
-        wiredElements.add(introMusicLabel);
-        const handleLabelClick = (e) => {
-          if (e.target === introMusicLabel || e.target.closest('.settings-toggle-slider')) {
-            e.preventDefault();
-            e.stopPropagation();
-            introMusicToggle.checked = !introMusicToggle.checked;
-            introMusicToggle.dispatchEvent(new Event('change', { bubbles: true }));
-            const enabled = introMusicToggle.checked;
-            setSetting('introMusic', enabled);
-            applySettings();
-          }
-        };
-        introMusicLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
-        introMusicLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
-      }
-    }
-
-    // Game Sound Effects toggle
-    const gameSoundEffectsToggle = panel.querySelector('[data-setting="gameSoundEffects"]');
-    if (gameSoundEffectsToggle && !wiredElements.has(gameSoundEffectsToggle)) {
-      wiredElements.add(gameSoundEffectsToggle);
-      const gameSoundEffectsEnabled = getSetting('gameSoundEffects', true);
-      gameSoundEffectsToggle.checked = gameSoundEffectsEnabled;
-      
-      const handleGameSoundEffectsChange = (e) => {
-        if (e.type === 'change') {
-          e.stopPropagation();
-        } else {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        const input = e.target.type === 'checkbox' ? e.target : gameSoundEffectsToggle;
-        const enabled = input.checked;
-        setSetting('gameSoundEffects', enabled);
-        applySettings();
-      };
-      
-      gameSoundEffectsToggle.addEventListener('change', handleGameSoundEffectsChange, { passive: true });
-      gameSoundEffectsToggle.addEventListener('click', handleGameSoundEffectsChange, { passive: false, capture: true });
-      gameSoundEffectsToggle.addEventListener('touchstart', (e) => {
-        e.stopPropagation();
-      }, { passive: true });
-      gameSoundEffectsToggle.addEventListener('touchend', handleGameSoundEffectsChange, { passive: false, capture: true });
-      
-      const gameSoundEffectsLabel = gameSoundEffectsToggle.closest('.settings-toggle');
-      if (gameSoundEffectsLabel && !wiredElements.has(gameSoundEffectsLabel)) {
-        wiredElements.add(gameSoundEffectsLabel);
-        const handleLabelClick = (e) => {
-          if (e.target === gameSoundEffectsLabel || e.target.closest('.settings-toggle-slider')) {
-            e.preventDefault();
-            e.stopPropagation();
-            gameSoundEffectsToggle.checked = !gameSoundEffectsToggle.checked;
-            gameSoundEffectsToggle.dispatchEvent(new Event('change', { bubbles: true }));
-            const enabled = gameSoundEffectsToggle.checked;
-            setSetting('gameSoundEffects', enabled);
-            applySettings();
-          }
-        };
-        gameSoundEffectsLabel.addEventListener('click', handleLabelClick, { passive: false, capture: true });
-        gameSoundEffectsLabel.addEventListener('touchend', handleLabelClick, { passive: false, capture: true });
       }
     }
 
