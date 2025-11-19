@@ -9836,6 +9836,18 @@ var homeState = (function(){
                 // Fallback to global variable
                 window.__basemanIntroMusicEnabled = on;
             }
+            // Immediately stop or start the music based on the new setting
+            if (typeof audio !== 'undefined' && audio.coffeeBreakMusic) {
+                if (on) {
+                    // Start music if enabled
+                    audio.coffeeBreakMusic.startLoop();
+                } else {
+                    // Stop music if disabled
+                    if (audio.coffeeBreakMusic.stopLoop) {
+                        audio.coffeeBreakMusic.stopLoop();
+                    }
+                }
+            }
         });
     menu.addToggleTextButton("SOUND EFFECTS",
         function() {
@@ -9856,6 +9868,27 @@ var homeState = (function(){
             } else {
                 // Fallback to global variable
                 window.__basemanGameSoundEffectsEnabled = on;
+            }
+            // Immediately stop sound effects if disabled
+            if (!on && typeof audio !== 'undefined' && typeof audio.silence === 'function') {
+                // Stop all game sound effects (but not intro music)
+                // Note: silence() stops all sounds, but intro music is controlled separately
+                // We need to stop game sound effects specifically
+                var gameSoundTracks = [
+                    'credit', 'startMusic', 'die', 'ghostReturnToHome',
+                    'eatingGhost', 'ghostTurnToBlue', 'eatingFruit',
+                    'ghostSpurtMove1', 'ghostSpurtMove2', 'ghostSpurtMove3', 'ghostSpurtMove4',
+                    'ghostNormalMove', 'extend', 'eating'
+                ];
+                gameSoundTracks.forEach(function(trackName) {
+                    if (audio[trackName] && typeof audio[trackName].stopLoop === 'function') {
+                        audio[trackName].stopLoop();
+                    }
+                });
+                // Also stop ghost sounds
+                if (typeof audio.ghostReset === 'function') {
+                    audio.ghostReset();
+                }
             }
         });
 
@@ -9904,7 +9937,17 @@ var homeState = (function(){
             menu.enable();
             ensureWalletListener();
             syncWalletState();
-            audio.coffeeBreakMusic.startLoop();
+            // Check intro music setting before starting
+            var introMusicEnabled = true;
+            if (typeof window.BaseManSettings !== 'undefined' && typeof window.BaseManSettings.getSetting === 'function') {
+                introMusicEnabled = window.BaseManSettings.getSetting('introMusic', true);
+            } else if (typeof window.__basemanIntroMusicEnabled !== 'undefined') {
+                introMusicEnabled = window.__basemanIntroMusicEnabled !== false;
+            }
+            // Only start music if enabled
+            if (introMusicEnabled && typeof audio !== 'undefined' && audio.coffeeBreakMusic) {
+                audio.coffeeBreakMusic.startLoop();
+            }
         },
         draw: function() {
             renderer.clearMapFrame();
