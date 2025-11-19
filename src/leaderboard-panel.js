@@ -98,6 +98,7 @@
     const li = document.createElement("li");
     li.className = "leaderboard-item";
 
+    // Rank
     const rank = document.createElement("span");
     rank.className = "leaderboard-rank";
     const rankValue =
@@ -105,6 +106,7 @@
     rank.textContent = `#${rankValue}`;
     li.append(rank);
 
+    // Avatar
     const identityRoot = document.createElement(entry?.profile?.profileUrl ? "a" : "div");
     identityRoot.className = "leaderboard-identity";
     if (entry?.profile?.profileUrl) {
@@ -130,51 +132,27 @@
     }
     identityRoot.appendChild(avatar);
 
+    // Username
     const identityText = document.createElement("div");
     identityText.className = "leaderboard-text";
-    identityRoot.appendChild(identityText);
-
     const name = document.createElement("span");
     name.className = "leaderboard-name";
     name.textContent =
       entry?.profile?.displayName || entry?.profile?.username || abbreviateAddress(entry.player);
     identityText.appendChild(name);
-
-    const handle = document.createElement("span");
-    handle.className = "leaderboard-handle";
-    if (entry?.profile?.username) {
-      handle.textContent = `@${entry.profile.username}`;
-    } else {
-      handle.textContent = abbreviateAddress(entry.player);
-    }
-    identityText.appendChild(handle);
+    identityRoot.appendChild(identityText);
 
     li.append(identityRoot);
 
+    // Total Score
     const scoreWrap = document.createElement("div");
     scoreWrap.className = "leaderboard-score";
-
     const scoreValue = document.createElement("span");
     scoreValue.className = "leaderboard-score-value";
     scoreValue.textContent = formatScore(entry.totalScore, entry.highScore);
     scoreWrap.appendChild(scoreValue);
-
-    const scoreLabel = document.createElement("span");
-    scoreLabel.className = "leaderboard-score-label";
-    scoreLabel.textContent = "Total score";
-    scoreWrap.appendChild(scoreLabel);
-
-    const updateLabel = document.createElement("span");
-    updateLabel.className = "leaderboard-updated";
-    const relative = entry.lastUpdatedAt
-      ? formatRelativeTime(entry.lastUpdatedAt)
-      : formatTimestamp(entry.lastUpdate ?? entry.updatedAt);
-    if (relative) {
-      updateLabel.textContent = `Last update: ${relative}`;
-      scoreWrap.appendChild(updateLabel);
-    }
-
     li.append(scoreWrap);
+
     return li;
   };
 
