@@ -4268,7 +4268,7 @@ var hud = (function(){
             }
         });
         
-        // Draw icon based on reference image: green when sound on, red when muted
+        // Draw icon based on ses-ikon.jpg: green when sound on, red when muted
         soundBtn.setIcon(function(ctx, x, y, frame) {
             // x, y are the center coordinates from Button.draw()
             // Get muted state
@@ -4295,71 +4295,97 @@ var hud = (function(){
             var color = isMuted ? "#FF4444" : "#4CAF50";
             ctx.fillStyle = color;
             ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 3.5;
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
             
             if (!isMuted) {
                 // Sound ON - Draw speaker icon (completely green)
-                var speakerW = size * 0.35;
-                var speakerH = size * 0.5;
-                var speakerX = centerX - size * 0.3;
+                // Based on ses-ikon.jpg reference
+                var speakerW = size * 0.38;
+                var speakerH = size * 0.52;
+                var speakerX = centerX - size * 0.32;
                 var speakerY = centerY - speakerH / 2;
                 
-                // Speaker body (rectangle)
-                ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
+                // Speaker body (rounded rectangle)
+                var cornerRadius = size * 0.08;
+                ctx.beginPath();
+                ctx.moveTo(speakerX + cornerRadius, speakerY);
+                ctx.lineTo(speakerX + speakerW - cornerRadius, speakerY);
+                ctx.quadraticCurveTo(speakerX + speakerW, speakerY, speakerX + speakerW, speakerY + cornerRadius);
+                ctx.lineTo(speakerX + speakerW, speakerY + speakerH - cornerRadius);
+                ctx.quadraticCurveTo(speakerX + speakerW, speakerY + speakerH, speakerX + speakerW - cornerRadius, speakerY + speakerH);
+                ctx.lineTo(speakerX + cornerRadius, speakerY + speakerH);
+                ctx.quadraticCurveTo(speakerX, speakerY + speakerH, speakerX, speakerY + speakerH - cornerRadius);
+                ctx.lineTo(speakerX, speakerY + cornerRadius);
+                ctx.quadraticCurveTo(speakerX, speakerY, speakerX + cornerRadius, speakerY);
+                ctx.closePath();
+                ctx.fill();
                 
                 // Speaker cone (triangle pointing right)
                 ctx.beginPath();
                 ctx.moveTo(speakerX + speakerW, speakerY);
-                ctx.lineTo(speakerX + speakerW + size * 0.15, centerY);
+                ctx.lineTo(speakerX + speakerW + size * 0.18, centerY);
                 ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
                 ctx.closePath();
                 ctx.fill();
                 
                 // Sound waves (3 curved arcs - all green, thicker)
-                var waveStartX = speakerX + speakerW + size * 0.2;
+                var waveStartX = speakerX + speakerW + size * 0.22;
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 3.5;
                 
                 // Small wave
                 ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.12, -0.5, 0.5, false);
+                ctx.arc(waveStartX, centerY, size * 0.13, -0.5, 0.5, false);
                 ctx.stroke();
                 
                 // Medium wave
                 ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.18, -0.7, 0.7, false);
+                ctx.arc(waveStartX, centerY, size * 0.20, -0.7, 0.7, false);
                 ctx.stroke();
                 
                 // Large wave
                 ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.24, -0.9, 0.9, false);
+                ctx.arc(waveStartX, centerY, size * 0.27, -0.9, 0.9, false);
                 ctx.stroke();
             } else {
                 // Sound OFF - Draw muted speaker icon (completely red)
-                var speakerW = size * 0.35;
-                var speakerH = size * 0.5;
-                var speakerX = centerX - size * 0.3;
+                // Based on ses-ikon.jpg reference
+                var speakerW = size * 0.38;
+                var speakerH = size * 0.52;
+                var speakerX = centerX - size * 0.32;
                 var speakerY = centerY - speakerH / 2;
                 
-                // Speaker body (rectangle)
-                ctx.fillRect(speakerX, speakerY, speakerW, speakerH);
+                // Speaker body (rounded rectangle)
+                var cornerRadius = size * 0.08;
+                ctx.beginPath();
+                ctx.moveTo(speakerX + cornerRadius, speakerY);
+                ctx.lineTo(speakerX + speakerW - cornerRadius, speakerY);
+                ctx.quadraticCurveTo(speakerX + speakerW, speakerY, speakerX + speakerW, speakerY + cornerRadius);
+                ctx.lineTo(speakerX + speakerW, speakerY + speakerH - cornerRadius);
+                ctx.quadraticCurveTo(speakerX + speakerW, speakerY + speakerH, speakerX + speakerW - cornerRadius, speakerY + speakerH);
+                ctx.lineTo(speakerX + cornerRadius, speakerY + speakerH);
+                ctx.quadraticCurveTo(speakerX, speakerY + speakerH, speakerX, speakerY + speakerH - cornerRadius);
+                ctx.lineTo(speakerX, speakerY + cornerRadius);
+                ctx.quadraticCurveTo(speakerX, speakerY, speakerX + cornerRadius, speakerY);
+                ctx.closePath();
+                ctx.fill();
                 
                 // Speaker cone (triangle pointing right)
                 ctx.beginPath();
                 ctx.moveTo(speakerX + speakerW, speakerY);
-                ctx.lineTo(speakerX + speakerW + size * 0.15, centerY);
+                ctx.lineTo(speakerX + speakerW + size * 0.18, centerY);
                 ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
                 ctx.closePath();
                 ctx.fill();
                 
                 // Diagonal slash (mute indicator - thick red line)
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 4;
-                var lineStartX = speakerX + speakerW + size * 0.1;
-                var lineEndX = centerX + size * 0.28;
-                var lineOffset = size * 0.25;
+                ctx.lineWidth = 4.5;
+                var lineStartX = speakerX + speakerW + size * 0.12;
+                var lineEndX = centerX + size * 0.30;
+                var lineOffset = size * 0.28;
                 
                 ctx.beginPath();
                 ctx.moveTo(lineStartX, centerY - lineOffset);
