@@ -4218,8 +4218,10 @@ var hud = (function(){
         // Simplified: x = mapWidth + mapMargin - soundBtnSize - mapPad
         var mapMargin = 4 * tileSize; // 32px
         var mapPad = tileSize / 8; // 1px
-        var soundBtnX = mapWidth + mapMargin - soundBtnSize - mapPad; // Screen right edge in map coords
-        var soundBtnY = -mapMargin - mapPad; // Screen top edge in map coords (negative because translate)
+        var offsetLeft = tileSize * 1.5; // Move left by 12px
+        var offsetDown = tileSize * 1.5; // Move down by 12px
+        var soundBtnX = mapWidth + mapMargin - soundBtnSize - mapPad - offsetLeft; // Screen right edge in map coords, moved left
+        var soundBtnY = -mapMargin - mapPad + offsetDown; // Screen top edge in map coords (negative because translate), moved down
         
         // Quick sound toggle button - controls both intro music and sound effects
         soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
