@@ -143,6 +143,8 @@ body {
   text-decoration: none;
   color: inherit;
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .leaderboard-identity:hover .leaderboard-name {

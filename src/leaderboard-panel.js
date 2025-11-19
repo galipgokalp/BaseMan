@@ -106,7 +106,7 @@
     rank.textContent = `#${rankValue}`;
     li.append(rank);
 
-    // Avatar
+    // Avatar and Username Container
     const identityRoot = document.createElement(entry?.profile?.profileUrl ? "a" : "div");
     identityRoot.className = "leaderboard-identity";
     if (entry?.profile?.profileUrl) {
@@ -115,6 +115,7 @@
       identityRoot.rel = "noopener noreferrer";
     }
 
+    // Avatar
     const avatar = document.createElement("div");
     avatar.className = "leaderboard-avatar";
     if (entry?.profile?.avatarUrl || entry?.player) {
@@ -126,6 +127,11 @@
           : entry?.profile?.displayName || abbreviateAddress(entry.player);
       img.loading = "lazy";
       img.referrerPolicy = "no-referrer";
+      img.onerror = function() {
+        // Fallback to emoji if image fails to load
+        this.style.display = 'none';
+        avatar.textContent = "👾";
+      };
       avatar.appendChild(img);
     } else {
       avatar.textContent = "👾";
@@ -137,8 +143,8 @@
     identityText.className = "leaderboard-text";
     const name = document.createElement("span");
     name.className = "leaderboard-name";
-    name.textContent =
-      entry?.profile?.displayName || entry?.profile?.username || abbreviateAddress(entry.player);
+    const displayName = entry?.profile?.displayName || entry?.profile?.username || abbreviateAddress(entry.player);
+    name.textContent = displayName || "Unknown";
     identityText.appendChild(name);
     identityRoot.appendChild(identityText);
 
