@@ -9814,6 +9814,51 @@ var homeState = (function(){
             atlas.drawGhostSprite(ctx,x,y,Math.floor(frame/8)%2,DIR_RIGHT,false,false,false,blinky.color);
         });
 
+    // Add intro music and sound effects toggle buttons
+    menu.addSpacer(0.3);
+    menu.addToggleTextButton("INTRO MUSIC",
+        function() {
+            // Get current setting, default to true if not set
+            if (typeof window.BaseManSettings !== 'undefined' && typeof window.BaseManSettings.getSetting === 'function') {
+                return window.BaseManSettings.getSetting('introMusic', true);
+            }
+            // Fallback to global variable if BaseManSettings not available
+            return window.__basemanIntroMusicEnabled !== false;
+        },
+        function(on) {
+            // Set the setting
+            if (typeof window.BaseManSettings !== 'undefined' && typeof window.BaseManSettings.setSetting === 'function') {
+                window.BaseManSettings.setSetting('introMusic', on);
+                if (typeof window.BaseManSettings.applySettings === 'function') {
+                    window.BaseManSettings.applySettings();
+                }
+            } else {
+                // Fallback to global variable
+                window.__basemanIntroMusicEnabled = on;
+            }
+        });
+    menu.addToggleTextButton("SOUND EFFECTS",
+        function() {
+            // Get current setting, default to true if not set
+            if (typeof window.BaseManSettings !== 'undefined' && typeof window.BaseManSettings.getSetting === 'function') {
+                return window.BaseManSettings.getSetting('gameSoundEffects', true);
+            }
+            // Fallback to global variable if BaseManSettings not available
+            return window.__basemanGameSoundEffectsEnabled !== false;
+        },
+        function(on) {
+            // Set the setting
+            if (typeof window.BaseManSettings !== 'undefined' && typeof window.BaseManSettings.setSetting === 'function') {
+                window.BaseManSettings.setSetting('gameSoundEffects', on);
+                if (typeof window.BaseManSettings.applySettings === 'function') {
+                    window.BaseManSettings.applySettings();
+                }
+            } else {
+                // Fallback to global variable
+                window.__basemanGameSoundEffectsEnabled = on;
+            }
+        });
+
     var setWalletStatus = function(ready, error) {
         walletReady = !!ready;
         walletError = walletReady ? null : error || null;
