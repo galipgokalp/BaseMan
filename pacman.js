@@ -4187,227 +4187,99 @@ var hud = (function(){
             console.log('[HUD] ' + cleanMessage);
         }
     };
-    
-    // Initialize sound button with lazy evaluation
-    var initSoundButton = function() {
-        if (soundBtn) {
-            return; // Already initialized - no need to log every frame
-        }
-        
-        // Ensure tileSize and mapWidth are available
-        if (typeof tileSize === 'undefined' || typeof mapWidth === 'undefined') {
-            logHUD('[HUD] initSoundButton: Not ready yet', {
-                tileSize: typeof tileSize !== 'undefined' ? tileSize : 'undefined',
-                mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined'
-            });
-            return; // Not ready yet
-        }
-        
-        logHUD('[HUD] initSoundButton: Starting initialization', {
-            tileSize: tileSize,
-            mapWidth: mapWidth
-        });
-        
-        // Make button smaller and position in top-right corner
-        var soundBtnSize = tileSize * 3; // 24px - smaller to not interfere with game
-        // Position in top-right corner of the screen
-        // Context is already translated by (mapMargin+mapPad, mapMargin+mapPad)
-        // To position at screen top-right, we need to account for this translation
-        // screenWidth = mapWidth + 2*mapMargin
-        // In map coordinates (after translate): x = screenWidth - soundBtnSize - mapMargin - mapPad
-        // Simplified: x = mapWidth + mapMargin - soundBtnSize - mapPad
-        var mapMargin = 4 * tileSize; // 32px
-        var mapPad = tileSize / 8; // 1px
-        var offsetLeft = tileSize * 1.5; // Move left by 12px
-        var offsetDown = tileSize * 1.5; // Move down by 12px
-        var soundBtnX = mapWidth + mapMargin - soundBtnSize - mapPad - offsetLeft; // Screen right edge in map coords, moved left
-        var soundBtnY = -mapMargin - mapPad + offsetDown; // Screen top edge in map coords (negative because translate), moved down
-        
-        // Quick sound toggle button - controls both intro music and sound effects
-        soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
-            logHUD('Sound button clicked');
-            
-            // Get current states from settings
-            var currentSoundEffects = true;
-            var currentIntroMusic = true;
-            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.getSetting) {
-                currentSoundEffects = window.BaseManSettings.getSetting('gameSoundEffects', true);
-                currentIntroMusic = window.BaseManSettings.getSetting('introMusic', true);
-            } else {
-                if (typeof window.__basemanGameSoundEffectsEnabled !== 'undefined') {
-                    currentSoundEffects = window.__basemanGameSoundEffectsEnabled !== false;
-                }
-                if (typeof window.__basemanIntroMusicEnabled !== 'undefined') {
-                    currentIntroMusic = window.__basemanIntroMusicEnabled !== false;
-                }
-            }
-            
-            // Toggle both settings to the same state (if either is on, turn both off; if both are off, turn both on)
-            var newState = !(currentSoundEffects || currentIntroMusic);
-            logHUD('Toggling all sounds:', {
-                from: {soundEffects: currentSoundEffects, introMusic: currentIntroMusic},
-                to: newState
-            });
-            
-            // Update both settings
-            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
-                window.BaseManSettings.setSetting('gameSoundEffects', newState);
-                window.BaseManSettings.setSetting('introMusic', newState);
-                window.BaseManSettings.applySettings();
-                logHUD('All sound settings updated via BaseManSettings');
-            } else {
-                window.__basemanGameSoundEffectsEnabled = newState;
-                window.__basemanIntroMusicEnabled = newState;
-                logHUD('All sound settings updated via global variables');
-            }
-            
-            // Force re-wrap audio tracks to apply change immediately
-            if (typeof window.BaseManSettings !== 'undefined' && typeof window.BaseManSettings.wrapAudioTracks === 'function') {
-                window.BaseManSettings.wrapAudioTracks();
-                logHUD('Audio tracks re-wrapped');
-            }
-        });
-        
-        // Draw icon based on ses-ikon.jpg: green when sound on, red when muted
-        soundBtn.setIcon(function(ctx, x, y, frame) {
-            // x, y are the center coordinates from Button.draw()
-            // Get muted state
-            var isMuted = false;
-            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.getSetting) {
-                var soundEffects = window.BaseManSettings.getSetting('gameSoundEffects', true);
-                var introMusic = window.BaseManSettings.getSetting('introMusic', true);
-                isMuted = !(soundEffects || introMusic);
-            } else {
-                var soundEffects = (typeof window.__basemanGameSoundEffectsEnabled !== 'undefined')
-                    ? window.__basemanGameSoundEffectsEnabled !== false : true;
-                var introMusic = (typeof window.__basemanIntroMusicEnabled !== 'undefined')
-                    ? window.__basemanIntroMusicEnabled !== false : true;
-                isMuted = !(soundEffects || introMusic);
-            }
 
-            var size = soundBtnSize;
-            var centerX = x; // x is already the center
-            var centerY = y; // y is already the center
-            
-            ctx.save();
-            
-            // Color: green when sound on, red when muted - entire icon is solid color
-            var color = isMuted ? "#FF4444" : "#4CAF50";
-            ctx.fillStyle = color;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 3.5;
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-            
-            if (!isMuted) {
-                // Sound ON - Draw speaker icon (completely green)
-                // Based on ses-ikon.jpg reference
-                var speakerW = size * 0.38;
-                var speakerH = size * 0.52;
-                var speakerX = centerX - size * 0.32;
-                var speakerY = centerY - speakerH / 2;
-                
-                // Speaker body (rounded rectangle)
-                var cornerRadius = size * 0.08;
-                ctx.beginPath();
-                ctx.moveTo(speakerX + cornerRadius, speakerY);
-                ctx.lineTo(speakerX + speakerW - cornerRadius, speakerY);
-                ctx.quadraticCurveTo(speakerX + speakerW, speakerY, speakerX + speakerW, speakerY + cornerRadius);
-                ctx.lineTo(speakerX + speakerW, speakerY + speakerH - cornerRadius);
-                ctx.quadraticCurveTo(speakerX + speakerW, speakerY + speakerH, speakerX + speakerW - cornerRadius, speakerY + speakerH);
-                ctx.lineTo(speakerX + cornerRadius, speakerY + speakerH);
-                ctx.quadraticCurveTo(speakerX, speakerY + speakerH, speakerX, speakerY + speakerH - cornerRadius);
-                ctx.lineTo(speakerX, speakerY + cornerRadius);
-                ctx.quadraticCurveTo(speakerX, speakerY, speakerX + cornerRadius, speakerY);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Speaker cone (triangle pointing right)
-                ctx.beginPath();
-                ctx.moveTo(speakerX + speakerW, speakerY);
-                ctx.lineTo(speakerX + speakerW + size * 0.18, centerY);
-                ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Sound waves (3 curved arcs - all green, thicker)
-                var waveStartX = speakerX + speakerW + size * 0.22;
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 3.5;
-                
-                // Small wave
-                ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.13, -0.5, 0.5, false);
-                ctx.stroke();
-                
-                // Medium wave
-                ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.20, -0.7, 0.7, false);
-                ctx.stroke();
-                
-                // Large wave
-                ctx.beginPath();
-                ctx.arc(waveStartX, centerY, size * 0.27, -0.9, 0.9, false);
-                ctx.stroke();
+    // Initialize sound button
+    var initSoundButton = function() {
+        if (soundBtn) return;
+        
+        var soundBtnSize = tileSize * 3;
+        var soundBtnX = mapWidth - mapMargin - soundBtnSize - tileSize;
+        var soundBtnY = mapHeight - mapMargin - soundBtnSize - tileSize;
+        
+        soundBtn = new Button(soundBtnX, soundBtnY, soundBtnSize, soundBtnSize, function() {
+            var isMuted = window.__basemanGameSoundEffectsEnabled === false;
+            if (typeof window.BaseManSettings !== 'undefined' && window.BaseManSettings.setSetting) {
+                window.BaseManSettings.setSetting('gameSoundEffects', !isMuted);
+                window.BaseManSettings.applySettings();
             } else {
-                // Sound OFF - Draw muted speaker icon (completely red)
-                // Based on ses-ikon.jpg reference
-                var speakerW = size * 0.38;
-                var speakerH = size * 0.52;
-                var speakerX = centerX - size * 0.32;
-                var speakerY = centerY - speakerH / 2;
-                
-                // Speaker body (rounded rectangle)
-                var cornerRadius = size * 0.08;
-                ctx.beginPath();
-                ctx.moveTo(speakerX + cornerRadius, speakerY);
-                ctx.lineTo(speakerX + speakerW - cornerRadius, speakerY);
-                ctx.quadraticCurveTo(speakerX + speakerW, speakerY, speakerX + speakerW, speakerY + cornerRadius);
-                ctx.lineTo(speakerX + speakerW, speakerY + speakerH - cornerRadius);
-                ctx.quadraticCurveTo(speakerX + speakerW, speakerY + speakerH, speakerX + speakerW - cornerRadius, speakerY + speakerH);
-                ctx.lineTo(speakerX + cornerRadius, speakerY + speakerH);
-                ctx.quadraticCurveTo(speakerX, speakerY + speakerH, speakerX, speakerY + speakerH - cornerRadius);
-                ctx.lineTo(speakerX, speakerY + cornerRadius);
-                ctx.quadraticCurveTo(speakerX, speakerY, speakerX + cornerRadius, speakerY);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Speaker cone (triangle pointing right)
-                ctx.beginPath();
-                ctx.moveTo(speakerX + speakerW, speakerY);
-                ctx.lineTo(speakerX + speakerW + size * 0.18, centerY);
-                ctx.lineTo(speakerX + speakerW, speakerY + speakerH);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Diagonal slash (mute indicator - thick red line)
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 4.5;
-                var lineStartX = speakerX + speakerW + size * 0.12;
-                var lineEndX = centerX + size * 0.30;
-                var lineOffset = size * 0.28;
-                
-                ctx.beginPath();
-                ctx.moveTo(lineStartX, centerY - lineOffset);
-                ctx.lineTo(lineEndX, centerY + lineOffset);
-                ctx.stroke();
+                window.__basemanGameSoundEffectsEnabled = !isMuted;
             }
-            
-            ctx.restore();
+            soundBtn.setIcon(function(ctx, centerX, centerY, frame) {
+                var isMuted = window.__basemanGameSoundEffectsEnabled === false;
+                var size = soundBtnSize;
+                var iconColor = isMuted ? '#FF0000' : '#00FF00';
+                
+                // Draw speaker body (rounded rectangle)
+                var bodyW = size * 0.4;
+                var bodyH = size * 0.5;
+                var bodyX = centerX - bodyW * 0.6;
+                var bodyY = centerY - bodyH * 0.5;
+                var cornerRadius = size * 0.05;
+                
+                ctx.fillStyle = iconColor;
+                ctx.beginPath();
+                ctx.moveTo(bodyX + cornerRadius, bodyY);
+                ctx.lineTo(bodyX + bodyW - cornerRadius, bodyY);
+                ctx.quadraticCurveTo(bodyX + bodyW, bodyY, bodyX + bodyW, bodyY + cornerRadius);
+                ctx.lineTo(bodyX + bodyW, bodyY + bodyH - cornerRadius);
+                ctx.quadraticCurveTo(bodyX + bodyW, bodyY + bodyH, bodyX + bodyW - cornerRadius, bodyY + bodyH);
+                ctx.lineTo(bodyX + cornerRadius, bodyY + bodyH);
+                ctx.quadraticCurveTo(bodyX, bodyY + bodyH, bodyX, bodyY + bodyH - cornerRadius);
+                ctx.lineTo(bodyX, bodyY + cornerRadius);
+                ctx.quadraticCurveTo(bodyX, bodyY, bodyX + cornerRadius, bodyY);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Draw speaker cone
+                var coneW = size * 0.15;
+                var coneH = size * 0.3;
+                var coneX = bodyX + bodyW;
+                var coneY = centerY - coneH * 0.5;
+                
+                ctx.fillStyle = iconColor;
+                ctx.beginPath();
+                ctx.moveTo(coneX, coneY);
+                ctx.lineTo(coneX + coneW, centerY - coneH * 0.25);
+                ctx.lineTo(coneX + coneW, centerY + coneH * 0.25);
+                ctx.lineTo(coneX, coneY + coneH);
+                ctx.closePath();
+                ctx.fill();
+                
+                if (isMuted) {
+                    // Draw slash line for muted state
+                    ctx.strokeStyle = iconColor;
+                    ctx.lineWidth = size * 0.08;
+                    ctx.beginPath();
+                    ctx.moveTo(coneX + coneW + size * 0.1, coneY - size * 0.1);
+                    ctx.lineTo(coneX + coneW + size * 0.5, coneY + coneH + size * 0.1);
+                    ctx.stroke();
+                } else {
+                    // Draw sound waves for unmuted state
+                    ctx.strokeStyle = iconColor;
+                    ctx.lineWidth = size * 0.06;
+                    var waveX = coneX + coneW;
+                    var waveY = centerY;
+                    var waveRadius1 = size * 0.12;
+                    var waveRadius2 = size * 0.2;
+                    var waveRadius3 = size * 0.28;
+                    
+                    ctx.beginPath();
+                    ctx.arc(waveX, waveY, waveRadius1, -Math.PI * 0.25, Math.PI * 0.25);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(waveX, waveY, waveRadius2, -Math.PI * 0.3, Math.PI * 0.3);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.arc(waveX, waveY, waveRadius3, -Math.PI * 0.35, Math.PI * 0.35);
+                    ctx.stroke();
+                }
+            });
         });
         
-        // Make button more visible
-        soundBtn.borderBlurColor = "#FFFFFF"; // White border for visibility
-        soundBtn.borderFocusColor = "#FFFF00"; // Yellow when focused
-        
-        // Debug: Log button creation
-        logHUD('[HUD] Sound button created:', {
-            x: soundBtnX,
-            y: soundBtnY,
-            size: soundBtnSize,
-            mapWidth: mapWidth,
-            mapHeight: typeof mapHeight !== 'undefined' ? mapHeight : 'undefined'
-        });
+        soundBtn.borderBlurColor = "#333";
+        soundBtn.borderFocusColor = "#EEE";
     };
 
     return {
@@ -4422,9 +4294,6 @@ var hud = (function(){
             if (window.__hudUpdateCount <= 5) {
                 logHUD('HUD.update() called', {count: window.__hudUpdateCount});
             }
-            
-            // Initialize sound button if not already done
-            initSoundButton();
             
             var valid = this.isValidState();
             
@@ -4452,7 +4321,6 @@ var hud = (function(){
                     valid: valid,
                     on: on,
                     currentState: stateName,
-                    soundBtn: !!soundBtn,
                     tileSize: typeof tileSize !== 'undefined' ? tileSize : 'undefined',
                     mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined',
                     stateExists: typeof state !== 'undefined',
@@ -4463,32 +4331,31 @@ var hud = (function(){
             
             if (valid != on) {
                 on = valid;
-                logHUD('[HUD] State changed:', {on: on, valid: valid, soundBtn: !!soundBtn});
+                logHUD('[HUD] State changed:', {on: on, valid: valid});
                 if (on) {
                     inGameMenu.onHudEnable();
                     vcr.onHudEnable();
-                    if (soundBtn) {
-                        soundBtn.enable();
-                        logHUD('[HUD] Sound button enabled');
-                    } else {
-                        logHUD('[HUD] Sound button is null when trying to enable');
-                    }
+                    initSoundButton();
+                    if (soundBtn) soundBtn.enable();
                 }
                 else {
                     inGameMenu.onHudDisable();
                     vcr.onHudDisable();
-                    if (soundBtn) {
-                        soundBtn.disable();
-                    }
+                    if (soundBtn) soundBtn.disable();
                 }
             }
-            if (on && soundBtn && soundBtn.isEnabled) {
+            
+            if (on && soundBtn) {
                 soundBtn.update();
             }
         },
         draw: function(ctx) {
             inGameMenu.draw(ctx);
             vcr.draw(ctx);
+            
+            if (on && soundBtn) {
+                soundBtn.draw(ctx);
+            }
             
             // Debug: Log draw conditions
             if (typeof window.__hudDebugCount === 'undefined') {
@@ -4498,24 +4365,8 @@ var hud = (function(){
             if (window.__hudDebugCount % 60 === 0) { // Log every 60 frames (1 second at 60fps)
                 logHUD('[HUD] Draw check:', {
                     on: on,
-                    soundBtn: !!soundBtn,
-                    isEnabled: soundBtn ? soundBtn.isEnabled : false,
-                    menuOpen: inGameMenu.isOpen(),
-                    shouldDraw: on && soundBtn && soundBtn.isEnabled && !inGameMenu.isOpen(),
-                    buttonPos: soundBtn ? {x: soundBtn.x, y: soundBtn.y, w: soundBtn.w, h: soundBtn.h} : null
+                    menuOpen: inGameMenu.isOpen()
                 });
-            }
-            
-            // Draw sound button when HUD is active, even if menu is open (but draw it behind menu)
-            // Menu will overlay it, but button should still be visible when menu is closed
-            if (on && soundBtn && soundBtn.isEnabled) {
-                // Draw directly using ctx (same as inGameMenu does)
-                // The ctx is already in map coordinate system from renderer
-                try {
-                    soundBtn.draw(ctx);
-                } catch (e) {
-                    logHUD('Error drawing sound button: ' + (e.message || String(e)));
-                }
             }
         },
         isValidState: function() {
