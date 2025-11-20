@@ -2061,8 +2061,33 @@
       getWalletAddress: () => state.address
     };
 
-    // Background wallet hazırlığını kapattık: mini app’te açılışta passkey istememesi için
-    // sağlayıcıya dokunmuyoruz. Cüzdan yalnızca kullanıcı aksiyonunda (skor/quest) bağlanacak.
+    // Mini app'te açılışta passkey tetiklemeden read-only bağlanmayı dene.
+    // Sadece eth_accounts çağrısı yap; hesap varsa ensureWallet(false) ile state'i güncelle.
+    if (isMiniAppEnv()) {
+      (async () => {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          if (sdk?.wallet && typeof sdk.wallet.getEthereumProvider === "function" && !state.contract) {
+            const provider = await sdk.wallet.getEthereumProvider();
+            if (provider) {
+              try {
+                const accounts = await provider.request({ method: "eth_accounts" });
+                if (Array.isArray(accounts) && accounts.length > 0) {
+                  debug("Background wallet: accounts already available, connecting without request");
+                  await ensureWallet(false);
+                } else {
+                  debug("Background wallet: no accounts yet, will connect on first on-chain action");
+                }
+              } catch (err) {
+                debug(`Background wallet eth_accounts failed: ${err?.message || err}`);
+              }
+            }
+          }
+        } catch (err) {
+          debug(`Background wallet preparation: ${err?.message || err}`);
+        }
+      })();
+    }
   }
 
   function createDebugOverlay() {
