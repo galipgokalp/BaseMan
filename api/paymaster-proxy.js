@@ -20,13 +20,15 @@ const MAX_CALLS = (() => {
 const ENFORCE_ALLOWLIST =
   (process.env.PAYMASTER_ENFORCE_ALLOWLIST ?? "true").toLowerCase() !== "false";
 
-const allowedTargets = (() => {
+function buildAllowlistContext() {
   const addresses = new Set();
+  let normalizedRegistryAddress;
   try {
-    addresses.add(ethers.getAddress(registryAddress));
+    normalizedRegistryAddress = ethers.getAddress(registryAddress);
+    addresses.add(normalizedRegistryAddress);
   } catch (error) {
     throw new Error(
-      `Unable to normalize registryAddress for paymaster proxy: ${error?.message || error}`
+      `registryAddress is missing or invalid for paymaster proxy: ${error?.message || error}`
     );
   }
 
@@ -43,24 +45,23 @@ const allowedTargets = (() => {
     }
     addresses.add(ethers.getAddress(value));
   }
-  return addresses;
-})();
+
+  let expectedChainIdHex;
+  try {
+    expectedChainIdHex = ethers.toBeHex(registryChainId);
+  } catch (error) {
+    throw new Error(
+      `registryChainId is missing or invalid for paymaster proxy: ${error?.message || error}`
+    );
+  }
+
+  return { allowedTargets: addresses, normalizedRegistryAddress, expectedChainIdHex };
+}
 
 const smartWalletInterface = new ethers.Interface([
   "function execute(address target,uint256 value,bytes data)",
   "function executeBatch(tuple(address target,uint256 value,bytes data)[] calls)"
 ]);
-
-// Registry function allowlist (selectors)
-const normalizedRegistryAddress = (() => {
-  try {
-    return ethers.getAddress(registryAddress);
-  } catch (error) {
-    throw new Error(
-      `Unable to normalize registryAddress: ${error?.message || error}`
-    );
-  }
-})();
 
 function parseAllowedSelectorsFromEnv() {
   const raw = (process.env.PAYMASTER_ALLOWED_SELECTORS || "").trim();
@@ -94,18 +95,6 @@ const JsonRpcRequestSchema = z
     params: z.array(z.any()).optional()
   })
   .strict();
-
-const ensureHexChainId = () => {
-  try {
-    return ethers.toBeHex(registryChainId);
-  } catch (error) {
-    throw new Error(
-      `Unable to derive hex chain id for paymaster proxy: ${error?.message || error}`
-    );
-  }
-};
-
-const expectedChainIdHex = ensureHexChainId();
 
 function parseBody(req) {
   if (!req?.body) {
@@ -178,7 +167,7 @@ function bigIntFrom(value) {
   throw new Error(`Cannot convert value to bigint: ${value}`);
 }
 
-function validateTargetsFromCallData(callData) {
+function validateTargetsFromCallData(callData, allowlist) {
   let parsed;
   try {
     parsed = smartWalletInterface.parseTransaction({ data: callData });
@@ -220,7 +209,7 @@ function validateTargetsFromCallData(callData) {
       return { ok: false, error: `Invalid call target: ${target}` };
     }
     const normalizedTarget = ethers.getAddress(target);
-    if (ENFORCE_ALLOWLIST && !allowedTargets.has(normalizedTarget)) {
+    if (ENFORCE_ALLOWLIST && allowlist && !allowlist.allowedTargets.has(normalizedTarget)) {
       return {
         ok: false,
         error: `Call target ${normalizedTarget} is not allowlisted for sponsorship`
@@ -247,7 +236,11 @@ function validateTargetsFromCallData(callData) {
     }
 
     // Function-level allowlist only for registry calls
-    if (ENFORCE_ALLOWLIST && normalizedTarget === normalizedRegistryAddress) {
+    if (
+      ENFORCE_ALLOWLIST &&
+      allowlist &&
+      normalizedTarget === allowlist.normalizedRegistryAddress
+    ) {
       if (typeof data !== "string" || !data.startsWith("0x") || data.length < 10) {
         return { ok: false, error: "Missing or invalid call data for registry target" };
       }
@@ -404,11 +397,21 @@ export default async function handler(req, res) {
   }
 
   const jsonRpc = parsed.data;
+  let allowlistCtx = null;
 
   if (ENFORCE_ALLOWLIST) {
+    try {
+      allowlistCtx = buildAllowlistContext();
+    } catch (error) {
+      return res.status(503).json({
+        error: "Paymaster allowlist is not configured",
+        details: error?.message || error
+      });
+    }
+
     const userOp = extractUserOperation(jsonRpc);
     if (userOp?.callData) {
-      const validation = validateTargetsFromCallData(userOp.callData);
+      const validation = validateTargetsFromCallData(userOp.callData, allowlistCtx);
       if (!validation.ok) {
         return res.status(403).json({ error: validation.error });
       }
@@ -417,6 +420,7 @@ export default async function handler(req, res) {
     if (userOp?.chainId) {
       try {
         const normalizedChainId = ethers.toBeHex(userOp.chainId);
+        const expectedChainIdHex = allowlistCtx.expectedChainIdHex;
         if (normalizedChainId.toLowerCase() !== expectedChainIdHex.toLowerCase()) {
           return res.status(403).json({
             error: `Unsupported chainId ${normalizedChainId}, expected ${expectedChainIdHex}`

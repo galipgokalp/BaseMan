@@ -428,7 +428,7 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       while (size >= 256) {
         const end = Math.min(start + size, latest);
         try {
-          const part = await provider.getLogs({ address, topics: [SCORE_EVENT_TOPIC], fromBlock: start, toBlock: end });
+          const part = await provider.getLogs({ address, topics: [SCORE_ADDED_TOPIC], fromBlock: start, toBlock: end });
           fetched = part;
           logs.push(...part);
           start = end + 1;
