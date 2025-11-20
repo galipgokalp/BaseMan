@@ -64,6 +64,11 @@ function buildQuery(limit, chainId = null) {
   // Determine table name based on chain ID
   // Base Mainnet (8453) uses 'base.events', Base Sepolia (84532) uses 'base_sepolia.events'
   const eventsTable = targetChainId === 84532 ? 'base_sepolia.events' : 'base.events';
+  const lookbackDays = Number.parseInt(process.env.LEADERBOARD_SQL_LOOKBACK_DAYS || "30", 10);
+  const timeFilter =
+    Number.isFinite(lookbackDays) && lookbackDays > 0
+      ? `AND block_timestamp >= now() - INTERVAL ${lookbackDays} DAY`
+      : "";
   
   // Get registry address for the target chain
   let registry;
@@ -100,6 +105,7 @@ WITH events AS (
   FROM ${eventsTable}
   WHERE lower(address) = lower('${registry}')
     AND topics[1] IN ('${SCORE_ADDED_TOPIC}')
+    ${timeFilter}
 )
 SELECT LOWER(player) AS player_address,
        MAX(total) AS total_score,
