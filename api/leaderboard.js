@@ -9,7 +9,9 @@ const SCORE_SUBMITTED_TOPIC = ethers.id("ScoreSubmitted(address,uint256,uint256)
 const SCORE_ADDED_TOPIC = ethers.id("ScoreAdded(address,uint256,uint256,uint256)");
 const SQL_API_KEY = process.env.CDP_SQL_API_KEY || "";
 const DISABLE_FLAG = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
+const DISABLE_SQL_FLAG = String(process.env.LEADERBOARD_DISABLE_SQL || "").trim().toLowerCase();
 const LEADERBOARD_DISABLED = ["1","true","yes","on"].includes(DISABLE_FLAG);
+const LEADERBOARD_DISABLE_SQL = ["1","true","yes","on"].includes(DISABLE_SQL_FLAG);
 const SQL_BASE_URL = (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, "");
 const SQL_TIMEOUT_MS = Number.parseInt(process.env.CDP_SQL_QUERY_TIMEOUT_MS || "15000", 10);
 const SQL_POLL_INTERVAL_MS = 750;
@@ -548,9 +550,9 @@ export default async function handler(req, res) {
     chainId = 8453; // Base Mainnet
   }
 
-  // If no SQL key, fall back to RPC so the app still functions in dev
+  // If SQL is disabled or no SQL key, fall back to RPC so the app still functions in dev
   const limit = sanitizeLimit(req.query.limit);
-  if (!SQL_API_KEY) {
+  if (LEADERBOARD_DISABLE_SQL || !SQL_API_KEY) {
     try {
       const fallback = await fetchFromRpcFallback(limit, chainId);
       const items = await enrichWithProfiles(fallback);
