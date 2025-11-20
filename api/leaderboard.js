@@ -384,45 +384,35 @@ async function fetchFromBaseScan(limit, chainId = null) {
   ]);
   const topic0 = SCORE_ADDED_TOPIC;
 
-  let page = 1;
-  const offset = 1000;
-  const maxPages = 3; // safety limit to avoid unbounded loops and timeouts
+  const offset = 1000; // grab latest up to 1000 events (fast path to avoid timeouts)
   const items = [];
-
-  while (page <= maxPages) {
-    const url = `${apiBase}?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=${address}&topic0=${topic0}&page=${page}&offset=${offset}&sort=asc&apikey=${BASESCAN_API_KEY}`;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) break;
+  const url = `${apiBase}?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=${address}&topic0=${topic0}&page=1&offset=${offset}&sort=desc&apikey=${BASESCAN_API_KEY}`;
+  try {
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (response.ok) {
       const json = await response.json();
-      if (!json || json.status !== "1" || !Array.isArray(json.result) || !json.result.length) {
-        break;
-      }
-      for (const log of json.result) {
-        try {
-          const parsed = iface.decodeEventLog("ScoreAdded", log.data, log.topics);
-          const player = ethers.getAddress(parsed.player);
-          const total = parsed.newTotal?.toString?.() || String(parsed.newTotal);
-          const ts = parsed.timestamp ? Number(parsed.timestamp) : null;
-          const blockNumber = Number(log.blockNumber || log.block_number || 0);
-          items.push({
-            player,
-            totalScore: total,
-            lastUpdate: ts,
-            blockNumber
-          });
-        } catch {
-          continue;
+      if (json && json.status === "1" && Array.isArray(json.result)) {
+        for (const log of json.result) {
+          try {
+            const parsed = iface.decodeEventLog("ScoreAdded", log.data, log.topics);
+            const player = ethers.getAddress(parsed.player);
+            const total = parsed.newTotal?.toString?.() || String(parsed.newTotal);
+            const ts = parsed.timestamp ? Number(parsed.timestamp) : null;
+            const blockNumber = Number(log.blockNumber || log.block_number || 0);
+            items.push({
+              player,
+              totalScore: total,
+              lastUpdate: ts,
+              blockNumber
+            });
+          } catch {
+            continue;
+          }
         }
       }
-      if (json.result.length < offset) {
-        break; // last page
-      }
-      page += 1;
-    } catch (error) {
-      console.warn("[leaderboard] BaseScan fetch failed:", error?.message || error);
-      break;
     }
+  } catch (error) {
+    console.warn("[leaderboard] BaseScan fetch failed:", error?.message || error);
   }
 
   if (!items.length) return [];
