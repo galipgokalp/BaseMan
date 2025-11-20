@@ -386,7 +386,7 @@ async function fetchFromBaseScan(limit, chainId = null) {
 
   let page = 1;
   const offset = 1000;
-  const maxPages = 10; // safety limit to avoid unbounded loops
+  const maxPages = 3; // safety limit to avoid unbounded loops and timeouts
   const items = [];
 
   while (page <= maxPages) {
