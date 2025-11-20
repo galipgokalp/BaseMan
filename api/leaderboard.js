@@ -4,20 +4,15 @@ import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
 
 const DEFAULT_SQL_BASE = "https://api.cdp.coinbase.com";
 const ALT_SQL_BASE = "https://api.developer.coinbase.com";
-const BASESCAN_MAINNET = "https://api.basescan.org/api";
-const BASESCAN_SEPOLIA = "https://api-sepolia.basescan.org/api";
 // Event topics (computed at runtime for safety)
 const SCORE_SUBMITTED_TOPIC = ethers.id("ScoreSubmitted(address,uint256,uint256)");
 const SCORE_ADDED_TOPIC = ethers.id("ScoreAdded(address,uint256,uint256,uint256)");
 const SQL_API_KEY = process.env.CDP_SQL_API_KEY || "";
 const DISABLE_FLAG = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
-const DISABLE_SQL_FLAG = String(process.env.LEADERBOARD_DISABLE_SQL || "").trim().toLowerCase();
 const LEADERBOARD_DISABLED = ["1","true","yes","on"].includes(DISABLE_FLAG);
-const LEADERBOARD_DISABLE_SQL = ["1","true","yes","on"].includes(DISABLE_SQL_FLAG);
 const SQL_BASE_URL = (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, "");
 const SQL_TIMEOUT_MS = Number.parseInt(process.env.CDP_SQL_QUERY_TIMEOUT_MS || "15000", 10);
 const SQL_POLL_INTERVAL_MS = 750;
-const BASESCAN_API_KEY = (process.env.BASESCAN_API_KEY || "").trim();
 
 // Basic in-memory rate limit for the leaderboard endpoint (prod-friendly defaults low)
 const RL_WINDOW_MS = Number.parseInt(process.env.LEADERBOARD_RATE_WINDOW_MS || "10000", 10);
@@ -356,83 +351,6 @@ async function runQuery(statement) {
 
 // ---------- RPC FALLBACK (when SQL returns no rows or is unavailable) ----------
 
-async function fetchFromBaseScan(limit, chainId = null) {
-  // Requires BASESCAN_API_KEY and supported chainId
-  if (!BASESCAN_API_KEY) return [];
-  const targetChainId =
-    chainId !== null ? Number(chainId) : getRegistryChainIdNumber() || 8453;
-  const apiBase =
-    targetChainId === 84532 ? BASESCAN_SEPOLIA : targetChainId === 8453 ? BASESCAN_MAINNET : null;
-  if (!apiBase) return [];
-
-  const address = (() => {
-    try {
-      if (targetChainId === 84532) {
-        const ctx = getRegistryContext("base-sepolia");
-        return ctx.address ? ethers.getAddress(ctx.address) : null;
-      }
-      const ctx = getRegistryContext("base");
-      return ctx.address ? ethers.getAddress(ctx.address) : registryAddress ? ethers.getAddress(registryAddress) : null;
-    } catch {
-      return null;
-    }
-  })();
-  if (!address) return [];
-
-  const iface = new ethers.Interface([
-    "event ScoreAdded(address indexed player,uint256 added,uint256 newTotal,uint256 timestamp)"
-  ]);
-  const topic0 = SCORE_ADDED_TOPIC;
-
-  const offset = 1000; // grab latest up to 1000 events (fast path to avoid timeouts)
-  const items = [];
-  const url = `${apiBase}?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=${address}&topic0=${topic0}&page=1&offset=${offset}&sort=desc&apikey=${BASESCAN_API_KEY}`;
-  try {
-    const response = await fetch(url, { headers: { Accept: "application/json" } });
-    if (response.ok) {
-      const json = await response.json();
-      if (json && json.status === "1" && Array.isArray(json.result)) {
-        for (const log of json.result) {
-          try {
-            const parsed = iface.decodeEventLog("ScoreAdded", log.data, log.topics);
-            const player = ethers.getAddress(parsed.player);
-            const total = parsed.newTotal?.toString?.() || String(parsed.newTotal);
-            const ts = parsed.timestamp ? Number(parsed.timestamp) : null;
-            const blockNumber = Number(log.blockNumber || log.block_number || 0);
-            items.push({
-              player,
-              totalScore: total,
-              lastUpdate: ts,
-              blockNumber
-            });
-          } catch {
-            continue;
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.warn("[leaderboard] BaseScan fetch failed:", error?.message || error);
-  }
-
-  if (!items.length) return [];
-
-  // Reduce to max score per player
-  const map = new Map();
-  for (const it of items) {
-    const key = it.player.toLowerCase();
-    const prev = map.get(key);
-    const totalNum = Number(it.totalScore);
-    if (!prev || totalNum > Number(prev.totalScore) || ((it.lastUpdate || 0) > (prev.lastUpdate || 0))) {
-      map.set(key, { ...it });
-    }
-  }
-
-  return Array.from(map.values())
-    .sort((a, b) => Number(b.totalScore) - Number(a.totalScore))
-    .slice(0, limit);
-}
-
 function pickRpcUrl(chain) {
   // Prefer network specific RPC, else generic ADDRESS_HISTORY_RPC_URL, else BASE_MAINNET
   // If LEADERBOARD_RPC_URL is provided, always use it (must not require custom headers)
@@ -630,13 +548,11 @@ export default async function handler(req, res) {
     chainId = 8453; // Base Mainnet
   }
 
-  // If SQL is disabled or no SQL key, fall back to RPC so the app still functions in dev
+  // If no SQL key, fall back to RPC so the app still functions in dev
   const limit = sanitizeLimit(req.query.limit);
-  if (LEADERBOARD_DISABLE_SQL || !SQL_API_KEY) {
+  if (!SQL_API_KEY) {
     try {
-      // Try BaseScan first (historical), then RPC fallback
-      const viaBaseScan = await fetchFromBaseScan(limit, chainId);
-      const fallback = viaBaseScan.length ? viaBaseScan : await fetchFromRpcFallback(limit, chainId);
+      const fallback = await fetchFromRpcFallback(limit, chainId);
       const items = await enrichWithProfiles(fallback);
       return res.status(200).json({ 
         source: "rpc-fallback", 
@@ -679,15 +595,10 @@ export default async function handler(req, res) {
     let items = Array.isArray(rows) ? rows.map(mapRow).filter(Boolean) : [];
 
     if (!items.length) {
-      // Try BaseScan first for broader history; fall back to RPC
-      const fromBaseScan = await fetchFromBaseScan(limit, chainId);
-      if (fromBaseScan.length) {
-        items = fromBaseScan;
-      } else {
-        const fallback = await fetchFromRpcFallback(limit, chainId);
-        if (fallback.length) {
-          items = fallback;
-        }
+      // Try RPC fallback for quick freshness
+      const fallback = await fetchFromRpcFallback(limit, chainId);
+      if (fallback.length) {
+        items = fallback;
       }
     }
     const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
