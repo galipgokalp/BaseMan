@@ -419,29 +419,38 @@ async function fetchFromRpcFallback(limit, chainId = null) {
     console.log(`[leaderboard] RPC fallback: chain=${targetChainId}, address=${address}, fromBlock=${fromBlock}, toBlock=${latest}`);
 
     // Fetch logs in chunks to avoid provider limits
-    const chunkMax = Number.parseInt(process.env.LEADERBOARD_FALLBACK_CHUNK_SIZE || "4000", 10);
+    const chunkMax = Number.parseInt(process.env.LEADERBOARD_FALLBACK_CHUNK_SIZE || "400", 10);
     let logs = [];
     let start = fromBlock;
     while (start <= latest) {
       let size = chunkMax;
       let fetched = null;
-      while (size >= 256) {
+      while (size >= 1) {
         const end = Math.min(start + size, latest);
         try {
-          const part = await provider.getLogs({ address, topics: [SCORE_ADDED_TOPIC], fromBlock: start, toBlock: end });
+          const part = await provider.getLogs({
+            address,
+            topics: [SCORE_ADDED_TOPIC],
+            fromBlock: start,
+            toBlock: end
+          });
           fetched = part;
           logs.push(...part);
           start = end + 1;
           break;
         } catch (err) {
-          // Reduce chunk size and retry
-          size = Math.floor(size / 2);
-          if (size < 256) break;
+          // Reduce chunk size and retry (free tiers may require <=10 blocks)
+          size = Math.max(1, Math.floor(size / 2));
+          if (size === 1) {
+            // Still failing at size 1, skip this block to avoid infinite loop
+            start = end + 1;
+            break;
+          }
         }
       }
       if (fetched === null) {
         // Could not fetch this window; advance a bit to avoid infinite loop
-        start += 256;
+        start += Math.max(1, size);
       }
     }
 
