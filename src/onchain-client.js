@@ -494,17 +494,12 @@
             debug(`eth_accounts error: ${eaErr?.message || eaErr}`);
           }
           
-          // In mini app environments, only call eth_requestAccounts if explicitly requested (e.g., during transaction).
-          // Base App mini apps are automatically connected - if eth_accounts returns nothing,
-          // we only request accounts when user initiates a transaction (submitScore/completeQuest).
-          // This follows Base App documentation: "Mini Apps are automatically connected to user's Base Account"
-          // Use SDK presence as fallback if isMiniAppEnv() returns false
-          // IMPORTANT: For Base App, always request accounts during transaction to ensure wallet connection
+          // In mini app environments, only call eth_requestAccounts when explicitly requested (tx initiation).
+          // Base App bağlanmış olsa da, açılışta passkey istememek için requestAccounts=false iken istek yapma.
           const isMiniAppCheck = isMiniAppEnv() || hasSDK;
-          if (!address && (isMiniAppCheck || isBaseAppDetected)) {
-            // If requestAccounts is true (transaction initiated), request account access (may prompt passkey)
-            // For Base App, always request accounts during transaction to ensure proper wallet connection
-            if (requestAccounts || isBaseAppDetected) {
+          if (!address && isMiniAppCheck) {
+            // Sadece işlem akışında passkey tetikle
+            if (requestAccounts) {
               try {
                 debug("Transaction initiated - requesting account access (may prompt passkey)...");
                 console.log('[BaseMan] Requesting wallet connection for transaction...');
