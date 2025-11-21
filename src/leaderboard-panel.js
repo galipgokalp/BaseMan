@@ -69,16 +69,41 @@
   };
 
   const formatScore = (value, fallback) => {
+    // String'den number'a çevir
+    let numValue = null;
     if (typeof value === "number" && Number.isFinite(value)) {
-      return value.toLocaleString("en-US");
+      numValue = value;
+    } else if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        numValue = parsed;
+      }
     }
-    if (typeof fallback === "string") {
-      return fallback;
+    
+    // Number değilse fallback kullan
+    if (numValue === null) {
+      if (typeof fallback === "string") return fallback;
+      if (typeof value === "string") return value;
+      return "0";
     }
-    if (typeof value === "string") {
-      return value;
+    
+    // Kompakt format (54K, 1.5M)
+    if (numValue >= 1000000) {
+      const millions = numValue / 1000000;
+      // 1.0M gibi göster, gereksiz .0'ları kaldır
+      return millions % 1 === 0 
+        ? `${millions.toFixed(0)}M`
+        : `${millions.toFixed(1)}M`;
+    } else if (numValue >= 1000) {
+      const thousands = numValue / 1000;
+      // 54K gibi göster
+      return thousands % 1 === 0
+        ? `${thousands.toFixed(0)}K`
+        : `${thousands.toFixed(1)}K`;
+    } else {
+      // 1000'den küçük: normal göster
+      return numValue.toLocaleString("en-US");
     }
-    return "0";
   };
 
   const formatTimestamp = (value) => {
