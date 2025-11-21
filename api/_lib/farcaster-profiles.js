@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-import { getCachedProfiles, setCachedProfile } from "./profile-cache.js";
 
 const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
@@ -163,25 +162,11 @@ export async function fetchProfilesForAddresses(addresses = []) {
   const results = new Map();
   const tasks = [];
 
-  // Check persistent cache first (if configured)
-  try {
-    const cached = await getCachedProfiles(addresses);
-    for (const [key, value] of cached.entries()) {
-      if (value) {
-        results.set(key, value);
-      }
-    }
-  } catch (_) {}
-
   for (const raw of addresses) {
     const address = normalizeAddress(raw);
     if (!address) continue;
 
     const cacheKey = address.toLowerCase();
-    if (results.has(cacheKey)) {
-      continue;
-    }
-
     if (PROFILE_CACHE.has(cacheKey)) {
       results.set(cacheKey, PROFILE_CACHE.get(cacheKey));
       continue;
@@ -224,6 +209,4 @@ export function setManualProfile(address, { fid = null, username = null, display
   };
   MANUAL_PROFILE_CACHE.set(key, profile);
   PROFILE_CACHE.set(key, profile);
-  // Fire and forget; if store fails, do not block request path
-  try { setCachedProfile(normalized, profile); } catch (_) {}
 }
