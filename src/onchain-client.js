@@ -9,6 +9,16 @@
   const log = (typeof window !== 'undefined' && window.logger) ? window.logger.log : console.log;
   log("[BaseMan] onchain-client bootstrap");
 
+  // Best-effort: prefetch mini app auth token once at startup to minimize delays during score submit
+  (async () => {
+    try {
+      const t = await getMiniAppAuthToken();
+      if (t) {
+        debug('Mini app auth token prefetched');
+      }
+    } catch (_) {}
+  })();
+
   function showFailure(message) {
     debug(`HATA: ${message}`);
     if (typeof window.__showModuleFailure === "function") {
