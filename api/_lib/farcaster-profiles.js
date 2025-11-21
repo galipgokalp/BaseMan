@@ -4,6 +4,7 @@ const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().t
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
 const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
 const PROFILE_CACHE = new Map();
+const MANUAL_PROFILE_CACHE = new Map();
 const FALLBACK_PROVIDER = "neynar";
 const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
 let ENRICHMENT_DISABLED_REASON = null;
@@ -171,6 +172,11 @@ export async function fetchProfilesForAddresses(addresses = []) {
       continue;
     }
 
+    if (MANUAL_PROFILE_CACHE.has(cacheKey)) {
+      results.set(cacheKey, MANUAL_PROFILE_CACHE.get(cacheKey));
+      continue;
+    }
+
     tasks.push(
       resolveProfile(address).then((profile) => {
         results.set(cacheKey, profile ?? null);
@@ -183,4 +189,24 @@ export async function fetchProfilesForAddresses(addresses = []) {
   }
 
   return results;
+}
+
+export function setManualProfile(address, { fid = null, username = null, displayName = null, avatarUrl = null } = {}) {
+  const normalized = normalizeAddress(address);
+  if (!normalized) return;
+  const key = normalized.toLowerCase();
+  const profile = {
+    fid: fid ? String(fid) : null,
+    username: typeof username === "string" && username.trim() ? username.trim() : null,
+    displayName: typeof displayName === "string" && displayName.trim() ? displayName.trim() : (username || null),
+    avatarUrl: typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : null,
+    followerCount: null,
+    followingCount: null,
+    bio: null,
+    profileUrl: null,
+    address: normalized,
+    provider: "inline"
+  };
+  MANUAL_PROFILE_CACHE.set(key, profile);
+  PROFILE_CACHE.set(key, profile);
 }

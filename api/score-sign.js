@@ -8,6 +8,7 @@ import {
   scoreTypes
 } from "./_lib/registry.js";
 import { extractQuickAuthToken, isMiniAppAuthRequired, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
+import { setManualProfile } from "./_lib/farcaster-profiles.js";
 
 const SIGNATURE_TTL_SECONDS = Number(process.env.SCORE_SIGNATURE_TTL_SECONDS ?? "300");
 const MIN_DURATION_MS = Number(process.env.SCORE_MIN_DURATION_MS ?? "3000");
@@ -68,6 +69,8 @@ const ScorePayloadSchema = z.object({
     .positive()
     .max(10 * 60 * 1000, { message: "durationMs seems unrealistic" }),
   level: z.coerce.number().int().min(0).optional(),
+  fid: z.union([z.string(), z.number()]).optional(),
+  username: z.string().max(64).optional(),
   signatureSeed: z.string().max(128).optional(),
   chain: z.string().trim().optional()
 });
@@ -192,5 +195,17 @@ export default async function handler(req, res) {
     chain: registryContext.target
   };
   if (isV2) response.nonce = nonce?.toString?.() || String(nonce);
+
+  // Cache inline profile data for leaderboard enrichment (optional)
+  try {
+    if (data.username || data.fid) {
+      setManualProfile(player, {
+        fid: data.fid,
+        username: data.username,
+        displayName: data.username
+      });
+    }
+  } catch (_) {}
+
   return res.status(200).json(response);
 }
