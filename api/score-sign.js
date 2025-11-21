@@ -208,20 +208,48 @@ export default async function handler(req, res) {
 
   // Cache inline profile data for leaderboard enrichment (optional)
   try {
+    const identity = decodedIdentity || {};
+    const user = identity.user || identity.profile || {};
+
     const inlineFid =
       data.fid ??
-      decodedIdentity?.fid ??
-      (decodedIdentity?.sub && String(decodedIdentity.sub).startsWith("fid:")
-        ? String(decodedIdentity.sub).slice(4)
+      identity.fid ??
+      user.fid ??
+      (identity.sub && String(identity.sub).startsWith("fid:")
+        ? String(identity.sub).slice(4)
         : null);
-    const inlineUsername =
-      data.username ?? decodedIdentity?.username ?? decodedIdentity?.user?.username ?? null;
 
-    if (inlineFid || inlineUsername) {
+    const inlineUsername =
+      data.username ??
+      identity.username ??
+      user.username ??
+      user.handle ??
+      user.user_name ??
+      null;
+
+    const inlineDisplayName =
+      data.displayName ??
+      identity.displayName ??
+      user.displayName ??
+      user.display_name ??
+      user.name ??
+      inlineUsername ??
+      null;
+
+    const inlineAvatar =
+      identity.pfpUrl ||
+      (identity.pfp && identity.pfp.url) ||
+      user.pfpUrl ||
+      (user.pfp && user.pfp.url) ||
+      user.avatar_url ||
+      null;
+
+    if (inlineFid || inlineUsername || inlineAvatar) {
       setManualProfile(player, {
         fid: inlineFid,
         username: inlineUsername,
-        displayName: inlineUsername
+        displayName: inlineDisplayName,
+        avatarUrl: inlineAvatar
       });
     }
   } catch (_) {}
