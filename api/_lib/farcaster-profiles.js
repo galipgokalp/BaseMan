@@ -224,5 +224,6 @@ export function setManualProfile(address, { fid = null, username = null, display
   };
   MANUAL_PROFILE_CACHE.set(key, profile);
   PROFILE_CACHE.set(key, profile);
-  setCachedProfile(normalized, profile);
+  // Fire and forget; if store fails, do not block request path
+  try { setCachedProfile(normalized, profile); } catch (_) {}
 }
