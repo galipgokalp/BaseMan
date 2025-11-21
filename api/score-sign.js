@@ -100,17 +100,27 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid JSON body" });
   }
 
-  // Enforce Quick Auth if configured
+  // Enforce Quick Auth if configured; also try to decode token for profile metadata if present
+  let decodedIdentity = null;
+  const token = extractQuickAuthToken(req, payload);
   if (isMiniAppAuthRequired('score')) {
-    const token = extractQuickAuthToken(req, payload);
     if (!token) {
       return res.status(401).json({ error: 'Mini App auth token missing' });
     }
     try {
-      await verifyQuickAuthToken({ token, req });
+      const verified = await verifyQuickAuthToken({ token, req });
+      decodedIdentity = verified?.identity || null;
     } catch (error) {
       const status = Number(error?.statusCode || 401);
       return res.status(status).json({ error: 'Mini App auth invalid', details: error?.message || String(error) });
+    }
+  } else if (token) {
+    // Best-effort decode even when not required, to harvest fid/username for leaderboard
+    try {
+      const verified = await verifyQuickAuthToken({ token, req });
+      decodedIdentity = verified?.identity || null;
+    } catch (_) {
+      // Ignore decode errors when auth is optional
     }
   }
 
@@ -198,11 +208,20 @@ export default async function handler(req, res) {
 
   // Cache inline profile data for leaderboard enrichment (optional)
   try {
-    if (data.username || data.fid) {
+    const inlineFid =
+      data.fid ??
+      decodedIdentity?.fid ??
+      (decodedIdentity?.sub && String(decodedIdentity.sub).startsWith("fid:")
+        ? String(decodedIdentity.sub).slice(4)
+        : null);
+    const inlineUsername =
+      data.username ?? decodedIdentity?.username ?? decodedIdentity?.user?.username ?? null;
+
+    if (inlineFid || inlineUsername) {
       setManualProfile(player, {
-        fid: data.fid,
-        username: data.username,
-        displayName: data.username
+        fid: inlineFid,
+        username: inlineUsername,
+        displayName: inlineUsername
       });
     }
   } catch (_) {}
