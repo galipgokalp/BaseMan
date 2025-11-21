@@ -810,13 +810,12 @@
 
       const headers = { "Content-Type": "application/json" };
       if (isMiniAppEnv()) {
-        // Farcaster/Base App: QuickAuth token zorunlu; backend profil verisini (fid/username) bu token'dan alır
+        // QuickAuth token varsa ekle (profil için), yoksa isteği engelleme
         const t = await getMiniAppAuthToken();
-        if (!t) {
-          throw new Error("Mini app auth token missing. Please sign in on Farcaster/Base App.");
+        if (t) {
+          headers['Authorization'] = `Bearer ${t}`;
+          headers['X-MiniApp-Auth-Token'] = t;
         }
-        headers['Authorization'] = `Bearer ${t}`;
-        headers['X-MiniApp-Auth-Token'] = t;
       }
 
       const response = await fetch(config.scoreEndpoint, {
