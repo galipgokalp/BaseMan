@@ -304,21 +304,37 @@
     logger.debug('[bottom-nav] Forced display: flex (inline style)');
     logger.debug('[bottom-nav] Panel computed display:', window.getComputedStyle(panel).display);
     
-    // Also use API if available (for data refresh) - force update
-    if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.show === 'function') {
-      logger.log('[bottom-nav] Calling BaseManLeaderboard.show()');
-      window.BaseManLeaderboard.setVisible(true, { force: true });
-    } else {
-      logger.warn('[bottom-nav] BaseManLeaderboard API not available');
-    }
-    
-    // Refresh data in background (async, non-blocking)
-    if (typeof window.BaseManLeaderboard !== 'undefined' && typeof window.BaseManLeaderboard.refresh === 'function') {
-      // Use requestAnimationFrame for next frame to avoid blocking UI
-      requestAnimationFrame(() => {
-        window.BaseManLeaderboard.refresh();
-      });
-    }
+    // Wait for API to be available (with retry mechanism)
+    (async function waitForAPI() {
+      const maxRetries = 10;
+      const delayMs = 100;
+      
+      for (let i = 0; i < maxRetries; i++) {
+        if (typeof window.BaseManLeaderboard !== 'undefined' && 
+            typeof window.BaseManLeaderboard.setVisible === 'function') {
+          logger.log('[bottom-nav] BaseManLeaderboard API available, calling setVisible()');
+          window.BaseManLeaderboard.setVisible(true, { force: true });
+          
+          // Refresh data in background (async, non-blocking)
+          if (typeof window.BaseManLeaderboard.refresh === 'function') {
+            requestAnimationFrame(() => {
+              window.BaseManLeaderboard.refresh();
+            });
+          }
+          return; // API found and used, exit retry loop
+        }
+        
+        // Wait before retrying (except on last attempt)
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+      
+      // API still not available after retries - log once, don't spam
+      if (maxRetries > 0) {
+        logger.warn('[bottom-nav] BaseManLeaderboard API not available after retries - panel opened without API');
+      }
+    })();
   }
 
   function openProfile() {
