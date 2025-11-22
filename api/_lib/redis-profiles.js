@@ -62,6 +62,7 @@ export async function saveProfileMapping(address, mapping) {
     username: mapping.username || null,
     displayName: mapping.displayName || null,
     avatarUrl: mapping.avatarUrl || null,
+    platform: mapping.platform && (mapping.platform === 'farcaster' || mapping.platform === 'base-app') ? mapping.platform : null,
     updatedAt: Date.now()
   };
   

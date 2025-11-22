@@ -171,6 +171,21 @@
     const displayName = entry?.profile?.displayName || entry?.profile?.username || abbreviateAddress(entry.player);
     name.textContent = displayName || "Unknown";
     identityText.appendChild(name);
+    
+    // Platform logo (if available)
+    // Optimized: Using CSS background-image instead of inline SVG for better performance
+    const platform = entry?.profile?.platform;
+    if (platform === 'farcaster' || platform === 'base-app') {
+      const platformLogo = document.createElement("span");
+      platformLogo.className = `leaderboard-platform-logo leaderboard-platform-logo-${platform}`;
+      platformLogo.setAttribute("title", platform === 'farcaster' ? 'Farcaster' : 'Base App');
+      platformLogo.setAttribute("aria-label", platform === 'farcaster' ? 'Farcaster' : 'Base App');
+      // Logo is rendered via CSS background-image for better performance
+      // SVG is defined once in CSS and cached by browser
+      
+      identityText.appendChild(platformLogo);
+    }
+    
     identityRoot.appendChild(identityText);
 
     li.append(identityRoot);
@@ -395,12 +410,29 @@
       // If we have both address and user with FID, send mapping
       if (address && user && user.fid) {
         try {
+          // Detect platform (farcaster, base-app, or web)
+          const platform = (() => {
+            try {
+              if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
+                const p = window.getPlatform();
+                return p === 'farcaster' ? 'farcaster' : (p === 'base' ? 'base-app' : null);
+              }
+              // Fallback detection
+              if (window.isFarcasterMiniApp && window.isFarcasterMiniApp()) return 'farcaster';
+              if (window.isBaseApp && window.isBaseApp()) return 'base-app';
+              return null;
+            } catch (_) {
+              return null;
+            }
+          })();
+          
           const mappingData = {
             address: address.toLowerCase(),
             fid: user.fid,
             username: user.username || null,
             displayName: user.displayName || null,
-            avatarUrl: user.pfpUrl || null
+            avatarUrl: user.pfpUrl || null,
+            platform: platform || null
           };
           
           console.log('[leaderboard-panel] Sending profile mapping:', mappingData);
@@ -420,10 +452,11 @@
               fid: user.fid,
               username: user.username || null,
               displayName: user.displayName || null,
-              avatarUrl: user.pfpUrl || null
+              avatarUrl: user.pfpUrl || null,
+              platform: platform || null
             }
           });
-          console.log('[leaderboard-panel] Profile mapping header prepared');
+          console.log('[leaderboard-panel] Profile mapping header prepared with platform:', platform);
         } catch (mappingErr) {
           console.warn('[leaderboard-panel] Error creating profile mapping:', mappingErr);
         }

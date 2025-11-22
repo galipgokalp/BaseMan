@@ -351,13 +351,37 @@ body.theme-light .canvas-container {
 
 .leaderboard-name {
   color: var(--color-text-primary);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2;
-  display: block;
+  line-height: 1.3;
+  display: inline-block;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.leaderboard-platform-logo {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  vertical-align: middle;
+  line-height: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Farcaster logo - optimized as CSS background-image */
+.leaderboard-platform-logo-farcaster {
+  background-image: url("data:image/svg+xml,%3Csvg width='1000' height='1000' viewBox='0 0 1000 1000' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1000' height='1000' rx='200' fill='%23855DCD'/%3E%3Cpath d='M257.778 155.556H742.222V844.444H671.111V528.889H670.414C662.554 441.677 589.258 373.333 500 373.333C410.742 373.333 337.446 441.677 329.586 528.889H328.889V844.444H257.778V155.556Z' fill='white'/%3E%3Cpath d='M128.889 253.333L157.778 351.111H182.222V746.667C169.949 746.667 160 756.616 160 768.889V795.556H155.556C143.283 795.556 133.333 805.505 133.333 817.778V844.444H382.222V817.778C382.222 805.505 372.273 795.556 360 795.556H355.556V768.889C355.556 756.616 345.606 746.667 333.333 746.667H306.667V253.333H128.889Z' fill='white'/%3E%3Cpath d='M675.556 746.667C663.283 746.667 653.333 756.616 653.333 768.889V795.556H648.889C636.616 795.556 626.667 805.505 626.667 817.778V844.444H875.556V817.778C875.556 805.505 865.606 795.556 853.333 795.556H848.889V768.889C848.889 756.616 838.94 746.667 826.667 746.667V351.111H851.111L880 253.333H702.222V746.667H675.556Z' fill='white'/%3E%3C/svg%3E");
+}
+
+/* Base App logo - optimized as CSS background-image */
+.leaderboard-platform-logo-base-app {
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='16' height='16' rx='3.2' fill='white'/%3E%3Crect x='4' y='4' width='8' height='8' rx='1.6' fill='%230052FF'/%3E%3C/svg%3E");
 }
 
 .leaderboard-handle {
@@ -391,9 +415,10 @@ body.theme-light .canvas-container {
 }
 
 .leaderboard-text {
-  gap: 1px;
+  gap: 6px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   min-width: 0;
   flex: 1;
 }
@@ -565,32 +590,77 @@ body.theme-light .profile-network-logo svg rect {
   }
   
   /* NOTE: Panel mobile styles are in panels.css - only theme-specific overrides here */
-  /* Leaderboard item mobile styles (theme-specific) */
+  /* Leaderboard item mobile styles (theme-specific) - Optimized for Farcaster/Base App mini apps */
   .leaderboard-item {
     grid-template-columns: auto 1fr auto;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs) 6px;
-    font-size: 0.49rem;
+    gap: 8px;
+    padding: 8px 10px; /* Increased padding for better touch target */
+    font-size: 0.75rem;
+    min-height: 44px; /* Minimum touch target size (Base App guideline) */
+    touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+    -webkit-tap-highlight-color: rgba(255, 225, 79, 0.2); /* Visual feedback on tap */
   }
   
   .leaderboard-rank {
-    min-width: 28px;
-    font-size: 0.56rem;
+    min-width: 32px;
+    font-size: 0.7rem;
   }
   
   .leaderboard-item:first-child .leaderboard-rank {
-    font-size: 0.63rem;
+    font-size: 0.75rem;
   }
   
   .leaderboard-avatar {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-width: 1px;
-    font-size: 0.35rem;
+    font-size: 0.8rem;
+    flex-shrink: 0; /* Prevent avatar from shrinking */
   }
   
   .leaderboard-name {
-    font-size: 0.49rem;
+    font-size: 0.7rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+    line-height: 1.3;
+    /* Ensure text is readable on small screens */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .leaderboard-platform-logo {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0; /* Logo always visible */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  
+  .leaderboard-text {
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0; /* Allow text to shrink if needed */
+  }
+  
+  .leaderboard-identity {
+    gap: 8px;
+    min-height: 32px; /* Ensure touch target is adequate */
+  }
+  
+  .leaderboard-score {
+    min-width: 60px;
+    flex-shrink: 0; /* Score always visible */
+  }
+  
+  .leaderboard-score-value {
+    font-size: 0.75rem;
+    /* Ensure score is readable */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   .leaderboard-handle {

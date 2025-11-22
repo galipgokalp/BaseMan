@@ -355,10 +355,11 @@ async function enrichWithProfiles(items, req = null) {
             username: mapping.username || null,
             displayName: mapping.displayName || null,
             avatarUrl: mapping.avatarUrl || null,
+            platform: mapping.platform || null, // 'farcaster' or 'base-app'
             updatedAt: Date.now()
           });
           mappingCount++;
-          console.log(`[leaderboard] Stored mapping for ${key}: fid=${mapping.fid}, username=${mapping.username || 'null'}`);
+          console.log(`[leaderboard] Stored mapping for ${key}: fid=${mapping.fid}, username=${mapping.username || 'null'}, platform=${mapping.platform || 'null'}`);
         }
       }
       if (mappingCount > 0) {
@@ -702,7 +703,7 @@ export default async function handler(req, res) {
   // Handle profile mapping POST requests (integrated to avoid function limit)
   if (req.method === "POST" && req.query.action === "profile-mapping") {
     try {
-      const { address, fid, username, displayName, avatarUrl } = req.body;
+      const { address, fid, username, displayName, avatarUrl, platform } = req.body;
       if (!address || typeof address !== 'string') {
         return res.status(400).json({ error: 'Address required' });
       }
@@ -715,6 +716,7 @@ export default async function handler(req, res) {
         username: username && typeof username === 'string' ? username : null,
         displayName: displayName && typeof displayName === 'string' ? displayName : null,
         avatarUrl: avatarUrl && typeof avatarUrl === 'string' ? avatarUrl : null,
+        platform: platform && (platform === 'farcaster' || platform === 'base-app') ? platform : null,
         updatedAt: Date.now()
       };
       

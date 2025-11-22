@@ -264,6 +264,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
             username: mapping.username,
             displayName: mapping.displayName,
             avatarUrl: mapping.avatarUrl,
+            platform: mapping.platform && (mapping.platform === 'farcaster' || mapping.platform === 'base-app') ? mapping.platform : null,
             profileUrl: mapping.username
               ? `https://warpcast.com/${mapping.username}`
               : mapping.fid
@@ -275,7 +276,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
           results.set(key, profile);
           PROFILE_CACHE.set(key, profile);
           redisProfileCount++;
-          console.log(`[farcaster-profiles] ✅ Using Redis mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
+          console.log(`[farcaster-profiles] ✅ Using Redis mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
         } else {
           const key = address.toLowerCase();
           console.log(`[farcaster-profiles] ⚠️ Redis mapping for ${key} exists but incomplete:`, { hasUsername: !!mapping?.username, hasDisplayName: !!mapping?.displayName, hasAvatarUrl: !!mapping?.avatarUrl });
@@ -318,6 +319,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
         username: directMapping.username,
         displayName: directMapping.displayName,
         avatarUrl: directMapping.avatarUrl,
+        platform: directMapping.platform && (directMapping.platform === 'farcaster' || directMapping.platform === 'base-app') ? directMapping.platform : null,
         profileUrl: directMapping.username
           ? `https://warpcast.com/${directMapping.username}`
           : directMapping.fid
@@ -328,7 +330,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
       };
       results.set(key, profile);
       PROFILE_CACHE.set(key, profile);
-      console.log(`[farcaster-profiles] ✅ Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
+      console.log(`[farcaster-profiles] ✅ Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
     } else {
       console.log(`[farcaster-profiles] ❌ No direct mapping for ${key} (mapping exists: ${!!directMapping})`);
     }
