@@ -338,34 +338,47 @@
       // Get current user's profile mapping if available (for same request enrichment)
       // Use same simple approach as profile-panel.js
       let profileMappingHeader = null;
+      
+      // Get address from BaseManOnchain (same as profile-panel.js)
+      let address = null;
+      let user = null;
+      
       try {
-        // Get address from BaseManOnchain (same as profile-panel.js)
-        const address = window.BaseManOnchain?.getWalletAddress?.() || null;
+        // Check if BaseManOnchain is ready
+        const isWalletReady = window.BaseManOnchain?.isWalletReady?.();
+        if (isWalletReady) {
+          address = window.BaseManOnchain?.getWalletAddress?.() || null;
+        }
         
         // Get SDK context (same simple approach as profile-panel.js)
-        let user = null;
         if (window.sdk && window.sdk.context) {
           try {
             const context = await window.sdk.context;
             user = context?.user;
           } catch (ctxErr) {
-            // Silently fail - SDK context not available
+            // SDK context not available
           }
         }
-        
-        // Debug: Log what we have
-        console.log('[leaderboard-panel] Profile mapping check:', {
-          hasBaseManOnchain: !!window.BaseManOnchain,
-          hasAddress: !!address,
-          hasSDK: !!window.sdk,
-          hasSDKContext: !!(window.sdk && window.sdk.context),
-          hasUser: !!user,
-          hasFid: !!user?.fid,
-          address: address ? address.substring(0, 10) + '...' : null
-        });
-        
-        // If we have both address and user with FID, send mapping
-        if (address && user && user.fid) {
+      } catch (err) {
+        // Error getting profile data - log for debugging
+        console.warn('[leaderboard-panel] Error getting profile data:', err);
+      }
+      
+      // Debug: Log what we have (always log, even if mapping fails)
+      console.log('[leaderboard-panel] Profile mapping check:', {
+        hasBaseManOnchain: !!window.BaseManOnchain,
+        isWalletReady: !!window.BaseManOnchain?.isWalletReady?.(),
+        hasAddress: !!address,
+        hasSDK: !!window.sdk,
+        hasSDKContext: !!(window.sdk && window.sdk.context),
+        hasUser: !!user,
+        hasFid: !!user?.fid,
+        address: address ? address.substring(0, 10) + '...' : null
+      });
+      
+      // If we have both address and user with FID, send mapping
+      if (address && user && user.fid) {
+        try {
           const mappingData = {
             address: address.toLowerCase(),
             fid: user.fid,
@@ -374,13 +387,15 @@
             avatarUrl: user.pfpUrl || null
           };
           
+          console.log('[leaderboard-panel] Sending profile mapping:', mappingData);
+          
           // Send mapping immediately before leaderboard request
           await fetch('/api/leaderboard?action=profile-mapping', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(mappingData)
-          }).catch(() => {
-            // Silently fail - not critical
+          }).catch((err) => {
+            console.warn('[leaderboard-panel] Profile mapping POST failed:', err);
           });
           
           // Also include in header for same request
@@ -392,9 +407,16 @@
               avatarUrl: user.pfpUrl || null
             }
           });
+          console.log('[leaderboard-panel] Profile mapping header prepared');
+        } catch (mappingErr) {
+          console.warn('[leaderboard-panel] Error creating profile mapping:', mappingErr);
         }
-      } catch (err) {
-        // Silently fail - not critical for leaderboard display
+      } else {
+        console.log('[leaderboard-panel] Skipping profile mapping - missing data:', {
+          hasAddress: !!address,
+          hasUser: !!user,
+          hasFid: !!user?.fid
+        });
       }
       
       const headers = { Accept: "application/json" };
