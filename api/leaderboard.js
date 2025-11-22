@@ -64,18 +64,16 @@ export async function getAllFidMappings(addresses) {
   }
   
   // Step 1: Redis'ten toplu oku (persistent storage)
-  if (getFidMappingsFromRedis) {
-    try {
-      const redisMappings = await getFidMappingsFromRedis(normalizedAddresses);
-      for (const [address, fid] of redisMappings) {
-        result.set(address, fid);
-      }
-      if (redisMappings.size > 0) {
-        console.log(`[leaderboard] ✅ Retrieved ${redisMappings.size} FID mapping(s) from Redis`);
-      }
-    } catch (error) {
-      console.warn('[leaderboard] Failed to get FID mappings from Redis (non-critical):', error?.message || error);
+  try {
+    const redisMappings = await getFidMappingsFromRedis(normalizedAddresses);
+    for (const [address, fid] of redisMappings) {
+      result.set(address, fid);
     }
+    if (redisMappings.size > 0) {
+      console.log(`[leaderboard] ✅ Retrieved ${redisMappings.size} FID mapping(s) from Redis`);
+    }
+  } catch (error) {
+    console.warn('[leaderboard] Failed to get FID mappings from Redis (non-critical):', error?.message || error);
   }
   
   // Step 2: In-memory Map'i fallback olarak kullan (header'dan gelenler için)
