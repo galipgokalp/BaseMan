@@ -251,8 +251,11 @@ export async function fetchProfilesForAddresses(addresses = []) {
   // Try Redis first (persistent storage for all users)
   if (addressesNeedingFetch.length > 0) {
     try {
+      console.log(`[farcaster-profiles] Checking Redis for ${addressesNeedingFetch.length} addresses:`, addressesNeedingFetch.map(a => a.substring(0, 10) + '...'));
       const redisMappings = await getFromRedis(addressesNeedingFetch);
+      console.log(`[farcaster-profiles] Redis returned ${redisMappings.size} mappings for ${addressesNeedingFetch.length} requested addresses`);
       
+      let redisProfileCount = 0;
       for (const [address, mapping] of redisMappings) {
         if (mapping && (mapping.username || mapping.displayName || mapping.avatarUrl)) {
           const key = address.toLowerCase();
@@ -271,8 +274,18 @@ export async function fetchProfilesForAddresses(addresses = []) {
           };
           results.set(key, profile);
           PROFILE_CACHE.set(key, profile);
+          redisProfileCount++;
           console.log(`[farcaster-profiles] ✅ Using Redis mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
+        } else {
+          const key = address.toLowerCase();
+          console.log(`[farcaster-profiles] ⚠️ Redis mapping for ${key} exists but incomplete:`, { hasUsername: !!mapping?.username, hasDisplayName: !!mapping?.displayName, hasAvatarUrl: !!mapping?.avatarUrl });
         }
+      }
+      
+      if (redisProfileCount > 0) {
+        console.log(`[farcaster-profiles] ✅ Successfully loaded ${redisProfileCount} profile(s) from Redis out of ${addressesNeedingFetch.length} requested`);
+      } else if (addressesNeedingFetch.length > 0) {
+        console.log(`[farcaster-profiles] ℹ️ No profiles found in Redis for ${addressesNeedingFetch.length} addresses - profiles will appear as users play and submit scores`);
       }
     } catch (error) {
       console.warn('[farcaster-profiles] Failed to get profiles from Redis (non-critical):', error?.message || error);
