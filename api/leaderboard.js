@@ -557,8 +557,10 @@ async function fetchFromRpcFallback(limit, chainId = null) {
 
     // Fetch logs in chunks to avoid provider limits
     const chunkMax = Number.parseInt(process.env.LEADERBOARD_FALLBACK_CHUNK_SIZE || "400", 10);
+    console.log(`[leaderboard] RPC fallback: Fetching logs with chunk size ${chunkMax}...`);
     let logs = [];
     let start = fromBlock;
+    let chunkCount = 0;
     while (start <= latest) {
       let size = chunkMax;
       let fetched = null;
@@ -573,6 +575,10 @@ async function fetchFromRpcFallback(limit, chainId = null) {
           });
           fetched = part;
           logs.push(...part);
+          chunkCount++;
+          if (chunkCount % 10 === 0 || part.length > 0) {
+            console.log(`[leaderboard] RPC fallback: Fetched chunk ${chunkCount} (blocks ${start}-${end}), ${part.length} logs, total: ${logs.length}`);
+          }
           start = end + 1;
           break;
         } catch (err) {
@@ -591,12 +597,18 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       }
     }
 
-    if (!logs.length) return [];
+    console.log(`[leaderboard] RPC fallback: Fetched ${logs.length} total logs from ${chunkCount} chunks`);
+    
+    if (!logs.length) {
+      console.warn(`[leaderboard] RPC fallback: No logs found for address ${address} in blocks ${fromBlock}-${latest}`);
+      return [];
+    }
 
     const iface = new ethers.Interface([
       "event ScoreAdded(address indexed player,uint256 added,uint256 newTotal,uint256 timestamp)"
     ]);
 
+    console.log(`[leaderboard] RPC fallback: Parsing ${logs.length} logs...`);
     const items = logs
       .map((log) => {
         try {
