@@ -1420,29 +1420,52 @@
             const context = await window.sdk.context;
             const user = context?.user;
             if (user && user.fid) {
+              const profileMapping = {
+                address: state.address.toLowerCase(),
+                fid: user.fid,
+                username: user.username || null,
+                displayName: user.displayName || null,
+                avatarUrl: user.pfpUrl || null
+              };
+              
+              debug(`submitScore: Sending profile mapping for leaderboard: ${profileMapping.username || profileMapping.displayName || 'unnamed'}`);
+              console.log('[BaseMan] submitScore: Sending profile mapping for leaderboard enrichment:', {
+                address: profileMapping.address.substring(0, 10) + '...',
+                fid: profileMapping.fid,
+                username: profileMapping.username,
+                displayName: profileMapping.displayName
+              });
+              
               // Send profile mapping asynchronously, don't block score submission
               fetch('/api/leaderboard?action=profile-mapping', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  address: state.address.toLowerCase(),
-                  fid: user.fid,
-                  username: user.username || null,
-                  displayName: user.displayName || null,
-                  avatarUrl: user.pfpUrl || null
-                })
-              }).then(() => {
-                debug('submitScore: Profile mapping sent successfully');
-                console.log('[BaseMan] submitScore: Profile mapping sent for leaderboard enrichment');
+                body: JSON.stringify(profileMapping)
+              }).then((response) => {
+                if (response.ok) {
+                  debug('submitScore: Profile mapping sent successfully');
+                  console.log('[BaseMan] submitScore: ✅ Profile mapping sent successfully for leaderboard enrichment');
+                } else {
+                  debug(`submitScore: Profile mapping failed with status ${response.status}`);
+                  console.warn('[BaseMan] submitScore: Profile mapping failed with status:', response.status);
+                }
               }).catch((err) => {
                 // Silently fail - profile mapping is not critical for score submission
                 debug(`submitScore: Profile mapping failed (non-critical): ${err?.message || err}`);
+                console.warn('[BaseMan] submitScore: Profile mapping failed (non-critical):', err?.message || err);
               });
+            } else {
+              debug('submitScore: Skipping profile mapping - no user FID available');
+              console.log('[BaseMan] submitScore: Skipping profile mapping - no user FID available');
             }
+          } else {
+            debug('submitScore: Skipping profile mapping - SDK context or address not available');
+            console.log('[BaseMan] submitScore: Skipping profile mapping - SDK context or address not available');
           }
         } catch (profileErr) {
           // Silently fail - profile mapping is not critical for score submission
           debug(`submitScore: Profile mapping error (non-critical): ${profileErr?.message || profileErr}`);
+          console.warn('[BaseMan] submitScore: Profile mapping error (non-critical):', profileErr?.message || profileErr);
         }
 
         debug('submitScore: Requesting signature from backend...');
