@@ -338,17 +338,72 @@
       // Get current user's profile mapping if available (for same request enrichment)
       let profileMappingHeader = null;
       try {
-        if (window.sdk && window.sdk.context) {
-          const context = await window.sdk.context;
-          console.log('[leaderboard-panel] SDK context resolved:', {
-            hasContext: !!context,
-            hasUser: !!context?.user,
-            userKeys: context?.user ? Object.keys(context.user) : [],
-            fullUser: context?.user,
-            contextKeys: context ? Object.keys(context) : []
-          });
-          
-          const user = context?.user;
+        // Helper function to get SDK context with retries
+        async function getSDKContext(maxRetries = 3, delayMs = 500) {
+          for (let i = 0; i < maxRetries; i++) {
+            let sdk = null;
+            
+            // Try to get SDK using multiple methods
+            if (typeof window.resolveSDK === 'function') {
+              sdk = window.resolveSDK();
+            } else if (window.sdk) {
+              sdk = window.sdk;
+            }
+            
+            if (!sdk || !sdk.context) {
+              if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                continue;
+              }
+              return null;
+            }
+            
+            // Try to resolve context (might be promise, property, or getter)
+            let context = null;
+            try {
+              if (typeof sdk.context === 'function') {
+                context = await Promise.resolve(sdk.context());
+              } else if (sdk.context instanceof Promise) {
+                context = await sdk.context;
+              } else if (typeof sdk.context === 'object' && sdk.context !== null) {
+                context = sdk.context;
+              } else {
+                context = await Promise.resolve(sdk.context);
+              }
+              
+              // Verify context has expected structure
+              if (context && (context.user || context.client || context.location)) {
+                return { sdk, context };
+              }
+              
+              // If context exists but is empty, wait a bit more
+              if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                continue;
+              }
+            } catch (err) {
+              console.warn('[leaderboard-panel] Error resolving SDK context:', err);
+              if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                continue;
+              }
+            }
+          }
+          return null;
+        }
+        
+        const sdkContext = await getSDKContext(3, 500);
+        const context = sdkContext?.context;
+        const user = context?.user;
+        
+        console.log('[leaderboard-panel] SDK context resolution result:', {
+          found: !!sdkContext,
+          hasContext: !!context,
+          hasUser: !!user,
+          userKeys: user ? Object.keys(user) : [],
+          fullUser: user,
+          contextKeys: context ? Object.keys(context) : []
+        });
           
           // Try multiple ways to get address:
           // 1. BaseManOnchain (if wallet is ready)
