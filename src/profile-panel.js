@@ -301,6 +301,29 @@
               usernameEl.textContent = '-';
             }
           }
+
+          // Send profile mapping to backend for leaderboard enrichment
+          try {
+            const address = window.BaseManOnchain?.getWalletAddress?.() || null;
+            if (address && user.fid) {
+              // Send asynchronously, don't block UI
+              fetch('/api/profile-mapping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  address: address.toLowerCase(),
+                  fid: user.fid,
+                  username: user.username || null,
+                  displayName: user.displayName || null,
+                  avatarUrl: user.pfpUrl || null
+                })
+              }).catch(() => {
+                // Silently fail - not critical for UI
+              });
+            }
+          } catch (mappingErr) {
+            // Silently fail - not critical for UI
+          }
         } else {
           // Fallback if no user info
           if (avatarEl) avatarEl.style.display = 'none';

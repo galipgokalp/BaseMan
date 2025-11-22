@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { getAllFidMappings, getProfileMapping } from "../profile-mapping.js";
 
 const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
@@ -119,6 +120,82 @@ async function fetchNeynarProfile(address) {
   return normalizeUser(user, address);
 }
 
+// Fetch profiles by FID using bulk endpoint (free tier)
+async function fetchProfilesByFids(fids) {
+  if (!fids || !fids.length || !NEYNAR_API_KEY) {
+    return new Map();
+  }
+
+  try {
+    // Filter out invalid FIDs
+    const validFids = fids
+      .map(fid => typeof fid === 'string' ? fid : String(fid))
+      .filter(fid => fid && fid !== 'null' && fid !== 'undefined');
+
+    if (!validFids.length) {
+      return new Map();
+    }
+
+    const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/bulk?fids=${validFids.join(',')}`;
+    const response = await fetch(url, {
+      headers: {
+        'api_key': NEYNAR_API_KEY,
+        'x-api-key': NEYNAR_API_KEY,
+        'accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return new Map();
+      }
+      // Don't set ENRICHMENT_DISABLED_REASON for bulk endpoint failures
+      // It's optional and shouldn't disable the whole enrichment
+      console.warn(`[farcaster-profiles] Bulk API error: ${response.status}`);
+      return new Map();
+    }
+
+    const payload = await response.json();
+    const users = payload?.users || [];
+
+    // Create FID -> Address mapping from verified_addresses
+    const fidToAddressMap = new Map();
+    const addressToProfileMap = new Map();
+
+    users.forEach(user => {
+      if (!user.fid) return;
+
+      const fidStr = String(user.fid);
+      const normalizedUser = normalizeUser(user, null);
+
+      // Map FID to all verified addresses
+      if (user.verified_addresses?.eth_addresses) {
+        user.verified_addresses.eth_addresses.forEach(addr => {
+          const normalized = normalizeAddress(addr);
+          if (normalized) {
+            fidToAddressMap.set(fidStr, normalized.toLowerCase());
+            // Create profile for each address
+            addressToProfileMap.set(normalized.toLowerCase(), {
+              ...normalizedUser,
+              address: normalized
+            });
+          }
+        });
+      }
+
+      // If no verified addresses, still store the profile keyed by FID
+      if (!fidToAddressMap.has(fidStr)) {
+        addressToProfileMap.set(`fid:${fidStr}`, normalizedUser);
+      }
+    });
+
+    return addressToProfileMap;
+  } catch (error) {
+    console.error('[farcaster-profiles] Bulk fetch error:', error);
+    return new Map();
+  }
+}
+
 async function resolveProfile(address) {
   if (!address) return null;
 
@@ -159,33 +236,129 @@ export async function fetchProfilesForAddresses(addresses = []) {
     }
     return results;
   }
+
   const results = new Map();
-  const tasks = [];
+  const normalizedAddresses = addresses
+    .map(addr => normalizeAddress(addr))
+    .filter(Boolean);
 
-  for (const raw of addresses) {
-    const address = normalizeAddress(raw);
-    if (!address) continue;
+  if (!normalizedAddresses.length) {
+    return results;
+  }
 
+  // Step 1: Check cache first
+  for (const address of normalizedAddresses) {
     const cacheKey = address.toLowerCase();
     if (PROFILE_CACHE.has(cacheKey)) {
       results.set(cacheKey, PROFILE_CACHE.get(cacheKey));
-      continue;
-    }
-
-    if (MANUAL_PROFILE_CACHE.has(cacheKey)) {
+    } else if (MANUAL_PROFILE_CACHE.has(cacheKey)) {
       results.set(cacheKey, MANUAL_PROFILE_CACHE.get(cacheKey));
-      continue;
     }
-
-    tasks.push(
-      resolveProfile(address).then((profile) => {
-        results.set(cacheKey, profile ?? null);
-      })
-    );
   }
 
-  if (tasks.length) {
-    await Promise.allSettled(tasks);
+  // Step 2: Get FID mappings from SDK context cache
+  const addressesNeedingFetch = normalizedAddresses.filter(
+    addr => !results.has(addr.toLowerCase())
+  );
+
+  if (addressesNeedingFetch.length === 0) {
+    return results;
+  }
+
+  try {
+    // Get FID mappings from profile-mapping.js
+    const addressToFidMap = getAllFidMappings(addressesNeedingFetch);
+    
+    // Step 3: If we have FIDs, use bulk endpoint (free)
+    if (addressToFidMap.size > 0) {
+      const fids = Array.from(new Set(Array.from(addressToFidMap.values()).filter(Boolean)));
+      const bulkProfiles = await fetchProfilesByFids(fids);
+
+      // Map bulk results back to addresses
+      for (const address of addressesNeedingFetch) {
+        const key = address.toLowerCase();
+        const fid = addressToFidMap.get(key);
+        
+        if (fid && bulkProfiles.has(key)) {
+          const profile = bulkProfiles.get(key);
+          results.set(key, profile);
+          PROFILE_CACHE.set(key, profile);
+        } else {
+          // Try direct SDK context mapping if bulk didn't return it
+          const directMapping = getProfileMapping(address);
+          if (directMapping && (directMapping.username || directMapping.displayName || directMapping.avatarUrl)) {
+            const profile = {
+              fid: directMapping.fid,
+              username: directMapping.username,
+              displayName: directMapping.displayName,
+              avatarUrl: directMapping.avatarUrl,
+              profileUrl: directMapping.username
+                ? `https://warpcast.com/${directMapping.username}`
+                : directMapping.fid
+                ? `https://warpcast.com/~/users/${directMapping.fid}`
+                : null,
+              address: normalizeAddress(address),
+              provider: 'sdk-context'
+            };
+            results.set(key, profile);
+            PROFILE_CACHE.set(key, profile);
+          } else {
+            results.set(key, null);
+          }
+        }
+      }
+
+      // For remaining addresses without FIDs, try old method (might fail with 402)
+      const remainingAddresses = addressesNeedingFetch.filter(
+        addr => !results.has(addr.toLowerCase())
+      );
+
+      if (remainingAddresses.length > 0 && !ENRICHMENT_DISABLED_REASON) {
+        const tasks = [];
+        for (const address of remainingAddresses) {
+          const cacheKey = address.toLowerCase();
+          tasks.push(
+            resolveProfile(address).then((profile) => {
+              results.set(cacheKey, profile ?? null);
+            })
+          );
+        }
+        if (tasks.length) {
+          await Promise.allSettled(tasks);
+        }
+      } else {
+        // Mark remaining as null
+        for (const address of remainingAddresses) {
+          const cacheKey = address.toLowerCase();
+          if (!results.has(cacheKey)) {
+            results.set(cacheKey, null);
+          }
+        }
+      }
+    } else {
+      // No FID mappings, try old method for all addresses
+      const tasks = [];
+      for (const address of addressesNeedingFetch) {
+        const cacheKey = address.toLowerCase();
+        tasks.push(
+          resolveProfile(address).then((profile) => {
+            results.set(cacheKey, profile ?? null);
+          })
+        );
+      }
+      if (tasks.length) {
+        await Promise.allSettled(tasks);
+      }
+    }
+  } catch (error) {
+    console.error('[farcaster-profiles] fetchProfilesForAddresses error:', error);
+    // Set remaining addresses to null
+    for (const address of addressesNeedingFetch) {
+      const cacheKey = address.toLowerCase();
+      if (!results.has(cacheKey)) {
+        results.set(cacheKey, null);
+      }
+    }
   }
 
   return results;
