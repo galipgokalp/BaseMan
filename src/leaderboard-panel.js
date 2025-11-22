@@ -340,9 +340,59 @@
       try {
         if (window.sdk && window.sdk.context) {
           const context = await window.sdk.context;
+          console.log('[leaderboard-panel] SDK context resolved:', {
+            hasContext: !!context,
+            hasUser: !!context?.user,
+            userKeys: context?.user ? Object.keys(context.user) : [],
+            fullUser: context?.user,
+            contextKeys: context ? Object.keys(context) : []
+          });
+          
           const user = context?.user;
-          const address = window.BaseManOnchain?.getWalletAddress?.();
-          console.log('[leaderboard-panel] SDK context:', { address, fid: user?.fid, username: user?.username });
+          
+          // Try multiple ways to get address:
+          // 1. BaseManOnchain (if wallet is ready)
+          // 2. SDK provider directly
+          let address = null;
+          
+          // Method 1: Try BaseManOnchain if wallet is ready
+          if (window.BaseManOnchain) {
+            const isReady = window.BaseManOnchain.isWalletReady && window.BaseManOnchain.isWalletReady();
+            if (isReady) {
+              address = window.BaseManOnchain.getWalletAddress && window.BaseManOnchain.getWalletAddress();
+            } else {
+              console.log('[leaderboard-panel] BaseManOnchain wallet not ready yet');
+            }
+          } else {
+            console.log('[leaderboard-panel] BaseManOnchain not available');
+          }
+          
+          // Method 2: Try SDK provider directly if address not available
+          if (!address && window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') {
+            try {
+              const provider = await window.sdk.wallet.getEthereumProvider();
+              if (provider && typeof provider.request === 'function') {
+                const accounts = await provider.request({ method: 'eth_accounts' });
+                if (accounts && Array.isArray(accounts) && accounts.length > 0) {
+                  address = accounts[0];
+                  console.log('[leaderboard-panel] Got address from SDK provider:', address);
+                } else {
+                  console.log('[leaderboard-panel] No accounts from SDK provider');
+                }
+              }
+            } catch (providerErr) {
+              console.warn('[leaderboard-panel] Failed to get address from provider:', providerErr);
+            }
+          }
+          
+          console.log('[leaderboard-panel] Final values:', { 
+            address, 
+            hasUser: !!user,
+            fid: user?.fid,
+            username: user?.username,
+            displayName: user?.displayName
+          });
+          
           if (address && user && user.fid) {
             const mappingData = {
               address: address.toLowerCase(),
