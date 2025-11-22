@@ -338,84 +338,48 @@
       // Get current user's profile mapping if available (for same request enrichment)
       let profileMappingHeader = null;
       try {
-        // Helper function to get SDK context with retries
-        // Increased retries and delay for mobile environments where SDK loads slower
-        async function getSDKContext(maxRetries = 10, delayMs = 300) {
-          for (let i = 0; i < maxRetries; i++) {
-            // Log attempt number for debugging
-            if (i > 0) {
-              console.log(`[leaderboard-panel] Retrying SDK context retrieval (attempt ${i + 1}/${maxRetries})...`);
-            }
-            let sdk = null;
-            
-            // Try to get SDK using multiple methods
-            if (typeof window.resolveSDK === 'function') {
-              sdk = window.resolveSDK();
-            } else if (window.sdk) {
-              sdk = window.sdk;
-            }
-            
-            if (!sdk || !sdk.context) {
-              if (i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-                continue;
-              }
-              return null;
-            }
-            
-            // Try to resolve context (might be promise, property, or getter)
-            let context = null;
+        // Simple approach: wait for SDK context like profile-panel.js does
+        // Use retry mechanism to wait for SDK to load
+        let context = null;
+        let user = null;
+        
+        // Retry mechanism: wait for SDK to be available
+        const maxRetries = 15;
+        const delayMs = 200;
+        
+        for (let i = 0; i < maxRetries; i++) {
+          if (window.sdk && window.sdk.context) {
             try {
-              if (typeof sdk.context === 'function') {
-                context = await Promise.resolve(sdk.context());
-              } else if (sdk.context instanceof Promise) {
-                context = await sdk.context;
-              } else if (typeof sdk.context === 'object' && sdk.context !== null) {
-                context = sdk.context;
-              } else {
-                context = await Promise.resolve(sdk.context);
-              }
+              context = await window.sdk.context;
+              user = context?.user;
               
-              // Verify context has expected structure
-              if (context && (context.user || context.client || context.location)) {
-                return { sdk, context };
+              if (context && user) {
+                console.log('[leaderboard-panel] SDK context resolved:', {
+                  hasContext: !!context,
+                  hasUser: !!user,
+                  fid: user?.fid,
+                  username: user?.username
+                });
+                break; // Found context, exit loop
               }
-              
-              // If context exists but is empty, wait a bit more
-              if (i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-                continue;
-              }
-            } catch (err) {
-              console.warn('[leaderboard-panel] Error resolving SDK context:', err);
-              if (i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-                continue;
-              }
+            } catch (ctxErr) {
+              console.warn('[leaderboard-panel] Error resolving SDK context:', ctxErr);
             }
           }
-          return null;
+          
+          // Wait before retrying (except on last attempt)
+          if (i < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
         }
         
-        // Try to get SDK context with more retries for mobile
-        const sdkContext = await getSDKContext(10, 300);
-        const context = sdkContext?.context;
-        const user = context?.user;
-        
-        console.log('[leaderboard-panel] SDK context resolution result:', {
-          found: !!sdkContext,
-          hasContext: !!context,
-          hasUser: !!user,
-          userKeys: user ? Object.keys(user) : [],
-          fullUser: user,
-          contextKeys: context ? Object.keys(context) : [],
-          sdkAvailable: !!window.sdk,
-          resolveSDKAvailable: typeof window.resolveSDK === 'function'
-        });
+        if (!context || !user) {
+          console.log('[leaderboard-panel] SDK context not available after retries');
+        }
         
         // Try multiple ways to get address:
         // 1. BaseManOnchain (if wallet is ready)
-        // 2. SDK provider directly
+        // 2. SDK provider directly (if SDK is available)
         let address = null;
         
         // Method 1: Try BaseManOnchain if wallet is ready
@@ -424,24 +388,18 @@
           if (isReady) {
             address = window.BaseManOnchain.getWalletAddress && window.BaseManOnchain.getWalletAddress();
             console.log('[leaderboard-panel] Got address from BaseManOnchain:', address);
-          } else {
-            console.log('[leaderboard-panel] BaseManOnchain wallet not ready yet');
           }
-        } else {
-          console.log('[leaderboard-panel] BaseManOnchain not available');
         }
         
         // Method 2: Try SDK provider directly if address not available
-        if (!address && sdkContext?.sdk?.wallet && typeof sdkContext.sdk.wallet.getEthereumProvider === 'function') {
+        if (!address && window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') {
           try {
-            const provider = await sdkContext.sdk.wallet.getEthereumProvider();
+            const provider = await window.sdk.wallet.getEthereumProvider();
             if (provider && typeof provider.request === 'function') {
               const accounts = await provider.request({ method: 'eth_accounts' });
               if (accounts && Array.isArray(accounts) && accounts.length > 0) {
                 address = accounts[0];
                 console.log('[leaderboard-panel] Got address from SDK provider:', address);
-              } else {
-                console.log('[leaderboard-panel] No accounts from SDK provider');
               }
             }
           } catch (providerErr) {
@@ -487,9 +445,13 @@
               avatarUrl: user.pfpUrl || null
             }
           });
-          console.log('[leaderboard-panel] Profile mapping header prepared:', profileMappingHeader.substring(0, 100) + '...');
+          console.log('[leaderboard-panel] Profile mapping header prepared');
         } else {
-          console.warn('[leaderboard-panel] Missing profile data:', { address: !!address, fid: !!user?.fid });
+          console.log('[leaderboard-panel] Missing profile data:', { 
+            hasAddress: !!address, 
+            hasUser: !!user,
+            hasFid: !!user?.fid 
+          });
         }
       } catch (err) {
         console.warn('[leaderboard-panel] Failed to get profile mapping:', err);
