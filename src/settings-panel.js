@@ -109,6 +109,12 @@
                   <button type="button" class="settings-debug-logs-close" data-debug-logs-close>×</button>
                 </div>
               </div>
+              <div class="settings-debug-logs-filters" data-debug-logs-filters style="padding: 8px; border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.1)); display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="settings-debug-logs-filter" data-debug-logs-filter="all" style="padding: 4px 8px; border: 1px solid var(--color-border, rgba(255,255,255,0.1)); background: var(--color-bg-secondary, rgba(255,255,255,0.05)); color: var(--color-text, #fff); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">All</button>
+                <button type="button" class="settings-debug-logs-filter" data-debug-logs-filter="error" style="padding: 4px 8px; border: 1px solid var(--color-border, rgba(255,255,255,0.1)); background: var(--color-bg-secondary, rgba(255,255,255,0.05)); color: #fca5a5; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Errors</button>
+                <button type="button" class="settings-debug-logs-filter" data-debug-logs-filter="warn" style="padding: 4px 8px; border: 1px solid var(--color-border, rgba(255,255,255,0.1)); background: var(--color-bg-secondary, rgba(255,255,255,0.05)); color: #fbbf24; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Warnings</button>
+                <button type="button" class="settings-debug-logs-filter" data-debug-logs-filter="info" style="padding: 4px 8px; border: 1px solid var(--color-border, rgba(255,255,255,0.1)); background: var(--color-bg-secondary, rgba(255,255,255,0.05)); color: var(--color-text, #fff); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Info</button>
+              </div>
               <div class="settings-debug-logs-content" data-debug-logs-content>
                 <div class="settings-debug-logs-empty">No logs available</div>
               </div>
@@ -669,6 +675,53 @@
       debugLogsCloseBtn.addEventListener('click', handleCloseLogs, { passive: false });
       debugLogsCloseBtn.addEventListener('touchend', handleCloseLogs, { passive: false });
     }
+
+    // Debug Logs Filter buttons
+    const filterButtons = panel.querySelectorAll('[data-debug-logs-filter]');
+    filterButtons.forEach(btn => {
+      if (!wiredElements.has(btn)) {
+        wiredElements.add(btn);
+        const handleFilterClick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const filter = btn.dataset.debugLogsFilter || 'all';
+          currentLogFilter = filter;
+          localStorage.setItem('debugLogsFilter', filter);
+          
+          // Update active state
+          filterButtons.forEach(b => {
+            const isActive = b.dataset.debugLogsFilter === filter;
+            if (isActive) {
+              b.style.background = 'var(--color-primary, rgba(59, 130, 246, 0.3))';
+              b.style.borderColor = 'var(--color-primary, rgba(59, 130, 246, 0.5))';
+            } else {
+              b.style.background = 'var(--color-bg-secondary, rgba(255,255,255,0.05))';
+              b.style.borderColor = 'var(--color-border, rgba(255,255,255,0.1))';
+            }
+          });
+          
+          // Reload logs with new filter
+          const contentEl = panel.querySelector('[data-debug-logs-content]');
+          if (contentEl && allLogsCache.length > 0) {
+            renderDebugLogs(contentEl, allLogsCache, filter);
+          } else {
+            loadDebugLogs(contentEl, filter);
+          }
+        };
+        btn.addEventListener('click', handleFilterClick, { passive: false });
+        btn.addEventListener('touchend', handleFilterClick, { passive: false });
+      }
+    });
+    
+    // Set initial active filter button
+    filterButtons.forEach(btn => {
+      const filter = btn.dataset.debugLogsFilter || 'all';
+      const isActive = filter === currentLogFilter;
+      if (isActive) {
+        btn.style.background = 'var(--color-primary, rgba(59, 130, 246, 0.3))';
+        btn.style.borderColor = 'var(--color-primary, rgba(59, 130, 246, 0.5))';
+      }
+    });
   }
 
   function showDebugLogs(panel) {
@@ -677,7 +730,9 @@
     if (!container || !content) return;
 
     container.style.display = 'block';
-    loadDebugLogs(content);
+    
+    // Load logs with current filter
+    loadDebugLogs(content, currentLogFilter);
   }
 
   function hideDebugLogs(panel) {
@@ -686,20 +741,28 @@
     container.style.display = 'none';
   }
 
-  async function loadDebugLogs(contentEl) {
+  // Store current filter and all logs
+  let currentLogFilter = localStorage.getItem('debugLogsFilter') || 'all';
+  let allLogsCache = [];
+
+  async function loadDebugLogs(contentEl, filter = null) {
     if (!contentEl) return;
+    
+    // Use provided filter or saved filter
+    const activeFilter = filter !== null ? filter : currentLogFilter;
 
     // Show loading state
     contentEl.innerHTML = '<div class="settings-debug-logs-empty">Loading logs...</div>';
 
     try {
-      // Try to get logs from API endpoint
-      const response = await fetch('/api/app-log');
+      // Try to get logs from API endpoint with higher limit
+      const response = await fetch('/api/app-log?limit=500');
       if (response.ok) {
         const data = await response.json();
         const logs = data.logs || [];
         console.log('[settings-panel] Loaded logs from API:', logs.length);
-        renderDebugLogs(contentEl, logs);
+        allLogsCache = logs; // Cache all logs
+        renderDebugLogs(contentEl, logs, activeFilter);
         return;
       } else {
         console.warn('[settings-panel] API endpoint returned error:', response.status, response.statusText);
@@ -713,12 +776,14 @@
       if (window.ConsoleLogger && typeof window.ConsoleLogger.getLogs === 'function') {
         const logs = window.ConsoleLogger.getLogs();
         console.log('[settings-panel] Loaded logs from ConsoleLogger:', logs.length);
-        renderDebugLogs(contentEl, logs.map(log => ({
+        const formattedLogs = logs.map(log => ({
           ts: log.timestamp,
           event: log.type,
           message: log.message,
           meta: log.meta || {}
-        })));
+        }));
+        allLogsCache = formattedLogs; // Cache all logs
+        renderDebugLogs(contentEl, formattedLogs, activeFilter);
         return;
       } else {
         console.warn('[settings-panel] ConsoleLogger API not available');
@@ -731,7 +796,7 @@
     contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Make sure you have played a game and check the console for errors.</div>';
   }
 
-  function renderDebugLogs(contentEl, logs) {
+  function renderDebugLogs(contentEl, logs, filter = 'all') {
     if (!contentEl) return;
 
     if (!logs || logs.length === 0) {
@@ -746,33 +811,46 @@
       return tsB - tsA;
     });
 
-    // Show all logs (not just score submission related) for debugging
-    // Filter can be removed or made optional in the future
-    const scoreLogs = sortedLogs; // Show all logs for now to help debug
-    
-    // Optional: Filter for score submission related logs only
-    // const scoreLogs = sortedLogs.filter(log => {
-    //   const event = log.event || log.type || '';
-    //   const message = log.message || '';
-    //   return event.includes('score') || 
-    //          event.includes('submitScore') || 
-    //          message.includes('submitScore') ||
-    //          message.includes('score:') ||
-    //          event.includes('transaction') ||
-    //          event.includes('wallet') ||
-    //          event.includes('BaseMan') ||
-    //          message.includes('BaseMan') ||
-    //          event.includes('onchain') ||
-    //          message.includes('onchain');
-    // });
+    // Apply filter
+    let filteredLogs = sortedLogs;
+    if (filter === 'error') {
+      filteredLogs = sortedLogs.filter(log => {
+        const event = (log.event || log.type || '').toLowerCase();
+        const message = (log.message || '').toLowerCase();
+        return event.includes('error') || 
+               message.includes('error') ||
+               message.includes('failed') ||
+               message.includes('exception') ||
+               message.includes('err:');
+      });
+    } else if (filter === 'warn') {
+      filteredLogs = sortedLogs.filter(log => {
+        const event = (log.event || log.type || '').toLowerCase();
+        const message = (log.message || '').toLowerCase();
+        return event.includes('warn') || 
+               message.includes('warning') ||
+               message.includes('warn:');
+      });
+    } else if (filter === 'info') {
+      filteredLogs = sortedLogs.filter(log => {
+        const event = (log.event || log.type || '').toLowerCase();
+        const message = (log.message || '').toLowerCase();
+        return !event.includes('error') && 
+               !event.includes('warn') &&
+               !message.includes('error') &&
+               !message.includes('warning') &&
+               !message.includes('failed');
+      });
+    }
+    // filter === 'all' shows all logs
 
-    if (scoreLogs.length === 0) {
-      contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Try playing a game and check again.</div>';
+    if (filteredLogs.length === 0) {
+      contentEl.innerHTML = `<div class="settings-debug-logs-empty">No ${filter === 'all' ? '' : filter + ' '}logs available. Try playing a game and check again.</div>`;
       return;
     }
 
-    // Limit to last 50 logs for performance
-    const displayLogs = scoreLogs.slice(0, 50);
+    // Limit to last 200 logs for performance (increased from 50)
+    const displayLogs = filteredLogs.slice(0, 200);
     
     let html = displayLogs.map(log => {
       const ts = log.ts || log.timestamp || '';
@@ -807,8 +885,10 @@
       `;
     }).join('');
     
-    if (scoreLogs.length > 50) {
-      html += `<div class="settings-debug-logs-empty" style="padding: var(--spacing-sm); text-align: center; color: var(--color-text-muted); font-size: 0.5rem;">Showing last 50 of ${scoreLogs.length} logs</div>`;
+    if (filteredLogs.length > 200) {
+      html += `<div class="settings-debug-logs-empty" style="padding: var(--spacing-sm); text-align: center; color: var(--color-text-muted); font-size: 0.5rem;">Showing last 200 of ${filteredLogs.length} ${filter === 'all' ? '' : filter + ' '}logs</div>`;
+    } else if (filteredLogs.length > 0) {
+      html += `<div class="settings-debug-logs-empty" style="padding: var(--spacing-sm); text-align: center; color: var(--color-text-muted); font-size: 0.5rem;">Showing ${filteredLogs.length} ${filter === 'all' ? '' : filter + ' '}log${filteredLogs.length > 1 ? 's' : ''}</div>`;
     }
 
     contentEl.innerHTML = html;
