@@ -344,10 +344,26 @@
       let user = null;
       
       try {
-        // Check if BaseManOnchain is ready
-        const isWalletReady = window.BaseManOnchain?.isWalletReady?.();
-        if (isWalletReady) {
-          address = window.BaseManOnchain?.getWalletAddress?.() || null;
+        // Wait for BaseManOnchain wallet to be ready (with retry mechanism)
+        const maxWalletRetries = 10;
+        const walletDelayMs = 200;
+        
+        for (let i = 0; i < maxWalletRetries; i++) {
+          if (window.BaseManOnchain) {
+            const isWalletReady = window.BaseManOnchain?.isWalletReady?.();
+            if (isWalletReady) {
+              address = window.BaseManOnchain?.getWalletAddress?.() || null;
+              if (address) {
+                console.log('[leaderboard-panel] Got address from BaseManOnchain (attempt ' + (i + 1) + '):', address.substring(0, 10) + '...');
+                break; // Found address, exit loop
+              }
+            }
+          }
+          
+          // Wait before retrying (except on last attempt)
+          if (i < maxWalletRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, walletDelayMs));
+          }
         }
         
         // Get SDK context (same simple approach as profile-panel.js)
