@@ -622,11 +622,14 @@ async function fetchFromRpcFallback(limit, chainId = null) {
             lastUpdate: ts,
             blockNumber: log.blockNumber
           };
-        } catch {
+        } catch (err) {
+          console.warn(`[leaderboard] RPC fallback: Failed to parse log:`, err?.message);
           return null;
         }
       })
       .filter(Boolean);
+
+    console.log(`[leaderboard] RPC fallback: Parsed ${items.length} valid items from ${logs.length} logs`);
 
     // Reduce to max score per player, and latest update
     const map = new Map();
@@ -789,13 +792,25 @@ export default async function handler(req, res) {
     }
 
     let items = Array.isArray(rows) ? rows.map(mapRow).filter(Boolean) : [];
+    console.log(`[leaderboard] SQL query returned ${items.length} items after mapping`);
 
     if (!items.length) {
       // Try RPC fallback for quick freshness
-      const fallback = await fetchFromRpcFallback(limit, chainId);
-      if (fallback.length) {
-        items = fallback;
+      console.log(`[leaderboard] SQL returned no items, trying RPC fallback...`);
+      try {
+        const fallback = await fetchFromRpcFallback(limit, chainId);
+        console.log(`[leaderboard] RPC fallback returned ${fallback.length} items`);
+        if (fallback.length) {
+          items = fallback;
+          console.log(`[leaderboard] Using ${fallback.length} items from RPC fallback`);
+        } else {
+          console.warn(`[leaderboard] RPC fallback returned empty, leaderboard will be empty`);
+        }
+      } catch (fallbackError) {
+        console.error(`[leaderboard] RPC fallback failed:`, fallbackError?.message || fallbackError);
       }
+    } else {
+      console.log(`[leaderboard] Using ${items.length} items from SQL query, skipping RPC fallback`);
     }
     const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
     const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
