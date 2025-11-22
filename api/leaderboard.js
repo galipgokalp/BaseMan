@@ -490,41 +490,70 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       ? Number(chainId) 
       : (getRegistryChainIdNumber() || 8453); // Default to Base Mainnet (8453) if not specified
     
+    console.log(`[leaderboard] RPC fallback starting: chainId=${chainId}, targetChainId=${targetChainId}, limit=${limit}`);
+    
     // Get registry address for the target chain
     let address;
     try {
       if (targetChainId === 8453) {
         // Base Mainnet
+        console.log(`[leaderboard] Getting registry context for base (mainnet)...`);
         const ctx = getRegistryContext('base');
         address = ctx.address ? ethers.getAddress(ctx.address) : null;
+        console.log(`[leaderboard] Base Mainnet registry address: ${address || 'NOT FOUND'}`);
       } else if (targetChainId === 84532) {
         // Base Sepolia
+        console.log(`[leaderboard] Getting registry context for base-sepolia...`);
         const ctx = getRegistryContext('base-sepolia');
         address = ctx.address ? ethers.getAddress(ctx.address) : null;
+        console.log(`[leaderboard] Base Sepolia registry address: ${address || 'NOT FOUND'}`);
       } else {
         // Fallback to default registry address
+        console.log(`[leaderboard] Using default registry address...`);
         address = registryAddress ? ethers.getAddress(registryAddress) : null;
+        console.log(`[leaderboard] Default registry address: ${address || 'NOT FOUND'}`);
       }
     } catch (error) {
       console.warn(`[leaderboard] Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
       address = registryAddress ? ethers.getAddress(registryAddress) : null;
+      console.log(`[leaderboard] Fallback registry address after error: ${address || 'NOT FOUND'}`);
     }
     
     // Handle missing registry address gracefully
     if (!address) {
       console.warn(`[leaderboard] RPC fallback skipped: registry address not configured for chain ${targetChainId}`);
+      console.warn(`[leaderboard] Available env vars check:`, {
+        hasRegistryAddress: !!registryAddress,
+        targetChainId,
+        hasBaseMainnetReg: !!process.env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS,
+        hasBaseSepoliaReg: !!process.env.BASE_SEPOLIA_REGISTRY_ADDRESS,
+        hasRegDefaultTarget: !!process.env.REGISTRY_DEFAULT_TARGET
+      });
       return [];
     }
     
     const rpcUrl = pickRpcUrl(targetChainId);
-    if (!rpcUrl) throw new Error(`No RPC URL configured for fallback (chain ${targetChainId})`);
+    if (!rpcUrl) {
+      console.error(`[leaderboard] RPC fallback failed: No RPC URL configured for chain ${targetChainId}`);
+      console.error(`[leaderboard] Available RPC env vars:`, {
+        hasLeaderboardRpc: !!process.env.LEADERBOARD_RPC_URL,
+        hasBaseMainnetRpc: !!process.env.BASE_MAINNET_RPC_URL,
+        hasBaseSepoliaRpc: !!process.env.BASE_SEPOLIA_RPC_URL,
+        hasAddressHistoryRpc: !!process.env.ADDRESS_HISTORY_RPC_URL,
+        hasRpc: !!process.env.RPC_URL,
+        targetChainId
+      });
+      throw new Error(`No RPC URL configured for fallback (chain ${targetChainId})`);
+    }
 
+    console.log(`[leaderboard] RPC fallback: Using RPC URL: ${rpcUrl.substring(0, 50)}...`);
     const provider = new ethers.JsonRpcProvider(rpcUrl);
+    console.log(`[leaderboard] RPC fallback: Getting latest block number...`);
     const latest = await provider.getBlockNumber();
     const windowBlocks = Number.parseInt(process.env.LEADERBOARD_FALLBACK_WINDOW_BLOCKS || "50000", 10);
     const fromBlock = Math.max(0, latest - windowBlocks);
     
-    console.log(`[leaderboard] RPC fallback: chain=${targetChainId}, address=${address}, fromBlock=${fromBlock}, toBlock=${latest}`);
+    console.log(`[leaderboard] RPC fallback: chain=${targetChainId}, address=${address}, fromBlock=${fromBlock}, toBlock=${latest}, latestBlock=${latest}`);
 
     // Fetch logs in chunks to avoid provider limits
     const chunkMax = Number.parseInt(process.env.LEADERBOARD_FALLBACK_CHUNK_SIZE || "400", 10);
