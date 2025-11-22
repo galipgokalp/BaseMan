@@ -353,6 +353,17 @@
           }
         }
         
+        // Debug: Log what we have
+        console.log('[leaderboard-panel] Profile mapping check:', {
+          hasBaseManOnchain: !!window.BaseManOnchain,
+          hasAddress: !!address,
+          hasSDK: !!window.sdk,
+          hasSDKContext: !!(window.sdk && window.sdk.context),
+          hasUser: !!user,
+          hasFid: !!user?.fid,
+          address: address ? address.substring(0, 10) + '...' : null
+        });
+        
         // If we have both address and user with FID, send mapping
         if (address && user && user.fid) {
           const mappingData = {
