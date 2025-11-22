@@ -27,14 +27,22 @@ if (typeof setInterval !== 'undefined') {
 
 // Export functions for use in farcaster-profiles.js
 export function getProfileMapping(address) {
-  if (!address || typeof address !== 'string') return null;
+  if (!address || typeof address !== 'string') {
+    console.log(`[leaderboard] getProfileMapping: invalid address input:`, address);
+    return null;
+  }
   const key = address.toLowerCase();
   const mapping = ADDRESS_TO_PROFILE_MAP.get(key);
-  if (!mapping) return null;
+  console.log(`[leaderboard] getProfileMapping(${address}): key=${key}, found=${!!mapping}, mapSize=${ADDRESS_TO_PROFILE_MAP.size}, mapKeys=${Array.from(ADDRESS_TO_PROFILE_MAP.keys()).join(',')}`);
+  if (!mapping) {
+    return null;
+  }
   if (mapping.updatedAt && (Date.now() - mapping.updatedAt) > MAX_AGE_MS) {
+    console.log(`[leaderboard] getProfileMapping: mapping expired for ${key}`);
     ADDRESS_TO_PROFILE_MAP.delete(key);
     return null;
   }
+  console.log(`[leaderboard] getProfileMapping: returning mapping for ${key}:`, { fid: mapping.fid, username: mapping.username, displayName: mapping.displayName });
   return mapping;
 }
 
