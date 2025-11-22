@@ -256,21 +256,51 @@ export async function fetchProfilesForAddresses(addresses = []) {
     }
   }
 
-  // Step 2: Get FID mappings from SDK context cache
+  // Step 2: Check direct profile mapping first (from header/SDK context)
+  // This is the most reliable source as it comes from the current user's SDK
   const addressesNeedingFetch = normalizedAddresses.filter(
     addr => !results.has(addr.toLowerCase())
   );
 
-  if (addressesNeedingFetch.length === 0) {
+  // First, try direct mapping from header/SDK context (highest priority)
+  for (const address of addressesNeedingFetch) {
+    const key = address.toLowerCase();
+    const directMapping = getProfileMapping(address);
+    if (directMapping && (directMapping.username || directMapping.displayName || directMapping.avatarUrl)) {
+      const profile = {
+        fid: directMapping.fid,
+        username: directMapping.username,
+        displayName: directMapping.displayName,
+        avatarUrl: directMapping.avatarUrl,
+        profileUrl: directMapping.username
+          ? `https://warpcast.com/${directMapping.username}`
+          : directMapping.fid
+          ? `https://warpcast.com/~/users/${directMapping.fid}`
+          : null,
+        address: normalizeAddress(address),
+        provider: 'sdk-context-direct'
+      };
+      results.set(key, profile);
+      PROFILE_CACHE.set(key, profile);
+      console.log(`[farcaster-profiles] Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
+    }
+  }
+
+  // Update addresses needing fetch (exclude ones we just found)
+  const addressesStillNeedingFetch = addressesNeedingFetch.filter(
+    addr => !results.has(addr.toLowerCase())
+  );
+
+  if (addressesStillNeedingFetch.length === 0) {
     return results;
   }
 
   try {
-    // Get FID mappings from profile-mapping.js
-    const addressToFidMap = getAllFidMappings(addressesNeedingFetch);
-    console.log(`[farcaster-profiles] Found ${addressToFidMap.size} FID mappings for ${addressesNeedingFetch.length} addresses`);
+    // Step 3: Get FID mappings for remaining addresses
+    const addressToFidMap = getAllFidMappings(addressesStillNeedingFetch);
+    console.log(`[farcaster-profiles] Found ${addressToFidMap.size} FID mappings for ${addressesStillNeedingFetch.length} addresses`);
     
-    // Step 3: If we have FIDs, use bulk endpoint (free)
+    // Step 4: If we have FIDs, use bulk endpoint (free)
     if (addressToFidMap.size > 0) {
       const fids = Array.from(new Set(Array.from(addressToFidMap.values()).filter(Boolean)));
       console.log(`[farcaster-profiles] Fetching ${fids.length} profiles via bulk endpoint:`, fids);
@@ -278,7 +308,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
       console.log(`[farcaster-profiles] Bulk endpoint returned ${bulkProfiles.size} profiles`);
 
       // Map bulk results back to addresses
-      for (const address of addressesNeedingFetch) {
+      for (const address of addressesStillNeedingFetch) {
         const key = address.toLowerCase();
         const fid = addressToFidMap.get(key);
         
@@ -288,36 +318,16 @@ export async function fetchProfilesForAddresses(addresses = []) {
           PROFILE_CACHE.set(key, profile);
           console.log(`[farcaster-profiles] Found bulk profile for ${key}:`, profile.username || profile.displayName || 'unnamed');
         } else {
-          // Try direct SDK context mapping if bulk didn't return it
-          const directMapping = getProfileMapping(address);
-          if (directMapping && (directMapping.username || directMapping.displayName || directMapping.avatarUrl)) {
-            const profile = {
-              fid: directMapping.fid,
-              username: directMapping.username,
-              displayName: directMapping.displayName,
-              avatarUrl: directMapping.avatarUrl,
-              profileUrl: directMapping.username
-                ? `https://warpcast.com/${directMapping.username}`
-                : directMapping.fid
-                ? `https://warpcast.com/~/users/${directMapping.fid}`
-                : null,
-              address: normalizeAddress(address),
-              provider: 'sdk-context'
-            };
-            results.set(key, profile);
-            PROFILE_CACHE.set(key, profile);
-            console.log(`[farcaster-profiles] Using SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
-          } else {
-            results.set(key, null);
-            if (fid) {
-              console.log(`[farcaster-profiles] No profile found for ${key} (FID: ${fid}) - bulk returned nothing and no direct mapping`);
-            }
+          // Bulk didn't return profile for this address
+          results.set(key, null);
+          if (fid) {
+            console.log(`[farcaster-profiles] No bulk profile found for ${key} (FID: ${fid}) - verified_addresses may not match`);
           }
         }
       }
 
       // For remaining addresses without FIDs, try old method (might fail with 402)
-      const remainingAddresses = addressesNeedingFetch.filter(
+      const remainingAddresses = addressesStillNeedingFetch.filter(
         addr => !results.has(addr.toLowerCase())
       );
 
@@ -344,32 +354,9 @@ export async function fetchProfilesForAddresses(addresses = []) {
         }
       }
     } else {
-      // No FID mappings from SDK context cache
-      // Try direct mapping lookup first (might exist from same request)
-      for (const address of addressesNeedingFetch) {
-        const key = address.toLowerCase();
-        const directMapping = getProfileMapping(address);
-        if (directMapping && (directMapping.username || directMapping.displayName || directMapping.avatarUrl)) {
-          const profile = {
-            fid: directMapping.fid,
-            username: directMapping.username,
-            displayName: directMapping.displayName,
-            avatarUrl: directMapping.avatarUrl,
-            profileUrl: directMapping.username
-              ? `https://warpcast.com/${directMapping.username}`
-              : directMapping.fid
-              ? `https://warpcast.com/~/users/${directMapping.fid}`
-              : null,
-            address: normalizeAddress(address),
-            provider: 'sdk-context-direct'
-          };
-          results.set(key, profile);
-          PROFILE_CACHE.set(key, profile);
-        }
-      }
-      
+      // No FID mappings - direct mapping already checked above
       // For remaining addresses, try old method (might fail with 402)
-      const remainingAddresses = addressesNeedingFetch.filter(
+      const remainingAddresses = addressesStillNeedingFetch.filter(
         addr => !results.has(addr.toLowerCase())
       );
       
@@ -399,7 +386,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
   } catch (error) {
     console.error('[farcaster-profiles] fetchProfilesForAddresses error:', error);
     // Set remaining addresses to null
-    for (const address of addressesNeedingFetch) {
+    for (const address of addressesStillNeedingFetch || addressesNeedingFetch || []) {
       const cacheKey = address.toLowerCase();
       if (!results.has(cacheKey)) {
         results.set(cacheKey, null);
