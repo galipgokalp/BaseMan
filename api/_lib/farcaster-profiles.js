@@ -283,13 +283,13 @@ export async function fetchProfilesForAddresses(addresses = []) {
   // This is the most reliable source as it comes from the current user's SDK
   // IMPORTANT: Always check direct mapping even if enrichment is disabled
   // because direct mapping doesn't require external API calls
-  const addressesStillNeedingFetch = normalizedAddresses.filter(
+  const addressesForDirectMapping = normalizedAddresses.filter(
     addr => !results.has(addr.toLowerCase())
   );
 
   // First, try direct mapping from header/SDK context (highest priority for current user)
   // This works even when Neynar API is disabled because it uses header data
-  for (const address of addressesStillNeedingFetch) {
+  for (const address of addressesForDirectMapping) {
     const key = address.toLowerCase();
     const directMapping = getProfileMapping(address);
     console.log(`[farcaster-profiles] Checking direct mapping for ${key}:`, { 
@@ -321,8 +321,8 @@ export async function fetchProfilesForAddresses(addresses = []) {
     }
   }
 
-  // Update addresses needing fetch (exclude ones we just found)
-  const addressesStillNeedingFetch = addressesNeedingFetch.filter(
+  // Update addresses needing fetch (exclude ones we just found from direct mapping)
+  const addressesStillNeedingFetch = addressesForDirectMapping.filter(
     addr => !results.has(addr.toLowerCase())
   );
 

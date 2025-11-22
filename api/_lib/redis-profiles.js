@@ -8,15 +8,21 @@ import { Redis } from '@upstash/redis';
 let redis = null;
 
 try {
-  redis = Redis.fromEnv();
-  // Log available env vars for debugging (without exposing values)
+  // Check if environment variables exist before initializing
   const hasStandardVars = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
   const hasRedisUrl = !!process.env.REDIS_URL;
-  console.log('[redis-profiles] Redis client initialized', {
-    hasStandardVars,
-    hasRedisUrl,
-    method: hasStandardVars ? 'standard' : (hasRedisUrl ? 'REDIS_URL' : 'unknown')
-  });
+  
+  if (hasStandardVars || hasRedisUrl) {
+    redis = Redis.fromEnv();
+    console.log('[redis-profiles] Redis client initialized', {
+      hasStandardVars,
+      hasRedisUrl,
+      method: hasStandardVars ? 'standard' : (hasRedisUrl ? 'REDIS_URL' : 'unknown')
+    });
+  } else {
+    console.log('[redis-profiles] Redis environment variables not found, will use in-memory fallback');
+    redis = null;
+  }
 } catch (error) {
   console.warn('[redis-profiles] Redis client initialization failed (will fallback to in-memory):', error?.message || error);
   redis = null;

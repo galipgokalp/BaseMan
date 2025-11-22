@@ -1,6 +1,8 @@
 import { ethers } from "ethers";
 import { registryAddress, getRegistryContext, getRegistryChainIdNumber } from "./_lib/registry.js";
 import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
+
+// Redis import - static import, wrap all Redis calls in try-catch blocks
 import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFromRedis } from "./_lib/redis-profiles.js";
 
 // Profile mapping storage (integrated into leaderboard endpoint to avoid Vercel function limit)
@@ -62,16 +64,18 @@ export async function getAllFidMappings(addresses) {
   }
   
   // Step 1: Redis'ten toplu oku (persistent storage)
-  try {
-    const redisMappings = await getFidMappingsFromRedis(normalizedAddresses);
-    for (const [address, fid] of redisMappings) {
-      result.set(address, fid);
+  if (getFidMappingsFromRedis) {
+    try {
+      const redisMappings = await getFidMappingsFromRedis(normalizedAddresses);
+      for (const [address, fid] of redisMappings) {
+        result.set(address, fid);
+      }
+      if (redisMappings.size > 0) {
+        console.log(`[leaderboard] ✅ Retrieved ${redisMappings.size} FID mapping(s) from Redis`);
+      }
+    } catch (error) {
+      console.warn('[leaderboard] Failed to get FID mappings from Redis (non-critical):', error?.message || error);
     }
-    if (redisMappings.size > 0) {
-      console.log(`[leaderboard] ✅ Retrieved ${redisMappings.size} FID mapping(s) from Redis`);
-    }
-  } catch (error) {
-    console.warn('[leaderboard] Failed to get FID mappings from Redis (non-critical):', error?.message || error);
   }
   
   // Step 2: In-memory Map'i fallback olarak kullan (header'dan gelenler için)
