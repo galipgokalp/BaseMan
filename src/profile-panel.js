@@ -303,11 +303,12 @@
           }
 
           // Send profile mapping to backend for leaderboard enrichment
+          // Using leaderboard endpoint to avoid Vercel function limit
           try {
             const address = window.BaseManOnchain?.getWalletAddress?.() || null;
             if (address && user.fid) {
               // Send asynchronously, don't block UI
-              fetch('/api/profile-mapping', {
+              fetch('/api/leaderboard?action=profile-mapping', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { getAllFidMappings, getProfileMapping } from "../profile-mapping.js";
+import { getAllFidMappings, getProfileMapping } from "../leaderboard.js";
 
 const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
