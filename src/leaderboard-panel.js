@@ -510,17 +510,33 @@
       const isDebugMode = urlHash.includes('debug=1') || localStorage.getItem('baseManDebug') === '1';
       
       const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}`;
+      console.log('[leaderboard-panel] Fetching leaderboard from:', apiUrl);
       const response = await fetch(apiUrl, {
         headers,
         cache: "no-store"
       });
 
+      console.log('[leaderboard-panel] API response status:', response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorText = await response.text().catch(() => '');
+        console.error('[leaderboard-panel] API error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
       }
 
       const payload = await response.json();
-      const rendered = renderRows(Array.isArray(payload.items) ? payload.items : []);
+      console.log('[leaderboard-panel] API payload:', {
+        source: payload.source,
+        chainId: payload.chainId,
+        count: payload.count,
+        itemsCount: Array.isArray(payload.items) ? payload.items.length : 0,
+        hasDebug: !!payload._debug,
+        sampleItem: payload.items?.[0] || null
+      });
+      
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      console.log('[leaderboard-panel] Processing', items.length, 'items');
+      const rendered = renderRows(items);
       
       // Show debug info if available
       if (isDebugMode && payload._debug) {
@@ -669,6 +685,7 @@
 
   init();
 
+  // Export API early to avoid "API not available" warnings
   window.BaseManLeaderboard = {
     show() {
       window.__BaseManLeaderboardDesiredVisible = true;
@@ -678,9 +695,9 @@
       window.__BaseManLeaderboardDesiredVisible = false;
       setVisible(false, { reload: false });
     },
-    setVisible(value) {
+    setVisible(value, options = {}) {
       window.__BaseManLeaderboardDesiredVisible = Boolean(value);
-      setVisible(value);
+      setVisible(value, options);
     },
     refresh() {
       if (visible) {
@@ -688,6 +705,8 @@
       }
     }
   };
+  
+  console.log('[leaderboard-panel] BaseManLeaderboard API exported');
 
   if (typeof window.__BaseManLeaderboardDesiredVisible === "boolean") {
     window.BaseManLeaderboard.setVisible(window.__BaseManLeaderboardDesiredVisible);
