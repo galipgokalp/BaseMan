@@ -329,13 +329,36 @@ async function enrichWithProfiles(items, req = null) {
   }
 
   let profileMap = new Map();
+  let debugInfo = null;
   try {
     profileMap = await fetchProfilesForAddresses(addresses);
   } catch (error) {
     console.error("[leaderboard] profile enrichment failed", error);
+    debugInfo = debugInfo || {};
+    debugInfo.error = error?.message || String(error);
   }
 
-  return items.map((item, index) => {
+  // Collect debug info if requested
+  const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';
+  if (isDebug) {
+    const headerValue = req?.headers?.['x-profile-mapping'] || req?.headers?.['X-Profile-Mapping'];
+    debugInfo = {
+      headerReceived: !!headerValue,
+      headerValue: headerValue ? headerValue.substring(0, 200) : null,
+      mappingCount: ADDRESS_TO_PROFILE_MAP.size,
+      addressesRequested: addresses.length,
+      profilesFound: profileMap.size,
+      profileDetails: Array.from(profileMap.entries()).map(([addr, prof]) => ({
+        address: addr,
+        hasProfile: !!prof,
+        fid: prof?.fid || null,
+        username: prof?.username || null,
+        provider: prof?.provider || null
+      }))
+    };
+  }
+
+  const enriched = items.map((item, index) => {
     const key = typeof item.player === "string" ? item.player.toLowerCase() : null;
     const profile = key ? profileMap.get(key) ?? null : null;
     const totalNumeric = toNumericScore(item.totalScore ?? item.highScore);
@@ -353,6 +376,8 @@ async function enrichWithProfiles(items, req = null) {
       profile
     };
   });
+
+  return { enriched, debugInfo };
 }
 
 async function runQueryV1(base, statement) {
@@ -677,15 +702,21 @@ export default async function handler(req, res) {
   if (!SQL_API_KEY) {
     try {
       const fallback = await fetchFromRpcFallback(limit, chainId);
-      const items = await enrichWithProfiles(fallback, req);
-      return res.status(200).json({ 
+      const result = await enrichWithProfiles(fallback, req);
+      const enriched = Array.isArray(result) ? result : result.enriched;
+      const debugInfo = Array.isArray(result) ? null : result.debugInfo;
+      const response = { 
         source: "rpc-fallback", 
         chainId,
         limit, 
-        count: items.length, 
-        items, 
+        count: enriched.length, 
+        items: enriched, 
         updatedAt: new Date().toISOString() 
-      });
+      };
+      if (debugInfo) {
+        response._debug = debugInfo;
+      }
+      return res.status(200).json(response);
     } catch (_) {
       return res.status(200).json({ 
         source: "rpc-fallback", 
@@ -727,25 +758,44 @@ export default async function handler(req, res) {
     }
     const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
     const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
-    const enriched = shouldEnrich ? await enrichWithProfiles(items, req) : items.map((it, i) => ({
-      rank: i + 1,
-      player: it.player,
-      playerAddress: it.player,
-      highScore: it.highScore ?? null,
-      totalScore: toNumericScore(it.totalScore ?? it.highScore) ?? null,
-      lastUpdate: it.lastUpdate,
-      lastUpdatedAt: toIsoTimestamp(it.lastUpdate),
-      profile: null
-    }));
+    const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';
+    
+    let result;
+    if (shouldEnrich) {
+      result = await enrichWithProfiles(items, req);
+    } else {
+      result = {
+        enriched: items.map((it, i) => ({
+          rank: i + 1,
+          player: it.player,
+          playerAddress: it.player,
+          highScore: it.highScore ?? null,
+          totalScore: toNumericScore(it.totalScore ?? it.highScore) ?? null,
+          lastUpdate: it.lastUpdate,
+          lastUpdatedAt: toIsoTimestamp(it.lastUpdate),
+          profile: null
+        })),
+        debugInfo: isDebug ? { enrichmentDisabled: true } : null
+      };
+    }
 
-    return res.status(200).json({
+    const enriched = Array.isArray(result) ? result : result.enriched;
+    const debugInfo = Array.isArray(result) ? null : result.debugInfo;
+
+    const response = {
       source: "cdp-sql-api",
       chainId,
       limit,
       count: enriched.length,
       items: enriched,
       updatedAt: new Date().toISOString()
-    });
+    };
+    
+    if (debugInfo) {
+      response._debug = debugInfo;
+    }
+
+    return res.status(200).json(response);
   } catch (error) {
     console.error("[leaderboard] error", error);
     return res.status(500).json({

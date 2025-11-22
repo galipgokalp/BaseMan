@@ -187,6 +187,65 @@
     return li;
   };
 
+  const showDebugInfo = (debugInfo) => {
+    let debugEl = panel.querySelector('[data-debug-info]');
+    if (!debugEl) {
+      debugEl = document.createElement('div');
+      debugEl.setAttribute('data-debug-info', '');
+      debugEl.style.cssText = `
+        margin-top: 16px;
+        padding: 12px;
+        background: rgba(0,0,0,0.1);
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 11px;
+        max-height: 200px;
+        overflow-y: auto;
+        color: #666;
+        border: 1px solid rgba(0,0,0,0.1);
+      `;
+      panel.appendChild(debugEl);
+    }
+    
+    const info = [];
+    info.push(`🔍 DEBUG MODE`);
+    if (debugInfo.headerReceived !== undefined) {
+      info.push(`Header: ${debugInfo.headerReceived ? '✅ Received' : '❌ Not received'}`);
+    }
+    if (debugInfo.mappingCount !== undefined) {
+      info.push(`Mappings: ${debugInfo.mappingCount}`);
+    }
+    if (debugInfo.addressesRequested !== undefined) {
+      info.push(`Addresses: ${debugInfo.addressesRequested}`);
+    }
+    if (debugInfo.profilesFound !== undefined) {
+      info.push(`Profiles: ${debugInfo.profilesFound}`);
+    }
+    if (debugInfo.profileDetails) {
+      info.push('');
+      info.push('Profile Details:');
+      debugInfo.profileDetails.forEach(detail => {
+        const hasProfile = detail.hasProfile ? '✅' : '❌';
+        const user = detail.username ? `@${detail.username}` : detail.address;
+        info.push(`  ${hasProfile} ${user.substring(0, 20)}${detail.fid ? ` (FID: ${detail.fid})` : ''}`);
+      });
+    }
+    if (debugInfo.error) {
+      info.push('');
+      info.push(`❌ Error: ${debugInfo.error}`);
+    }
+    
+    debugEl.textContent = info.join('\n');
+    debugEl.style.display = 'block';
+  };
+
+  const hideDebugInfo = () => {
+    const debugEl = panel.querySelector('[data-debug-info]');
+    if (debugEl) {
+      debugEl.style.display = 'none';
+    }
+  };
+
   const renderRows = (items = []) => {
     if (topListEl) {
       topListEl.innerHTML = "";
@@ -333,7 +392,12 @@
         console.warn('[leaderboard-panel] No profile mapping header to send');
       }
       
-      const response = await fetch(`/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}`, {
+      // Check for debug mode (from URL hash or localStorage)
+      const urlHash = window.location.hash || '';
+      const isDebugMode = urlHash.includes('debug=1') || localStorage.getItem('baseManDebug') === '1';
+      
+      const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}`;
+      const response = await fetch(apiUrl, {
         headers,
         cache: "no-store"
       });
@@ -344,6 +408,13 @@
 
       const payload = await response.json();
       const rendered = renderRows(Array.isArray(payload.items) ? payload.items : []);
+      
+      // Show debug info if available
+      if (isDebugMode && payload._debug) {
+        showDebugInfo(payload._debug);
+      } else {
+        hideDebugInfo();
+      }
 
       if (rendered) {
         statusEl.textContent = "";
