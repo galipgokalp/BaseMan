@@ -222,21 +222,6 @@ async function resolveProfile(address) {
 }
 
 export async function fetchProfilesForAddresses(addresses = []) {
-  if (DISABLE_ENRICHMENT || ENRICHMENT_DISABLED_REASON) {
-    // Short-circuit: do not attempt external calls
-    const results = new Map();
-    for (const raw of addresses) {
-      const addr = normalizeAddress(raw);
-      if (addr) results.set(addr.toLowerCase(), null);
-    }
-    if (ENRICHMENT_DISABLED_REASON) {
-      console.warn(
-        `[farcaster-profiles] enrichment disabled (${ENRICHMENT_DISABLED_REASON}); set FARCASTER_PROFILE_PROVIDER=none to silence`
-      );
-    }
-    return results;
-  }
-
   const results = new Map();
   const normalizedAddresses = addresses
     .map(addr => normalizeAddress(addr))
@@ -258,11 +243,14 @@ export async function fetchProfilesForAddresses(addresses = []) {
 
   // Step 2: Check direct profile mapping first (from header/SDK context)
   // This is the most reliable source as it comes from the current user's SDK
+  // IMPORTANT: Always check direct mapping even if enrichment is disabled
+  // because direct mapping doesn't require external API calls
   const addressesNeedingFetch = normalizedAddresses.filter(
     addr => !results.has(addr.toLowerCase())
   );
 
   // First, try direct mapping from header/SDK context (highest priority)
+  // This works even when Neynar API is disabled because it uses header data
   for (const address of addressesNeedingFetch) {
     const key = address.toLowerCase();
     const directMapping = getProfileMapping(address);
@@ -364,12 +352,12 @@ export async function fetchProfilesForAddresses(addresses = []) {
       }
     } else {
       // No FID mappings - direct mapping already checked above
-      // For remaining addresses, try old method (might fail with 402)
+      // For remaining addresses, try old method only if enrichment is enabled
       const remainingAddresses = addressesStillNeedingFetch.filter(
         addr => !results.has(addr.toLowerCase())
       );
       
-      if (remainingAddresses.length > 0 && !ENRICHMENT_DISABLED_REASON) {
+      if (remainingAddresses.length > 0 && !DISABLE_ENRICHMENT && !ENRICHMENT_DISABLED_REASON) {
         const tasks = [];
         for (const address of remainingAddresses) {
           const cacheKey = address.toLowerCase();
@@ -383,12 +371,18 @@ export async function fetchProfilesForAddresses(addresses = []) {
           await Promise.allSettled(tasks);
         }
       } else {
-        // Mark remaining as null
+        // Mark remaining as null (enrichment disabled or no mappings)
         for (const address of remainingAddresses) {
           const cacheKey = address.toLowerCase();
           if (!results.has(cacheKey)) {
             results.set(cacheKey, null);
           }
+        }
+        // Log enrichment disabled only if we couldn't find profiles via direct mapping
+        if (remainingAddresses.length > 0 && ENRICHMENT_DISABLED_REASON) {
+          console.warn(
+            `[farcaster-profiles] enrichment disabled (${ENRICHMENT_DISABLED_REASON}); set FARCASTER_PROFILE_PROVIDER=none to silence`
+          );
         }
       }
     }
@@ -401,6 +395,12 @@ export async function fetchProfilesForAddresses(addresses = []) {
         results.set(cacheKey, null);
       }
     }
+  }
+
+  // Log summary
+  const foundCount = Array.from(results.values()).filter(p => p !== null).length;
+  if (foundCount > 0) {
+    console.log(`[farcaster-profiles] Returning ${foundCount} profile(s) out of ${normalizedAddresses.length} requested addresses`);
   }
 
   return results;
