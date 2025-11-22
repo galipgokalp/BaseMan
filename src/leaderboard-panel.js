@@ -412,86 +412,84 @@
           sdkAvailable: !!window.sdk,
           resolveSDKAvailable: typeof window.resolveSDK === 'function'
         });
-          
-          // Try multiple ways to get address:
-          // 1. BaseManOnchain (if wallet is ready)
-          // 2. SDK provider directly
-          let address = null;
-          
-          // Method 1: Try BaseManOnchain if wallet is ready
-          if (window.BaseManOnchain) {
-            const isReady = window.BaseManOnchain.isWalletReady && window.BaseManOnchain.isWalletReady();
-            if (isReady) {
-              address = window.BaseManOnchain.getWalletAddress && window.BaseManOnchain.getWalletAddress();
-            } else {
-              console.log('[leaderboard-panel] BaseManOnchain wallet not ready yet');
-            }
+        
+        // Try multiple ways to get address:
+        // 1. BaseManOnchain (if wallet is ready)
+        // 2. SDK provider directly
+        let address = null;
+        
+        // Method 1: Try BaseManOnchain if wallet is ready
+        if (window.BaseManOnchain) {
+          const isReady = window.BaseManOnchain.isWalletReady && window.BaseManOnchain.isWalletReady();
+          if (isReady) {
+            address = window.BaseManOnchain.getWalletAddress && window.BaseManOnchain.getWalletAddress();
+            console.log('[leaderboard-panel] Got address from BaseManOnchain:', address);
           } else {
-            console.log('[leaderboard-panel] BaseManOnchain not available');
+            console.log('[leaderboard-panel] BaseManOnchain wallet not ready yet');
           }
-          
-          // Method 2: Try SDK provider directly if address not available
-          if (!address && window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') {
-            try {
-              const provider = await window.sdk.wallet.getEthereumProvider();
-              if (provider && typeof provider.request === 'function') {
-                const accounts = await provider.request({ method: 'eth_accounts' });
-                if (accounts && Array.isArray(accounts) && accounts.length > 0) {
-                  address = accounts[0];
-                  console.log('[leaderboard-panel] Got address from SDK provider:', address);
-                } else {
-                  console.log('[leaderboard-panel] No accounts from SDK provider');
-                }
+        } else {
+          console.log('[leaderboard-panel] BaseManOnchain not available');
+        }
+        
+        // Method 2: Try SDK provider directly if address not available
+        if (!address && sdkContext?.sdk?.wallet && typeof sdkContext.sdk.wallet.getEthereumProvider === 'function') {
+          try {
+            const provider = await sdkContext.sdk.wallet.getEthereumProvider();
+            if (provider && typeof provider.request === 'function') {
+              const accounts = await provider.request({ method: 'eth_accounts' });
+              if (accounts && Array.isArray(accounts) && accounts.length > 0) {
+                address = accounts[0];
+                console.log('[leaderboard-panel] Got address from SDK provider:', address);
+              } else {
+                console.log('[leaderboard-panel] No accounts from SDK provider');
               }
-            } catch (providerErr) {
-              console.warn('[leaderboard-panel] Failed to get address from provider:', providerErr);
             }
+          } catch (providerErr) {
+            console.warn('[leaderboard-panel] Failed to get address from provider:', providerErr);
           }
+        }
+        
+        console.log('[leaderboard-panel] Final values:', { 
+          address, 
+          hasUser: !!user,
+          fid: user?.fid,
+          username: user?.username,
+          displayName: user?.displayName
+        });
+        
+        if (address && user && user.fid) {
+          const mappingData = {
+            address: address.toLowerCase(),
+            fid: user.fid,
+            username: user.username || null,
+            displayName: user.displayName || null,
+            avatarUrl: user.pfpUrl || null
+          };
+          console.log('[leaderboard-panel] Sending profile mapping:', mappingData);
           
-          console.log('[leaderboard-panel] Final values:', { 
-            address, 
-            hasUser: !!user,
-            fid: user?.fid,
-            username: user?.username,
-            displayName: user?.displayName
+          // Send mapping immediately before leaderboard request
+          await fetch('/api/leaderboard?action=profile-mapping', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mappingData)
+          }).then(res => {
+            console.log('[leaderboard-panel] Profile mapping POST response:', res.status);
+          }).catch(err => {
+            console.warn('[leaderboard-panel] Profile mapping POST failed:', err);
           });
           
-          if (address && user && user.fid) {
-            const mappingData = {
-              address: address.toLowerCase(),
+          // Also include in header for same request
+          profileMappingHeader = JSON.stringify({
+            [address.toLowerCase()]: {
               fid: user.fid,
               username: user.username || null,
               displayName: user.displayName || null,
               avatarUrl: user.pfpUrl || null
-            };
-            console.log('[leaderboard-panel] Sending profile mapping:', mappingData);
-            
-            // Send mapping immediately before leaderboard request
-            await fetch('/api/leaderboard?action=profile-mapping', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(mappingData)
-            }).then(res => {
-              console.log('[leaderboard-panel] Profile mapping POST response:', res.status);
-            }).catch(err => {
-              console.warn('[leaderboard-panel] Profile mapping POST failed:', err);
-            });
-            
-            // Also include in header for same request
-            profileMappingHeader = JSON.stringify({
-              [address.toLowerCase()]: {
-                fid: user.fid,
-                username: user.username || null,
-                displayName: user.displayName || null,
-                avatarUrl: user.pfpUrl || null
-              }
-            });
-            console.log('[leaderboard-panel] Profile mapping header prepared:', profileMappingHeader.substring(0, 100) + '...');
-          } else {
-            console.warn('[leaderboard-panel] Missing profile data:', { address: !!address, fid: !!user?.fid });
-          }
+            }
+          });
+          console.log('[leaderboard-panel] Profile mapping header prepared:', profileMappingHeader.substring(0, 100) + '...');
         } else {
-          console.warn('[leaderboard-panel] SDK not available');
+          console.warn('[leaderboard-panel] Missing profile data:', { address: !!address, fid: !!user?.fid });
         }
       } catch (err) {
         console.warn('[leaderboard-panel] Failed to get profile mapping:', err);
