@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { registryAddress, getRegistryContext, getRegistryChainIdNumber } from "./_lib/registry.js";
 import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
+import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFromRedis } from "./_lib/redis-profiles.js";
 
 // Profile mapping storage (integrated into leaderboard endpoint to avoid Vercel function limit)
 const ADDRESS_TO_PROFILE_MAP = new Map();
@@ -26,6 +27,8 @@ if (typeof setInterval !== 'undefined') {
 }
 
 // Export functions for use in farcaster-profiles.js
+// Note: This function is synchronous for backwards compatibility
+// For Redis support, use getProfileMappingFromRedis from redis-profiles.js
 export function getProfileMapping(address) {
   if (!address || typeof address !== 'string') {
     console.log(`[leaderboard] getProfileMapping: invalid address input:`, address);
@@ -46,16 +49,42 @@ export function getProfileMapping(address) {
   return mapping;
 }
 
-export function getAllFidMappings(addresses) {
+export async function getAllFidMappings(addresses) {
   const result = new Map();
-  for (const address of addresses) {
-    if (!address || typeof address !== 'string') continue;
+  
+  // Normalize addresses
+  const normalizedAddresses = addresses
+    .filter(addr => addr && typeof addr === 'string')
+    .map(addr => addr.toLowerCase());
+  
+  if (normalizedAddresses.length === 0) {
+    return result;
+  }
+  
+  // Step 1: Redis'ten toplu oku (persistent storage)
+  try {
+    const redisMappings = await getFidMappingsFromRedis(normalizedAddresses);
+    for (const [address, fid] of redisMappings) {
+      result.set(address, fid);
+    }
+    if (redisMappings.size > 0) {
+      console.log(`[leaderboard] ✅ Retrieved ${redisMappings.size} FID mapping(s) from Redis`);
+    }
+  } catch (error) {
+    console.warn('[leaderboard] Failed to get FID mappings from Redis (non-critical):', error?.message || error);
+  }
+  
+  // Step 2: In-memory Map'i fallback olarak kullan (header'dan gelenler için)
+  for (const address of normalizedAddresses) {
     const key = address.toLowerCase();
-    const mapping = ADDRESS_TO_PROFILE_MAP.get(key);
-    if (mapping && mapping.fid) {
-      result.set(key, mapping.fid);
+    if (!result.has(key)) {
+      const mapping = ADDRESS_TO_PROFILE_MAP.get(key);
+      if (mapping && mapping.fid) {
+        result.set(key, mapping.fid);
+      }
     }
   }
+  
   return result;
 }
 
@@ -679,13 +708,22 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'FID required' });
       }
       const key = address.toLowerCase();
-      ADDRESS_TO_PROFILE_MAP.set(key, {
+      const mapping = {
         fid: String(fid),
         username: username && typeof username === 'string' ? username : null,
         displayName: displayName && typeof displayName === 'string' ? displayName : null,
         avatarUrl: avatarUrl && typeof avatarUrl === 'string' ? avatarUrl : null,
         updatedAt: Date.now()
+      };
+      
+      // In-memory Map'e kaydet (fallback için)
+      ADDRESS_TO_PROFILE_MAP.set(key, mapping);
+      
+      // Redis'e kaydet (persistent storage) - async, hata olsa bile devam et
+      saveToRedis(address, mapping).catch(err => {
+        console.warn('[leaderboard] Failed to save to Redis (non-critical):', err?.message || err);
       });
+      
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error('[leaderboard-profile-mapping] POST error:', error);

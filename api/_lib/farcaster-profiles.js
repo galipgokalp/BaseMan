@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { getAllFidMappings, getProfileMapping } from "../leaderboard.js";
+import { getProfileMappings as getFromRedis } from "./redis-profiles.js";
 
 const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
@@ -241,17 +242,54 @@ export async function fetchProfilesForAddresses(addresses = []) {
     }
   }
 
-  // Step 2: Check direct profile mapping first (from header/SDK context)
-  // This is the most reliable source as it comes from the current user's SDK
-  // IMPORTANT: Always check direct mapping even if enrichment is disabled
-  // because direct mapping doesn't require external API calls
+  // Step 2: Check Redis (persistent storage) first
+  // This ensures all users' profile data is available, not just the current user
   const addressesNeedingFetch = normalizedAddresses.filter(
     addr => !results.has(addr.toLowerCase())
   );
 
-  // First, try direct mapping from header/SDK context (highest priority)
+  // Try Redis first (persistent storage for all users)
+  if (addressesNeedingFetch.length > 0) {
+    try {
+      const redisMappings = await getFromRedis(addressesNeedingFetch);
+      
+      for (const [address, mapping] of redisMappings) {
+        if (mapping && (mapping.username || mapping.displayName || mapping.avatarUrl)) {
+          const key = address.toLowerCase();
+          const profile = {
+            fid: mapping.fid,
+            username: mapping.username,
+            displayName: mapping.displayName,
+            avatarUrl: mapping.avatarUrl,
+            profileUrl: mapping.username
+              ? `https://warpcast.com/${mapping.username}`
+              : mapping.fid
+              ? `https://warpcast.com/~/users/${mapping.fid}`
+              : null,
+            address: normalizeAddress(address),
+            provider: 'redis-persistent'
+          };
+          results.set(key, profile);
+          PROFILE_CACHE.set(key, profile);
+          console.log(`[farcaster-profiles] ✅ Using Redis mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
+        }
+      }
+    } catch (error) {
+      console.warn('[farcaster-profiles] Failed to get profiles from Redis (non-critical):', error?.message || error);
+    }
+  }
+
+  // Step 3: Check direct profile mapping (from header/SDK context)
+  // This is the most reliable source as it comes from the current user's SDK
+  // IMPORTANT: Always check direct mapping even if enrichment is disabled
+  // because direct mapping doesn't require external API calls
+  const addressesStillNeedingFetch = normalizedAddresses.filter(
+    addr => !results.has(addr.toLowerCase())
+  );
+
+  // First, try direct mapping from header/SDK context (highest priority for current user)
   // This works even when Neynar API is disabled because it uses header data
-  for (const address of addressesNeedingFetch) {
+  for (const address of addressesStillNeedingFetch) {
     const key = address.toLowerCase();
     const directMapping = getProfileMapping(address);
     console.log(`[farcaster-profiles] Checking direct mapping for ${key}:`, { 
@@ -293,8 +331,8 @@ export async function fetchProfilesForAddresses(addresses = []) {
   }
 
   try {
-    // Step 3: Get FID mappings for remaining addresses
-    const addressToFidMap = getAllFidMappings(addressesStillNeedingFetch);
+    // Step 4: Get FID mappings for remaining addresses
+    const addressToFidMap = await getAllFidMappings(addressesStillNeedingFetch);
     console.log(`[farcaster-profiles] Found ${addressToFidMap.size} FID mappings for ${addressesStillNeedingFetch.length} addresses`);
     
     // Step 4: If we have FIDs, use bulk endpoint (free)
