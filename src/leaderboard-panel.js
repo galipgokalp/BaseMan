@@ -339,8 +339,13 @@
       let profileMappingHeader = null;
       try {
         // Helper function to get SDK context with retries
-        async function getSDKContext(maxRetries = 3, delayMs = 500) {
+        // Increased retries and delay for mobile environments where SDK loads slower
+        async function getSDKContext(maxRetries = 10, delayMs = 300) {
           for (let i = 0; i < maxRetries; i++) {
+            // Log attempt number for debugging
+            if (i > 0) {
+              console.log(`[leaderboard-panel] Retrying SDK context retrieval (attempt ${i + 1}/${maxRetries})...`);
+            }
             let sdk = null;
             
             // Try to get SDK using multiple methods
@@ -392,7 +397,8 @@
           return null;
         }
         
-        const sdkContext = await getSDKContext(3, 500);
+        // Try to get SDK context with more retries for mobile
+        const sdkContext = await getSDKContext(10, 300);
         const context = sdkContext?.context;
         const user = context?.user;
         
@@ -402,7 +408,9 @@
           hasUser: !!user,
           userKeys: user ? Object.keys(user) : [],
           fullUser: user,
-          contextKeys: context ? Object.keys(context) : []
+          contextKeys: context ? Object.keys(context) : [],
+          sdkAvailable: !!window.sdk,
+          resolveSDKAvailable: typeof window.resolveSDK === 'function'
         });
           
           // Try multiple ways to get address:
