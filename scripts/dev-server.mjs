@@ -49,14 +49,11 @@ const apiMap = [
   ['/api/quest-sign', path.join(ROOT, 'api', 'quest-sign.js')],
   ['/api/paymaster-proxy', path.join(ROOT, 'api', 'paymaster-proxy.js')],
   ['/api/miniapp-auth', path.join(ROOT, 'api', 'miniapp-auth.js')],
-  ['/api/_test-verify', path.join(ROOT, 'api', '_test-verify.js')],
-  ['/api/debug-env', path.join(ROOT, 'api', 'debug-env.js')],
   ['/api/app-log', path.join(ROOT, 'api', 'app-log.js')],
   ['/api/leaderboard', path.join(ROOT, 'api', 'leaderboard.js')],
   ['/api/address-history', path.join(ROOT, 'api', 'address-history.js')],
   ['/api/token-balances', path.join(ROOT, 'api', 'token-balances.js')],
   ['/api/miniapp-webhook', path.join(ROOT, 'api', 'miniapp-webhook.js')],
-  ['/api/webhook', path.join(ROOT, 'api', 'webhook.js')],
 ];
 
 await Promise.all(
