@@ -266,6 +266,13 @@ export async function fetchProfilesForAddresses(addresses = []) {
   for (const address of addressesNeedingFetch) {
     const key = address.toLowerCase();
     const directMapping = getProfileMapping(address);
+    console.log(`[farcaster-profiles] Checking direct mapping for ${key}:`, { 
+      found: !!directMapping, 
+      hasUsername: !!directMapping?.username,
+      hasDisplayName: !!directMapping?.displayName,
+      hasAvatarUrl: !!directMapping?.avatarUrl,
+      fid: directMapping?.fid 
+    });
     if (directMapping && (directMapping.username || directMapping.displayName || directMapping.avatarUrl)) {
       const profile = {
         fid: directMapping.fid,
@@ -282,7 +289,9 @@ export async function fetchProfilesForAddresses(addresses = []) {
       };
       results.set(key, profile);
       PROFILE_CACHE.set(key, profile);
-      console.log(`[farcaster-profiles] Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
+      console.log(`[farcaster-profiles] ✅ Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
+    } else {
+      console.log(`[farcaster-profiles] ❌ No direct mapping for ${key} (mapping exists: ${!!directMapping})`);
     }
   }
 

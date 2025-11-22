@@ -303,6 +303,7 @@ async function enrichWithProfiles(items, req = null) {
   // Extract profile mapping from request header (same-request mapping)
   // Check both lowercase and original case headers (Vercel may normalize)
   const headerValue = req?.headers?.['x-profile-mapping'] || req?.headers?.['X-Profile-Mapping'];
+  console.log(`[leaderboard] Header check: hasHeader=${!!headerValue}, headerLength=${headerValue ? headerValue.length : 0}, addressesCount=${addresses.length}`);
   if (req && headerValue) {
     try {
       const headerMapping = JSON.parse(headerValue);
@@ -318,14 +319,19 @@ async function enrichWithProfiles(items, req = null) {
             updatedAt: Date.now()
           });
           mappingCount++;
+          console.log(`[leaderboard] Stored mapping for ${key}: fid=${mapping.fid}, username=${mapping.username || 'null'}`);
         }
       }
       if (mappingCount > 0) {
-        console.log(`[leaderboard] Extracted ${mappingCount} profile mapping(s) from header`);
+        console.log(`[leaderboard] Extracted ${mappingCount} profile mapping(s) from header, total in map: ${ADDRESS_TO_PROFILE_MAP.size}`);
+      } else {
+        console.warn(`[leaderboard] Header received but no valid mappings found in:`, Object.keys(headerMapping || {}));
       }
     } catch (err) {
-      console.warn('[leaderboard] Failed to parse header mapping:', err?.message);
+      console.warn('[leaderboard] Failed to parse header mapping:', err?.message, err?.stack);
     }
+  } else {
+    console.log(`[leaderboard] No profile mapping header received (req=${!!req}, headerValue=${!!headerValue})`);
   }
 
   let profileMap = new Map();
