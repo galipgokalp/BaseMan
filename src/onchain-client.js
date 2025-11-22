@@ -1413,6 +1413,38 @@
         debug(`submitScore: Wallet connected - address=${state.address}`);
         console.log(`[BaseMan] submitScore: Wallet connected successfully - address=${state.address}`);
 
+        // Send profile mapping to backend for leaderboard enrichment
+        // This ensures user profile data is available for other users viewing the leaderboard
+        try {
+          if (window.sdk && window.sdk.context && state.address) {
+            const context = await window.sdk.context;
+            const user = context?.user;
+            if (user && user.fid) {
+              // Send profile mapping asynchronously, don't block score submission
+              fetch('/api/leaderboard?action=profile-mapping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  address: state.address.toLowerCase(),
+                  fid: user.fid,
+                  username: user.username || null,
+                  displayName: user.displayName || null,
+                  avatarUrl: user.pfpUrl || null
+                })
+              }).then(() => {
+                debug('submitScore: Profile mapping sent successfully');
+                console.log('[BaseMan] submitScore: Profile mapping sent for leaderboard enrichment');
+              }).catch((err) => {
+                // Silently fail - profile mapping is not critical for score submission
+                debug(`submitScore: Profile mapping failed (non-critical): ${err?.message || err}`);
+              });
+            }
+          }
+        } catch (profileErr) {
+          // Silently fail - profile mapping is not critical for score submission
+          debug(`submitScore: Profile mapping error (non-critical): ${profileErr?.message || profileErr}`);
+        }
+
         debug('submitScore: Requesting signature from backend...');
         const { signature, deadline, score: signedScore, nonce } = await requestScoreSignature(
           score,
