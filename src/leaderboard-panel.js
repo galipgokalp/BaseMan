@@ -336,85 +336,24 @@
       const leaderboardChainId = 8453; // Always use Base Mainnet for leaderboard
       
       // Get current user's profile mapping if available (for same request enrichment)
+      // Use same simple approach as profile-panel.js
       let profileMappingHeader = null;
       try {
-        // Simple approach: wait for SDK context like profile-panel.js does
-        // Use retry mechanism to wait for SDK to load
-        let context = null;
+        // Get address from BaseManOnchain (same as profile-panel.js)
+        const address = window.BaseManOnchain?.getWalletAddress?.() || null;
+        
+        // Get SDK context (same simple approach as profile-panel.js)
         let user = null;
-        
-        // Retry mechanism: wait for SDK to be available
-        const maxRetries = 15;
-        const delayMs = 200;
-        
-        for (let i = 0; i < maxRetries; i++) {
-          if (window.sdk && window.sdk.context) {
-            try {
-              context = await window.sdk.context;
-              user = context?.user;
-              
-              if (context && user) {
-                console.log('[leaderboard-panel] SDK context resolved:', {
-                  hasContext: !!context,
-                  hasUser: !!user,
-                  fid: user?.fid,
-                  username: user?.username
-                });
-                break; // Found context, exit loop
-              }
-            } catch (ctxErr) {
-              console.warn('[leaderboard-panel] Error resolving SDK context:', ctxErr);
-            }
-          }
-          
-          // Wait before retrying (except on last attempt)
-          if (i < maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-          }
-        }
-        
-        if (!context || !user) {
-          console.log('[leaderboard-panel] SDK context not available after retries');
-        }
-        
-        // Try multiple ways to get address:
-        // 1. BaseManOnchain (if wallet is ready)
-        // 2. SDK provider directly (if SDK is available)
-        let address = null;
-        
-        // Method 1: Try BaseManOnchain if wallet is ready
-        if (window.BaseManOnchain) {
-          const isReady = window.BaseManOnchain.isWalletReady && window.BaseManOnchain.isWalletReady();
-          if (isReady) {
-            address = window.BaseManOnchain.getWalletAddress && window.BaseManOnchain.getWalletAddress();
-            console.log('[leaderboard-panel] Got address from BaseManOnchain:', address);
-          }
-        }
-        
-        // Method 2: Try SDK provider directly if address not available
-        if (!address && window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') {
+        if (window.sdk && window.sdk.context) {
           try {
-            const provider = await window.sdk.wallet.getEthereumProvider();
-            if (provider && typeof provider.request === 'function') {
-              const accounts = await provider.request({ method: 'eth_accounts' });
-              if (accounts && Array.isArray(accounts) && accounts.length > 0) {
-                address = accounts[0];
-                console.log('[leaderboard-panel] Got address from SDK provider:', address);
-              }
-            }
-          } catch (providerErr) {
-            console.warn('[leaderboard-panel] Failed to get address from provider:', providerErr);
+            const context = await window.sdk.context;
+            user = context?.user;
+          } catch (ctxErr) {
+            // Silently fail - SDK context not available
           }
         }
         
-        console.log('[leaderboard-panel] Final values:', { 
-          address, 
-          hasUser: !!user,
-          fid: user?.fid,
-          username: user?.username,
-          displayName: user?.displayName
-        });
-        
+        // If we have both address and user with FID, send mapping
         if (address && user && user.fid) {
           const mappingData = {
             address: address.toLowerCase(),
@@ -423,17 +362,14 @@
             displayName: user.displayName || null,
             avatarUrl: user.pfpUrl || null
           };
-          console.log('[leaderboard-panel] Sending profile mapping:', mappingData);
           
           // Send mapping immediately before leaderboard request
           await fetch('/api/leaderboard?action=profile-mapping', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(mappingData)
-          }).then(res => {
-            console.log('[leaderboard-panel] Profile mapping POST response:', res.status);
-          }).catch(err => {
-            console.warn('[leaderboard-panel] Profile mapping POST failed:', err);
+          }).catch(() => {
+            // Silently fail - not critical
           });
           
           // Also include in header for same request
@@ -445,16 +381,9 @@
               avatarUrl: user.pfpUrl || null
             }
           });
-          console.log('[leaderboard-panel] Profile mapping header prepared');
-        } else {
-          console.log('[leaderboard-panel] Missing profile data:', { 
-            hasAddress: !!address, 
-            hasUser: !!user,
-            hasFid: !!user?.fid 
-          });
         }
       } catch (err) {
-        console.warn('[leaderboard-panel] Failed to get profile mapping:', err);
+        // Silently fail - not critical for leaderboard display
       }
       
       const headers = { Accept: "application/json" };
