@@ -2,13 +2,21 @@ import { Redis } from '@upstash/redis';
 
 // Redis client (environment variables'dan otomatik alır)
 // Vercel Marketplace'ten Upstash Redis eklendiğinde otomatik olarak eklenir:
-// - UPSTASH_REDIS_REST_URL
-// - UPSTASH_REDIS_REST_TOKEN
+// - UPSTASH_REDIS_REST_URL (standard)
+// - UPSTASH_REDIS_REST_TOKEN (standard)
+// - REDIS_URL (Vercel integration format, Redis.fromEnv() handles both)
 let redis = null;
 
 try {
   redis = Redis.fromEnv();
-  console.log('[redis-profiles] Redis client initialized');
+  // Log available env vars for debugging (without exposing values)
+  const hasStandardVars = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  const hasRedisUrl = !!process.env.REDIS_URL;
+  console.log('[redis-profiles] Redis client initialized', {
+    hasStandardVars,
+    hasRedisUrl,
+    method: hasStandardVars ? 'standard' : (hasRedisUrl ? 'REDIS_URL' : 'unknown')
+  });
 } catch (error) {
   console.warn('[redis-profiles] Redis client initialization failed (will fallback to in-memory):', error?.message || error);
   redis = null;

@@ -53,14 +53,41 @@ export default async function handler(req, res) {
       const { address } = req.query;
       
       if (!address) {
+        // Check all possible Redis environment variables
+        const envVars = {
+          UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Not set',
+          UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'Not set',
+          REDIS_URL: process.env.REDIS_URL ? 'Set' : 'Not set',
+          UPSTASH_REDIS_URL: process.env.UPSTASH_REDIS_URL ? 'Set' : 'Not set',
+          UPSTASH_REDIS_TOKEN: process.env.UPSTASH_REDIS_TOKEN ? 'Set' : 'Not set'
+        };
+
+        // Try a simple Redis operation to verify it's actually working
+        let testResult = null;
+        try {
+          const { getProfileMapping } = await import('./_lib/redis-profiles.js');
+          // Test with a dummy address to see if Redis responds
+          const testMapping = await getProfileMapping('0x0000000000000000000000000000000000000000');
+          testResult = {
+            operation: 'get',
+            success: true,
+            note: 'This is expected to return null for non-existent key'
+          };
+        } catch (testError) {
+          testResult = {
+            operation: 'get',
+            success: false,
+            error: testError?.message || 'Unknown error'
+          };
+        }
+
         return res.status(200).json({
           success: true,
           redisAvailable: true,
           message: 'Redis is available and ready',
-          environmentVariables: {
-            UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL ? 'Set' : 'Not set',
-            UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN ? 'Set' : 'Not set'
-          }
+          environmentVariables: envVars,
+          redisTest: testResult,
+          note: 'If Redis.fromEnv() succeeded, Redis is configured correctly even if env vars show "Not set"'
         });
       }
 
