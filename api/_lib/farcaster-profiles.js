@@ -336,18 +336,56 @@ export async function fetchProfilesForAddresses(addresses = []) {
         }
       }
     } else {
-      // No FID mappings, try old method for all addresses
-      const tasks = [];
+      // No FID mappings from SDK context cache
+      // Try direct mapping lookup first (might exist from same request)
       for (const address of addressesNeedingFetch) {
-        const cacheKey = address.toLowerCase();
-        tasks.push(
-          resolveProfile(address).then((profile) => {
-            results.set(cacheKey, profile ?? null);
-          })
-        );
+        const key = address.toLowerCase();
+        const directMapping = getProfileMapping(address);
+        if (directMapping && (directMapping.username || directMapping.displayName || directMapping.avatarUrl)) {
+          const profile = {
+            fid: directMapping.fid,
+            username: directMapping.username,
+            displayName: directMapping.displayName,
+            avatarUrl: directMapping.avatarUrl,
+            profileUrl: directMapping.username
+              ? `https://warpcast.com/${directMapping.username}`
+              : directMapping.fid
+              ? `https://warpcast.com/~/users/${directMapping.fid}`
+              : null,
+            address: normalizeAddress(address),
+            provider: 'sdk-context-direct'
+          };
+          results.set(key, profile);
+          PROFILE_CACHE.set(key, profile);
+        }
       }
-      if (tasks.length) {
-        await Promise.allSettled(tasks);
+      
+      // For remaining addresses, try old method (might fail with 402)
+      const remainingAddresses = addressesNeedingFetch.filter(
+        addr => !results.has(addr.toLowerCase())
+      );
+      
+      if (remainingAddresses.length > 0 && !ENRICHMENT_DISABLED_REASON) {
+        const tasks = [];
+        for (const address of remainingAddresses) {
+          const cacheKey = address.toLowerCase();
+          tasks.push(
+            resolveProfile(address).then((profile) => {
+              results.set(cacheKey, profile ?? null);
+            })
+          );
+        }
+        if (tasks.length) {
+          await Promise.allSettled(tasks);
+        }
+      } else {
+        // Mark remaining as null
+        for (const address of remainingAddresses) {
+          const cacheKey = address.toLowerCase();
+          if (!results.has(cacheKey)) {
+            results.set(cacheKey, null);
+          }
+        }
       }
     }
   } catch (error) {

@@ -276,8 +276,49 @@
       // But default Leaderboard shows Base Mainnet scores
       const leaderboardChainId = 8453; // Always use Base Mainnet for leaderboard
       
+      // Get current user's profile mapping if available (for same request enrichment)
+      let profileMappingHeader = null;
+      try {
+        if (window.sdk && window.sdk.context) {
+          const context = await window.sdk.context;
+          const user = context?.user;
+          const address = window.BaseManOnchain?.getWalletAddress?.();
+          if (address && user && user.fid) {
+            // Send mapping immediately before leaderboard request
+            await fetch('/api/leaderboard?action=profile-mapping', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                address: address.toLowerCase(),
+                fid: user.fid,
+                username: user.username || null,
+                displayName: user.displayName || null,
+                avatarUrl: user.pfpUrl || null
+              })
+            }).catch(() => {});
+            
+            // Also include in header for same request
+            profileMappingHeader = JSON.stringify({
+              [address.toLowerCase()]: {
+                fid: user.fid,
+                username: user.username || null,
+                displayName: user.displayName || null,
+                avatarUrl: user.pfpUrl || null
+              }
+            });
+          }
+        }
+      } catch (err) {
+        // Silently fail - mapping is optional
+      }
+      
+      const headers = { Accept: "application/json" };
+      if (profileMappingHeader) {
+        headers['X-Profile-Mapping'] = profileMappingHeader;
+      }
+      
       const response = await fetch(`/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}`, {
-        headers: { Accept: "application/json" },
+        headers,
         cache: "no-store"
       });
 

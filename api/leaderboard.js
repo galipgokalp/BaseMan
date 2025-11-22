@@ -287,7 +287,7 @@ function toIsoTimestamp(seconds) {
   }
 }
 
-async function enrichWithProfiles(items) {
+async function enrichWithProfiles(items, req = null) {
   if (!items.length) {
     return [];
   }
@@ -299,6 +299,27 @@ async function enrichWithProfiles(items) {
         .filter(Boolean)
     )
   ];
+
+  // Extract profile mapping from request header (same-request mapping)
+  if (req && req.headers?.['x-profile-mapping']) {
+    try {
+      const headerMapping = JSON.parse(req.headers['x-profile-mapping']);
+      for (const [address, mapping] of Object.entries(headerMapping)) {
+        if (address && mapping && mapping.fid) {
+          const key = address.toLowerCase();
+          ADDRESS_TO_PROFILE_MAP.set(key, {
+            fid: String(mapping.fid),
+            username: mapping.username || null,
+            displayName: mapping.displayName || null,
+            avatarUrl: mapping.avatarUrl || null,
+            updatedAt: Date.now()
+          });
+        }
+      }
+    } catch (err) {
+      // Silently fail - header mapping is optional
+    }
+  }
 
   let profileMap = new Map();
   try {
@@ -649,7 +670,7 @@ export default async function handler(req, res) {
   if (!SQL_API_KEY) {
     try {
       const fallback = await fetchFromRpcFallback(limit, chainId);
-      const items = await enrichWithProfiles(fallback);
+      const items = await enrichWithProfiles(fallback, req);
       return res.status(200).json({ 
         source: "rpc-fallback", 
         chainId,
@@ -699,7 +720,7 @@ export default async function handler(req, res) {
     }
     const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
     const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
-    const enriched = shouldEnrich ? await enrichWithProfiles(items) : items.map((it, i) => ({
+    const enriched = shouldEnrich ? await enrichWithProfiles(items, req) : items.map((it, i) => ({
       rank: i + 1,
       player: it.player,
       playerAddress: it.player,
