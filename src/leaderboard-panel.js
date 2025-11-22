@@ -283,19 +283,27 @@
           const context = await window.sdk.context;
           const user = context?.user;
           const address = window.BaseManOnchain?.getWalletAddress?.();
+          console.log('[leaderboard-panel] SDK context:', { address, fid: user?.fid, username: user?.username });
           if (address && user && user.fid) {
+            const mappingData = {
+              address: address.toLowerCase(),
+              fid: user.fid,
+              username: user.username || null,
+              displayName: user.displayName || null,
+              avatarUrl: user.pfpUrl || null
+            };
+            console.log('[leaderboard-panel] Sending profile mapping:', mappingData);
+            
             // Send mapping immediately before leaderboard request
             await fetch('/api/leaderboard?action=profile-mapping', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                address: address.toLowerCase(),
-                fid: user.fid,
-                username: user.username || null,
-                displayName: user.displayName || null,
-                avatarUrl: user.pfpUrl || null
-              })
-            }).catch(() => {});
+              body: JSON.stringify(mappingData)
+            }).then(res => {
+              console.log('[leaderboard-panel] Profile mapping POST response:', res.status);
+            }).catch(err => {
+              console.warn('[leaderboard-panel] Profile mapping POST failed:', err);
+            });
             
             // Also include in header for same request
             profileMappingHeader = JSON.stringify({
@@ -306,15 +314,23 @@
                 avatarUrl: user.pfpUrl || null
               }
             });
+            console.log('[leaderboard-panel] Profile mapping header prepared:', profileMappingHeader.substring(0, 100) + '...');
+          } else {
+            console.warn('[leaderboard-panel] Missing profile data:', { address: !!address, fid: !!user?.fid });
           }
+        } else {
+          console.warn('[leaderboard-panel] SDK not available');
         }
       } catch (err) {
-        // Silently fail - mapping is optional
+        console.warn('[leaderboard-panel] Failed to get profile mapping:', err);
       }
       
       const headers = { Accept: "application/json" };
       if (profileMappingHeader) {
         headers['X-Profile-Mapping'] = profileMappingHeader;
+        console.log('[leaderboard-panel] Sending leaderboard request with profile mapping header');
+      } else {
+        console.warn('[leaderboard-panel] No profile mapping header to send');
       }
       
       const response = await fetch(`/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}`, {

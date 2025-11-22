@@ -268,11 +268,14 @@ export async function fetchProfilesForAddresses(addresses = []) {
   try {
     // Get FID mappings from profile-mapping.js
     const addressToFidMap = getAllFidMappings(addressesNeedingFetch);
+    console.log(`[farcaster-profiles] Found ${addressToFidMap.size} FID mappings for ${addressesNeedingFetch.length} addresses`);
     
     // Step 3: If we have FIDs, use bulk endpoint (free)
     if (addressToFidMap.size > 0) {
       const fids = Array.from(new Set(Array.from(addressToFidMap.values()).filter(Boolean)));
+      console.log(`[farcaster-profiles] Fetching ${fids.length} profiles via bulk endpoint:`, fids);
       const bulkProfiles = await fetchProfilesByFids(fids);
+      console.log(`[farcaster-profiles] Bulk endpoint returned ${bulkProfiles.size} profiles`);
 
       // Map bulk results back to addresses
       for (const address of addressesNeedingFetch) {
@@ -283,6 +286,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
           const profile = bulkProfiles.get(key);
           results.set(key, profile);
           PROFILE_CACHE.set(key, profile);
+          console.log(`[farcaster-profiles] Found bulk profile for ${key}:`, profile.username || profile.displayName || 'unnamed');
         } else {
           // Try direct SDK context mapping if bulk didn't return it
           const directMapping = getProfileMapping(address);
@@ -302,8 +306,12 @@ export async function fetchProfilesForAddresses(addresses = []) {
             };
             results.set(key, profile);
             PROFILE_CACHE.set(key, profile);
+            console.log(`[farcaster-profiles] Using SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed');
           } else {
             results.set(key, null);
+            if (fid) {
+              console.log(`[farcaster-profiles] No profile found for ${key} (FID: ${fid}) - bulk returned nothing and no direct mapping`);
+            }
           }
         }
       }

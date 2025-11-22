@@ -301,9 +301,12 @@ async function enrichWithProfiles(items, req = null) {
   ];
 
   // Extract profile mapping from request header (same-request mapping)
-  if (req && req.headers?.['x-profile-mapping']) {
+  // Check both lowercase and original case headers (Vercel may normalize)
+  const headerValue = req?.headers?.['x-profile-mapping'] || req?.headers?.['X-Profile-Mapping'];
+  if (req && headerValue) {
     try {
-      const headerMapping = JSON.parse(req.headers['x-profile-mapping']);
+      const headerMapping = JSON.parse(headerValue);
+      let mappingCount = 0;
       for (const [address, mapping] of Object.entries(headerMapping)) {
         if (address && mapping && mapping.fid) {
           const key = address.toLowerCase();
@@ -314,10 +317,14 @@ async function enrichWithProfiles(items, req = null) {
             avatarUrl: mapping.avatarUrl || null,
             updatedAt: Date.now()
           });
+          mappingCount++;
         }
       }
+      if (mappingCount > 0) {
+        console.log(`[leaderboard] Extracted ${mappingCount} profile mapping(s) from header`);
+      }
     } catch (err) {
-      // Silently fail - header mapping is optional
+      console.warn('[leaderboard] Failed to parse header mapping:', err?.message);
     }
   }
 
