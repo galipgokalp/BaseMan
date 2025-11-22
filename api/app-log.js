@@ -68,10 +68,38 @@ export default async function handler(req, res) {
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch { body = { raw: body }; }
     }
-    const evt = body?.event || 'unknown';
-    const msg = body?.message || '';
-    const meta = body?.meta && typeof body.meta === 'object' ? body.meta : null;
-    const entry = { ts: new Date().toISOString(), event: evt, message: String(msg).slice(0, 300), meta };
+    
+    // Support both formats:
+    // 1. console-logger.js format: {type, timestamp, message, args, stack}
+    // 2. Standard format: {event, message, meta}
+    let evt, msg, meta, ts;
+    
+    if (body?.type) {
+      // console-logger.js format
+      evt = body.type || 'log';
+      msg = body.message || '';
+      ts = body.timestamp || new Date().toISOString();
+      meta = {
+        args: body.args || [],
+        stack: body.stack || null,
+        filename: body.filename || null,
+        lineno: body.lineno || null,
+        colno: body.colno || null
+      };
+    } else {
+      // Standard format
+      evt = body?.event || 'unknown';
+      msg = body?.message || '';
+      meta = body?.meta && typeof body.meta === 'object' ? body.meta : null;
+      ts = body?.ts || new Date().toISOString();
+    }
+    
+    const entry = { 
+      ts: ts, 
+      event: evt, 
+      message: String(msg).slice(0, 300), 
+      meta: meta || {} 
+    };
     // push to ring buffer
     try {
       globalThis.__APP_LOGS.push(entry);

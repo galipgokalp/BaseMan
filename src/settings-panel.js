@@ -754,16 +754,49 @@
     // Show loading state
     contentEl.innerHTML = '<div class="settings-debug-logs-empty">Loading logs...</div>';
 
+    // PRIORITY 1: Try to get logs from ConsoleLogger API (client-side buffer - most reliable)
+    // This is more reliable than server-side logs because it's in-memory on the client
     try {
-      // Try to get logs from API endpoint with higher limit
+      if (window.ConsoleLogger && typeof window.ConsoleLogger.getLogs === 'function') {
+        const logs = window.ConsoleLogger.getLogs();
+        if (logs && logs.length > 0) {
+          console.log('[settings-panel] Loaded logs from ConsoleLogger (client-side):', logs.length);
+          // Format logs to match expected structure
+          const formattedLogs = logs.map(log => ({
+            ts: log.timestamp || new Date().toISOString(),
+            event: log.type || 'log',
+            message: log.message || '',
+            meta: {
+              args: log.args || [],
+              stack: log.stack || null,
+              filename: log.filename || null,
+              lineno: log.lineno || null
+            }
+          }));
+          allLogsCache = formattedLogs; // Cache all logs
+          renderDebugLogs(contentEl, formattedLogs, activeFilter);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('[settings-panel] Failed to load logs from ConsoleLogger:', error);
+    }
+
+    // PRIORITY 2: Try to get logs from API endpoint (server-side logs)
+    // This might be empty if server restarted (Vercel cold start)
+    try {
       const response = await fetch('/api/app-log?limit=500');
       if (response.ok) {
         const data = await response.json();
         const logs = data.logs || [];
-        console.log('[settings-panel] Loaded logs from API:', logs.length);
-        allLogsCache = logs; // Cache all logs
-        renderDebugLogs(contentEl, logs, activeFilter);
-        return;
+        if (logs && logs.length > 0) {
+          console.log('[settings-panel] Loaded logs from API (server-side):', logs.length);
+          allLogsCache = logs; // Cache all logs
+          renderDebugLogs(contentEl, logs, activeFilter);
+          return;
+        } else {
+          console.log('[settings-panel] API returned empty logs (server may have restarted)');
+        }
       } else {
         console.warn('[settings-panel] API endpoint returned error:', response.status, response.statusText);
       }
@@ -771,29 +804,8 @@
       console.warn('[settings-panel] Failed to load logs from API:', error);
     }
 
-    // Fallback: Try to get logs from ConsoleLogger API
-    try {
-      if (window.ConsoleLogger && typeof window.ConsoleLogger.getLogs === 'function') {
-        const logs = window.ConsoleLogger.getLogs();
-        console.log('[settings-panel] Loaded logs from ConsoleLogger:', logs.length);
-        const formattedLogs = logs.map(log => ({
-          ts: log.timestamp,
-          event: log.type,
-          message: log.message,
-          meta: log.meta || {}
-        }));
-        allLogsCache = formattedLogs; // Cache all logs
-        renderDebugLogs(contentEl, formattedLogs, activeFilter);
-        return;
-      } else {
-        console.warn('[settings-panel] ConsoleLogger API not available');
-      }
-    } catch (error) {
-      console.warn('[settings-panel] Failed to load logs from ConsoleLogger:', error);
-    }
-
     // No logs available
-    contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Make sure you have played a game and check the console for errors.</div>';
+    contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Open the leaderboard or play a game to generate logs. Logs are stored in your browser\'s memory and reset on page refresh.</div>';
   }
 
   function renderDebugLogs(contentEl, logs, filter = 'all') {
