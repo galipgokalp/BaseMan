@@ -86,7 +86,8 @@ function normalizeUser(user, address) {
     bio,
     profileUrl,
     address: normalizeAddress(address),
-    provider: "neynar"
+    provider: "neynar",
+    platform: "farcaster" // Neynar API only returns Farcaster users, so always 'farcaster'
   };
 }
 
