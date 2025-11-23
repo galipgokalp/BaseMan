@@ -175,6 +175,7 @@
     // Platform logo (if available)
     // Optimized: Using CSS background-image instead of inline SVG for better performance
     const platform = entry?.profile?.platform;
+    console.log('[leaderboard-panel] Entry platform for', entry?.profile?.username || entry?.player, ':', platform);
     if (platform === 'farcaster' || platform === 'base-app') {
       const platformLogo = document.createElement("span");
       platformLogo.className = `leaderboard-platform-logo leaderboard-platform-logo-${platform}`;
@@ -184,6 +185,14 @@
       // SVG is defined once in CSS and cached by browser
       
       identityText.appendChild(platformLogo);
+    } else if (entry?.profile) {
+      // Debug: Log when profile exists but platform is missing
+      console.warn('[leaderboard-panel] Profile exists but platform is missing:', {
+        username: entry.profile.username,
+        displayName: entry.profile.displayName,
+        platform: entry.profile.platform,
+        provider: entry.profile.provider
+      });
     }
     
     identityRoot.appendChild(identityText);
@@ -413,18 +422,43 @@
           // Detect platform (farcaster, base-app, or web)
           const platform = (() => {
             try {
+              // Primary: Use centralized platform detection
               if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
                 const p = window.getPlatform();
-                return p === 'farcaster' ? 'farcaster' : (p === 'base' ? 'base-app' : null);
+                console.log('[leaderboard-panel] getPlatform() returned:', p);
+                if (p === 'farcaster') return 'farcaster';
+                if (p === 'base') return 'base-app';
+                // If getPlatform returns 'web', try fallback detection
               }
-              // Fallback detection
-              if (window.isFarcasterMiniApp && window.isFarcasterMiniApp()) return 'farcaster';
-              if (window.isBaseApp && window.isBaseApp()) return 'base-app';
+              // Fallback detection (more aggressive)
+              if (window.isFarcasterMiniApp && typeof window.isFarcasterMiniApp === 'function') {
+                const isFarcaster = window.isFarcasterMiniApp();
+                console.log('[leaderboard-panel] isFarcasterMiniApp() returned:', isFarcaster);
+                if (isFarcaster) return 'farcaster';
+              }
+              if (window.isBaseApp && typeof window.isBaseApp === 'function') {
+                const isBase = window.isBaseApp();
+                console.log('[leaderboard-panel] isBaseApp() returned:', isBase);
+                if (isBase) return 'base-app';
+              }
+              // Additional checks for SDK presence
+              if (window.fc?.miniapp || window.farcaster?.miniapp || window.MiniAppSDK) {
+                console.log('[leaderboard-panel] Farcaster SDK detected via fallback');
+                return 'farcaster';
+              }
+              if (window.MiniKit || window.ReactNativeWebView) {
+                console.log('[leaderboard-panel] Base App SDK detected via fallback');
+                return 'base-app';
+              }
+              console.warn('[leaderboard-panel] Platform detection failed - no platform indicators found');
               return null;
-            } catch (_) {
+            } catch (err) {
+              console.error('[leaderboard-panel] Platform detection error:', err);
               return null;
             }
           })();
+          
+          console.log('[leaderboard-panel] Detected platform:', platform);
           
           const mappingData = {
             address: address.toLowerCase(),
