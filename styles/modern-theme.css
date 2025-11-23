@@ -595,7 +595,7 @@ body.theme-light .profile-network-logo svg rect {
     grid-template-columns: auto 1fr auto;
     gap: 8px;
     padding: 8px 10px; /* Increased padding for better touch target */
-    font-size: 0.75rem;
+    font-size: 0.25rem; /* 3x smaller: 0.75rem / 3 */
     min-height: 44px; /* Minimum touch target size (Base App guideline) */
     touch-action: manipulation; /* Prevent double-tap zoom on mobile */
     -webkit-tap-highlight-color: rgba(255, 225, 79, 0.2); /* Visual feedback on tap */
@@ -603,23 +603,23 @@ body.theme-light .profile-network-logo svg rect {
   
   .leaderboard-rank {
     min-width: 32px;
-    font-size: 0.7rem;
+    font-size: 0.23rem; /* 3x smaller: 0.7rem / 3 */
   }
   
   .leaderboard-item:first-child .leaderboard-rank {
-    font-size: 0.75rem;
+    font-size: 0.25rem; /* 3x smaller: 0.75rem / 3 */
   }
   
   .leaderboard-avatar {
     width: 32px;
     height: 32px;
     border-width: 1px;
-    font-size: 0.8rem;
+    font-size: 0.27rem; /* 3x smaller: 0.8rem / 3 */
     flex-shrink: 0; /* Prevent avatar from shrinking */
   }
   
   .leaderboard-name {
-    font-size: 0.7rem;
+    font-size: 0.23rem; /* 3x smaller: 0.7rem / 3 */
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
@@ -657,22 +657,22 @@ body.theme-light .profile-network-logo svg rect {
   }
   
   .leaderboard-score-value {
-    font-size: 0.75rem;
+    font-size: 0.25rem; /* 3x smaller: 0.75rem / 3 */
     /* Ensure score is readable */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   
   .leaderboard-handle {
-    font-size: 0.42rem;
+    font-size: 0.14rem; /* 3x smaller: 0.42rem / 3 */
   }
   
   .leaderboard-score-value {
-    font-size: 0.56rem;
+    font-size: 0.19rem; /* 3x smaller: 0.56rem / 3 */
   }
   
   .leaderboard-score-label {
-    font-size: 0.35rem;
+    font-size: 0.12rem; /* 3x smaller: 0.35rem / 3 */
   }
   
   .leaderboard-score {
@@ -685,7 +685,7 @@ body.theme-light .profile-network-logo svg rect {
   }
   
   .leaderboard-updated {
-    font-size: 0.32rem;
+    font-size: 0.11rem; /* 3x smaller: 0.32rem / 3 */
   }
   
   .profile-btn {
