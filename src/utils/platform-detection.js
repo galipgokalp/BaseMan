@@ -13,7 +13,7 @@ export function isFarcasterMiniApp() {
   try {
     if (typeof window === 'undefined') return false;
     
-    // Primary indicators for Farcaster
+    // Primary indicators for Farcaster SDK
     const hasFarcasterSDK = Boolean(
       (window.fc && window.fc.miniapp) ||
       (window.farcaster && window.farcaster.miniapp) ||
@@ -21,19 +21,48 @@ export function isFarcasterMiniApp() {
       window.FarcasterMiniAppSDK
     );
     
-    if (hasFarcasterSDK) return true;
+    if (hasFarcasterSDK) {
+      console.log('[platform-detection] Farcaster SDK detected:', {
+        hasFc: !!window.fc?.miniapp,
+        hasFarcaster: !!window.farcaster?.miniapp,
+        hasMiniAppSDK: !!window.MiniAppSDK,
+        hasFarcasterMiniAppSDK: !!window.FarcasterMiniAppSDK
+      });
+      return true;
+    }
     
-    // User agent check (secondary indicator)
+    // Check for window.sdk (Farcaster SDK might be exposed as window.sdk)
+    if (window.sdk) {
+      // Check if it's a Farcaster SDK by looking for Farcaster-specific methods
+      const sdk = window.sdk;
+      const hasFarcasterMethods = Boolean(
+        (typeof sdk === 'object' && (
+          sdk.context ||
+          sdk.user ||
+          (sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function')
+        ))
+      );
+      
+      // If it has Farcaster methods but NOT MiniKit, it's likely Farcaster
+      if (hasFarcasterMethods && !window.MiniKit) {
+        console.log('[platform-detection] Farcaster SDK detected via window.sdk (no MiniKit)');
+        return true;
+      }
+    }
+    
+    // User agent check (secondary indicator) - PRIORITY: Check this BEFORE ReactNativeWebView
     if (window.navigator && window.navigator.userAgent) {
       const ua = window.navigator.userAgent;
       if ((ua.includes('Farcaster') || ua.includes('Warpcast')) && 
           !ua.includes('BaseApp')) {
+        console.log('[platform-detection] Farcaster detected via User Agent:', ua);
         return true;
       }
     }
     
     return false;
-  } catch (_) {
+  } catch (err) {
+    console.error('[platform-detection] isFarcasterMiniApp error:', err);
     return false;
   }
 }
@@ -46,30 +75,52 @@ export function isBaseApp() {
   try {
     if (typeof window === 'undefined') return false;
     
-    // Primary indicators for Base App
-    if (window.ReactNativeWebView) {
-      // Additional check: if it's ReactNativeWebView but also Farcaster, it's Farcaster
-      if (isFarcasterMiniApp()) return false;
-      return true;
+    // CRITICAL: Check Farcaster FIRST - if it's Farcaster, it's NOT Base App
+    // This must be done BEFORE checking ReactNativeWebView or MiniKit
+    // because Farcaster Mini Apps might also use ReactNativeWebView
+    if (isFarcasterMiniApp()) {
+      console.log('[platform-detection] Farcaster detected, skipping Base App check');
+      return false;
     }
     
-    // MiniKit is Base App specific
+    // MiniKit is Base App specific (and NOT Farcaster)
     if (window.MiniKit) {
+      console.log('[platform-detection] Base App detected via MiniKit');
       return true;
     }
     
-    // User agent check for BaseApp
+    // ReactNativeWebView can be used by both, but we already checked Farcaster above
+    if (window.ReactNativeWebView) {
+      // Additional safety check: if User Agent says BaseApp, it's Base App
+      if (window.navigator && window.navigator.userAgent) {
+        const ua = window.navigator.userAgent;
+        if (ua.includes('BaseApp') && 
+            !ua.includes('Farcaster') && 
+            !ua.includes('Warpcast')) {
+          console.log('[platform-detection] Base App detected via ReactNativeWebView + BaseApp User Agent');
+          return true;
+        }
+      }
+      // If ReactNativeWebView exists but no Farcaster indicators and no BaseApp in UA,
+      // be conservative and don't assume it's Base App
+      console.log('[platform-detection] ReactNativeWebView found but no clear Base App indicators');
+      return false;
+    }
+    
+    // User agent check for BaseApp (as primary indicator, not secondary)
     if (window.navigator && window.navigator.userAgent) {
       const ua = window.navigator.userAgent;
       if (ua.includes('BaseApp') && 
           !ua.includes('Farcaster') && 
           !ua.includes('Warpcast')) {
+        console.log('[platform-detection] Base App detected via User Agent:', ua);
         return true;
       }
     }
     
     return false;
-  } catch (_) {
+  } catch (err) {
+    console.error('[platform-detection] isBaseApp error:', err);
     return false;
   }
 }
@@ -87,8 +138,21 @@ export function isMiniAppHost() {
  * @returns {'farcaster' | 'base' | 'web'}
  */
 export function getPlatform() {
-  if (isFarcasterMiniApp()) return 'farcaster';
-  if (isBaseApp()) return 'base';
+  // Check Farcaster FIRST (priority)
+  const isFarcaster = isFarcasterMiniApp();
+  if (isFarcaster) {
+    console.log('[platform-detection] getPlatform() -> farcaster');
+    return 'farcaster';
+  }
+  
+  // Then check Base App
+  const isBase = isBaseApp();
+  if (isBase) {
+    console.log('[platform-detection] getPlatform() -> base');
+    return 'base';
+  }
+  
+  console.log('[platform-detection] getPlatform() -> web');
   return 'web';
 }
 

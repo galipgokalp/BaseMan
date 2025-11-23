@@ -1420,20 +1420,53 @@
             const context = await window.sdk.context;
             const user = context?.user;
             if (user && user.fid) {
+              // Detect platform at score submission time (critical for correct logo display)
+              const platform = (() => {
+                try {
+                  // Use centralized platform detection if available
+                  if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
+                    const p = window.getPlatform();
+                    return p === 'farcaster' ? 'farcaster' : (p === 'base' ? 'base-app' : null);
+                  }
+                  // Fallback detection
+                  if (window.isFarcasterMiniApp && typeof window.isFarcasterMiniApp === 'function') {
+                    if (window.isFarcasterMiniApp()) return 'farcaster';
+                  }
+                  if (window.isBaseApp && typeof window.isBaseApp === 'function') {
+                    if (window.isBaseApp()) return 'base-app';
+                  }
+                  // Additional SDK checks
+                  if (window.fc?.miniapp || window.farcaster?.miniapp || window.MiniAppSDK) {
+                    return 'farcaster';
+                  }
+                  if (window.MiniKit) {
+                    return 'base-app';
+                  }
+                  return null;
+                } catch (err) {
+                  debug(`submitScore: Platform detection error: ${err?.message || err}`);
+                  return null;
+                }
+              })();
+              
+              debug(`submitScore: Detected platform: ${platform || 'unknown'}`);
+              
               const profileMapping = {
                 address: state.address.toLowerCase(),
                 fid: user.fid,
                 username: user.username || null,
                 displayName: user.displayName || null,
-                avatarUrl: user.pfpUrl || null
+                avatarUrl: user.pfpUrl || null,
+                platform: platform || null // CRITICAL: Include platform for correct logo display
               };
               
-              debug(`submitScore: Sending profile mapping for leaderboard: ${profileMapping.username || profileMapping.displayName || 'unnamed'}`);
+              debug(`submitScore: Sending profile mapping for leaderboard: ${profileMapping.username || profileMapping.displayName || 'unnamed'} (platform: ${platform || 'unknown'})`);
               console.log('[BaseMan] submitScore: Sending profile mapping for leaderboard enrichment:', {
                 address: profileMapping.address.substring(0, 10) + '...',
                 fid: profileMapping.fid,
                 username: profileMapping.username,
-                displayName: profileMapping.displayName
+                displayName: profileMapping.displayName,
+                platform: profileMapping.platform
               });
               
               // Send profile mapping asynchronously, don't block score submission
