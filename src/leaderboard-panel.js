@@ -737,13 +737,84 @@
     const searchResults = panel.querySelector('[data-search-results]');
     const searchClose = panel.querySelector('[data-search-close]');
     const searchClear = panel.querySelector('[data-search-clear]');
+    
+    // Ensure modal is closed on initialization
+    if (searchModal) {
+      searchModal.setAttribute('hidden', '');
+    }
+
+    // Handle mobile keyboard with visualViewport API
+    let viewportHandler = null;
+    const setupViewportHandler = () => {
+      if (window.visualViewport && searchModal) {
+        viewportHandler = () => {
+          if (!searchModal.hasAttribute('hidden')) {
+            const viewport = window.visualViewport;
+            const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
+            if (modalContent) {
+              // Adjust modal position when keyboard opens
+              const viewportHeight = viewport.height;
+              const windowHeight = window.innerHeight;
+              const keyboardHeight = windowHeight - viewportHeight;
+              
+              if (keyboardHeight > 150) {
+                // Keyboard is open, move modal up
+                modalContent.style.maxHeight = `${viewportHeight - 40}px`;
+                modalContent.style.marginTop = `${Math.max(20, viewport.offsetTop)}px`;
+              } else {
+                // Keyboard is closed, reset
+                modalContent.style.maxHeight = '';
+                modalContent.style.marginTop = '';
+              }
+            }
+          }
+        };
+        window.visualViewport.addEventListener('resize', viewportHandler);
+        window.visualViewport.addEventListener('scroll', viewportHandler);
+      }
+    };
+
+    const removeViewportHandler = () => {
+      if (viewportHandler && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', viewportHandler);
+        window.visualViewport.removeEventListener('scroll', viewportHandler);
+        viewportHandler = null;
+      }
+    };
+
+    // Setup viewport handler on init
+    if (window.visualViewport) {
+      setupViewportHandler();
+    } else {
+      // Fallback: setup when visualViewport becomes available
+      window.addEventListener('load', () => {
+        if (window.visualViewport) {
+          setupViewportHandler();
+        }
+      });
+    }
 
     const openSearchModal = () => {
       if (searchModal) {
         searchModal.removeAttribute('hidden');
-        if (searchInput) {
-          searchInput.focus();
-        }
+        // Use setTimeout to ensure modal is visible before focusing
+        setTimeout(() => {
+          if (searchInput) {
+            // Force focus and ensure keyboard opens on mobile
+            searchInput.focus();
+            // For mobile devices, ensure input is not readonly/disabled
+            searchInput.removeAttribute('readonly');
+            searchInput.removeAttribute('disabled');
+            // Trigger input event to ensure it's active
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+              // Small delay for iOS to ensure keyboard opens
+              setTimeout(() => {
+                searchInput.click();
+                searchInput.focus();
+              }, 150);
+            }
+          }
+        }, 100);
       }
     };
 
@@ -752,6 +823,7 @@
         searchModal.setAttribute('hidden', '');
         if (searchInput) {
           searchInput.value = '';
+          searchInput.blur(); // Remove focus to close keyboard
         }
         if (searchClear) {
           searchClear.hidden = true;
@@ -765,6 +837,12 @@
         if (searchTimeout) {
           clearTimeout(searchTimeout);
           searchTimeout = null;
+        }
+        // Reset modal content position
+        const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
+        if (modalContent) {
+          modalContent.style.maxHeight = '';
+          modalContent.style.marginTop = '';
         }
       }
     };

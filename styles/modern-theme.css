@@ -322,6 +322,10 @@ body.theme-light .canvas-container {
   backdrop-filter: blur(8px) saturate(180%);
 }
 
+.leaderboard-search-modal[hidden] {
+  display: none !important;
+}
+
 .leaderboard-search-modal-content {
   background: linear-gradient(135deg, 
     rgba(20, 20, 32, 0.98) 0%, 
@@ -383,6 +387,11 @@ body.theme-light .canvas-container {
   font-size: 0.9rem;
   font-family: inherit;
   transition: all 0.2s ease;
+  -webkit-appearance: none; /* Remove iOS default styling */
+  appearance: none;
+  pointer-events: auto; /* Ensure input is clickable */
+  touch-action: manipulation; /* Prevent double-tap zoom */
+  user-select: text; /* Allow text selection */
 }
 
 .leaderboard-search-input:focus {
@@ -891,12 +900,15 @@ body.theme-light .profile-network-logo svg rect {
   /* Search modal mobile */
   .leaderboard-search-modal {
     padding: var(--spacing-sm);
+    padding-top: calc(var(--spacing-sm) + env(safe-area-inset-top, 0px));
     padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
+    align-items: flex-start; /* Modal at top when keyboard opens */
   }
   
   .leaderboard-search-modal-content {
     max-width: 100%;
-    max-height: 85vh;
+    max-height: calc(100dvh - var(--spacing-sm) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    margin-top: 0; /* Start from top */
   }
   
   .leaderboard-search-modal-header {

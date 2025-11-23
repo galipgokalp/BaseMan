@@ -206,11 +206,26 @@
   backdrop-filter: blur(4px);
   z-index: 100000; /* Higher than bottom nav (99999) */
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Changed from center to flex-start for mobile keyboard */
   justify-content: center;
   padding: var(--spacing-md);
+  padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px)); /* Safe area for mobile */
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px)); /* Safe area for mobile */
+  overflow-y: auto; /* Allow scrolling if needed */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   animation: fadeIn 0.2s ease;
+}
+
+/* When keyboard is open on mobile, adjust modal position */
+@supports (height: 100dvh) {
+  .leaderboard-search-modal {
+    /* Use dynamic viewport height to account for keyboard */
+    min-height: 100dvh;
+  }
+}
+
+.leaderboard-search-modal[hidden] {
+  display: none !important;
 }
 
 @keyframes fadeIn {
@@ -227,11 +242,15 @@
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 400px;
-  max-height: 80vh;
+  max-height: calc(100vh - var(--spacing-md) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - var(--spacing-md) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); /* Dynamic viewport for mobile keyboard */
+  margin-top: max(env(safe-area-inset-top, 0px), var(--spacing-md)); /* Ensure modal is visible above keyboard */
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes slideUp {
@@ -1190,10 +1209,16 @@
   /* Search modal mobile */
   .leaderboard-search-modal {
     padding: var(--spacing-sm);
+    padding-top: calc(var(--spacing-sm) + env(safe-area-inset-top, 0px));
+    align-items: flex-start; /* Ensure modal stays at top when keyboard opens */
+    padding-top: max(env(safe-area-inset-top, 0px), var(--spacing-sm));
   }
   
   .leaderboard-search-modal-content {
     max-width: 100%;
+    max-height: calc(100vh - var(--spacing-sm) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--spacing-sm) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    margin-top: 0; /* Start from top on mobile */
   }
   
   .leaderboard-search-modal-header {
