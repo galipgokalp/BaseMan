@@ -10,6 +10,7 @@
 
   let loading = false;
   let timerId = null;
+  let allEntries = []; // Store all entries for search functionality
   // Default: visible. Allow hiding when NEXT_PUBLIC_SHOW_LEADERBOARD is set to 0/false.
   let visible = (() => {
     try {
@@ -128,7 +129,7 @@
     rank.className = "leaderboard-rank";
     const rankValue =
       typeof entry.rank === "number" && Number.isFinite(entry.rank) ? entry.rank : fallbackRank;
-    rank.textContent = `#${rankValue}`;
+    rank.textContent = `${rankValue}`; // Removed # symbol
     li.append(rank);
 
     // Avatar (moved outside identityRoot, directly in li)
@@ -587,6 +588,7 @@
       
       const items = Array.isArray(payload.items) ? payload.items : [];
       console.log('[leaderboard-panel] Processing', items.length, 'items');
+      allEntries = items; // Store entries for search
       const rendered = renderRows(items);
       
       // Show debug info if available
@@ -727,6 +729,154 @@
         stopPolling();
       }
     });
+
+    // Search functionality
+    const searchBtn = panel.querySelector('[data-search-btn]');
+    const searchModal = panel.querySelector('[data-search-modal]');
+    const searchInput = panel.querySelector('[data-search-input]');
+    const searchResults = panel.querySelector('[data-search-results]');
+    const searchClose = panel.querySelector('[data-search-close]');
+    const searchClear = panel.querySelector('[data-search-clear]');
+
+    const openSearchModal = () => {
+      if (searchModal) {
+        searchModal.removeAttribute('hidden');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+    };
+
+    const closeSearchModal = () => {
+      if (searchModal) {
+        searchModal.setAttribute('hidden', '');
+        if (searchInput) {
+          searchInput.value = '';
+        }
+        if (searchClear) {
+          searchClear.hidden = true;
+        }
+        if (searchResults) {
+          searchResults.innerHTML = '';
+        }
+        // Restore original leaderboard
+        renderRows(allEntries);
+        // Clear search timeout
+        if (searchTimeout) {
+          clearTimeout(searchTimeout);
+          searchTimeout = null;
+        }
+      }
+    };
+
+    // Debounce search for better performance
+    let searchTimeout = null;
+    const performSearch = (query) => {
+      // Clear previous timeout
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      
+      // Debounce: wait 150ms after user stops typing
+      searchTimeout = setTimeout(() => {
+        if (!query || !query.trim()) {
+          // Restore original leaderboard
+          renderRows(allEntries);
+          if (searchResults) {
+            searchResults.innerHTML = '';
+          }
+          return;
+        }
+
+        const searchTerm = query.trim().toLowerCase();
+        const filtered = allEntries.filter(entry => {
+          const username = entry?.profile?.username?.toLowerCase() || '';
+          const displayName = entry?.profile?.displayName?.toLowerCase() || '';
+          const address = entry?.player?.toLowerCase() || '';
+          const abbreviatedAddress = abbreviateAddress(entry?.player || '').toLowerCase();
+          
+          return username.includes(searchTerm) || 
+                 displayName.includes(searchTerm) || 
+                 address.includes(searchTerm) ||
+                 abbreviatedAddress.includes(searchTerm);
+        });
+
+        if (filtered.length === 0) {
+          if (searchResults) {
+            searchResults.innerHTML = '<div class="leaderboard-search-no-results">No users found</div>';
+          }
+          // Clear leaderboard lists
+          if (topListEl) topListEl.innerHTML = '';
+          if (restListEl) restListEl.innerHTML = '';
+          if (scrollWrapper) scrollWrapper.hidden = true;
+        } else {
+          if (searchResults) {
+            searchResults.innerHTML = `<div class="leaderboard-search-count">Found ${filtered.length} user(s)</div>`;
+          }
+          // Show filtered results in leaderboard
+          renderRows(filtered);
+        }
+      }, 150); // 150ms debounce delay
+    };
+
+    if (searchBtn) {
+      searchBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSearchModal();
+      });
+    }
+
+    if (searchClose) {
+      searchClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSearchModal();
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const value = e.target.value;
+        // Show/hide clear button
+        if (searchClear) {
+          searchClear.hidden = !value || value.trim() === '';
+        }
+        performSearch(value);
+      });
+
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeSearchModal();
+        } else if (e.key === 'Enter') {
+          // Enter key submits search (already handled by input event)
+          e.preventDefault();
+        }
+      });
+    }
+
+    // Clear button functionality
+    if (searchClear) {
+      searchClear.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+          searchClear.hidden = true;
+          performSearch('');
+        }
+      });
+    }
+
+    // Close modal when clicking outside
+    if (searchModal) {
+      searchModal.addEventListener('click', (e) => {
+        if (e.target === searchModal) {
+          closeSearchModal();
+        }
+      });
+    }
 
     if (visible) {
       loadLeaderboard();

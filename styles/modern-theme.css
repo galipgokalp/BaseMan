@@ -254,6 +254,208 @@ body.theme-light .canvas-container {
   transform: translateY(0);
 }
 
+/* ===== Leaderboard Search Button - Enhanced (Modern Theme) ===== */
+.leaderboard-search-btn {
+  background: rgba(255, 225, 79, 0.1);
+  border: 1px solid var(--color-border-bright);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  min-height: 44px; /* Minimum touch target size (Base App guideline) */
+  min-width: 44px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+}
+
+.leaderboard-search-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.leaderboard-search-btn:hover {
+  background: rgba(255, 225, 79, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: var(--glow-primary);
+  transform: translateY(-2px);
+}
+
+.leaderboard-search-btn:hover svg {
+  transform: scale(1.1);
+}
+
+.leaderboard-search-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 225, 79, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.leaderboard-search-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.leaderboard-search-btn:active {
+  transform: translateY(0);
+}
+
+/* ===== Leaderboard Search Modal - Enhanced (Modern Theme) ===== */
+.leaderboard-search-modal {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px) saturate(180%);
+}
+
+.leaderboard-search-modal-content {
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 32, 0.98) 0%, 
+    rgba(10, 10, 15, 0.99) 100%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 2px solid var(--color-border-bright);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), var(--glow-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.leaderboard-search-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--color-primary) 50%, 
+    transparent 100%);
+  animation: borderGlow 3s ease-in-out infinite;
+  z-index: 1;
+}
+
+.leaderboard-search-modal-header {
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+  z-index: 2;
+}
+
+.leaderboard-search-modal-header h3 {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.leaderboard-search-close:hover {
+  background: rgba(255, 225, 79, 0.1);
+  color: var(--color-primary);
+}
+
+.leaderboard-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.leaderboard-search-input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  padding-right: 36px; /* Space for clear button */
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.leaderboard-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(255, 225, 79, 0.2);
+}
+
+.leaderboard-search-clear {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.leaderboard-search-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+  transform: scale(1.1);
+}
+
+.leaderboard-search-clear:active {
+  transform: scale(0.95);
+}
+
+.leaderboard-search-count {
+  color: var(--color-secondary);
+}
+
+.leaderboard-search-no-results {
+  color: var(--color-text-muted);
+}
+
+/* Light theme support */
+body.theme-light .leaderboard-search-btn {
+  background: rgba(255, 225, 79, 0.15);
+  border-color: rgba(255, 225, 79, 0.4);
+}
+
+body.theme-light .leaderboard-search-modal {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+body.theme-light .leaderboard-search-modal-content {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.98) 0%, 
+    rgba(245, 245, 247, 0.99) 100%);
+  border-color: rgba(255, 225, 79, 0.4);
+}
+
+body.theme-light .leaderboard-search-input {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(255, 225, 79, 0.3);
+}
+
+body.theme-light .leaderboard-search-input:focus {
+  border-color: var(--color-primary);
+  background: rgba(0, 0, 0, 0.08);
+}
+
 /* NOTE: Leaderboard close button styles are in panels.css */
 
 /* ===== Leaderboard Items - Enhanced ===== */
@@ -261,7 +463,7 @@ body.theme-light .canvas-container {
   display: grid;
   grid-template-columns: auto auto 1fr auto;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 2px 4px; /* Minimal gap: 2px vertical, 4px horizontal (rank-avatar, avatar-name, name-score) */
   padding: var(--spacing-xs) var(--spacing-xs);
   background: linear-gradient(135deg, 
     rgba(255, 255, 255, 0.03) 0%, 
@@ -401,7 +603,7 @@ body.theme-light .canvas-container {
 }
 
 .leaderboard-text {
-  gap: 6px;
+  gap: 2px; /* Minimal gap between name and logo */
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -579,7 +781,7 @@ body.theme-light .profile-network-logo svg rect {
   /* Leaderboard item mobile styles (theme-specific) - Optimized for Farcaster/Base App mini apps */
   .leaderboard-item {
     grid-template-columns: auto auto 1fr auto; /* rank, avatar, name, score */
-    gap: 6px;
+    gap: 1px 2px; /* Minimal gap on mobile: 1px vertical, 2px horizontal */
     padding: 4px 6px; /* Reduced padding for smaller items */
     font-size: 0.25rem; /* 3x smaller: 0.75rem / 3 */
     min-height: 44px; /* Minimum touch target size (Base App guideline) */
@@ -626,14 +828,14 @@ body.theme-light .profile-network-logo svg rect {
   }
   
   .leaderboard-text {
-    gap: 4px;
+    gap: 2px; /* Minimal gap between name and logo on mobile */
     flex-wrap: wrap;
     align-items: center;
     min-width: 0; /* Allow text to shrink if needed */
   }
   
   .leaderboard-identity {
-    gap: 8px;
+    gap: 2px; /* Minimal gap between name and logo */
     min-height: 32px; /* Ensure touch target is adequate */
   }
   
@@ -667,11 +869,59 @@ body.theme-light .profile-network-logo svg rect {
   }
   
   .leaderboard-text {
-    gap: 0.5px;
+    gap: 2px; /* Minimal gap between name and logo */
   }
   
   .leaderboard-updated {
     font-size: 0.11rem; /* 3x smaller: 0.32rem / 3 */
+  }
+  
+  /* Search button mobile */
+  .leaderboard-search-btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+  }
+  
+  .leaderboard-search-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* Search modal mobile */
+  .leaderboard-search-modal {
+    padding: var(--spacing-sm);
+    padding-bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom, 0px));
+  }
+  
+  .leaderboard-search-modal-content {
+    max-width: 100%;
+    max-height: 85vh;
+  }
+  
+  .leaderboard-search-modal-header {
+    padding: var(--spacing-sm);
+  }
+  
+  .leaderboard-search-modal-header h3 {
+    font-size: 0.9rem;
+  }
+  
+  .leaderboard-search-modal-body {
+    padding: var(--spacing-sm);
+  }
+  
+  .leaderboard-search-input {
+    font-size: 0.85rem;
+    padding: var(--spacing-xs);
+    padding-right: 32px; /* Space for clear button on mobile */
+  }
+  
+  .leaderboard-search-clear {
+    width: 20px;
+    height: 20px;
+    font-size: 1rem;
+    right: 6px;
   }
   
   .profile-btn {
@@ -819,8 +1069,8 @@ body.theme-light .profile-network-logo svg rect {
 }
 
 .nav-profile-img {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-primary);
@@ -840,6 +1090,9 @@ body.theme-light .profile-network-logo svg rect {
   letter-spacing: 0.5px;
   line-height: 1;
   margin-top: 2px;
+  white-space: nowrap; /* Keep text on one line (PAC-BOARD should be horizontal) */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Bottom nav badge indicator (optional, for notifications) */
@@ -872,8 +1125,8 @@ body.theme-light .profile-network-logo svg rect {
   }
   
   .nav-profile-img {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
   
   .nav-label {
