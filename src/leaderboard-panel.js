@@ -795,11 +795,19 @@
     }
 
     const openSearchModal = () => {
+      console.log('[leaderboard-panel] openSearchModal called');
       if (searchModal) {
+        console.log('[leaderboard-panel] Removing hidden attribute from modal');
+        // Remove hidden attribute
         searchModal.removeAttribute('hidden');
+        // Force display with inline style (highest priority)
+        searchModal.style.display = 'flex';
+        searchModal.style.visibility = 'visible';
+        searchModal.style.opacity = '1';
         // Use setTimeout to ensure modal is visible before focusing
         setTimeout(() => {
           if (searchInput) {
+            console.log('[leaderboard-panel] Focusing search input');
             // Force focus and ensure keyboard opens on mobile
             searchInput.focus();
             // For mobile devices, ensure input is not readonly/disabled
@@ -815,6 +823,8 @@
             }
           }
         }, 100);
+      } else {
+        console.error('[leaderboard-panel] searchModal not found!');
       }
     };
 
@@ -898,11 +908,22 @@
     };
 
     if (searchBtn) {
+      console.log('[leaderboard-panel] Search button found, adding click listener');
       searchBtn.addEventListener('click', (e) => {
+        console.log('[leaderboard-panel] Search button clicked');
         e.preventDefault();
         e.stopPropagation();
         openSearchModal();
       });
+      // Also add touch event for mobile
+      searchBtn.addEventListener('touchend', (e) => {
+        console.log('[leaderboard-panel] Search button touched');
+        e.preventDefault();
+        e.stopPropagation();
+        openSearchModal();
+      }, { passive: false });
+    } else {
+      console.error('[leaderboard-panel] Search button not found!');
     }
 
     if (searchClose) {

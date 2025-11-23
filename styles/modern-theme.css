@@ -324,6 +324,15 @@ body.theme-light .canvas-container {
 
 .leaderboard-search-modal[hidden] {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Ensure modal is visible when not hidden */
+.leaderboard-search-modal:not([hidden]) {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .leaderboard-search-modal-content {
@@ -472,7 +481,7 @@ body.theme-light .leaderboard-search-input:focus {
   display: grid;
   grid-template-columns: auto auto 1fr auto;
   align-items: center;
-  gap: 2px 4px; /* Minimal gap: 2px vertical, 4px horizontal (rank-avatar, avatar-name, name-score) */
+  gap: 0; /* No gap between rank, avatar, and name - they should be touching */
   padding: var(--spacing-xs) var(--spacing-xs);
   background: linear-gradient(135deg, 
     rgba(255, 255, 255, 0.03) 0%, 
@@ -484,6 +493,16 @@ body.theme-light .leaderboard-search-input:focus {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+}
+
+/* Align all elements to left except score */
+.leaderboard-item > *:not(.leaderboard-score) {
+  justify-self: start;
+}
+
+/* Score stays on the right */
+.leaderboard-item > .leaderboard-score {
+  justify-self: end;
 }
 
 .leaderboard-item:hover {
@@ -790,7 +809,7 @@ body.theme-light .profile-network-logo svg rect {
   /* Leaderboard item mobile styles (theme-specific) - Optimized for Farcaster/Base App mini apps */
   .leaderboard-item {
     grid-template-columns: auto auto 1fr auto; /* rank, avatar, name, score */
-    gap: 1px 2px; /* Minimal gap on mobile: 1px vertical, 2px horizontal */
+    gap: 0; /* No gap on mobile - elements should be touching */
     padding: 4px 6px; /* Reduced padding for smaller items */
     font-size: 0.25rem; /* 3x smaller: 0.75rem / 3 */
     min-height: 44px; /* Minimum touch target size (Base App guideline) */

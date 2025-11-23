@@ -226,6 +226,15 @@
 
 .leaderboard-search-modal[hidden] {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Ensure modal is visible when not hidden */
+.leaderboard-search-modal:not([hidden]) {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 @keyframes fadeIn {

@@ -105,7 +105,7 @@ body {
   display: grid;
   grid-template-columns: auto auto 1fr auto; /* rank, avatar, name, score */
   align-items: center;
-  gap: 2px 4px; /* Minimal gap: 2px vertical, 4px horizontal (rank-avatar, avatar-name, name-score) */
+  gap: 0; /* No gap between rank, avatar, and name - they should be touching */
   padding: 6px 8px; /* Reduced padding for smaller items */
   background: rgba(255, 255, 255, 0.04);
   border-radius: 8px;
@@ -114,11 +114,21 @@ body {
   letter-spacing: 0.3px;
 }
 
+/* Align all elements to left except score */
+.leaderboard-item > *:not(.leaderboard-score) {
+  justify-self: start;
+}
+
+/* Score stays on the right */
+.leaderboard-item > .leaderboard-score {
+  justify-self: end;
+}
+
 /* Mobile responsive adjustments - Optimized for Farcaster/Base App mini apps */
 @media (max-width: 480px) {
   .leaderboard-item {
     grid-template-columns: auto auto 1fr auto; /* rank, avatar, name, score */
-    gap: 1px 2px; /* Minimal gap on mobile: 1px vertical, 2px horizontal */
+    gap: 0; /* No gap on mobile - elements should be touching */
     padding: 4px 6px; /* Reduced padding for smaller items */
     font-size: 0.25rem; /* 3x smaller: 0.75rem / 3 */
     min-height: 44px; /* Minimum touch target size (Base App guideline) */
