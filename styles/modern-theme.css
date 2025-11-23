@@ -259,10 +259,10 @@ body.theme-light .canvas-container {
 /* ===== Leaderboard Items - Enhanced ===== */
 .leaderboard-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-xs);
   background: linear-gradient(135deg, 
     rgba(255, 255, 255, 0.03) 0%, 
     rgba(255, 255, 255, 0.01) 100%);
@@ -275,18 +275,6 @@ body.theme-light .canvas-container {
   overflow: hidden;
 }
 
-.leaderboard-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--color-primary);
-  transform: scaleY(0);
-  transition: transform 0.3s ease;
-}
-
 .leaderboard-item:hover {
   background: linear-gradient(135deg, 
     rgba(255, 225, 79, 0.08) 0%, 
@@ -294,10 +282,6 @@ body.theme-light .canvas-container {
   border-color: var(--color-border-bright);
   transform: translateX(4px);
   box-shadow: var(--shadow-md);
-}
-
-.leaderboard-item:hover::before {
-  transform: scaleY(1);
 }
 
 .leaderboard-item:first-child {
@@ -334,6 +318,8 @@ body.theme-light .canvas-container {
   font-size: 1rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
+  text-decoration: none; /* Remove underline if avatar is a link */
+  color: inherit;
 }
 
 .leaderboard-avatar img {
@@ -592,9 +578,9 @@ body.theme-light .profile-network-logo svg rect {
   /* NOTE: Panel mobile styles are in panels.css - only theme-specific overrides here */
   /* Leaderboard item mobile styles (theme-specific) - Optimized for Farcaster/Base App mini apps */
   .leaderboard-item {
-    grid-template-columns: auto 1fr auto;
-    gap: 8px;
-    padding: 8px 10px; /* Increased padding for better touch target */
+    grid-template-columns: auto auto 1fr auto; /* rank, avatar, name, score */
+    gap: 6px;
+    padding: 4px 6px; /* Reduced padding for smaller items */
     font-size: 0.25rem; /* 3x smaller: 0.75rem / 3 */
     min-height: 44px; /* Minimum touch target size (Base App guideline) */
     touch-action: manipulation; /* Prevent double-tap zoom on mobile */

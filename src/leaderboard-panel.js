@@ -131,18 +131,14 @@
     rank.textContent = `#${rankValue}`;
     li.append(rank);
 
-    // Avatar and Username Container
-    const identityRoot = document.createElement(entry?.profile?.profileUrl ? "a" : "div");
-    identityRoot.className = "leaderboard-identity";
-    if (entry?.profile?.profileUrl) {
-      identityRoot.href = entry.profile.profileUrl;
-      identityRoot.target = "_blank";
-      identityRoot.rel = "noopener noreferrer";
-    }
-
-    // Avatar
-    const avatar = document.createElement("div");
+    // Avatar (moved outside identityRoot, directly in li)
+    const avatar = document.createElement(entry?.profile?.profileUrl ? "a" : "div");
     avatar.className = "leaderboard-avatar";
+    if (entry?.profile?.profileUrl) {
+      avatar.href = entry.profile.profileUrl;
+      avatar.target = "_blank";
+      avatar.rel = "noopener noreferrer";
+    }
     if (entry?.profile?.avatarUrl || entry?.player) {
       const img = document.createElement("img");
       img.src = entry?.profile?.avatarUrl || fallbackAvatar(entry.player);
@@ -161,7 +157,16 @@
     } else {
       avatar.textContent = "👾";
     }
-    identityRoot.appendChild(avatar);
+    li.append(avatar);
+
+    // Username Container (text only, no avatar)
+    const identityRoot = document.createElement(entry?.profile?.profileUrl ? "a" : "div");
+    identityRoot.className = "leaderboard-identity";
+    if (entry?.profile?.profileUrl) {
+      identityRoot.href = entry.profile.profileUrl;
+      identityRoot.target = "_blank";
+      identityRoot.rel = "noopener noreferrer";
+    }
 
     // Username
     const identityText = document.createElement("div");
