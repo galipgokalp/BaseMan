@@ -88,7 +88,7 @@
       return null;
     } catch (error) {
       debug(`SDK resolution error: ${error?.message || error}`);
-      return null;
+    return null;
     }
   }
 
@@ -363,7 +363,7 @@
     })();
 
   // Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)
-  function isMiniAppEnv() {
+    function isMiniAppEnv() {
     try {
       // Priority 1: Use centralized platform detection utility
       if (typeof window !== 'undefined' && typeof window.isMiniAppEnv === 'function') {
@@ -421,7 +421,7 @@
       debug(`isMiniAppEnv error: ${error?.message || error}`);
       return false;
     }
-  }
+    }
 
     async function getMiniAppAuthToken() {
       try {
@@ -490,7 +490,7 @@
               return false;
             }
           })();
-          
+
           let address = null;
           try {
             // First try to get existing accounts (read-only, no passkey prompt)
@@ -811,7 +811,7 @@
       const headers = { "Content-Type": "application/json" };
       if (isMiniAppEnv()) {
         // QuickAuth token varsa ekle (profil için), yoksa isteği engelleme
-        const t = await getMiniAppAuthToken();
+          const t = await getMiniAppAuthToken();
         if (t) {
           headers['Authorization'] = `Bearer ${t}`;
           headers['X-MiniApp-Auth-Token'] = t;
@@ -998,7 +998,7 @@
           if (caps && typeof caps === 'object') {
             debug(`getCapabilities: Retrieved capabilities (with address): ${Object.keys(caps).join(', ')}`);
             return caps;
-          }
+      }
         } catch (error) {
           debug(`getCapabilities: Failed to get capabilities (with address): ${error?.message || error}`);
         }
@@ -1047,13 +1047,13 @@
         
         // Check chain-specific capabilities (multiple formats)
         const byChainId = caps?.[chainIdStr]?.paymasterService?.supported === true ||
-                         (hex && caps?.[hex]?.paymasterService?.supported === true) ||
+          (hex && caps?.[hex]?.paymasterService?.supported === true) ||
                          caps?.[caip]?.paymasterService?.supported === true;
         
         // Check chains object structure
         const byChains = caps?.chains?.[caip]?.paymasterService?.supported === true ||
                         caps?.chains?.[chainIdStr]?.paymasterService?.supported === true ||
-                        (hex && caps?.chains?.[hex]?.paymasterService?.supported === true);
+          (hex && caps?.chains?.[hex]?.paymasterService?.supported === true);
         
         const supported = byFlat || byCaps || byChainId || byChains;
         debug(`isPaymasterSupported: chainId=${chainId}, supported=${supported}`);
@@ -1270,7 +1270,7 @@
           }).catch(()=>{}); 
         } catch(_) {}
         
-        return result;
+      return result;
       } catch (error) {
         const errorMsg = error?.message || String(error);
         const errorCode = error?.code || error?.error?.code || null;
@@ -1518,48 +1518,48 @@
           throw new Error("Contract interface not available");
         }
 
-        // Decide EIP-712 version at runtime (prefer env, else introspect contract.eip712Version())
-        let eip712v = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim())) || '';
-        let isV2 = eip712v === '2' || eip712v === '';
-        if (!isV2 && eip712v !== '1') {
-          try {
-            if (typeof state.contract.eip712Version === 'function') {
-              const v = await state.contract.eip712Version();
-              if (typeof v === 'string' && v.trim() === '2') {
-                isV2 = true;
+          // Decide EIP-712 version at runtime (prefer env, else introspect contract.eip712Version())
+          let eip712v = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim())) || '';
+          let isV2 = eip712v === '2' || eip712v === '';
+          if (!isV2 && eip712v !== '1') {
+            try {
+              if (typeof state.contract.eip712Version === 'function') {
+                const v = await state.contract.eip712Version();
+                if (typeof v === 'string' && v.trim() === '2') {
+                  isV2 = true;
                 debug('submitScore: Detected EIP-712 version from contract: 2');
+                }
               }
-            }
-          } catch (detectErr) {
+            } catch (detectErr) {
             debug(`submitScore: EIP-712 version autodetect failed: ${detectErr?.message || detectErr}`);
+            }
           }
-        }
         
-        let callData;
-        if (isV2) {
-          let nonceValue = null;
-          try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
-          if (nonceValue === null) {
+          let callData;
+          if (isV2) {
+            let nonceValue = null;
+            try { nonceValue = BigInt(nonce); } catch (_) { nonceValue = null; }
+            if (nonceValue === null) {
             debug('submitScore: V2 requires nonce but none was provided; aborting');
-            throw new Error('Missing nonce for V2 signature');
-          }
+              throw new Error('Missing nonce for V2 signature');
+            }
           // Use full function signature to avoid ambiguity with V1
           callData = contractInterface.encodeFunctionData("submitScore(address,uint256,uint256,uint256,bytes)", [
-            state.address,
-            scoreValue,
-            deadlineValue,
-            nonceValue,
-            signature
-          ]);
+              state.address,
+              scoreValue,
+              deadlineValue,
+              nonceValue,
+              signature
+            ]);
           debug(`submitScore: Call data encoded (V2) - score=${scoreValue.toString()}, nonce=${nonceValue.toString()}`);
-        } else {
+          } else {
           // Use full function signature to avoid ambiguity with V2
           callData = contractInterface.encodeFunctionData("submitScore(address,uint256,uint256,bytes)", [
-            state.address,
-            scoreValue,
-            deadlineValue,
-            signature
-          ]);
+              state.address,
+              scoreValue,
+              deadlineValue,
+              signature
+            ]);
           debug(`submitScore: Call data encoded (V1) - score=${scoreValue.toString()}`);
         }
         
@@ -1660,29 +1660,29 @@
                   identifier = result.hash;
                 }
               }
-              if (identifier) {
+            if (identifier) {
                 debug(`submitScore: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
                 console.log(`[BaseMan] Score submission transaction started: ${identifier}`);
                 try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
                 
                 // Optionally check transaction status after a delay
                 if (typeof result === "object" && typeof result.id === "string") {
-                  setTimeout(() => {
-                    if (!state.provider || typeof state.provider.request !== "function") return;
-                    state.provider
-                      .request({
-                        method: "wallet_getCallsStatus",
+                setTimeout(() => {
+                  if (!state.provider || typeof state.provider.request !== "function") return;
+                  state.provider
+                    .request({
+                      method: "wallet_getCallsStatus",
                         params: [result.id]
-                      })
-                      .then((status) => {
+                    })
+                    .then((status) => {
                         debug(`submitScore: wallet_getCallsStatus response: ${status ? JSON.stringify(status) : "empty response"}`);
                         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:transaction:status', meta: { id: result.id, status } }) }).catch(()=>{});} catch(_) {}
-                      })
-                      .catch((statusError) => {
+                    })
+                    .catch((statusError) => {
                         debug(`submitScore: wallet_getCallsStatus error: ${statusError?.message || statusError}`);
-                      });
-                  }, 3000);
-                }
+                    });
+                }, 3000);
+              }
                 return;
               } else {
                 debug('submitScore: wallet_sendCalls returned result but no identifier found');
@@ -1955,7 +1955,7 @@
                     }) 
                   }).catch(()=>{});
                 } catch(_) {}
-              } catch (error) {
+          } catch (error) {
                 const errorMsg = error?.message || String(error);
                 const errorStack = error?.stack || new Error().stack;
                 debug(`${label} async hook ERROR: ${errorMsg}`);
@@ -2107,7 +2107,7 @@
     
     function schedulePatchStateHooks() {
       // Try immediately (states might already be available)
-      patchStateHooks();
+    patchStateHooks();
       
       // Also try after a delay to ensure states are loaded
       setTimeout(() => patchStateHooks(), 100);
