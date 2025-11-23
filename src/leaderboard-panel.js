@@ -808,29 +808,49 @@
         setTimeout(() => {
           if (searchInput) {
             console.log('[leaderboard-panel] Focusing search input');
-            // Force focus and ensure keyboard opens on mobile
-            searchInput.focus();
             // For mobile devices, ensure input is not readonly/disabled
             searchInput.removeAttribute('readonly');
             searchInput.removeAttribute('disabled');
-            // Trigger input event to ensure it's active
+            // Remove any pointer-events restrictions
+            searchInput.style.pointerEvents = 'auto';
+            searchInput.style.touchAction = 'manipulation';
+            // Force focus multiple times to ensure it works
+            searchInput.focus();
+            // For mobile devices, use click + focus combination
             if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-              // Small delay for iOS to ensure keyboard opens
+              // First click to activate
+              searchInput.click();
+              // Then focus
               setTimeout(() => {
-                searchInput.click();
                 searchInput.focus();
-              }, 150);
+                // Try one more time after a short delay
+                setTimeout(() => {
+                  searchInput.click();
+                  searchInput.focus();
+                }, 100);
+              }, 50);
+            } else {
+              // Desktop: just focus
+              searchInput.focus();
             }
+          } else {
+            console.error('[leaderboard-panel] searchInput not found!');
           }
-        }, 100);
+        }, 150); // Increased delay to ensure modal is fully rendered
       } else {
         console.error('[leaderboard-panel] searchModal not found!');
       }
     };
 
     const closeSearchModal = () => {
+      console.log('[leaderboard-panel] closeSearchModal called');
       if (searchModal) {
+        console.log('[leaderboard-panel] Setting hidden attribute on modal');
         searchModal.setAttribute('hidden', '');
+        // Force hide with inline style
+        searchModal.style.display = 'none';
+        searchModal.style.visibility = 'hidden';
+        searchModal.style.opacity = '0';
         if (searchInput) {
           searchInput.value = '';
           searchInput.blur(); // Remove focus to close keyboard
@@ -854,6 +874,8 @@
           modalContent.style.maxHeight = '';
           modalContent.style.marginTop = '';
         }
+      } else {
+        console.error('[leaderboard-panel] searchModal not found in closeSearchModal!');
       }
     };
 
@@ -927,14 +949,66 @@
     }
 
     if (searchClose) {
-      searchClose.addEventListener('click', (e) => {
+      console.log('[leaderboard-panel] Search close button found, adding event listeners');
+      // Multiple event types for maximum compatibility
+      const handleClose = (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        console.log('[leaderboard-panel] Close button triggered via', e?.type || 'unknown');
+        closeSearchModal();
+        return false;
+      };
+      
+      searchClose.addEventListener('click', handleClose);
+      searchClose.addEventListener('touchend', handleClose, { passive: false });
+      searchClose.addEventListener('touchstart', (e) => {
+        // Prevent default to avoid double-trigger
+        e.stopPropagation();
+      }, { passive: false });
+      // Also handle mousedown for desktop
+      searchClose.addEventListener('mousedown', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        closeSearchModal();
       });
+    } else {
+      console.error('[leaderboard-panel] Search close button not found!');
     }
 
     if (searchInput) {
+      console.log('[leaderboard-panel] Search input found, adding event listeners');
+      // Add multiple event types to ensure keyboard opens
+      const handleInputFocus = (e) => {
+        console.log('[leaderboard-panel] Search input interaction:', e.type);
+        // Ensure input is not readonly/disabled
+        searchInput.removeAttribute('readonly');
+        searchInput.removeAttribute('disabled');
+        searchInput.style.pointerEvents = 'auto';
+        // Force focus
+        setTimeout(() => {
+          searchInput.focus();
+          // For iOS, sometimes need to trigger click as well
+          if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            setTimeout(() => {
+              searchInput.click();
+              searchInput.focus();
+            }, 50);
+          }
+        }, 10);
+      };
+      
+      searchInput.addEventListener('click', handleInputFocus);
+      searchInput.addEventListener('touchstart', handleInputFocus, { passive: true });
+      searchInput.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleInputFocus(e);
+      }, { passive: false });
+      // Also handle focus event
+      searchInput.addEventListener('focus', () => {
+        console.log('[leaderboard-panel] Search input focused');
+      });
+      
       searchInput.addEventListener('input', (e) => {
         const value = e.target.value;
         // Show/hide clear button
@@ -952,6 +1026,8 @@
           e.preventDefault();
         }
       });
+    } else {
+      console.error('[leaderboard-panel] Search input not found!');
     }
 
     // Clear button functionality

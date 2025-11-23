@@ -344,6 +344,8 @@ body.theme-light .canvas-container {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), var(--glow-primary);
   position: relative;
   overflow: hidden;
+  pointer-events: auto; /* Ensure modal content is interactive */
+  z-index: 1;
 }
 
 .leaderboard-search-modal-content::before {
@@ -383,6 +385,8 @@ body.theme-light .canvas-container {
   position: relative;
   display: flex;
   align-items: center;
+  z-index: 10; /* Ensure input wrapper is above other elements */
+  pointer-events: auto; /* Ensure wrapper is clickable */
 }
 
 .leaderboard-search-input {
@@ -398,9 +402,12 @@ body.theme-light .canvas-container {
   transition: all 0.2s ease;
   -webkit-appearance: none; /* Remove iOS default styling */
   appearance: none;
-  pointer-events: auto; /* Ensure input is clickable */
+  pointer-events: auto !important; /* Ensure input is clickable - force with !important */
   touch-action: manipulation; /* Prevent double-tap zoom */
   user-select: text; /* Allow text selection */
+  cursor: text; /* Show text cursor */
+  z-index: 11; /* Ensure input is above wrapper */
+  position: relative;
 }
 
 .leaderboard-search-input:focus {

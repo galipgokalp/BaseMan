@@ -296,15 +296,26 @@
   cursor: pointer;
   width: 32px;
   height: 32px;
+  min-width: 44px; /* Minimum touch target size */
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
+  pointer-events: auto !important; /* Ensure button is clickable */
+  z-index: 100; /* Ensure button is above other elements */
+  position: relative;
+  touch-action: manipulation; /* Prevent double-tap zoom */
 }
 
 .leaderboard-search-close:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-search-close:active {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(0.95);
 }
 
 .leaderboard-search-modal-body {
