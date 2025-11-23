@@ -420,45 +420,86 @@
       if (address && user && user.fid) {
         try {
           // Detect platform (farcaster, base-app, or web)
+          // IMPORTANT: Check Farcaster FIRST before Base App
+          // because both platforms might have similar indicators
           const platform = (() => {
             try {
-              // Primary: Use centralized platform detection
+              console.log('[leaderboard-panel] Starting platform detection...');
+              
+              // Step 1: Check for Farcaster SDK indicators (PRIORITY)
+              const hasFarcasterSDK = Boolean(
+                window.fc?.miniapp || 
+                window.farcaster?.miniapp || 
+                window.MiniAppSDK ||
+                window.FarcasterMiniAppSDK
+              );
+              console.log('[leaderboard-panel] Farcaster SDK check:', {
+                hasFc: !!window.fc?.miniapp,
+                hasFarcaster: !!window.farcaster?.miniapp,
+                hasMiniAppSDK: !!window.MiniAppSDK,
+                hasFarcasterMiniAppSDK: !!window.FarcasterMiniAppSDK,
+                result: hasFarcasterSDK
+              });
+              
+              if (hasFarcasterSDK) {
+                console.log('[leaderboard-panel] ✅ Farcaster detected via SDK');
+                return 'farcaster';
+              }
+              
+              // Step 2: Use centralized platform detection function
               if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
                 const p = window.getPlatform();
                 console.log('[leaderboard-panel] getPlatform() returned:', p);
-                if (p === 'farcaster') return 'farcaster';
-                if (p === 'base') return 'base-app';
-                // If getPlatform returns 'web', try fallback detection
+                if (p === 'farcaster') {
+                  console.log('[leaderboard-panel] ✅ Farcaster detected via getPlatform()');
+                  return 'farcaster';
+                }
+                if (p === 'base') {
+                  console.log('[leaderboard-panel] ✅ Base App detected via getPlatform()');
+                  return 'base-app';
+                }
               }
-              // Fallback detection (more aggressive)
+              
+              // Step 3: Use platform detection helper functions
               if (window.isFarcasterMiniApp && typeof window.isFarcasterMiniApp === 'function') {
                 const isFarcaster = window.isFarcasterMiniApp();
                 console.log('[leaderboard-panel] isFarcasterMiniApp() returned:', isFarcaster);
-                if (isFarcaster) return 'farcaster';
+                if (isFarcaster) {
+                  console.log('[leaderboard-panel] ✅ Farcaster detected via isFarcasterMiniApp()');
+                  return 'farcaster';
+                }
               }
+              
+              // Step 4: Check for Base App indicators (ONLY if Farcaster not detected)
               if (window.isBaseApp && typeof window.isBaseApp === 'function') {
                 const isBase = window.isBaseApp();
                 console.log('[leaderboard-panel] isBaseApp() returned:', isBase);
-                if (isBase) return 'base-app';
+                if (isBase) {
+                  console.log('[leaderboard-panel] ✅ Base App detected via isBaseApp()');
+                  return 'base-app';
+                }
               }
-              // Additional checks for SDK presence
-              if (window.fc?.miniapp || window.farcaster?.miniapp || window.MiniAppSDK) {
-                console.log('[leaderboard-panel] Farcaster SDK detected via fallback');
-                return 'farcaster';
-              }
+              
+              // Step 5: Additional Base App SDK checks (ONLY if Farcaster not detected)
               if (window.MiniKit || window.ReactNativeWebView) {
-                console.log('[leaderboard-panel] Base App SDK detected via fallback');
+                // Double-check: if ReactNativeWebView exists but Farcaster SDK also exists, it's Farcaster
+                if (hasFarcasterSDK) {
+                  console.log('[leaderboard-panel] ⚠️ ReactNativeWebView found but Farcaster SDK also exists - choosing Farcaster');
+                  return 'farcaster';
+                }
+                console.log('[leaderboard-panel] ✅ Base App detected via MiniKit/ReactNativeWebView');
                 return 'base-app';
               }
-              console.warn('[leaderboard-panel] Platform detection failed - no platform indicators found');
+              
+              console.warn('[leaderboard-panel] ⚠️ Platform detection failed - no platform indicators found');
               return null;
             } catch (err) {
-              console.error('[leaderboard-panel] Platform detection error:', err);
+              console.error('[leaderboard-panel] ❌ Platform detection error:', err);
               return null;
             }
           })();
           
-          console.log('[leaderboard-panel] Detected platform:', platform);
+          console.log('[leaderboard-panel] 🎯 Final detected platform:', platform);
           
           const mappingData = {
             address: address.toLowerCase(),
