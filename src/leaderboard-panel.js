@@ -372,6 +372,7 @@
       // Get address from BaseManOnchain (same as profile-panel.js)
       let address = null;
       let user = null;
+      let platform = null; // Will be set via clientFid (official method) or fallback detection
       
       try {
         // Wait for BaseManOnchain wallet to be ready (with retry mechanism)
@@ -402,19 +403,15 @@
             const context = await window.sdk.context;
             user = context?.user;
             
-            // OFFICIAL METHOD: Check clientFid for Base App detection (per Base App docs)
-            // Base App clientFid is 309857
+            // OFFICIAL METHOD: Check clientFid for platform detection (per Base App docs)
+            // Base App clientFid is 309857, Farcaster clientFid is typically 9152 (Warpcast)
             if (context?.client?.clientFid === 309857) {
-              console.log('[leaderboard-panel] ✅ Base App detected via clientFid (309857) - official method');
-              // Override platform detection with official method
+              console.log('[leaderboard-panel] ✅ Base App detected via clientFid (309857) - OFFICIAL METHOD');
               platform = 'base-app';
             } else if (context?.client?.clientFid) {
-              // If clientFid exists but is not 309857, it's likely Farcaster
-              // Warpcast clientFid is 9152, but other Farcaster clients may differ
-              console.log('[leaderboard-panel] ✅ Farcaster detected via clientFid (' + context.client.clientFid + ')');
-              if (!platform || platform !== 'base-app') {
-                platform = 'farcaster';
-              }
+              // If clientFid exists but is not 309857, it's Farcaster
+              console.log('[leaderboard-panel] ✅ Farcaster detected via clientFid (' + context.client.clientFid + ') - OFFICIAL METHOD');
+              platform = 'farcaster';
             }
           } catch (ctxErr) {
             // SDK context not available
@@ -440,85 +437,25 @@
       // If we have both address and user with FID, send mapping
       if (address && user && user.fid) {
         try {
-          // Detect platform (farcaster, base-app, or web)
-          // IMPORTANT: Check Farcaster FIRST before Base App
-          // because both platforms might have similar indicators
-          const platform = (() => {
+          // OFFICIAL METHOD: Platform detection via clientFid (per Base App docs)
+          // If platform was not detected via clientFid, use centralized utility
+          if (!platform) {
+            console.log('[leaderboard-panel] Platform not detected via clientFid, using centralized utility...');
             try {
-              console.log('[leaderboard-panel] Starting platform detection...');
-              
-              // Step 1: Check for Farcaster SDK indicators (PRIORITY)
-              const hasFarcasterSDK = Boolean(
-                window.fc?.miniapp || 
-                window.farcaster?.miniapp || 
-                window.MiniAppSDK ||
-                window.FarcasterMiniAppSDK
-              );
-              console.log('[leaderboard-panel] Farcaster SDK check:', {
-                hasFc: !!window.fc?.miniapp,
-                hasFarcaster: !!window.farcaster?.miniapp,
-                hasMiniAppSDK: !!window.MiniAppSDK,
-                hasFarcasterMiniAppSDK: !!window.FarcasterMiniAppSDK,
-                result: hasFarcasterSDK
-              });
-              
-              if (hasFarcasterSDK) {
-                console.log('[leaderboard-panel] ✅ Farcaster detected via SDK');
-                return 'farcaster';
-              }
-              
-              // Step 2: Use centralized platform detection function
-              if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
-                const p = window.getPlatform();
-                console.log('[leaderboard-panel] getPlatform() returned:', p);
-                if (p === 'farcaster') {
-                  console.log('[leaderboard-panel] ✅ Farcaster detected via getPlatform()');
-                  return 'farcaster';
+              if (typeof window.getPlatform === 'function') {
+                platform = await window.getPlatform();
+                // Convert 'base' to 'base-app' for consistency
+                if (platform === 'base') {
+                  platform = 'base-app';
                 }
-                if (p === 'base' || p === 'base-app') {
-                  console.log('[leaderboard-panel] ✅ Base App detected via getPlatform()');
-                  return 'base-app';
-                }
+                console.log('[leaderboard-panel] Platform detected via centralized utility:', platform);
+              } else {
+                console.warn('[leaderboard-panel] getPlatform() not available, platform will be null');
               }
-              
-              // Step 3: Use platform detection helper functions
-              if (window.isFarcasterMiniApp && typeof window.isFarcasterMiniApp === 'function') {
-                const isFarcaster = window.isFarcasterMiniApp();
-                console.log('[leaderboard-panel] isFarcasterMiniApp() returned:', isFarcaster);
-                if (isFarcaster) {
-                  console.log('[leaderboard-panel] ✅ Farcaster detected via isFarcasterMiniApp()');
-                  return 'farcaster';
-                }
-              }
-              
-              // Step 4: Check for Base App indicators (ONLY if Farcaster not detected)
-              if (window.isBaseApp && typeof window.isBaseApp === 'function') {
-                const isBase = window.isBaseApp();
-                console.log('[leaderboard-panel] isBaseApp() returned:', isBase);
-                if (isBase) {
-                  console.log('[leaderboard-panel] ✅ Base App detected via isBaseApp()');
-                  return 'base-app';
-                }
-              }
-              
-              // Step 5: Additional Base App SDK checks (ONLY if Farcaster not detected)
-              if (window.MiniKit || window.ReactNativeWebView) {
-                // Double-check: if ReactNativeWebView exists but Farcaster SDK also exists, it's Farcaster
-                if (hasFarcasterSDK) {
-                  console.log('[leaderboard-panel] ⚠️ ReactNativeWebView found but Farcaster SDK also exists - choosing Farcaster');
-                  return 'farcaster';
-                }
-                console.log('[leaderboard-panel] ✅ Base App detected via MiniKit/ReactNativeWebView');
-                return 'base-app';
-              }
-              
-              console.warn('[leaderboard-panel] ⚠️ Platform detection failed - no platform indicators found');
-              return null;
             } catch (err) {
-              console.error('[leaderboard-panel] ❌ Platform detection error:', err);
-              return null;
+              console.error('[leaderboard-panel] Error using centralized platform detection:', err);
             }
-          })();
+          }
           
           console.log('[leaderboard-panel] 🎯 Final detected platform:', platform);
           
