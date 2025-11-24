@@ -1423,25 +1423,50 @@
               // Detect platform at score submission time (critical for correct logo display)
               const platform = (() => {
                 try {
-                  // Use centralized platform detection if available
-                  if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
-                    const p = window.getPlatform();
-                    return p === 'farcaster' ? 'farcaster' : (p === 'base' ? 'base-app' : null);
-                  }
-                  // Fallback detection
-                  if (window.isFarcasterMiniApp && typeof window.isFarcasterMiniApp === 'function') {
-                    if (window.isFarcasterMiniApp()) return 'farcaster';
-                  }
+                  // CRITICAL: Check Base App FIRST before Farcaster
+                  // because both might have similar indicators
+                  // Step 1: Check Base App specific indicators
                   if (window.isBaseApp && typeof window.isBaseApp === 'function') {
-                    if (window.isBaseApp()) return 'base-app';
+                    if (window.isBaseApp()) {
+                      debug('submitScore: Base App detected via isBaseApp()');
+                      return 'base-app';
+                    }
                   }
-                  // Additional SDK checks
-                  if (window.fc?.miniapp || window.farcaster?.miniapp || window.MiniAppSDK) {
-                    return 'farcaster';
-                  }
-                  if (window.MiniKit) {
+                  // MiniKit is Base App specific
+                  if (window.MiniKit && !window.fc?.miniapp && !window.farcaster?.miniapp) {
+                    debug('submitScore: Base App detected via MiniKit (no Farcaster SDK)');
                     return 'base-app';
                   }
+                  
+                  // Step 2: Use centralized platform detection if available
+                  if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
+                    const p = window.getPlatform();
+                    debug(`submitScore: getPlatform() returned: ${p}`);
+                    if (p === 'farcaster') {
+                      debug('submitScore: Farcaster detected via getPlatform()');
+                      return 'farcaster';
+                    }
+                    if (p === 'base' || p === 'base-app') {
+                      debug('submitScore: Base App detected via getPlatform()');
+                      return 'base-app';
+                    }
+                  }
+                  
+                  // Step 3: Check Farcaster indicators (ONLY if Base App not detected)
+                  if (window.isFarcasterMiniApp && typeof window.isFarcasterMiniApp === 'function') {
+                    if (window.isFarcasterMiniApp()) {
+                      debug('submitScore: Farcaster detected via isFarcasterMiniApp()');
+                      return 'farcaster';
+                    }
+                  }
+                  
+                  // Step 4: Additional SDK checks (ONLY if Base App not detected)
+                  if (window.fc?.miniapp || window.farcaster?.miniapp || window.MiniAppSDK) {
+                    debug('submitScore: Farcaster detected via SDK indicators');
+                    return 'farcaster';
+                  }
+                  
+                  debug('submitScore: Platform detection failed - no platform indicators found');
                   return null;
                 } catch (err) {
                   debug(`submitScore: Platform detection error: ${err?.message || err}`);
@@ -1450,6 +1475,24 @@
               })();
               
               debug(`submitScore: Detected platform: ${platform || 'unknown'}`);
+              
+              // CRITICAL: Platform bilgisi olmadan skor gönderilmemeli
+              // Çünkü leaderboard'da her kullanıcının yanında, o kullanıcının skorunu gönderdiği platformun logosu görünmeli
+              if (!platform) {
+                console.warn('[BaseMan] submitScore: ⚠️ Platform detection failed - profile mapping will be saved without platform info');
+                console.warn('[BaseMan] submitScore: Platform detection details:', {
+                  hasGetPlatform: typeof window.getPlatform === 'function',
+                  hasIsFarcasterMiniApp: typeof window.isFarcasterMiniApp === 'function',
+                  hasIsBaseApp: typeof window.isBaseApp === 'function',
+                  hasMiniKit: !!window.MiniKit,
+                  hasFc: !!window.fc?.miniapp,
+                  hasFarcaster: !!window.farcaster?.miniapp,
+                  hasReactNativeWebView: !!window.ReactNativeWebView,
+                  userAgent: window.navigator?.userAgent?.substring(0, 100) || 'unknown'
+                });
+              } else {
+                console.log('[BaseMan] submitScore: ✅ Platform detected successfully:', platform);
+              }
               
               const profileMapping = {
                 address: state.address.toLowerCase(),
@@ -1466,7 +1509,7 @@
                 fid: profileMapping.fid,
                 username: profileMapping.username,
                 displayName: profileMapping.displayName,
-                platform: profileMapping.platform
+                platform: profileMapping.platform || '⚠️ NULL - logo will not be displayed'
               });
               
               // Send profile mapping asynchronously, don't block score submission

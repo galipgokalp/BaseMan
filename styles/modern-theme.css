@@ -404,10 +404,18 @@ body.theme-light .canvas-container {
   appearance: none;
   pointer-events: auto !important; /* Ensure input is clickable - force with !important */
   touch-action: manipulation; /* Prevent double-tap zoom */
-  user-select: text; /* Allow text selection */
-  cursor: text; /* Show text cursor */
+  user-select: text !important; /* Allow text selection */
+  -webkit-user-select: text !important; /* iOS support */
+  cursor: text !important; /* Show text cursor */
   z-index: 11; /* Ensure input is above wrapper */
   position: relative;
+  /* Ensure input is not disabled/readonly */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  /* Mobile keyboard support */
+  -webkit-tap-highlight-color: rgba(255, 225, 79, 0.3);
+  tap-highlight-color: rgba(255, 225, 79, 0.3);
 }
 
 .leaderboard-search-input:focus {

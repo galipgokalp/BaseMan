@@ -460,7 +460,7 @@
                   console.log('[leaderboard-panel] ✅ Farcaster detected via getPlatform()');
                   return 'farcaster';
                 }
-                if (p === 'base') {
+                if (p === 'base' || p === 'base-app') {
                   console.log('[leaderboard-panel] ✅ Base App detected via getPlatform()');
                   return 'base-app';
                 }
@@ -804,39 +804,73 @@
         searchModal.style.display = 'flex';
         searchModal.style.visibility = 'visible';
         searchModal.style.opacity = '1';
-        // Use setTimeout to ensure modal is visible before focusing
-        setTimeout(() => {
-          if (searchInput) {
-            console.log('[leaderboard-panel] Focusing search input');
-            // For mobile devices, ensure input is not readonly/disabled
-            searchInput.removeAttribute('readonly');
-            searchInput.removeAttribute('disabled');
-            // Remove any pointer-events restrictions
-            searchInput.style.pointerEvents = 'auto';
-            searchInput.style.touchAction = 'manipulation';
-            // Force focus multiple times to ensure it works
-            searchInput.focus();
-            // For mobile devices, use click + focus combination
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-              // First click to activate
-              searchInput.click();
-              // Then focus
-              setTimeout(() => {
-                searchInput.focus();
-                // Try one more time after a short delay
-                setTimeout(() => {
-                  searchInput.click();
-                  searchInput.focus();
-                }, 100);
-              }, 50);
+        searchModal.style.zIndex = '10002'; // Ensure modal is above everything
+        
+        // Immediately prepare input for mobile
+        if (searchInput) {
+          // Remove any attributes that might block interaction
+          searchInput.removeAttribute('readonly');
+          searchInput.removeAttribute('disabled');
+          searchInput.removeAttribute('tabindex');
+          // Force input to be interactive
+          searchInput.style.pointerEvents = 'auto';
+          searchInput.style.touchAction = 'manipulation';
+          searchInput.style.userSelect = 'text';
+          searchInput.style.webkitUserSelect = 'text';
+          searchInput.style.webkitAppearance = 'none';
+          searchInput.style.appearance = 'none';
+          // Ensure input is visible and not hidden
+          searchInput.style.display = 'block';
+          searchInput.style.visibility = 'visible';
+          searchInput.style.opacity = '1';
+          searchInput.style.zIndex = '10003';
+        }
+        
+        // Use requestAnimationFrame for better timing
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (searchInput) {
+              console.log('[leaderboard-panel] Focusing search input');
+              
+              // Force focus with multiple attempts for mobile
+              const attemptFocus = () => {
+                try {
+                  searchInput.focus({ preventScroll: false });
+                  // For iOS, sometimes need to trigger click event
+                  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                    const clickEvent = new MouseEvent('click', {
+                      bubbles: true,
+                      cancelable: true,
+                      view: window
+                    });
+                    searchInput.dispatchEvent(clickEvent);
+                    // Also try touchstart for iOS
+                    const touchEvent = new TouchEvent('touchstart', {
+                      bubbles: true,
+                      cancelable: true,
+                      view: window
+                    });
+                    searchInput.dispatchEvent(touchEvent);
+                  }
+                } catch (err) {
+                  console.warn('[leaderboard-panel] Focus attempt failed:', err);
+                }
+              };
+              
+              // Try focus immediately
+              attemptFocus();
+              
+              // Try again after a short delay (for mobile)
+              if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                setTimeout(attemptFocus, 100);
+                setTimeout(attemptFocus, 300);
+                setTimeout(attemptFocus, 500);
+              }
             } else {
-              // Desktop: just focus
-              searchInput.focus();
+              console.error('[leaderboard-panel] searchInput not found!');
             }
-          } else {
-            console.error('[leaderboard-panel] searchInput not found!');
-          }
-        }, 150); // Increased delay to ensure modal is fully rendered
+          }, 100); // Reduced delay for faster response
+        });
       } else {
         console.error('[leaderboard-panel] searchModal not found!');
       }
@@ -985,28 +1019,47 @@
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
         searchInput.style.pointerEvents = 'auto';
-        // Force focus
-        setTimeout(() => {
-          searchInput.focus();
-          // For iOS, sometimes need to trigger click as well
-          if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            setTimeout(() => {
-              searchInput.click();
-              searchInput.focus();
-            }, 50);
+        searchInput.style.touchAction = 'manipulation';
+        searchInput.style.userSelect = 'text';
+        searchInput.style.webkitUserSelect = 'text';
+        // Force focus with preventScroll: false to ensure keyboard opens
+        requestAnimationFrame(() => {
+          try {
+            searchInput.focus({ preventScroll: false });
+            // For iOS, trigger click event as well
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+              const clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+              });
+              searchInput.dispatchEvent(clickEvent);
+            }
+          } catch (err) {
+            console.warn('[leaderboard-panel] Focus failed:', err);
+            // Fallback: try simple focus
+            searchInput.focus();
           }
-        }, 10);
+        });
       };
       
       searchInput.addEventListener('click', handleInputFocus);
-      searchInput.addEventListener('touchstart', handleInputFocus, { passive: true });
+      searchInput.addEventListener('touchstart', (e) => {
+        e.stopPropagation(); // Don't prevent default, let browser handle it
+        handleInputFocus(e);
+      }, { passive: true });
       searchInput.addEventListener('touchend', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         handleInputFocus(e);
       }, { passive: false });
       // Also handle focus event
       searchInput.addEventListener('focus', () => {
         console.log('[leaderboard-panel] Search input focused');
+      });
+      // Handle focusin for better mobile support
+      searchInput.addEventListener('focusin', () => {
+        console.log('[leaderboard-panel] Search input focusin event');
       });
       
       searchInput.addEventListener('input', (e) => {
