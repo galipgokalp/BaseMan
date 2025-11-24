@@ -401,6 +401,21 @@
           try {
             const context = await window.sdk.context;
             user = context?.user;
+            
+            // OFFICIAL METHOD: Check clientFid for Base App detection (per Base App docs)
+            // Base App clientFid is 309857
+            if (context?.client?.clientFid === 309857) {
+              console.log('[leaderboard-panel] ✅ Base App detected via clientFid (309857) - official method');
+              // Override platform detection with official method
+              platform = 'base-app';
+            } else if (context?.client?.clientFid) {
+              // If clientFid exists but is not 309857, it's likely Farcaster
+              // Warpcast clientFid is 9152, but other Farcaster clients may differ
+              console.log('[leaderboard-panel] ✅ Farcaster detected via clientFid (' + context.client.clientFid + ')');
+              if (!platform || platform !== 'base-app') {
+                platform = 'farcaster';
+              }
+            }
           } catch (ctxErr) {
             // SDK context not available
           }

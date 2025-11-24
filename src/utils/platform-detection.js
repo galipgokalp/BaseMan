@@ -70,6 +70,22 @@ export function isFarcasterMiniApp() {
     // Check for window.sdk (Farcaster SDK might be exposed as window.sdk)
     // BUT: Base App also uses window.sdk, so we must check Base App indicators FIRST
     if (window.sdk) {
+      // CRITICAL: If ReactNativeWebView exists but no Farcaster SDK indicators,
+      // it's likely Base App, not Farcaster
+      if (window.ReactNativeWebView) {
+        const hasFarcasterSDK = Boolean(
+          (window.fc && window.fc.miniapp) ||
+          (window.farcaster && window.farcaster.miniapp) ||
+          window.MiniAppSDK ||
+          window.FarcasterMiniAppSDK
+        );
+        if (!hasFarcasterSDK) {
+          // ReactNativeWebView + no Farcaster SDK = Base App
+          console.log('[platform-detection] ReactNativeWebView + no Farcaster SDK = Base App, not Farcaster');
+          return false;
+        }
+      }
+      
       // Check if it's a Farcaster SDK by looking for Farcaster-specific methods
       const sdk = window.sdk;
       const hasFarcasterMethods = Boolean(
@@ -80,7 +96,7 @@ export function isFarcasterMiniApp() {
         ))
       );
       
-      // If it has Farcaster methods but NOT MiniKit (already checked above), it's likely Farcaster
+      // If it has Farcaster methods but NOT MiniKit (already checked above) and NOT ReactNativeWebView without Farcaster SDK, it's likely Farcaster
       if (hasFarcasterMethods) {
         console.log('[platform-detection] Farcaster SDK detected via window.sdk (no MiniKit/BaseApp indicators)');
         return true;
@@ -118,7 +134,55 @@ export function isBaseApp() {
       return true;
     }
     
-    // SECONDARY: Check clientFid in SDK context (Base App clientFid is 309857)
+    // SECONDARY: User agent check for BaseApp (CRITICAL - most reliable indicator)
+    // Base App User Agent typically contains "BaseApp" or similar
+    if (window.navigator && window.navigator.userAgent) {
+      const ua = window.navigator.userAgent;
+      // Check for Base App specific User Agent strings
+      if ((ua.includes('BaseApp') || ua.includes('Base/') || ua.toLowerCase().includes('base app')) && 
+          !ua.includes('Farcaster') && 
+          !ua.includes('Warpcast')) {
+        console.log('[platform-detection] Base App detected via User Agent:', ua.substring(0, 100));
+        return true;
+      }
+    }
+    
+    // TERTIARY: ReactNativeWebView + User Agent combination
+    // Base App uses ReactNativeWebView, but so does Farcaster
+    // So we need User Agent confirmation
+    if (window.ReactNativeWebView) {
+      if (window.navigator && window.navigator.userAgent) {
+        const ua = window.navigator.userAgent;
+        // If User Agent indicates BaseApp, it's Base App
+        if ((ua.includes('BaseApp') || ua.includes('Base/') || ua.toLowerCase().includes('base app')) && 
+            !ua.includes('Farcaster') && 
+            !ua.includes('Warpcast')) {
+          console.log('[platform-detection] Base App detected via ReactNativeWebView + BaseApp User Agent');
+          return true;
+        }
+        // If ReactNativeWebView exists but User Agent doesn't clearly indicate BaseApp,
+        // and we don't have Farcaster SDK indicators, it might be Base App
+        // But be conservative - only if we're sure it's not Farcaster
+        const hasFarcasterSDK = Boolean(
+          (window.fc && window.fc.miniapp) ||
+          (window.farcaster && window.farcaster.miniapp) ||
+          window.MiniAppSDK ||
+          window.FarcasterMiniAppSDK
+        );
+        if (!hasFarcasterSDK) {
+          // No Farcaster SDK, has ReactNativeWebView - likely Base App
+          console.log('[platform-detection] Base App detected via ReactNativeWebView (no Farcaster SDK)');
+          return true;
+        }
+      }
+      // If ReactNativeWebView exists but no clear indicators,
+      // be conservative and don't assume it's Base App
+      console.log('[platform-detection] ReactNativeWebView found but no clear Base App indicators');
+      return false;
+    }
+    
+    // QUATERNARY: Check clientFid in SDK context (Base App clientFid is 309857)
+    // Note: This is async, so we can only check if context is already resolved
     if (window.sdk && typeof window.sdk.context === 'object') {
       try {
         const context = window.sdk.context;
@@ -133,35 +197,6 @@ export function isBaseApp() {
       } catch (_) {
         // Ignore errors
       }
-    }
-    
-    // TERTIARY: User agent check for BaseApp (as primary indicator)
-    if (window.navigator && window.navigator.userAgent) {
-      const ua = window.navigator.userAgent;
-      if (ua.includes('BaseApp') && 
-          !ua.includes('Farcaster') && 
-          !ua.includes('Warpcast')) {
-        console.log('[platform-detection] Base App detected via User Agent:', ua);
-        return true;
-      }
-    }
-    
-    // QUATERNARY: ReactNativeWebView can be used by both, but if no Farcaster indicators, might be Base App
-    if (window.ReactNativeWebView) {
-      // Additional safety check: if User Agent says BaseApp, it's Base App
-      if (window.navigator && window.navigator.userAgent) {
-        const ua = window.navigator.userAgent;
-        if (ua.includes('BaseApp') && 
-            !ua.includes('Farcaster') && 
-            !ua.includes('Warpcast')) {
-          console.log('[platform-detection] Base App detected via ReactNativeWebView + BaseApp User Agent');
-          return true;
-        }
-      }
-      // If ReactNativeWebView exists but no clear BaseApp indicators,
-      // be conservative and don't assume it's Base App
-      console.log('[platform-detection] ReactNativeWebView found but no clear Base App indicators');
-      return false;
     }
     
     // CRITICAL: Check Farcaster LAST - if it's Farcaster, it's NOT Base App
@@ -188,7 +223,8 @@ export function isMiniAppHost() {
 }
 
 /**
- * Gets the current platform identifier
+ * Gets the current platform identifier (synchronous)
+ * Uses fallback methods when clientFid is not available
  * @returns {'farcaster' | 'base' | 'web'}
  */
 export function getPlatform() {
@@ -209,6 +245,49 @@ export function getPlatform() {
   
   console.log('[platform-detection] getPlatform() -> web');
   return 'web';
+}
+
+/**
+ * Gets the current platform identifier using clientFid (async, official method)
+ * This is the recommended method per Base App documentation
+ * @returns {Promise<'farcaster' | 'base' | 'web'>}
+ */
+export async function getPlatformAsync() {
+  try {
+    if (typeof window === 'undefined') return 'web';
+    
+    // Check if SDK context is available
+    if (window.sdk && typeof window.sdk.context === 'object') {
+      try {
+        const context = await window.sdk.context;
+        if (context && context.client && typeof context.client.clientFid === 'number') {
+          const clientFid = context.client.clientFid;
+          
+          // Base App clientFid is 309857 (per Base App docs)
+          if (clientFid === 309857) {
+            console.log('[platform-detection] getPlatformAsync() -> base (via clientFid 309857)');
+            return 'base';
+          }
+          
+          // Warpcast clientFid is 9152 (per Farcaster docs)
+          // Other Farcaster clients may have different clientFids
+          // If it's not Base App (309857), assume it's Farcaster
+          if (clientFid === 9152 || clientFid !== 309857) {
+            console.log('[platform-detection] getPlatformAsync() -> farcaster (via clientFid ' + clientFid + ')');
+            return 'farcaster';
+          }
+        }
+      } catch (err) {
+        console.warn('[platform-detection] getPlatformAsync() failed to get context:', err?.message || err);
+      }
+    }
+    
+    // Fallback to synchronous detection if async fails
+    return getPlatform();
+  } catch (err) {
+    console.error('[platform-detection] getPlatformAsync() error:', err);
+    return getPlatform(); // Fallback to sync method
+  }
 }
 
 /**
@@ -261,6 +340,7 @@ if (typeof window !== 'undefined') {
   window.isBaseApp = isBaseApp;
   window.isMiniAppHost = isMiniAppHost;
   window.getPlatform = getPlatform;
+  window.getPlatformAsync = getPlatformAsync;
   window.isMiniAppEnv = isMiniAppEnv;
 }
 
