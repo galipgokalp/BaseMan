@@ -700,37 +700,19 @@
     // Native browser behavior handles keyboard positioning better
 
     const openSearchModal = () => {
-      if (!searchModal) {
-        console.error('[leaderboard-panel] Cannot open modal: searchModal not found');
-        return;
-      }
+      if (!searchModal || !searchInput) return;
       
-      console.log('[leaderboard-panel] Opening search modal');
-      
-      // Simple, fast modal opening
+      // Simple, fast modal opening - no animations, no delays
       searchModal.removeAttribute('hidden');
       searchModal.style.display = 'flex';
       
-      // Focus input after modal is visible (for mobile keyboard)
-      if (searchInput) {
-        // Ensure input is ready for interaction
-        searchInput.removeAttribute('readonly');
-        searchInput.removeAttribute('disabled');
-        
-        // Use requestAnimationFrame + setTimeout for better timing
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            try {
-              searchInput.focus();
-              console.log('[leaderboard-panel] Search input focused');
-            } catch (err) {
-              console.warn('[leaderboard-panel] Failed to focus input:', err);
-            }
-          }, 100);
-        });
-      } else {
-        console.error('[leaderboard-panel] Cannot focus input: searchInput not found');
-      }
+      // Prepare input and focus immediately
+      searchInput.removeAttribute('readonly');
+      searchInput.removeAttribute('disabled');
+      searchInput.setAttribute('autofocus', 'autofocus');
+      
+      // Single focus attempt - let browser handle it
+      searchInput.focus();
     };
 
     const closeSearchModal = () => {
@@ -742,7 +724,7 @@
       
       if (searchInput) {
         searchInput.value = '';
-        searchInput.blur(); // Remove focus to close keyboard
+        searchInput.blur();
       }
       if (searchClear) {
         searchClear.hidden = true;
@@ -750,21 +732,12 @@
       if (searchResults) {
         searchResults.innerHTML = '';
       }
-      // Restore original leaderboard
       if (allEntries && allEntries.length > 0) {
         renderRows(allEntries);
       }
-      // Clear search timeout
       if (searchTimeout) {
         clearTimeout(searchTimeout);
         searchTimeout = null;
-      }
-      
-      // Reset modal content position
-      const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
-      if (modalContent) {
-        modalContent.style.maxHeight = '';
-        modalContent.style.marginTop = '';
       }
     };
 
@@ -864,93 +837,38 @@
     };
 
     if (searchBtn) {
-      console.log('[leaderboard-panel] Search button found, adding event listeners');
-      
       const handleSearchClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('[leaderboard-panel] Search button clicked');
         openSearchModal();
       };
       
-      // Add click event for all platforms
       searchBtn.addEventListener('click', handleSearchClick);
-      
-      // Add touch event for mobile (faster response)
-      searchBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('[leaderboard-panel] Search button touched');
-        openSearchModal();
-      }, { passive: false });
-    } else {
-      console.error('[leaderboard-panel] Search button not found! Panel:', panel);
+      searchBtn.addEventListener('touchend', handleSearchClick, { passive: false });
     }
 
     if (searchClose) {
-      console.log('[leaderboard-panel] Search close button found, adding event listeners');
-      // Multiple event types for maximum compatibility
       const handleClose = (e) => {
         if (e) {
           e.preventDefault();
           e.stopPropagation();
         }
-        console.log('[leaderboard-panel] Close button triggered via', e?.type || 'unknown');
         closeSearchModal();
-        return false;
       };
       
       searchClose.addEventListener('click', handleClose);
       searchClose.addEventListener('touchend', handleClose, { passive: false });
-      searchClose.addEventListener('touchstart', (e) => {
-        // Prevent default to avoid double-trigger
-        e.stopPropagation();
-      }, { passive: false });
-      // Also handle mousedown for desktop
-      searchClose.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      });
-    } else {
-      console.error('[leaderboard-panel] Search close button not found!');
     }
 
     if (searchInput) {
-      console.log('[leaderboard-panel] Search input found, adding event listeners');
-      
       // Ensure input is always ready for interaction
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
       searchInput.setAttribute('tabindex', '0');
       
-      // Handle click/touch for mobile keyboard
-      const handleInputInteraction = (e) => {
-        console.log('[leaderboard-panel] Search input interaction:', e.type);
-        // Ensure input is ready
-        searchInput.removeAttribute('readonly');
-        searchInput.removeAttribute('disabled');
-        // Focus immediately
-        requestAnimationFrame(() => {
-          searchInput.focus();
-        });
-      };
-      
-      searchInput.addEventListener('click', handleInputInteraction);
-      searchInput.addEventListener('touchstart', handleInputInteraction, { passive: true });
-      
-      // Handle focus events
-      searchInput.addEventListener('focus', () => {
-        console.log('[leaderboard-panel] Search input focused');
-      });
-      
-      searchInput.addEventListener('focusin', () => {
-        console.log('[leaderboard-panel] Search input focusin event');
-      });
-      
       // Handle input for search
       searchInput.addEventListener('input', (e) => {
         const value = e.target.value;
-        // Show/hide clear button
         if (searchClear) {
           searchClear.hidden = !value || value.trim() === '';
         }
@@ -961,13 +879,8 @@
       searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           closeSearchModal();
-        } else if (e.key === 'Enter') {
-          // Enter key submits search (already handled by input event)
-          e.preventDefault();
         }
       });
-    } else {
-      console.error('[leaderboard-panel] Search input not found!');
     }
 
     // Clear button functionality

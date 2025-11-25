@@ -195,15 +195,15 @@
   display: block;
 }
 
-/* Search Modal */
+/* Search Modal - Simplified for maximum performance */
 .leaderboard-search-modal {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9); /* Solid background for better performance */
-  z-index: 100000; /* Higher than bottom nav (99999) */
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 100000;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -212,12 +212,7 @@
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* GPU acceleration for better performance */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  /* Optimize rendering */
-  contain: layout style paint;
-  content-visibility: auto;
+  /* No animations, no GPU acceleration, no containment - keep it simple */
 }
 
 /* When keyboard is open on mobile, adjust modal position */
@@ -247,8 +242,7 @@
 }
 
 .leaderboard-search-modal-content {
-  background: rgba(20, 20, 32, 0.98); /* Solid color instead of gradient for better performance */
-  /* backdrop-filter removed for better mobile performance */
+  background: rgba(20, 20, 32, 0.98);
   border: 2px solid var(--color-border-bright);
   border-radius: var(--radius-lg);
   width: 100%;
@@ -258,14 +252,9 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  /* animation removed for better performance */
   position: relative;
-  /* GPU acceleration */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  /* Optimize rendering */
-  contain: layout style paint;
   z-index: 1;
+  /* No animations, no GPU acceleration, no containment - keep it simple */
 }
 
 @keyframes slideUp {
@@ -302,17 +291,17 @@
   cursor: pointer;
   width: 32px;
   height: 32px;
-  min-width: 44px; /* Minimum touch target size */
+  min-width: 44px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-  pointer-events: auto !important; /* Ensure button is clickable */
-  z-index: 100; /* Ensure button is above other elements */
+  pointer-events: auto !important;
+  z-index: 100;
   position: relative;
-  touch-action: manipulation; /* Prevent double-tap zoom */
+  touch-action: manipulation;
+  /* No transitions - instant response */
 }
 
 .leaderboard-search-close:hover {
@@ -321,7 +310,6 @@
 
 .leaderboard-search-close:active {
   background: rgba(255, 255, 255, 0.15);
-  transform: scale(0.95);
 }
 
 .leaderboard-search-modal-body {
@@ -340,11 +328,11 @@
   color: var(--color-text-primary);
   font-size: 0.9rem;
   font-family: inherit;
-  transition: all 0.2s ease;
-  touch-action: manipulation; /* Allow immediate touch interaction, prevent double-tap zoom */
-  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
-  user-select: text; /* Allow text selection */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: text;
   -webkit-user-select: text;
+  /* No transitions - instant response */
 }
 
 .leaderboard-search-input:focus {
@@ -394,7 +382,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-sm);
-  transition: all 0.2s ease;
+  /* No transitions - instant response */
 }
 
 .leaderboard-search-list .leaderboard-item:hover {
