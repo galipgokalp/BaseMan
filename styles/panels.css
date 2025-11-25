@@ -202,8 +202,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.85); /* Darker background instead of blur for better performance */
+  /* backdrop-filter removed for better mobile performance */
   z-index: 100000; /* Higher than bottom nav (99999) */
   display: flex;
   align-items: flex-start; /* Changed from center to flex-start for mobile keyboard */
@@ -213,7 +213,8 @@
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px)); /* Safe area for mobile */
   overflow-y: auto; /* Allow scrolling if needed */
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  animation: fadeIn 0.2s ease;
+  /* animation removed for better performance */
+  will-change: opacity; /* Optimize for opacity changes */
 }
 
 /* When keyboard is open on mobile, adjust modal position */
@@ -335,6 +336,10 @@
   font-size: 0.9rem;
   font-family: inherit;
   transition: all 0.2s ease;
+  touch-action: manipulation; /* Allow immediate touch interaction, prevent double-tap zoom */
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  user-select: text; /* Allow text selection */
+  -webkit-user-select: text;
 }
 
 .leaderboard-search-input:focus {

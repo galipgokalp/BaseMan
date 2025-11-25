@@ -696,38 +696,50 @@
       searchModal.setAttribute('hidden', '');
     }
 
-    // Handle mobile keyboard with visualViewport API
+    // Handle mobile keyboard with visualViewport API (throttled for performance)
     let viewportHandler = null;
+    let viewportThrottleTimeout = null;
     const setupViewportHandler = () => {
       if (window.visualViewport && searchModal) {
         viewportHandler = () => {
-          if (!searchModal.hasAttribute('hidden')) {
-            const viewport = window.visualViewport;
-            const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
-            if (modalContent) {
-              // Adjust modal position when keyboard opens
-              const viewportHeight = viewport.height;
-              const windowHeight = window.innerHeight;
-              const keyboardHeight = windowHeight - viewportHeight;
-              
-              if (keyboardHeight > 150) {
-                // Keyboard is open, move modal up
-                modalContent.style.maxHeight = `${viewportHeight - 40}px`;
-                modalContent.style.marginTop = `${Math.max(20, viewport.offsetTop)}px`;
-              } else {
-                // Keyboard is closed, reset
-                modalContent.style.maxHeight = '';
-                modalContent.style.marginTop = '';
+          // Throttle viewport updates to reduce performance impact
+          if (viewportThrottleTimeout) {
+            return; // Skip if already scheduled
+          }
+          viewportThrottleTimeout = setTimeout(() => {
+            viewportThrottleTimeout = null;
+            if (!searchModal.hasAttribute('hidden')) {
+              const viewport = window.visualViewport;
+              const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
+              if (modalContent) {
+                // Adjust modal position when keyboard opens
+                const viewportHeight = viewport.height;
+                const windowHeight = window.innerHeight;
+                const keyboardHeight = windowHeight - viewportHeight;
+                
+                if (keyboardHeight > 150) {
+                  // Keyboard is open, move modal up
+                  modalContent.style.maxHeight = `${viewportHeight - 40}px`;
+                  modalContent.style.marginTop = `${Math.max(20, viewport.offsetTop)}px`;
+                } else {
+                  // Keyboard is closed, reset
+                  modalContent.style.maxHeight = '';
+                  modalContent.style.marginTop = '';
+                }
               }
             }
-          }
+          }, 100); // Throttle to max 10 updates per second
         };
-        window.visualViewport.addEventListener('resize', viewportHandler);
-        window.visualViewport.addEventListener('scroll', viewportHandler);
+        window.visualViewport.addEventListener('resize', viewportHandler, { passive: true });
+        window.visualViewport.addEventListener('scroll', viewportHandler, { passive: true });
       }
     };
 
     const removeViewportHandler = () => {
+      if (viewportThrottleTimeout) {
+        clearTimeout(viewportThrottleTimeout);
+        viewportThrottleTimeout = null;
+      }
       if (viewportHandler && window.visualViewport) {
         window.visualViewport.removeEventListener('resize', viewportHandler);
         window.visualViewport.removeEventListener('scroll', viewportHandler);
@@ -735,21 +747,17 @@
       }
     };
 
-    // Setup viewport handler on init
-    if (window.visualViewport) {
-      setupViewportHandler();
-    } else {
-      // Fallback: setup when visualViewport becomes available
-      window.addEventListener('load', () => {
-        if (window.visualViewport) {
-          setupViewportHandler();
-        }
-      });
-    }
+    // Setup viewport handler on init (only if modal is actually used)
+    // Removed auto-setup to reduce initial load
 
     const openSearchModal = () => {
       console.log('[leaderboard-panel] openSearchModal called');
       if (searchModal) {
+        // Setup viewport handler only when modal opens (lazy initialization)
+        if (!viewportHandler && window.visualViewport) {
+          setupViewportHandler();
+        }
+        
         console.log('[leaderboard-panel] Removing hidden attribute from modal');
         // Remove hidden attribute
         searchModal.removeAttribute('hidden');
@@ -831,6 +839,9 @@
 
     const closeSearchModal = () => {
       console.log('[leaderboard-panel] closeSearchModal called');
+      // Remove viewport handler when modal closes (cleanup for performance)
+      removeViewportHandler();
+      
       if (searchModal) {
         console.log('[leaderboard-panel] Setting hidden attribute on modal');
         searchModal.setAttribute('hidden', '');
@@ -907,33 +918,47 @@
           if (restListEl) restListEl.innerHTML = '';
           if (scrollWrapper) scrollWrapper.hidden = true;
         } else {
-          // Render search results in modal
+          // Render search results in modal (optimized for performance)
           if (searchResults) {
+            // Limit results to 50 for better performance
+            const displayLimit = 50;
+            const displayResults = filtered.slice(0, displayLimit);
+            const hasMore = filtered.length > displayLimit;
+            
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
             const resultsContainer = document.createElement('div');
             resultsContainer.className = 'leaderboard-search-results-container';
             
             // Add count header
             const countHeader = document.createElement('div');
             countHeader.className = 'leaderboard-search-count';
-            countHeader.textContent = `Found ${filtered.length} user(s)`;
+            countHeader.textContent = hasMore 
+              ? `Found ${filtered.length} user(s), showing ${displayLimit}` 
+              : `Found ${filtered.length} user(s)`;
             resultsContainer.appendChild(countHeader);
             
             // Create list for search results
             const resultsList = document.createElement('ol');
             resultsList.className = 'leaderboard-search-list';
             
-            // Render each filtered entry
-            filtered.forEach((entry, index) => {
+            // Use DocumentFragment for batch DOM updates
+            const listFragment = document.createDocumentFragment();
+            displayResults.forEach((entry, index) => {
               const listItem = createListItem(entry, index + 1);
-              resultsList.appendChild(listItem);
+              listFragment.appendChild(listItem);
             });
+            resultsList.appendChild(listFragment);
             
             resultsContainer.appendChild(resultsList);
+            fragment.appendChild(resultsContainer);
+            
+            // Single DOM update instead of multiple
             searchResults.innerHTML = '';
-            searchResults.appendChild(resultsContainer);
+            searchResults.appendChild(fragment);
           }
-          // Also update leaderboard (optional - can be removed if you only want modal results)
-          renderRows(filtered);
+          // Don't update leaderboard when searching (reduces DOM manipulation)
+          // renderRows(filtered);
         }
       }, 150); // 150ms debounce delay
     };
@@ -987,47 +1012,22 @@
 
     if (searchInput) {
       console.log('[leaderboard-panel] Search input found, adding event listeners');
-      // Add multiple event types to ensure keyboard opens
-      const handleInputFocus = (e) => {
-        console.log('[leaderboard-panel] Search input interaction:', e.type);
-        // Ensure input is not readonly/disabled
+      // Simple focus handler - let browser handle native behavior
+      const handleInputFocus = () => {
+        // Ensure input is interactive
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
-        searchInput.style.pointerEvents = 'auto';
-        searchInput.style.touchAction = 'manipulation';
-        searchInput.style.userSelect = 'text';
-        searchInput.style.webkitUserSelect = 'text';
-        // Force focus with preventScroll: false to ensure keyboard opens
-        requestAnimationFrame(() => {
-          try {
-            searchInput.focus({ preventScroll: false });
-            // For iOS, trigger click event as well
-            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-              const clickEvent = new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                view: window
-              });
-              searchInput.dispatchEvent(clickEvent);
-            }
-          } catch (err) {
-            console.warn('[leaderboard-panel] Focus failed:', err);
-            // Fallback: try simple focus
-            searchInput.focus();
-          }
-        });
+        // Focus immediately (browser will handle keyboard opening)
+        searchInput.focus();
       };
       
-      searchInput.addEventListener('click', handleInputFocus);
-      searchInput.addEventListener('touchstart', (e) => {
-        e.stopPropagation(); // Don't prevent default, let browser handle it
-        handleInputFocus(e);
-      }, { passive: true });
-      searchInput.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleInputFocus(e);
-      }, { passive: false });
+      // Use click event for all platforms (works on both desktop and mobile)
+      // Passive: true allows browser to handle native touch behavior immediately
+      searchInput.addEventListener('click', handleInputFocus, { passive: true });
+      
+      // For mobile, use touchstart with passive to allow native behavior
+      // This ensures keyboard opens immediately on first touch without preventing default
+      searchInput.addEventListener('touchstart', handleInputFocus, { passive: true });
       // Also handle focus event
       searchInput.addEventListener('focus', () => {
         console.log('[leaderboard-panel] Search input focused');

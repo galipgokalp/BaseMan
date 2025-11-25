@@ -318,8 +318,8 @@ body.theme-light .canvas-container {
 
 /* ===== Leaderboard Search Modal - Enhanced (Modern Theme) ===== */
 .leaderboard-search-modal {
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px) saturate(180%);
+  background: rgba(0, 0, 0, 0.9); /* Darker background instead of blur for better performance */
+  /* backdrop-filter removed for better mobile performance */
 }
 
 .leaderboard-search-modal[hidden] {
@@ -339,13 +339,14 @@ body.theme-light .canvas-container {
   background: linear-gradient(135deg, 
     rgba(20, 20, 32, 0.98) 0%, 
     rgba(10, 10, 15, 0.99) 100%);
-  backdrop-filter: blur(16px) saturate(180%);
+  /* backdrop-filter removed for better mobile performance */
   border: 2px solid var(--color-border-bright);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), var(--glow-primary);
   position: relative;
   overflow: hidden;
   pointer-events: auto; /* Ensure modal content is interactive */
   z-index: 1;
+  will-change: transform; /* Optimize for transforms */
 }
 
 .leaderboard-search-modal-content::before {
@@ -400,6 +401,10 @@ body.theme-light .canvas-container {
   font-size: 0.9rem;
   font-family: inherit;
   transition: all 0.2s ease;
+  touch-action: manipulation; /* Allow immediate touch interaction, prevent double-tap zoom */
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  user-select: text; /* Allow text selection */
+  -webkit-user-select: text;
   -webkit-appearance: none; /* Remove iOS default styling */
   appearance: none;
   pointer-events: auto !important; /* Ensure input is clickable - force with !important */
