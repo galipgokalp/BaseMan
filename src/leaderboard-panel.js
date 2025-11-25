@@ -700,14 +700,37 @@
     // Native browser behavior handles keyboard positioning better
 
     const openSearchModal = () => {
-      if (!searchModal) return;
+      if (!searchModal) {
+        console.error('[leaderboard-panel] Cannot open modal: searchModal not found');
+        return;
+      }
       
-      // Simple, fast modal opening - let browser handle native behavior
+      console.log('[leaderboard-panel] Opening search modal');
+      
+      // Simple, fast modal opening
       searchModal.removeAttribute('hidden');
       searchModal.style.display = 'flex';
       
-      // Let native browser handle input focus - no custom logic needed
-      // This is faster and more reliable than multiple focus attempts
+      // Focus input after modal is visible (for mobile keyboard)
+      if (searchInput) {
+        // Ensure input is ready for interaction
+        searchInput.removeAttribute('readonly');
+        searchInput.removeAttribute('disabled');
+        
+        // Use requestAnimationFrame + setTimeout for better timing
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            try {
+              searchInput.focus();
+              console.log('[leaderboard-panel] Search input focused');
+            } catch (err) {
+              console.warn('[leaderboard-panel] Failed to focus input:', err);
+            }
+          }, 100);
+        });
+      } else {
+        console.error('[leaderboard-panel] Cannot focus input: searchInput not found');
+      }
     };
 
     const closeSearchModal = () => {
@@ -716,31 +739,32 @@
       // Simple, fast modal closing
       searchModal.setAttribute('hidden', '');
       searchModal.style.display = 'none';
-        if (searchInput) {
-          searchInput.value = '';
-          searchInput.blur(); // Remove focus to close keyboard
-        }
-        if (searchClear) {
-          searchClear.hidden = true;
-        }
-        if (searchResults) {
-          searchResults.innerHTML = '';
-        }
-        // Restore original leaderboard
+      
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.blur(); // Remove focus to close keyboard
+      }
+      if (searchClear) {
+        searchClear.hidden = true;
+      }
+      if (searchResults) {
+        searchResults.innerHTML = '';
+      }
+      // Restore original leaderboard
+      if (allEntries && allEntries.length > 0) {
         renderRows(allEntries);
-        // Clear search timeout
-        if (searchTimeout) {
-          clearTimeout(searchTimeout);
-          searchTimeout = null;
-        }
-        // Reset modal content position
-        const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
-        if (modalContent) {
-          modalContent.style.maxHeight = '';
-          modalContent.style.marginTop = '';
-        }
-      } else {
-        console.error('[leaderboard-panel] searchModal not found in closeSearchModal!');
+      }
+      // Clear search timeout
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+        searchTimeout = null;
+      }
+      
+      // Reset modal content position
+      const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
+      if (modalContent) {
+        modalContent.style.maxHeight = '';
+        modalContent.style.marginTop = '';
       }
     };
 
@@ -756,9 +780,19 @@
       searchTimeout = setTimeout(() => {
         if (!query || !query.trim()) {
           // Restore original leaderboard
-          renderRows(allEntries);
+          if (allEntries && allEntries.length > 0) {
+            renderRows(allEntries);
+          }
           if (searchResults) {
             searchResults.innerHTML = '';
+          }
+          return;
+        }
+
+        // Ensure allEntries is available and is an array
+        if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
+          if (searchResults) {
+            searchResults.innerHTML = '<div class="leaderboard-search-no-results">No entries available</div>';
           }
           return;
         }
@@ -826,26 +860,31 @@
           }
           // Don't update leaderboard when searching (reduces DOM manipulation)
         }
-      }, 150); // 150ms debounce delay
+      }, 300); // 300ms debounce delay (increased for better performance)
     };
 
     if (searchBtn) {
-      console.log('[leaderboard-panel] Search button found, adding click listener');
-      searchBtn.addEventListener('click', (e) => {
+      console.log('[leaderboard-panel] Search button found, adding event listeners');
+      
+      const handleSearchClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         console.log('[leaderboard-panel] Search button clicked');
-        e.preventDefault();
-        e.stopPropagation();
         openSearchModal();
-      });
-      // Also add touch event for mobile
+      };
+      
+      // Add click event for all platforms
+      searchBtn.addEventListener('click', handleSearchClick);
+      
+      // Add touch event for mobile (faster response)
       searchBtn.addEventListener('touchend', (e) => {
-        console.log('[leaderboard-panel] Search button touched');
         e.preventDefault();
         e.stopPropagation();
+        console.log('[leaderboard-panel] Search button touched');
         openSearchModal();
       }, { passive: false });
     } else {
-      console.error('[leaderboard-panel] Search button not found!');
+      console.error('[leaderboard-panel] Search button not found! Panel:', panel);
     }
 
     if (searchClose) {
@@ -878,23 +917,37 @@
 
     if (searchInput) {
       console.log('[leaderboard-panel] Search input found, adding event listeners');
+      
       // Ensure input is always ready for interaction
-      // Remove any attributes that might block native behavior
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
+      searchInput.setAttribute('tabindex', '0');
       
-      // Native click/touch behavior - browser handles focus automatically
-      // CSS touch-action: manipulation ensures single-touch works
-      // No custom handlers needed - let browser handle it natively
-      // Also handle focus event
+      // Handle click/touch for mobile keyboard
+      const handleInputInteraction = (e) => {
+        console.log('[leaderboard-panel] Search input interaction:', e.type);
+        // Ensure input is ready
+        searchInput.removeAttribute('readonly');
+        searchInput.removeAttribute('disabled');
+        // Focus immediately
+        requestAnimationFrame(() => {
+          searchInput.focus();
+        });
+      };
+      
+      searchInput.addEventListener('click', handleInputInteraction);
+      searchInput.addEventListener('touchstart', handleInputInteraction, { passive: true });
+      
+      // Handle focus events
       searchInput.addEventListener('focus', () => {
         console.log('[leaderboard-panel] Search input focused');
       });
-      // Handle focusin for better mobile support
+      
       searchInput.addEventListener('focusin', () => {
         console.log('[leaderboard-panel] Search input focusin event');
       });
       
+      // Handle input for search
       searchInput.addEventListener('input', (e) => {
         const value = e.target.value;
         // Show/hide clear button
@@ -904,6 +957,7 @@
         performSearch(value);
       });
 
+      // Handle keyboard events
       searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           closeSearchModal();
