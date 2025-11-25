@@ -684,11 +684,12 @@
 
     // Search functionality
     const searchBtn = panel.querySelector('[data-search-btn]');
-    const searchModal = panel.querySelector('[data-search-modal]');
-    const searchInput = panel.querySelector('[data-search-input]');
-    const searchResults = panel.querySelector('[data-search-results]');
-    const searchClose = panel.querySelector('[data-search-close]');
-    const searchClear = panel.querySelector('[data-search-clear]');
+    // Search modal is now at body level (separated from Bottom Navigation Bar)
+    const searchModal = document.querySelector('[data-search-modal]');
+    const searchInput = document.querySelector('[data-search-input]');
+    const searchResults = document.querySelector('[data-search-results]');
+    const searchClose = document.querySelector('[data-search-close]');
+    const searchClear = document.querySelector('[data-search-clear]');
     
     // Ensure modal is closed on initialization
     if (searchModal) {
@@ -906,10 +907,32 @@
           if (restListEl) restListEl.innerHTML = '';
           if (scrollWrapper) scrollWrapper.hidden = true;
         } else {
+          // Render search results in modal
           if (searchResults) {
-            searchResults.innerHTML = `<div class="leaderboard-search-count">Found ${filtered.length} user(s)</div>`;
+            const resultsContainer = document.createElement('div');
+            resultsContainer.className = 'leaderboard-search-results-container';
+            
+            // Add count header
+            const countHeader = document.createElement('div');
+            countHeader.className = 'leaderboard-search-count';
+            countHeader.textContent = `Found ${filtered.length} user(s)`;
+            resultsContainer.appendChild(countHeader);
+            
+            // Create list for search results
+            const resultsList = document.createElement('ol');
+            resultsList.className = 'leaderboard-search-list';
+            
+            // Render each filtered entry
+            filtered.forEach((entry, index) => {
+              const listItem = createListItem(entry, index + 1);
+              resultsList.appendChild(listItem);
+            });
+            
+            resultsContainer.appendChild(resultsList);
+            searchResults.innerHTML = '';
+            searchResults.appendChild(resultsContainer);
           }
-          // Show filtered results in leaderboard
+          // Also update leaderboard (optional - can be removed if you only want modal results)
           renderRows(filtered);
         }
       }, 150); // 150ms debounce delay
