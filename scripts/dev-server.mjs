@@ -16,6 +16,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 const app = express();
 const PORT = process.env.PORT || 5173;
+const HOST = process.env.HOST || '0.0.0.0';
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -73,8 +74,8 @@ app.get('/__env.js', (req, res) => {
 // Static files (serve repo root) — allow dotfiles for .well-known
 app.use(express.static(ROOT, { dotfiles: 'allow' }));
 
-app.listen(PORT, () => {
-  console.log(`[dev] Server running at http://127.0.0.1:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`[dev] Server running at http://${HOST}:${PORT}`);
   try {
     console.log('[dev] env PAYMASTER_SERVICE_URL set:', Boolean(process.env.PAYMASTER_SERVICE_URL));
     console.log('[dev] env CDP_API_KEY_ID set:', Boolean(process.env.CDP_API_KEY_ID));

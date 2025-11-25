@@ -36,6 +36,7 @@ vendor/onchainkit/
 .eslintcache
 *.swp
 Thumbs.db
+*.bak
 
 # Logs
 *.log
