@@ -202,19 +202,22 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85); /* Darker background instead of blur for better performance */
-  /* backdrop-filter removed for better mobile performance */
+  background: rgba(0, 0, 0, 0.9); /* Solid background for better performance */
   z-index: 100000; /* Higher than bottom nav (99999) */
   display: flex;
-  align-items: flex-start; /* Changed from center to flex-start for mobile keyboard */
+  align-items: flex-start;
   justify-content: center;
   padding: var(--spacing-md);
-  padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px)); /* Safe area for mobile */
-  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px)); /* Safe area for mobile */
-  overflow-y: auto; /* Allow scrolling if needed */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  /* animation removed for better performance */
-  will-change: opacity; /* Optimize for opacity changes */
+  padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* GPU acceleration for better performance */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* Optimize rendering */
+  contain: layout style paint;
+  content-visibility: auto;
 }
 
 /* When keyboard is open on mobile, adjust modal position */
@@ -244,22 +247,24 @@
 }
 
 .leaderboard-search-modal-content {
-  background: linear-gradient(135deg, 
-    rgba(20, 20, 32, 0.98) 0%, 
-    rgba(10, 10, 15, 0.99) 100%);
-  backdrop-filter: blur(16px) saturate(180%);
+  background: rgba(20, 20, 32, 0.98); /* Solid color instead of gradient for better performance */
+  /* backdrop-filter removed for better mobile performance */
   border: 2px solid var(--color-border-bright);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 400px;
-  max-height: calc(100vh - var(--spacing-md) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-  max-height: calc(100dvh - var(--spacing-md) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); /* Dynamic viewport for mobile keyboard */
-  margin-top: max(env(safe-area-inset-top, 0px), var(--spacing-md)); /* Ensure modal is visible above keyboard */
+  max-height: calc(100dvh - var(--spacing-md) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  margin-top: max(env(safe-area-inset-top, 0px), var(--spacing-md));
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.3s ease;
+  /* animation removed for better performance */
   position: relative;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* Optimize rendering */
+  contain: layout style paint;
   z-index: 1;
 }
 

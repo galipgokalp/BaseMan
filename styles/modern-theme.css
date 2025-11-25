@@ -336,17 +336,18 @@ body.theme-light .canvas-container {
 }
 
 .leaderboard-search-modal-content {
-  background: linear-gradient(135deg, 
-    rgba(20, 20, 32, 0.98) 0%, 
-    rgba(10, 10, 15, 0.99) 100%);
-  /* backdrop-filter removed for better mobile performance */
+  background: rgba(20, 20, 32, 0.98); /* Solid color instead of gradient for better performance */
   border: 2px solid var(--color-border-bright);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), var(--glow-primary);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   position: relative;
   overflow: hidden;
-  pointer-events: auto; /* Ensure modal content is interactive */
+  pointer-events: auto;
   z-index: 1;
-  will-change: transform; /* Optimize for transforms */
+  /* GPU acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* Optimize rendering */
+  contain: layout style paint;
 }
 
 .leaderboard-search-modal-content::before {

@@ -696,159 +696,26 @@
       searchModal.setAttribute('hidden', '');
     }
 
-    // Handle mobile keyboard with visualViewport API (throttled for performance)
-    let viewportHandler = null;
-    let viewportThrottleTimeout = null;
-    const setupViewportHandler = () => {
-      if (window.visualViewport && searchModal) {
-        viewportHandler = () => {
-          // Throttle viewport updates to reduce performance impact
-          if (viewportThrottleTimeout) {
-            return; // Skip if already scheduled
-          }
-          viewportThrottleTimeout = setTimeout(() => {
-            viewportThrottleTimeout = null;
-            if (!searchModal.hasAttribute('hidden')) {
-              const viewport = window.visualViewport;
-              const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
-              if (modalContent) {
-                // Adjust modal position when keyboard opens
-                const viewportHeight = viewport.height;
-                const windowHeight = window.innerHeight;
-                const keyboardHeight = windowHeight - viewportHeight;
-                
-                if (keyboardHeight > 150) {
-                  // Keyboard is open, move modal up
-                  modalContent.style.maxHeight = `${viewportHeight - 40}px`;
-                  modalContent.style.marginTop = `${Math.max(20, viewport.offsetTop)}px`;
-                } else {
-                  // Keyboard is closed, reset
-                  modalContent.style.maxHeight = '';
-                  modalContent.style.marginTop = '';
-                }
-              }
-            }
-          }, 100); // Throttle to max 10 updates per second
-        };
-        window.visualViewport.addEventListener('resize', viewportHandler, { passive: true });
-        window.visualViewport.addEventListener('scroll', viewportHandler, { passive: true });
-      }
-    };
-
-    const removeViewportHandler = () => {
-      if (viewportThrottleTimeout) {
-        clearTimeout(viewportThrottleTimeout);
-        viewportThrottleTimeout = null;
-      }
-      if (viewportHandler && window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', viewportHandler);
-        window.visualViewport.removeEventListener('scroll', viewportHandler);
-        viewportHandler = null;
-      }
-    };
-
-    // Setup viewport handler on init (only if modal is actually used)
-    // Removed auto-setup to reduce initial load
+    // visualViewport handler removed for better performance
+    // Native browser behavior handles keyboard positioning better
 
     const openSearchModal = () => {
-      console.log('[leaderboard-panel] openSearchModal called');
-      if (searchModal) {
-        // Setup viewport handler only when modal opens (lazy initialization)
-        if (!viewportHandler && window.visualViewport) {
-          setupViewportHandler();
-        }
-        
-        console.log('[leaderboard-panel] Removing hidden attribute from modal');
-        // Remove hidden attribute
-        searchModal.removeAttribute('hidden');
-        // Force display with inline style (highest priority)
-        searchModal.style.display = 'flex';
-        searchModal.style.visibility = 'visible';
-        searchModal.style.opacity = '1';
-        searchModal.style.zIndex = '10002'; // Ensure modal is above everything
-        
-        // Immediately prepare input for mobile
-        if (searchInput) {
-          // Remove any attributes that might block interaction
-          searchInput.removeAttribute('readonly');
-          searchInput.removeAttribute('disabled');
-          searchInput.removeAttribute('tabindex');
-          // Force input to be interactive
-          searchInput.style.pointerEvents = 'auto';
-          searchInput.style.touchAction = 'manipulation';
-          searchInput.style.userSelect = 'text';
-          searchInput.style.webkitUserSelect = 'text';
-          searchInput.style.webkitAppearance = 'none';
-          searchInput.style.appearance = 'none';
-          // Ensure input is visible and not hidden
-          searchInput.style.display = 'block';
-          searchInput.style.visibility = 'visible';
-          searchInput.style.opacity = '1';
-          searchInput.style.zIndex = '10003';
-        }
-        
-        // Use requestAnimationFrame for better timing
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (searchInput) {
-              console.log('[leaderboard-panel] Focusing search input');
-              
-              // Force focus with multiple attempts for mobile
-              const attemptFocus = () => {
-                try {
-                  searchInput.focus({ preventScroll: false });
-                  // For iOS, sometimes need to trigger click event
-                  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                    const clickEvent = new MouseEvent('click', {
-                      bubbles: true,
-                      cancelable: true,
-                      view: window
-                    });
-                    searchInput.dispatchEvent(clickEvent);
-                    // Also try touchstart for iOS
-                    const touchEvent = new TouchEvent('touchstart', {
-                      bubbles: true,
-                      cancelable: true,
-                      view: window
-                    });
-                    searchInput.dispatchEvent(touchEvent);
-                  }
-                } catch (err) {
-                  console.warn('[leaderboard-panel] Focus attempt failed:', err);
-                }
-              };
-              
-              // Try focus immediately
-              attemptFocus();
-              
-              // Try again after a short delay (for mobile)
-              if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                setTimeout(attemptFocus, 100);
-                setTimeout(attemptFocus, 300);
-                setTimeout(attemptFocus, 500);
-              }
-            } else {
-              console.error('[leaderboard-panel] searchInput not found!');
-            }
-          }, 100); // Reduced delay for faster response
-        });
-      } else {
-        console.error('[leaderboard-panel] searchModal not found!');
-      }
+      if (!searchModal) return;
+      
+      // Simple, fast modal opening - let browser handle native behavior
+      searchModal.removeAttribute('hidden');
+      searchModal.style.display = 'flex';
+      
+      // Let native browser handle input focus - no custom logic needed
+      // This is faster and more reliable than multiple focus attempts
     };
 
     const closeSearchModal = () => {
-      console.log('[leaderboard-panel] closeSearchModal called');
-      // Remove viewport handler when modal closes (cleanup for performance)
-      removeViewportHandler();
+      if (!searchModal) return;
       
-      if (searchModal) {
-        console.log('[leaderboard-panel] Setting hidden attribute on modal');
-        searchModal.setAttribute('hidden', '');
-        // Force hide with inline style
-        searchModal.style.display = 'none';
-        searchModal.style.visibility = 'hidden';
-        searchModal.style.opacity = '0';
+      // Simple, fast modal closing
+      searchModal.setAttribute('hidden', '');
+      searchModal.style.display = 'none';
         if (searchInput) {
           searchInput.value = '';
           searchInput.blur(); // Remove focus to close keyboard
@@ -885,7 +752,7 @@
         clearTimeout(searchTimeout);
       }
       
-      // Debounce: wait 150ms after user stops typing
+      // Debounce: wait 300ms after user stops typing (increased for better performance)
       searchTimeout = setTimeout(() => {
         if (!query || !query.trim()) {
           // Restore original leaderboard
@@ -920,8 +787,8 @@
         } else {
           // Render search results in modal (optimized for performance)
           if (searchResults) {
-            // Limit results to 50 for better performance
-            const displayLimit = 50;
+            // Limit results to 30 for better performance (reduced from 50)
+            const displayLimit = 30;
             const displayResults = filtered.slice(0, displayLimit);
             const hasMore = filtered.length > displayLimit;
             
@@ -958,7 +825,6 @@
             searchResults.appendChild(fragment);
           }
           // Don't update leaderboard when searching (reduces DOM manipulation)
-          // renderRows(filtered);
         }
       }, 150); // 150ms debounce delay
     };
@@ -1012,22 +878,14 @@
 
     if (searchInput) {
       console.log('[leaderboard-panel] Search input found, adding event listeners');
-      // Simple focus handler - let browser handle native behavior
-      const handleInputFocus = () => {
-        // Ensure input is interactive
-        searchInput.removeAttribute('readonly');
-        searchInput.removeAttribute('disabled');
-        // Focus immediately (browser will handle keyboard opening)
-        searchInput.focus();
-      };
+      // Ensure input is always ready for interaction
+      // Remove any attributes that might block native behavior
+      searchInput.removeAttribute('readonly');
+      searchInput.removeAttribute('disabled');
       
-      // Use click event for all platforms (works on both desktop and mobile)
-      // Passive: true allows browser to handle native touch behavior immediately
-      searchInput.addEventListener('click', handleInputFocus, { passive: true });
-      
-      // For mobile, use touchstart with passive to allow native behavior
-      // This ensures keyboard opens immediately on first touch without preventing default
-      searchInput.addEventListener('touchstart', handleInputFocus, { passive: true });
+      // Native click/touch behavior - browser handles focus automatically
+      // CSS touch-action: manipulation ensures single-touch works
+      // No custom handlers needed - let browser handle it natively
       // Also handle focus event
       searchInput.addEventListener('focus', () => {
         console.log('[leaderboard-panel] Search input focused');
