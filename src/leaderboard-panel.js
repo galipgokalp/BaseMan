@@ -700,19 +700,45 @@
     // Native browser behavior handles keyboard positioning better
 
     const openSearchModal = () => {
-      if (!searchModal || !searchInput) return;
+      if (!searchModal || !searchInput) {
+        console.warn('[leaderboard-panel] Cannot open modal: searchModal or searchInput missing');
+        return;
+      }
+      
+      console.log('[leaderboard-panel] Opening search modal');
       
       // Simple, fast modal opening - no animations, no delays
       searchModal.removeAttribute('hidden');
       searchModal.style.display = 'flex';
       
-      // Prepare input and focus immediately
+      // Prepare input for interaction
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
       searchInput.setAttribute('autofocus', 'autofocus');
       
-      // Single focus attempt - let browser handle it
-      searchInput.focus();
+      console.log('[leaderboard-panel] Input prepared, attempting focus...');
+      
+      // iOS Safari hack: Use readonly trick to enable programmatic focus
+      // This allows focus() to work on iOS when triggered by user interaction
+      searchInput.setAttribute('readonly', 'readonly');
+      
+      // Force reflow to ensure readonly is applied
+      void searchInput.offsetHeight;
+      
+      // Remove readonly and focus - this works on iOS when done synchronously
+      setTimeout(() => {
+        searchInput.removeAttribute('readonly');
+        const focused = searchInput.focus();
+        console.log('[leaderboard-panel] Focus attempt result:', focused);
+        console.log('[leaderboard-panel] Active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
+        
+        // Also try click() method as fallback
+        if (document.activeElement !== searchInput) {
+          console.log('[leaderboard-panel] Focus failed, trying click() method...');
+          searchInput.click();
+          console.log('[leaderboard-panel] After click(), active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
+        }
+      }, 0);
     };
 
     const closeSearchModal = () => {
@@ -865,6 +891,28 @@
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
       searchInput.setAttribute('tabindex', '0');
+      
+      // Handle touchstart for mobile keyboard (iOS Safari requires user interaction)
+      // This ensures keyboard opens on single tap
+      searchInput.addEventListener('touchstart', (e) => {
+        console.log('[leaderboard-panel] Input touchstart event fired');
+        // Remove readonly if present (from iOS hack)
+        searchInput.removeAttribute('readonly');
+        // Focus immediately on touch
+        const focused = searchInput.focus();
+        console.log('[leaderboard-panel] Touchstart focus result:', focused);
+        console.log('[leaderboard-panel] After touchstart focus, active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
+        // Don't preventDefault - let browser handle the touch normally
+      }, { passive: true });
+      
+      // Handle click for desktop and as fallback
+      searchInput.addEventListener('click', () => {
+        console.log('[leaderboard-panel] Input click event fired');
+        searchInput.removeAttribute('readonly');
+        const focused = searchInput.focus();
+        console.log('[leaderboard-panel] Click focus result:', focused);
+        console.log('[leaderboard-panel] After click focus, active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
+      });
       
       // Handle input for search
       searchInput.addEventListener('input', (e) => {

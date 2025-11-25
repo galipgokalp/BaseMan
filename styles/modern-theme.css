@@ -370,8 +370,9 @@ body.theme-light .canvas-container {
   position: relative;
   display: flex;
   align-items: center;
-  z-index: 10; /* Ensure input wrapper is above other elements */
-  pointer-events: auto; /* Ensure wrapper is clickable */
+  z-index: 10;
+  /* Don't block pointer events - let input handle them */
+  pointer-events: none;
 }
 
 .leaderboard-search-input {
@@ -385,7 +386,7 @@ body.theme-light .canvas-container {
   font-size: 0.9rem;
   font-family: inherit;
   touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: rgba(255, 225, 79, 0.3);
   user-select: text;
   -webkit-user-select: text;
   -webkit-appearance: none;
@@ -397,6 +398,8 @@ body.theme-light .canvas-container {
   opacity: 1 !important;
   visibility: visible !important;
   display: block !important;
+  /* Ensure input is always interactive */
+  -webkit-touch-callout: default;
   /* No transitions - instant response */
 }
 
