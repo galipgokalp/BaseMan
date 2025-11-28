@@ -82,16 +82,22 @@
       if (result && typeof result === 'object') {
         // Safely access nested properties - check existence before accessing
         if ('token' in result && result.token) return result.token;
-        if ('result' in result && result.result !== null && result.result !== undefined) {
+        // Safely check result.result - ensure result exists and has result property
+        if (result && 'result' in result && result.result !== null && result.result !== undefined) {
           // If result.result is a string, return it; otherwise try to extract token from it
           if (typeof result.result === 'string') return result.result;
-          if (typeof result.result === 'object' && result.result.token) return result.result.token;
+          // Safely access result.result.token - ensure result.result is an object
+          if (result.result && typeof result.result === 'object' && result.result.token) {
+            return result.result.token;
+          }
         }
         if ('value' in result && result.value) return result.value;
       }
       return null;
     } catch (err) { 
+      // Prevent unhandled promise rejection by catching and logging
       console.warn('[miniapp-auth] getToken failed:', err?.message || err);
+      // Re-throw as handled error to prevent unhandled rejection
       return null; 
     }
   }
@@ -112,12 +118,22 @@
   }
 
   async function main() {
-    if (!isMiniAppEnv()) return;
-    const token = await getQuickAuthToken();
-    if (!token || typeof token !== 'string' || token.length < 8) return;
-    try { window.__MINIAPP_AUTH_TOKEN__ = token; } catch (_) {}
-    await sendToken(token);
+    try {
+      if (!isMiniAppEnv()) return;
+      const token = await getQuickAuthToken();
+      if (!token || typeof token !== 'string' || token.length < 8) return;
+      try { window.__MINIAPP_AUTH_TOKEN__ = token; } catch (_) {}
+      await sendToken(token);
+    } catch (err) {
+      // Prevent unhandled promise rejection
+      console.warn('[miniapp-auth] main() failed:', err?.message || err);
+    }
   }
 
-  try { main(); } catch (_) {}
+  // Wrap in try-catch and handle promise rejection
+  try { 
+    main().catch(err => {
+      console.warn('[miniapp-auth] main() promise rejection:', err?.message || err);
+    });
+  } catch (_) {}
 })();

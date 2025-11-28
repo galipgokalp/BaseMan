@@ -8,6 +8,8 @@ import dotenv from 'dotenv';
 // Setting ENV_FILE=/dev/null (or a non-existent path) prevents .env overrides
 // and preserves inline env vars passed at process start.
 const dotenvPath = process.env.ENV_FILE && process.env.ENV_FILE.length ? process.env.ENV_FILE : undefined;
+// Load .env.local first (Vercel env pull), then .env (local overrides)
+dotenv.config({ path: '.env.local' });
 dotenv.config({ path: dotenvPath, override: true });
 
 const __filename = fileURLToPath(import.meta.url);

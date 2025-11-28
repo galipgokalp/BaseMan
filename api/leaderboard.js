@@ -221,7 +221,11 @@ async function postQuery(endpoint, statement) {
     const text = await response.text();
     throw new Error(`SQL API responded with ${response.status}: ${text}`);
   }
-  return response.json();
+  try {
+    return await response.json();
+  } catch (err) {
+    throw new Error(`SQL API returned invalid JSON: ${err?.message || err}`);
+  }
 }
 
 async function fetchQuery(baseEndpoint, queryId) {
@@ -236,7 +240,11 @@ async function fetchQuery(baseEndpoint, queryId) {
     const text = await response.text();
     throw new Error(`SQL API polling failed with ${response.status}: ${text}`);
   }
-  return response.json();
+  try {
+    return await response.json();
+  } catch (err) {
+    throw new Error(`SQL API returned invalid JSON: ${err?.message || err}`);
+  }
 }
 
 function extractRows(payload) {
@@ -443,8 +451,18 @@ async function runQueryV1(base, statement) {
         break;
       }
       await new Promise((resolve) => setTimeout(resolve, SQL_POLL_INTERVAL_MS));
-      current = await fetchQuery(eps.v1, initial.id);
-      rows = extractRows(current?.result ?? current);
+      try {
+        current = await fetchQuery(eps.v1, initial.id);
+        rows = extractRows(current?.result ?? current);
+      } catch (err) {
+        // If fetchQuery fails, log and continue polling (will timeout eventually)
+        console.warn('[leaderboard] fetchQuery failed during polling:', err?.message || err);
+        // Set current to null to break on next iteration if deadline passed
+        if (Date.now() >= deadline) {
+          break;
+        }
+        continue;
+      }
     }
     if (!rows) {
       throw new Error("SQL query timed out without returning rows");
@@ -470,7 +488,12 @@ async function runQueryPlatform(base, statement) {
     const text = await response.text();
     throw new Error(`Platform SQL API responded with ${response.status}: ${text}`);
   }
-  const payload = await response.json();
+  let payload;
+  try {
+    payload = await response.json();
+  } catch (err) {
+    throw new Error(`Platform SQL API returned invalid JSON: ${err?.message || err}`);
+  }
   const rows = extractRows(payload);
   if (!rows) {
     throw new Error("Platform SQL API returned no rows");
