@@ -63,3 +63,4 @@ test-*.html
 # Claude documentation files
 CLAUDE.md
 CLAUDE.tr.md
+.env*.local

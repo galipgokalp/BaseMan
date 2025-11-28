@@ -135,7 +135,18 @@ export default async function handler(req, res) {
     // Send to Rollbar if configured
     if (rollbar && entry.event === 'error') {
       try {
-        rollbar.error(entry.message, {
+        // Extract person info from meta if available (address, fid, etc.)
+        const person = {};
+        if (entry.meta?.address) {
+          person.id = entry.meta.address; // Use address as person ID
+        }
+        if (entry.meta?.fid) {
+          person.id = String(entry.meta.fid); // Prefer FID if available
+          person.username = entry.meta.username || undefined;
+        }
+        
+        // Build Rollbar error payload
+        const rollbarPayload = {
           custom: {
             timestamp: entry.ts,
             meta: entry.meta,
@@ -144,7 +155,14 @@ export default async function handler(req, res) {
             colno: entry.meta?.colno
           },
           fingerprint: entry.meta?.stack ? entry.meta.stack.split('\n')[0] : entry.message
-        });
+        };
+        
+        // Add person tracking if available
+        if (person.id) {
+          rollbarPayload.person = person;
+        }
+        
+        rollbar.error(entry.message, rollbarPayload);
       } catch (err) {
         console.warn('[app-log] Rollbar send failed:', err?.message);
       }
