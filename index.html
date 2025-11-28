@@ -134,6 +134,18 @@
     <script defer src="src/settings-panel.js"></script>
     <!-- Bottom navigation bar -->
     <script defer src="src/bottom-nav.js"></script>
+    <!-- Rollbar (error tracking) -->
+    <script>
+      window._rollbarConfig = {
+        accessToken: window.__ENV?.NEXT_PUBLIC_ROLLBAR_BASE_MAN_CLIENT_TOKEN_1764367657 || '',
+        captureUncaught: true,
+        captureUnhandledRejections: true,
+        payload: {
+          environment: window.__ENV?.VERCEL_ENV || 'production'
+        }
+      };
+    </script>
+    <script src="https://cdn.rollbar.com/rollbarjs/refs/tags/latest/rollbar.min.js"></script>
     <!-- Console logger (captures all console logs and errors) -->
     <script defer src="src/console-logger.js"></script>
     <!-- __env already loaded above -->

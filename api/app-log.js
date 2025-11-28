@@ -1,3 +1,5 @@
+import Rollbar from 'rollbar';
+
 const RING_SIZE = 200;
 const FORWARD_URL = process.env.CDP_WEBHOOK_LOG_ENDPOINT || process.env.LOG_FORWARD_URL || '';
 let FORWARD_HEADERS = {};
@@ -9,6 +11,26 @@ try {
   }
 } catch (_) {}
 globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
+
+// Initialize Rollbar (optional - only if ROLLBAR token is set)
+let rollbar = null;
+try {
+  // Support both Vercel Marketplace format and standard format
+  const rollbarToken = process.env.ROLLBAR_BASE_MAN_SERVER_TOKEN_1764367657 
+    || process.env.ROLLBAR_ACCESS_TOKEN 
+    || process.env.ROLLBAR_SERVER_TOKEN;
+  if (rollbarToken) {
+    rollbar = new Rollbar({
+      accessToken: rollbarToken,
+      captureUncaught: false,
+      captureUnhandledRejections: false,
+      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'production',
+      codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
+    });
+  }
+} catch (err) {
+  console.warn('[app-log] Rollbar initialization failed:', err?.message);
+}
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -109,6 +131,25 @@ export default async function handler(req, res) {
     } catch (_) {}
     // Avoid logging secrets
     try { console.log('[app-log]', JSON.stringify({ event: entry.event, message: entry.message })); } catch (_) {}
+    
+    // Send to Rollbar if configured
+    if (rollbar && entry.event === 'error') {
+      try {
+        rollbar.error(entry.message, {
+          custom: {
+            timestamp: entry.ts,
+            meta: entry.meta,
+            filename: entry.meta?.filename,
+            lineno: entry.meta?.lineno,
+            colno: entry.meta?.colno
+          },
+          fingerprint: entry.meta?.stack ? entry.meta.stack.split('\n')[0] : entry.message
+        });
+      } catch (err) {
+        console.warn('[app-log] Rollbar send failed:', err?.message);
+      }
+    }
+    
     // Optional forward to external log/alert endpoint
     if (FORWARD_URL) {
       try {
