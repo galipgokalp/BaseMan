@@ -3,10 +3,10 @@
  * Receives log entries from app-log.js and performs AI-powered analysis
  */
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const AI_AGENT_ENABLED = process.env.AI_AGENT_ENABLED === 'true' || false;
-const AI_AGENT_MODEL = process.env.AI_AGENT_MODEL || 'gpt-4o-mini';
-const AI_AGENT_MIN_SEVERITY = process.env.AI_AGENT_MIN_SEVERITY || 'error'; // 'error', 'warn', 'log'
+const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || '').trim();
+const AI_AGENT_ENABLED = (process.env.AI_AGENT_ENABLED || '').trim().toLowerCase() === 'true';
+const AI_AGENT_MODEL = (process.env.AI_AGENT_MODEL || 'gpt-4o-mini').trim();
+const AI_AGENT_MIN_SEVERITY = (process.env.AI_AGENT_MIN_SEVERITY || 'error').trim(); // 'error', 'warn', 'log'
 
 // Notification endpoints (optional)
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
