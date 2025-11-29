@@ -57,6 +57,7 @@ const apiMap = [
   ['/api/address-history', path.join(ROOT, 'api', 'address-history.js')],
   ['/api/token-balances', path.join(ROOT, 'api', 'token-balances.js')],
   ['/api/miniapp-webhook', path.join(ROOT, 'api', 'miniapp-webhook.js')],
+  ['/api/ai-agent-webhook', path.join(ROOT, 'api', 'ai-agent-webhook.js')],
 ];
 
 await Promise.all(

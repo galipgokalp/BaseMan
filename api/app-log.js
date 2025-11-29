@@ -168,12 +168,25 @@ export default async function handler(req, res) {
       }
     }
     
-    // Optional forward to external log/alert endpoint
+    // Optional forward to external log/alert endpoint (AI Agent or custom webhook)
     if (FORWARD_URL) {
       try {
         const headers = Object.assign({ 'Content-Type': 'application/json' }, FORWARD_HEADERS);
         // Fire-and-forget; do not block response on failures
         fetch(FORWARD_URL, { method: 'POST', headers, body: JSON.stringify(entry) }).catch(() => {});
+      } catch (_) {}
+    }
+    
+    // Forward to AI Agent webhook if enabled (only for errors and warnings)
+    const AI_AGENT_URL = process.env.AI_AGENT_WEBHOOK_URL || '';
+    if (AI_AGENT_URL && (entry.event === 'error' || entry.event === 'warn')) {
+      try {
+        // Fire-and-forget; do not block response on failures
+        fetch(AI_AGENT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry)
+        }).catch(() => {});
       } catch (_) {}
     }
     return res.status(200).json({ ok: true });
