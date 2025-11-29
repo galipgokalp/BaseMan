@@ -239,8 +239,21 @@ async function notifyEmail(logEntry, analysis) {
 }
 
 export default async function handler(req, res) {
+  // Debug endpoint - GET request for checking configuration
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      enabled: AI_AGENT_ENABLED,
+      hasOpenAIKey: !!OPENAI_API_KEY && OPENAI_API_KEY.length > 0,
+      openAIKeyPrefix: OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 15) + '...' : 'missing',
+      model: AI_AGENT_MODEL,
+      minSeverity: AI_AGENT_MIN_SEVERITY,
+      hasSlackWebhook: !!SLACK_WEBHOOK_URL && SLACK_WEBHOOK_URL.length > 0,
+      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown'
+    });
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'POST, GET');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
