@@ -3,9 +3,13 @@
  * Receives log entries from app-log.js and performs AI-powered analysis
  */
 
+// AI Provider Configuration
+const AI_PROVIDER = (process.env.AI_PROVIDER || 'groq').trim().toLowerCase(); // 'groq', 'openai', 'openrouter', 'rule-based'
 const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || '').trim();
+const GROQ_API_KEY = (process.env.GROQ_API_KEY || '').trim();
+const OPENROUTER_API_KEY = (process.env.OPENROUTER_API_KEY || '').trim();
 const AI_AGENT_ENABLED = (process.env.AI_AGENT_ENABLED || '').trim().toLowerCase() === 'true';
-const AI_AGENT_MODEL = (process.env.AI_AGENT_MODEL || 'gpt-4o-mini').trim();
+const AI_AGENT_MODEL = (process.env.AI_AGENT_MODEL || 'llama-3.3-70b-versatile').trim();
 const AI_AGENT_MIN_SEVERITY = (process.env.AI_AGENT_MIN_SEVERITY || 'error').trim(); // 'error', 'warn', 'log'
 
 // Notification endpoints (optional)
@@ -18,10 +22,121 @@ const ANALYSIS_CACHE = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Analyze error using OpenAI API
+ * Rule-based error analysis (completely free, no API needed)
  */
-async function analyzeError(logEntry) {
-  if (!OPENAI_API_KEY || !AI_AGENT_ENABLED) {
+function analyzeErrorRuleBased(logEntry) {
+  const message = (logEntry.message || '').toLowerCase();
+  const stack = (logEntry.meta?.stack || '').toLowerCase();
+  const filename = logEntry.meta?.filename || 'unknown';
+  
+  // Pattern matching for common errors
+  let rootCause = 'Unknown error';
+  let severity = 'Medium';
+  let solution = {
+    file: filename,
+    line: logEntry.meta?.lineno || 'unknown',
+    fix: 'Review error logs and stack trace',
+    explanation: 'Manual review required'
+  };
+  
+  // TypeError patterns
+  if (message.includes('cannot read') || message.includes('undefined') || message.includes('null')) {
+    rootCause = 'Attempting to access property/method on undefined or null value';
+    severity = 'High';
+    solution = {
+      file: filename,
+      line: logEntry.meta?.lineno || 'unknown',
+      fix: 'Add null/undefined checks before accessing properties',
+      explanation: 'Use optional chaining (?.) or null checks before property access'
+    };
+  }
+  // Network errors
+  else if (message.includes('network') || message.includes('fetch') || message.includes('timeout')) {
+    rootCause = 'Network request failed or timed out';
+    severity = 'Medium';
+    solution = {
+      file: filename,
+      line: logEntry.meta?.lineno || 'unknown',
+      fix: 'Add retry logic and error handling for network requests',
+      explanation: 'Implement exponential backoff and handle network failures gracefully'
+    };
+  }
+  // Promise rejection
+  else if (message.includes('promise') || message.includes('rejection') || message.includes('unhandled')) {
+    rootCause = 'Unhandled promise rejection';
+    severity = 'High';
+    solution = {
+      file: filename,
+      line: logEntry.meta?.lineno || 'unknown',
+      fix: 'Add .catch() handlers to all promises',
+      explanation: 'Ensure all async operations have proper error handling'
+    };
+  }
+  // JSON parsing
+  else if (message.includes('json') || message.includes('parse') || message.includes('syntax')) {
+    rootCause = 'Invalid JSON format or parsing error';
+    severity = 'Medium';
+    solution = {
+      file: filename,
+      line: logEntry.meta?.lineno || 'unknown',
+      fix: 'Add try-catch around JSON.parse() and validate JSON before parsing',
+      explanation: 'Validate response format before attempting to parse JSON'
+    };
+  }
+  // Authentication errors
+  else if (message.includes('auth') || message.includes('token') || message.includes('unauthorized')) {
+    rootCause = 'Authentication or authorization failure';
+    severity = 'High';
+    solution = {
+      file: filename,
+      line: logEntry.meta?.lineno || 'unknown',
+      fix: 'Check token validity and refresh if expired',
+      explanation: 'Implement token refresh logic and handle auth errors gracefully'
+    };
+  }
+  
+  return {
+    rootCause,
+    severity,
+    impact: severity === 'Critical' || severity === 'High' ? 'Multiple users may be affected' : 'Limited user impact',
+    solution,
+    prevention: 'Add comprehensive error handling and input validation',
+    method: 'rule-based'
+  };
+}
+
+/**
+ * Analyze error using AI API (Groq, OpenAI, or OpenRouter)
+ */
+async function analyzeErrorWithAI(logEntry, provider = AI_PROVIDER) {
+  let apiKey = '';
+  let apiUrl = '';
+  let model = AI_AGENT_MODEL;
+  
+  // Configure API based on provider
+  if (provider === 'groq') {
+    apiKey = GROQ_API_KEY;
+    apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+    if (!model.includes('llama') && !model.includes('mixtral')) {
+      model = 'llama-3.3-70b-versatile'; // Default Groq model
+    }
+  } else if (provider === 'openrouter') {
+    apiKey = OPENROUTER_API_KEY;
+    apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    if (!model) {
+      model = 'meta-llama/llama-3.3-70b-instruct:free'; // Free model on OpenRouter
+    }
+  } else if (provider === 'openai') {
+    apiKey = OPENAI_API_KEY;
+    apiUrl = 'https://api.openai.com/v1/chat/completions';
+    if (!model) {
+      model = 'gpt-4o-mini';
+    }
+  } else {
+    return null; // Unknown provider
+  }
+  
+  if (!apiKey || !AI_AGENT_ENABLED) {
     return null;
   }
 
@@ -71,14 +186,22 @@ Provide your analysis in JSON format:
   "prevention": "how to prevent this"
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    };
+    
+    // OpenRouter requires additional headers
+    if (provider === 'openrouter') {
+      headers['HTTP-Referer'] = process.env.OPENROUTER_REFERRER || 'https://base-man.vercel.app';
+      headers['X-Title'] = 'BaseMan AI Agent';
+    }
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
+      headers,
       body: JSON.stringify({
-        model: AI_AGENT_MODEL,
+        model: model,
         messages: [
           {
             role: 'system',
@@ -96,7 +219,7 @@ Provide your analysis in JSON format:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.warn('[ai-agent] OpenAI API error:', response.status, errorText);
+      console.warn(`[ai-agent] ${provider.toUpperCase()} API error:`, response.status, errorText);
       return null;
     }
 
@@ -128,6 +251,11 @@ Provide your analysis in JSON format:
       };
     }
 
+    // Add provider info to analysis
+    if (analysis && typeof analysis === 'object') {
+      analysis.method = provider;
+    }
+
     // Cache the analysis
     ANALYSIS_CACHE.set(cacheKey, {
       timestamp: Date.now(),
@@ -146,9 +274,82 @@ Provide your analysis in JSON format:
 
     return analysis;
   } catch (error) {
-    console.warn('[ai-agent] Analysis failed:', error?.message || error);
+    console.warn(`[ai-agent] ${provider} analysis failed:`, error?.message || error);
     return null;
   }
+}
+
+/**
+ * Main analyze error function - tries AI first, falls back to rule-based
+ */
+async function analyzeError(logEntry) {
+  if (!AI_AGENT_ENABLED) {
+    return null;
+  }
+
+  // Only analyze errors and warnings
+  if (logEntry.event !== 'error' && logEntry.event !== 'warn') {
+    if (AI_AGENT_MIN_SEVERITY === 'error' && logEntry.event !== 'error') {
+      return null;
+    }
+  }
+
+  // Check cache to avoid duplicate analyses
+  const cacheKey = `${logEntry.event}:${logEntry.message?.slice(0, 100)}`;
+  const cached = ANALYSIS_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.analysis;
+  }
+
+  // Try AI providers in order: groq -> openrouter -> openai -> rule-based
+  let analysis = null;
+  
+  // Check if we should use rule-based directly
+  const hasGroqKey = !!GROQ_API_KEY && GROQ_API_KEY.length > 0;
+  const hasOpenRouterKey = !!OPENROUTER_API_KEY && OPENROUTER_API_KEY.length > 0;
+  const hasOpenAIKey = !!OPENAI_API_KEY && OPENAI_API_KEY.length > 0;
+  const hasAnyAIKey = hasGroqKey || hasOpenRouterKey || hasOpenAIKey;
+  
+  if (AI_PROVIDER === 'rule-based' || !hasAnyAIKey) {
+    // Use rule-based analysis (completely free)
+    analysis = analyzeErrorRuleBased(logEntry);
+  } else {
+    // Try AI providers in priority order
+    const providers = [];
+    if (AI_PROVIDER === 'groq' && hasGroqKey) {
+      providers.push('groq');
+    } else if (AI_PROVIDER === 'openrouter' && hasOpenRouterKey) {
+      providers.push('openrouter');
+    } else if (AI_PROVIDER === 'openai' && hasOpenAIKey) {
+      providers.push('openai');
+    }
+    
+    // Add other available providers as fallback
+    if (hasGroqKey && !providers.includes('groq')) providers.push('groq');
+    if (hasOpenRouterKey && !providers.includes('openrouter')) providers.push('openrouter');
+    if (hasOpenAIKey && !providers.includes('openai')) providers.push('openai');
+    
+    // Try each provider
+    for (const provider of providers) {
+      analysis = await analyzeErrorWithAI(logEntry, provider);
+      if (analysis) break; // Success, stop trying other providers
+    }
+    
+    // Fallback to rule-based if all AI providers fail
+    if (!analysis) {
+      analysis = analyzeErrorRuleBased(logEntry);
+    }
+  }
+
+  // Cache the analysis
+  if (analysis) {
+    ANALYSIS_CACHE.set(cacheKey, {
+      timestamp: Date.now(),
+      analysis
+    });
+  }
+
+  return analysis;
 }
 
 /**
@@ -243,12 +444,18 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return res.status(200).json({
       enabled: AI_AGENT_ENABLED,
+      provider: AI_PROVIDER,
+      hasGroqKey: !!GROQ_API_KEY && GROQ_API_KEY.length > 0,
+      hasOpenRouterKey: !!OPENROUTER_API_KEY && OPENROUTER_API_KEY.length > 0,
       hasOpenAIKey: !!OPENAI_API_KEY && OPENAI_API_KEY.length > 0,
+      groqKeyPrefix: GROQ_API_KEY ? GROQ_API_KEY.substring(0, 15) + '...' : 'missing',
+      openRouterKeyPrefix: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 15) + '...' : 'missing',
       openAIKeyPrefix: OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 15) + '...' : 'missing',
       model: AI_AGENT_MODEL,
       minSeverity: AI_AGENT_MIN_SEVERITY,
       hasSlackWebhook: !!SLACK_WEBHOOK_URL && SLACK_WEBHOOK_URL.length > 0,
-      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown'
+      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown',
+      fallback: 'rule-based (always available, completely free)'
     });
   }
 
