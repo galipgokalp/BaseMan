@@ -125,11 +125,34 @@
           url: reason.url || null,
           method: reason.method || null
         };
-      } else if (reason.name) {
+      } 
+      // Handle TypeError: Cannot read properties of undefined (reading 'result')
+      else if (reason.name === 'TypeError' && reason.message && reason.message.includes("Cannot read properties of undefined")) {
+        errorMessage = `SDK TypeError: ${reason.message}`;
+        errorDetails = {
+          errorType: 'TypeError',
+          errorName: reason.name || 'TypeError',
+          errorMessage: reason.message || String(reason),
+          isUndefinedAccess: reason.message.includes('undefined'),
+          accessedProperty: reason.message.match(/reading '(\w+)'/) ? reason.message.match(/reading '(\w+)'/)[1] : null
+        };
+      } 
+      else if (reason.name) {
         errorMessage = `${reason.name}: ${reason.message || reason}`;
         errorDetails = {
           errorType: reason.name,
           errorMessage: reason.message || String(reason)
+        };
+      }
+    } else if (typeof reason === 'string') {
+      // Handle string errors that might contain useful info
+      if (reason.includes('Cannot read properties of undefined')) {
+        errorMessage = `SDK TypeError: ${reason}`;
+        errorDetails = {
+          errorType: 'TypeError',
+          errorMessage: reason,
+          isUndefinedAccess: true,
+          accessedProperty: reason.match(/reading '(\w+)'/) ? reason.match(/reading '(\w+)'/)[1] : null
         };
       }
     }
@@ -169,8 +192,10 @@
     }
     
     // Prevent default browser console error for handled cases
-    // Only prevent for non-critical errors (like 400 Bad Request)
-    if (errorDetails.status === 400 || errorDetails.status === 404) {
+    // Only prevent for non-critical errors (like 400 Bad Request, undefined access in SDK)
+    if (errorDetails.status === 400 || 
+        errorDetails.status === 404 || 
+        (errorDetails.errorType === 'TypeError' && errorDetails.isUndefinedAccess)) {
       event.preventDefault(); // Mark as handled to prevent console spam
     }
   });
