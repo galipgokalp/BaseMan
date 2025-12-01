@@ -1073,14 +1073,41 @@
       throw new Error('Invalid text to copy');
     }
 
-    // Try modern Clipboard API first
+    // Try modern Clipboard API first (with permission check per MDN best practices)
+    // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
-        await navigator.clipboard.writeText(text);
-        console.log('[settings-panel] Text copied to clipboard using Clipboard API');
-        return;
+        // Check clipboard permission if available (MDN recommended approach)
+        let hasPermission = true;
+        if (navigator.permissions && navigator.permissions.query) {
+          try {
+            const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
+            hasPermission = permissionStatus.state === 'granted' || permissionStatus.state === 'prompt';
+            // If permission is denied, skip Clipboard API and use fallback directly
+            if (permissionStatus.state === 'denied') {
+              // Silently fall through to fallback method
+            }
+          } catch (permError) {
+            // Permission API not supported or failed, try Clipboard API anyway
+            hasPermission = true;
+          }
+        }
+        
+        if (hasPermission) {
+          await navigator.clipboard.writeText(text);
+          console.log('[settings-panel] Text copied to clipboard using Clipboard API');
+          return;
+        }
+        // Permission denied, fall through to fallback method silently
       } catch (clipboardError) {
-        console.warn('[settings-panel] Clipboard API failed, trying fallback:', clipboardError);
+        // Only log warning for non-permission errors (network, security, etc.)
+        // Permission denied errors are handled silently above
+        const isPermissionError = clipboardError.name === 'NotAllowedError' || 
+                                   clipboardError.message?.includes('permission') ||
+                                   clipboardError.message?.includes('denied');
+        if (!isPermissionError) {
+          console.warn('[settings-panel] Clipboard API failed, trying fallback:', clipboardError);
+        }
         // Fall through to fallback method
       }
     }
