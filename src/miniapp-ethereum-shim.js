@@ -14,9 +14,19 @@
       let sdk = null;
       if (typeof window !== 'undefined' && typeof window.resolveSDK === 'function') {
         sdk = window.resolveSDK();
-        if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
+      if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
+        try {
           return sdk.wallet.getEthereumProvider();
+        } catch (error) {
+          // Silently fail for shim - this is a background operation
+          const errorMsg = error?.message || String(error);
+          if (errorMsg.includes('Request failed') || error?.name === 'RequestFailedError' || error?.status === 400) {
+            // Non-critical error - return null to continue polling
+            return null;
+          }
+          throw error; // Re-throw other errors
         }
+      }
       }
       
       // Priority 2: Emergency fallback (should never reach here in normal operation)
@@ -32,7 +42,17 @@
         null;
       
       if (!sdk || !sdk.wallet || typeof sdk.wallet.getEthereumProvider !== 'function') return null;
-      return sdk.wallet.getEthereumProvider();
+      try {
+        return sdk.wallet.getEthereumProvider();
+      } catch (error) {
+        // Silently fail for shim - this is a background operation
+        const errorMsg = error?.message || String(error);
+        if (errorMsg.includes('Request failed') || error?.name === 'RequestFailedError' || error?.status === 400) {
+          // Non-critical error - return null to continue polling
+          return null;
+        }
+        throw error; // Re-throw other errors
+      }
     } catch (_) {
       return null;
     }

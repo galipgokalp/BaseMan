@@ -108,12 +108,46 @@
 
   // Capture unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    let errorMessage = `Unhandled Promise Rejection: ${reason}`;
+    let errorDetails = {};
+    
+    // Enhanced error handling for specific error types
+    if (reason && typeof reason === 'object') {
+      // Handle RequestFailedError from Base App SDK
+      if (reason.name === 'RequestFailedError' || (reason.message && reason.message.includes('Request failed'))) {
+        errorMessage = `SDK Request Failed: ${reason.message || reason}`;
+        errorDetails = {
+          errorType: 'RequestFailedError',
+          errorName: reason.name || 'RequestFailedError',
+          errorMessage: reason.message || String(reason),
+          status: reason.status || reason.statusCode || null,
+          url: reason.url || null,
+          method: reason.method || null
+        };
+      } else if (reason.name) {
+        errorMessage = `${reason.name}: ${reason.message || reason}`;
+        errorDetails = {
+          errorType: reason.name,
+          errorMessage: reason.message || String(reason)
+        };
+      }
+    }
+    
     const errorEntry = {
       type: 'error',
       timestamp: new Date().toISOString(),
-      message: `Unhandled Promise Rejection: ${event.reason}`,
-      reason: event.reason ? String(event.reason) : null,
-      stack: event.reason?.stack || null
+      message: errorMessage,
+      reason: reason ? String(reason) : null,
+      stack: reason?.stack || null,
+      details: errorDetails,
+      // Additional context for SDK errors
+      sdkContext: (typeof window !== 'undefined' && window.sdk) ? {
+        hasSDK: true,
+        hasActions: !!(window.sdk.actions),
+        hasWallet: !!(window.sdk.wallet),
+        hasContext: !!(window.sdk.context)
+      } : { hasSDK: false }
     };
     
     LOG_BUFFER.push(errorEntry);
@@ -132,6 +166,12 @@
           keepalive: true
         }).catch(() => {});
       } catch (e) {}
+    }
+    
+    // Prevent default browser console error for handled cases
+    // Only prevent for non-critical errors (like 400 Bad Request)
+    if (errorDetails.status === 400 || errorDetails.status === 404) {
+      event.preventDefault(); // Mark as handled to prevent console spam
     }
   });
 

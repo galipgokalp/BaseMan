@@ -261,14 +261,38 @@
           }
           
           if (isReady) {
-            await sdk.actions.ready({ disableNativeGestures: true });
-            debug("sdk.actions.ready() called successfully");
-            // Dispatch event to signal that SDK is ready and splash screen is hidden
             try {
-              window.__basemanSDKReadyFired = true;
-              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk } }));
-            } catch (eventError) {
-              debug(`Failed to dispatch sdk-ready event: ${eventError?.message || eventError}`);
+              await sdk.actions.ready({ disableNativeGestures: true });
+              debug("sdk.actions.ready() called successfully");
+              // Dispatch event to signal that SDK is ready and splash screen is hidden
+              try {
+                window.__basemanSDKReadyFired = true;
+                window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk } }));
+              } catch (eventError) {
+                debug(`Failed to dispatch sdk-ready event: ${eventError?.message || eventError}`);
+              }
+            } catch (readyError) {
+              // Handle SDK ready errors gracefully
+              const errorMsg = readyError?.message || String(readyError);
+              const isRequestError = errorMsg.includes('Request failed') || 
+                                    readyError?.name === 'RequestFailedError' ||
+                                    readyError?.status === 400;
+              
+              if (isRequestError) {
+                debug(`SDK ready request failed (non-critical): ${errorMsg}`);
+                // Log but don't block - allow game to continue
+                const error = (typeof window !== 'undefined' && window.logger) ? window.logger.error : console.error;
+                error(`[BaseMan] SDK ready request failed: ${errorMsg}`, readyError);
+              } else {
+                debug(`Error calling sdk.actions.ready: ${errorMsg}`);
+                throw readyError; // Re-throw non-request errors
+              }
+              
+              // Still dispatch event even if ready failed (for non-critical errors)
+              try {
+                window.__basemanSDKReadyFired = true;
+                window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk, error: errorMsg } }));
+              } catch (eventError) {}
             }
           } else {
             debug("Warning: SDK detected but not in mini app context");
@@ -473,9 +497,27 @@
             throw new Error("SDK wallet.getEthereumProvider is not available");
           }
           
-          const provider = await sdk.wallet.getEthereumProvider();
-          if (!provider) throw new Error("Ethereum provider not available.");
-          debug("sdk.wallet.getEthereumProvider() returned successfully");
+          let provider;
+          try {
+            provider = await sdk.wallet.getEthereumProvider();
+            if (!provider) throw new Error("Ethereum provider not available.");
+            debug("sdk.wallet.getEthereumProvider() returned successfully");
+          } catch (providerError) {
+            const errorMsg = providerError?.message || String(providerError);
+            const isRequestError = errorMsg.includes('Request failed') || 
+                                  providerError?.name === 'RequestFailedError' ||
+                                  providerError?.status === 400;
+            
+            if (isRequestError) {
+              debug(`SDK getEthereumProvider request failed: ${errorMsg}`);
+              // Log error but try to continue with fallback
+              const error = (typeof window !== 'undefined' && window.logger) ? window.logger.error : console.error;
+              error(`[BaseMan] SDK getEthereumProvider request failed: ${errorMsg}`, providerError);
+              throw new Error(`Failed to get Ethereum provider: ${errorMsg}`);
+            } else {
+              throw providerError; // Re-throw non-request errors
+            }
+          }
           
           // Mini‑app providers may not support wallet_switchEthereumChain; skip enforcing switch
 
@@ -2189,7 +2231,22 @@
         try {
           await new Promise((resolve) => setTimeout(resolve, 800));
           if (sdk?.wallet && typeof sdk.wallet.getEthereumProvider === "function" && !state.contract) {
-            const provider = await sdk.wallet.getEthereumProvider();
+            let provider;
+            try {
+              provider = await sdk.wallet.getEthereumProvider();
+            } catch (providerError) {
+              const errorMsg = providerError?.message || String(providerError);
+              const isRequestError = errorMsg.includes('Request failed') || 
+                                    providerError?.name === 'RequestFailedError' ||
+                                    providerError?.status === 400;
+              
+              if (isRequestError) {
+                debug(`Background wallet: SDK getEthereumProvider request failed (non-critical): ${errorMsg}`);
+                return; // Silently fail for background check
+              } else {
+                throw providerError; // Re-throw non-request errors
+              }
+            }
             if (provider) {
               try {
                 const accounts = await provider.request({ method: "eth_accounts" });

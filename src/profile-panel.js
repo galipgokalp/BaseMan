@@ -408,7 +408,22 @@
           // Use onchain-client's state if exposed; otherwise, call via RPC if needed.
           const reg = (window.BaseManOnchainConfig && window.BaseManOnchainConfig.registryAddress) || null;
           if (reg && window.ethers && window.sdk) {
-            const provider = await window.sdk.wallet.getEthereumProvider();
+            let provider;
+            try {
+              provider = await window.sdk.wallet.getEthereumProvider();
+            } catch (providerError) {
+              const errorMsg = providerError?.message || String(providerError);
+              const isRequestError = errorMsg.includes('Request failed') || 
+                                    providerError?.name === 'RequestFailedError' ||
+                                    providerError?.status === 400;
+              
+              if (isRequestError) {
+                console.warn(`[profile-panel] SDK getEthereumProvider request failed: ${errorMsg}`);
+                throw new Error(`Failed to get provider: ${errorMsg}`);
+              } else {
+                throw providerError; // Re-throw non-request errors
+              }
+            }
             if (!provider) {
               throw new Error('Provider not available');
             }

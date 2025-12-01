@@ -66,7 +66,23 @@
     const ready = sdk && sdk.actions && typeof sdk.actions.ready === 'function';
     if (!ready) return;
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('miniapp sdk.ready timeout')), ms));
-    await Promise.race([sdk.actions.ready(), timeout]).catch(() => {});
+    try {
+      await Promise.race([sdk.actions.ready(), timeout]);
+    } catch (error) {
+      // Handle SDK ready errors gracefully
+      const errorMsg = error?.message || String(error);
+      const isRequestError = errorMsg.includes('Request failed') || 
+                            error?.name === 'RequestFailedError' ||
+                            error?.status === 400 ||
+                            errorMsg.includes('timeout');
+      
+      if (isRequestError) {
+        // Log but don't throw - ready() failures are often non-critical
+        const log = (typeof window !== 'undefined' && window.logger) ? window.logger.log : console.log;
+        log(`[miniapp-auth] SDK ready failed (non-critical): ${errorMsg}`);
+      }
+      // Silently catch other errors - ready() is best-effort
+    }
   }
 
   async function getQuickAuthToken() {
