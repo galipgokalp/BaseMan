@@ -277,11 +277,11 @@
 
 /* Drag Handle for Mobile */
 .leaderboard-search-modal-handle {
-  width: 40px;
-  height: 4px;
+  width: 32px;
+  height: 3px;
   background: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
-  margin: 8px auto;
+  margin: 6px auto;
   cursor: grab;
   touch-action: none;
   flex-shrink: 0;
