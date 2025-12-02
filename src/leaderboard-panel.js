@@ -784,27 +784,38 @@
       searchModal.removeAttribute('hidden');
       searchModal.classList.add('modal-open');
       
-      // Prepare input
+      // Prepare input - ensure it's ready for focus
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
+      searchInput.setAttribute('tabindex', '0');
       
       // Show recent searches if input is empty
       if (!searchInput.value || !searchInput.value.trim()) {
         renderRecentSearches();
       }
       
-      // Focus input with better iOS support
-      requestAnimationFrame(() => {
+      // Aggressively focus input to open keyboard on mobile
+      // Use multiple strategies for maximum compatibility
+      const focusInput = () => {
+        // Strategy 1: Direct focus
         searchInput.focus();
-        // iOS Safari fallback
+        
+        // Strategy 2: Click if focus didn't work (for iOS)
         if (document.activeElement !== searchInput) {
-          setTimeout(() => {
-            searchInput.focus();
-            if (document.activeElement !== searchInput) {
-              searchInput.click();
-            }
-          }, 100);
+          searchInput.click();
+          searchInput.focus();
         }
+      };
+      
+      // Try immediately (while user interaction is still valid)
+      focusInput();
+      
+      // Also try after a short delay (for slower devices)
+      setTimeout(focusInput, 50);
+      
+      // And after animation frame (for smooth transitions)
+      requestAnimationFrame(() => {
+        setTimeout(focusInput, 50);
       });
     };
 
