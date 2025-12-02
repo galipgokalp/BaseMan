@@ -737,11 +737,11 @@
       searchClear = document.querySelector('[data-search-clear]');
       searchBackdrop = document.querySelector('[data-search-backdrop]');
       
-      // Find or create spinner (optional tiny spinner)
+      // Find spinner (but keep it hidden - no spinner shown)
       const loadingEl = document.querySelector('[data-search-loading]');
       if (loadingEl) {
         searchSpinner = loadingEl.querySelector('.leaderboard-search-loading-spinner') || null;
-        // Ensure loading container is hidden by default
+        // Always keep loading container hidden (no spinner shown)
         loadingEl.hidden = true;
       }
       
@@ -1016,16 +1016,10 @@
       // Clear results if empty
       if (!trimmedQuery) {
         searchResults.innerHTML = '';
-        if (searchSpinner && searchSpinner.parentElement) {
-          searchSpinner.parentElement.hidden = true;
-        }
         return;
       }
       
-      // Show optional tiny spinner during fetch (not persistent "SEARCHING" label)
-      if (searchSpinner && searchSpinner.parentElement) {
-        searchSpinner.parentElement.hidden = false;
-      }
+      // Spinner is always hidden (no loading indicator shown)
       
       // Perform search (synchronous filtering, but using AbortController pattern for future async)
       const signal = searchAbortController.signal;
@@ -1037,9 +1031,6 @@
         if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
           if (signal.aborted) return;
           searchResults.innerHTML = '<div class="leaderboard-search-no-results">No entries available</div>';
-          if (searchSpinner && searchSpinner.parentElement) {
-            searchSpinner.parentElement.hidden = true;
-          }
           return;
         }
         
@@ -1058,11 +1049,6 @@
         });
         
         if (signal.aborted) return;
-        
-        // Hide spinner before rendering
-        if (searchSpinner && searchSpinner.parentElement) {
-          searchSpinner.parentElement.hidden = true;
-        }
         
         renderResults(filtered);
       });
