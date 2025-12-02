@@ -743,6 +743,7 @@
         searchSpinner = loadingEl.querySelector('.leaderboard-search-loading-spinner') || null;
         // Always keep loading container hidden (no spinner shown)
         loadingEl.hidden = true;
+        loadingEl.style.display = 'none'; // Force hide with inline style
       }
       
       if (!searchModal || !searchInput) {
@@ -839,9 +840,11 @@
         searchResults.innerHTML = '';
       }
       
-      // Hide spinner (no persistent "SEARCHING")
-      if (searchSpinner && searchSpinner.parentElement) {
-        searchSpinner.parentElement.hidden = true;
+      // Hide spinner (no persistent "SEARCHING") - FORCE HIDE
+      const loadingEl = document.querySelector('[data-search-loading]');
+      if (loadingEl) {
+        loadingEl.hidden = true;
+        loadingEl.style.display = 'none'; // Force hide with inline style
       }
       
       // CRITICAL FIX 1: Remove hidden attribute FIRST to make modal visible
