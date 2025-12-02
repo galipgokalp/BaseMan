@@ -440,6 +440,10 @@
   font-size: 0.75rem;
 }
 
+.leaderboard-search-loading[hidden] {
+  display: none !important;
+}
+
 .leaderboard-search-loading-spinner {
   width: 14px;
   height: 14px;
