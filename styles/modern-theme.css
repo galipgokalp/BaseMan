@@ -326,8 +326,8 @@ body.theme-light .canvas-container {
 
 .leaderboard-search-modal-content {
   background: rgba(20, 20, 32, 0.98);
-  border-top: 2px solid var(--color-border-bright);
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+  border-bottom: 2px solid var(--color-border-bright);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .leaderboard-search-modal-handle {
