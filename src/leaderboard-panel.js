@@ -805,6 +805,9 @@
       // Ensure input is not readonly initially
       searchInput.removeAttribute('readonly');
     }
+    
+    // Store original input wrapper for moving input in/out of modal
+    const inputWrapper = searchInput?.parentElement;
 
     const openSearchModal = (userEvent = null) => {
       // This function is now handled entirely in handleSearchClick
@@ -1037,52 +1040,76 @@
         e.preventDefault();
         e.stopPropagation();
         
-        if (!searchInput || !searchModal) return;
+        if (!searchInput || !searchModal || !inputWrapper) return;
         
-        // PROVEN SOLUTION: Open modal first, then focus after animation completes
-        // This is the most reliable approach based on community solutions
+        // REVOLUTIONARY SOLUTION: Move input outside modal, focus it, then move it back
+        // This ensures input is visible and accessible when focus happens
         
-        // Step 1: Open modal (with animation)
-        searchModal.removeAttribute('hidden');
-        searchModal.classList.add('modal-open');
+        // Step 1: Move input to body (temporarily, outside modal)
+        // Make it visible but off-screen
+        const originalParent = inputWrapper;
+        searchInput.style.position = 'fixed';
+        searchInput.style.left = '-9999px';
+        searchInput.style.top = '0';
+        searchInput.style.opacity = '1';
+        searchInput.style.visibility = 'visible';
+        searchInput.style.display = 'block';
+        searchInput.style.zIndex = '999999';
+        document.body.appendChild(searchInput);
         
         // Step 2: Prepare input
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
         searchInput.setAttribute('tabindex', '0');
         
-        // Step 3: Show recent searches if input is empty
+        // Step 3: Platform-specific keyboard opening (while input is in body)
+        if (platform.isIOS) {
+          searchInput.setAttribute('readonly', 'readonly');
+          void searchInput.offsetHeight;
+          searchInput.removeAttribute('readonly');
+        }
+        
+        // Step 4: Focus input NOW (while it's in body and visible)
+        searchInput.focus();
+        
+        // Step 5: Set selection to trigger keyboard
+        if (searchInput.setSelectionRange) {
+          const len = searchInput.value.length;
+          searchInput.setSelectionRange(len, len);
+        }
+        
+        // Step 6: Android fallback
+        if (platform.isAndroid && document.activeElement !== searchInput) {
+          searchInput.click();
+          searchInput.focus();
+        }
+        
+        // Step 7: Open modal (input is already focused in body)
+        searchModal.removeAttribute('hidden');
+        searchModal.classList.add('modal-open');
+        
+        // Step 8: Move input back to modal (keyboard should stay open)
+        // Use requestAnimationFrame to ensure focus is established
+        requestAnimationFrame(() => {
+          // Reset input styles
+          searchInput.style.position = '';
+          searchInput.style.left = '';
+          searchInput.style.top = '';
+          searchInput.style.zIndex = '';
+          
+          // Move input back to original position
+          originalParent.appendChild(searchInput);
+          
+          // Ensure input stays focused
+          if (document.activeElement !== searchInput) {
+            searchInput.focus();
+          }
+        });
+        
+        // Step 9: Show recent searches if input is empty
         if (!searchInput.value || !searchInput.value.trim()) {
           renderRecentSearches();
         }
-        
-        // Step 4: Focus input AFTER modal animation completes (300ms delay)
-        // This is the proven solution from Stack Overflow and community
-        // The delay ensures modal is fully visible and input is accessible
-        setTimeout(() => {
-          // Platform-specific keyboard opening
-          if (platform.isIOS) {
-            // iOS readonly trick
-            searchInput.setAttribute('readonly', 'readonly');
-            void searchInput.offsetHeight; // Force reflow
-            searchInput.removeAttribute('readonly');
-          }
-          
-          // Focus input
-          searchInput.focus();
-          
-          // Set selection to trigger keyboard
-          if (searchInput.setSelectionRange) {
-            const len = searchInput.value.length;
-            searchInput.setSelectionRange(len, len);
-          }
-          
-          // Android fallback
-          if (platform.isAndroid && document.activeElement !== searchInput) {
-            searchInput.click();
-            searchInput.focus();
-          }
-        }, 300); // 300ms delay - proven to work in community solutions
       };
       
       searchBtn.addEventListener('click', handleSearchClick);
