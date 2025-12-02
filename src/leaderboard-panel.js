@@ -807,24 +807,11 @@
     }
 
     const openSearchModal = (userEvent = null) => {
+      // This function is now handled entirely in handleSearchClick
+      // Keeping it for backwards compatibility but it shouldn't be called directly
       if (!searchModal || !searchInput) {
         console.warn('[leaderboard-panel] Cannot open modal: searchModal or searchInput missing');
         return;
-      }
-      
-      // Remove hidden attribute and add open class for animation
-      searchModal.removeAttribute('hidden');
-      searchModal.classList.add('modal-open');
-      
-      // Show recent searches if input is empty
-      if (!searchInput.value || !searchInput.value.trim()) {
-        renderRecentSearches();
-      }
-      
-      // Input should already be focused from handleSearchClick
-      // Just ensure it's still focused after modal opens
-      if (document.activeElement !== searchInput) {
-        searchInput.focus();
       }
     };
 
@@ -1050,41 +1037,57 @@
         e.preventDefault();
         e.stopPropagation();
         
-        // CRITICAL: Prepare input and focus BEFORE opening modal
-        // This preserves user interaction for both iOS and Android
-        if (searchInput && searchModal) {
-          // Step 1: Make input visible and ready (but keep modal hidden)
+        if (!searchInput || !searchModal) return;
+        
+        // CRITICAL INSIGHT: Input must be visible and in DOM before focus
+        // Modal might be hidden, but input needs to be accessible
+        
+        // Step 1: Make modal visible FIRST (but keep it visually hidden with opacity)
+        // This ensures input is in the DOM and accessible
+        searchModal.removeAttribute('hidden');
+        searchModal.style.display = 'flex';
+        searchModal.style.opacity = '0'; // Visually hidden but in DOM
+        searchModal.style.visibility = 'visible';
+        
+        // Step 2: Ensure input is visible and ready
+        searchInput.removeAttribute('readonly');
+        searchInput.removeAttribute('disabled');
+        searchInput.setAttribute('tabindex', '0');
+        searchInput.style.display = 'block';
+        searchInput.style.visibility = 'visible';
+        searchInput.style.opacity = '1';
+        searchInput.style.pointerEvents = 'auto';
+        
+        // Step 3: Platform-specific keyboard opening
+        if (platform.isIOS) {
+          searchInput.setAttribute('readonly', 'readonly');
+          void searchInput.offsetHeight;
           searchInput.removeAttribute('readonly');
-          searchInput.removeAttribute('disabled');
-          searchInput.setAttribute('tabindex', '0');
-          
-          // Step 2: Platform-specific keyboard opening strategy
-          if (platform.isIOS) {
-            // iOS requires readonly trick for programmatic keyboard
-            searchInput.setAttribute('readonly', 'readonly');
-            void searchInput.offsetHeight; // Force reflow
-            searchInput.removeAttribute('readonly');
-          }
-          
-          // Step 3: Focus input NOW (while user interaction is valid)
-          // This works for both Android and iOS
-          searchInput.focus();
-          
-          // Step 4: Set selection to trigger keyboard (helps on both platforms)
-          if (searchInput.setSelectionRange) {
-            const len = searchInput.value.length;
-            searchInput.setSelectionRange(len, len);
-          }
-          
-          // Step 5: Android webview sometimes needs click() as well
-          if (platform.isAndroid && document.activeElement !== searchInput) {
-            searchInput.click();
-            searchInput.focus();
-          }
         }
         
-        // Step 6: NOW open modal (input is already focused)
-        openSearchModal(e);
+        // Step 4: Focus input NOW (input is visible and in DOM)
+        searchInput.focus();
+        
+        // Step 5: Set selection to trigger keyboard
+        if (searchInput.setSelectionRange) {
+          const len = searchInput.value.length;
+          searchInput.setSelectionRange(len, len);
+        }
+        
+        // Step 6: Android fallback
+        if (platform.isAndroid && document.activeElement !== searchInput) {
+          searchInput.click();
+          searchInput.focus();
+        }
+        
+        // Step 7: NOW show modal with animation (input is already focused)
+        searchModal.classList.add('modal-open');
+        searchModal.style.opacity = '1';
+        
+        // Step 8: Show recent searches
+        if (!searchInput.value || !searchInput.value.trim()) {
+          renderRecentSearches();
+        }
       };
       
       searchBtn.addEventListener('click', handleSearchClick);
