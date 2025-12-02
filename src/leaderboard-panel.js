@@ -945,9 +945,11 @@
         searchResults.innerHTML = '';
       }
       
-      // Hide spinner
-      if (searchSpinner && searchSpinner.parentElement) {
-        searchSpinner.parentElement.hidden = true;
+      // Hide spinner - FORCE HIDE
+      const loadingEl = document.querySelector('[data-search-loading]');
+      if (loadingEl) {
+        loadingEl.hidden = true;
+        loadingEl.style.display = 'none'; // Force hide with inline style
       }
       
       // Hide clear button
