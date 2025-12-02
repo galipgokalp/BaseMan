@@ -830,11 +830,38 @@
       }
     };
 
+    // Body scroll lock for modal
+    let originalBodyOverflow = '';
+    let originalBodyPaddingRight = '';
+    
+    const lockBodyScroll = () => {
+      if (document.body) {
+        originalBodyOverflow = document.body.style.overflow || '';
+        originalBodyPaddingRight = document.body.style.paddingRight || '';
+        // Calculate scrollbar width to prevent layout shift
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        document.body.style.overflow = 'hidden';
+        if (scrollbarWidth > 0) {
+          document.body.style.paddingRight = `${scrollbarWidth}px`;
+        }
+      }
+    };
+    
+    const unlockBodyScroll = () => {
+      if (document.body) {
+        document.body.style.overflow = originalBodyOverflow;
+        document.body.style.paddingRight = originalBodyPaddingRight;
+      }
+    };
+
     const closeSearchModal = () => {
       if (!searchModal) return;
       
       // Remove open class for closing animation
       searchModal.classList.remove('modal-open');
+      
+      // Unlock body scroll
+      unlockBodyScroll();
       
       // Clear search state immediately
       if (searchInput) {
@@ -862,7 +889,7 @@
         if (allEntries && allEntries.length > 0) {
           renderRows(allEntries);
         }
-      }, 200); // Match CSS animation duration
+      }, 300); // Match CSS animation duration (0.3s)
       
       if (searchTimeout) {
         clearTimeout(searchTimeout);
@@ -1044,14 +1071,26 @@
     };
     
     const updateSelectedResult = (resultItems) => {
+      // Optimize: Use DocumentFragment for batch DOM updates
+      const fragment = document.createDocumentFragment();
+      let selectedItem = null;
+      
       resultItems.forEach((item, index) => {
         if (index === selectedResultIndex) {
           item.classList.add('leaderboard-search-result-selected');
-          item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          selectedItem = item;
         } else {
           item.classList.remove('leaderboard-search-result-selected');
         }
       });
+      
+      // Scroll only once for selected item (optimized)
+      if (selectedItem) {
+        // Use requestAnimationFrame for smooth scrolling
+        requestAnimationFrame(() => {
+          selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      }
     };
 
     if (searchBtn) {
@@ -1061,65 +1100,63 @@
         
         if (!searchInput || !searchModal) return;
         
-        // NEW APPROACH: Bottom sheet modal with input at top
-        // Step 1: Open modal (input is already in DOM, visible)
+        // OPTIMIZED: Top sheet modal with optimized focus strategy
+        // Step 1: Lock body scroll
+        lockBodyScroll();
+        
+        // Step 2: Open modal (input is already in DOM, visible)
         searchModal.removeAttribute('hidden');
         
-        // Step 2: Trigger animation
+        // Step 3: Trigger animation in next frame
         requestAnimationFrame(() => {
           searchModal.classList.add('modal-open');
         });
         
-        // Step 3: Prepare input
+        // Step 4: Prepare input
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
         searchInput.setAttribute('tabindex', '0');
         
-        // Step 4: Show recent searches if input is empty
+        // Step 5: Show recent searches if input is empty (defer to avoid blocking)
         if (!searchInput.value || !searchInput.value.trim()) {
-          renderRecentSearches();
+          requestAnimationFrame(() => {
+            renderRecentSearches();
+          });
         }
         
-        // Step 5: Focus input IMMEDIATELY while user interaction is still valid
+        // Step 6: Focus input IMMEDIATELY while user interaction is still valid
         // This is critical for mobile webviews - focus must happen during the click event
-        searchInput.focus();
-        
-        // Step 6: Set selection to trigger keyboard
-        if (searchInput.setSelectionRange) {
-          const len = searchInput.value.length;
-          searchInput.setSelectionRange(len, len);
-        }
-        
-        // Step 7: Platform-specific handling
-        if (platform.isIOS) {
-          // iOS readonly trick - forces keyboard to open
-          searchInput.setAttribute('readonly', 'readonly');
-          void searchInput.offsetHeight; // Force reflow
-          searchInput.removeAttribute('readonly');
+        const focusInput = () => {
           searchInput.focus();
           if (searchInput.setSelectionRange) {
             const len = searchInput.value.length;
             searchInput.setSelectionRange(len, len);
           }
-        }
+        };
         
-        if (platform.isAndroid) {
+        // Immediate focus
+        focusInput();
+        
+        // Step 7: Platform-specific handling (optimized)
+        if (platform.isIOS) {
+          // iOS readonly trick - forces keyboard to open
+          searchInput.setAttribute('readonly', 'readonly');
+          void searchInput.offsetHeight; // Force reflow
+          searchInput.removeAttribute('readonly');
+          focusInput();
+        } else if (platform.isAndroid) {
           // Android: Click as fallback
           searchInput.click();
-          searchInput.focus();
+          focusInput();
         }
         
-        // Step 8: Retry focus after modal animation (for stubborn webviews)
+        // Step 8: Retry focus after modal animation (single retry, optimized timing)
         requestAnimationFrame(() => {
           setTimeout(() => {
             if (document.activeElement !== searchInput) {
-              searchInput.focus();
-              if (searchInput.setSelectionRange) {
-                const len = searchInput.value.length;
-                searchInput.setSelectionRange(len, len);
-              }
+              focusInput();
             }
-          }, 100);
+          }, 150); // Slightly longer delay for animation to complete
         });
       };
       

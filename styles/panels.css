@@ -265,6 +265,10 @@
   padding-top: env(safe-area-inset-top, 0px);
   /* Prevent content from being cut off by keyboard */
   overflow: hidden;
+  /* Performance optimization */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .leaderboard-search-modal.modal-open .leaderboard-search-modal-content {
@@ -336,6 +340,8 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   /* Prevent body scroll when scrolling results */
+  /* Performance optimization */
+  contain: layout style paint;
 }
 
 /* Input Wrapper - Now in Header */
