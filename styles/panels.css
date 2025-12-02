@@ -295,9 +295,9 @@
 .leaderboard-search-modal-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  padding-top: calc(var(--spacing-sm) + env(safe-area-inset-top, 0px));
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  padding-top: calc(var(--spacing-xs) + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
@@ -307,10 +307,10 @@
   border: none;
   color: var(--color-text-primary);
   cursor: pointer;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,6 +319,12 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.15s ease;
+  padding: 0;
+}
+
+.leaderboard-search-close svg {
+  width: 18px;
+  height: 18px;
 }
 
 .leaderboard-search-close:hover {
@@ -331,10 +337,10 @@
 }
 
 .leaderboard-search-modal-body {
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -355,12 +361,12 @@
 
 .leaderboard-search-input {
   width: 100%;
-  padding: 12px 40px 12px 16px;
+  padding: 8px 32px 8px 12px;
   background: rgba(255, 255, 255, 0.05);
-  border: 2px solid var(--color-border);
-  border-radius: 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
   color: var(--color-text-primary);
-  font-size: 16px; /* Prevent zoom on iOS */
+  font-size: 14px; /* Scaled down from 16px, still prevents zoom on iOS (>=14px) */
   font-family: inherit;
   touch-action: manipulation;
   -webkit-tap-highlight-color: rgba(255, 225, 79, 0.2);
@@ -372,6 +378,7 @@
   /* Ensure input is always interactive */
   pointer-events: auto;
   cursor: text;
+  line-height: 1.4;
 }
 
 .leaderboard-search-input:focus {
@@ -388,15 +395,15 @@
 
 .leaderboard-search-clear {
   position: absolute;
-  right: 8px;
+  right: 6px;
   background: transparent;
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  width: 32px;
-  height: 32px;
-  min-width: 44px;
-  min-height: 44px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -406,6 +413,11 @@
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
   pointer-events: auto;
+}
+
+.leaderboard-search-clear svg {
+  width: 14px;
+  height: 14px;
 }
 
 .leaderboard-search-clear:hover {
@@ -422,16 +434,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.75rem;
 }
 
 .leaderboard-search-loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--color-border);
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
@@ -574,11 +586,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background-color 0.15s ease;
-  min-height: 48px;
+  min-height: 44px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: rgba(255, 225, 79, 0.2);
 }
@@ -597,15 +609,15 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-right: var(--spacing-md);
+  gap: 8px;
+  margin-right: var(--spacing-sm);
 }
 
 .leaderboard-search-result-avatar {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
@@ -613,6 +625,7 @@
   justify-content: center;
   background: rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
+  border: 1px solid var(--color-border);
 }
 
 .leaderboard-search-result-avatar img {
@@ -630,26 +643,28 @@
 .leaderboard-search-result-name-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   flex: 1;
 }
 
 .leaderboard-search-result-name {
   color: var(--color-text-primary);
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .leaderboard-search-result-right {
   flex-shrink: 0;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-align: right;
+  line-height: 1.3;
 }
 
 .leaderboard-item-highlight {
@@ -671,7 +686,8 @@
 .leaderboard-search-no-results {
   color: var(--color-text-muted);
   text-align: center;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
+  font-size: 0.8rem;
 }
 
 .wallet-header,
