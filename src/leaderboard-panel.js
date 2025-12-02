@@ -1135,6 +1135,12 @@
         searchInput.removeAttribute('disabled');
         searchInput.setAttribute('tabindex', '0');
         
+        // Step 4.5: Ensure loading is hidden when modal opens
+        if (searchLoading) {
+          searchLoading.hidden = true;
+        }
+        isSearching = false;
+        
         // Step 5: Show recent searches if input is empty (defer to avoid blocking)
         if (!searchInput.value || !searchInput.value.trim()) {
           requestAnimationFrame(() => {
