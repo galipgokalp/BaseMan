@@ -317,42 +317,21 @@ body.theme-light .canvas-container {
 }
 
 /* ===== Leaderboard Search Modal - Enhanced (Modern Theme) ===== */
-.leaderboard-search-modal {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-
-.leaderboard-search-modal[hidden] {
-  display: none !important;
-}
-
-.leaderboard-search-modal.modal-open {
-  opacity: 1;
-  visibility: visible;
+/* Search Modal - Modern Theme Overrides */
+.leaderboard-search-modal-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .leaderboard-search-modal-content {
   background: rgba(20, 20, 32, 0.98);
-  border: 2px solid var(--color-border-bright);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
-  pointer-events: auto;
-  z-index: 1;
+  border-top: 2px solid var(--color-border-bright);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
 }
 
-.leaderboard-search-modal-header {
-  border-bottom: 1px solid var(--color-border);
-  position: relative;
-  z-index: 2;
-}
-
-.leaderboard-search-modal-header h3 {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-glow) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.leaderboard-search-modal-handle {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .leaderboard-search-close:hover {
@@ -360,68 +339,16 @@ body.theme-light .canvas-container {
   color: var(--color-primary);
 }
 
-.leaderboard-search-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  z-index: 10;
-  /* Don't block pointer events - let input handle them */
-  pointer-events: none;
-}
-
 .leaderboard-search-input {
-  width: 100%;
-  padding: var(--spacing-sm);
-  padding-right: 36px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
   color: var(--color-text-primary);
-  font-size: 0.9rem;
-  font-family: inherit;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: rgba(255, 225, 79, 0.3);
-  user-select: text;
-  -webkit-user-select: text;
-  -webkit-appearance: none;
-  appearance: none;
-  pointer-events: auto !important;
-  cursor: text !important;
-  z-index: 11;
-  position: relative;
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-  /* Ensure input is always interactive */
-  -webkit-touch-callout: default;
-  /* No transitions - instant response */
 }
 
 .leaderboard-search-input:focus {
-  outline: none;
   border-color: var(--color-primary);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 2px rgba(255, 225, 79, 0.2);
-  /* No transitions - instant response */
-}
-
-.leaderboard-search-clear {
-  position: absolute;
-  right: 8px;
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 1.2rem;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  padding: 0;
-  line-height: 1;
-  /* No transitions - instant response */
+  box-shadow: 0 0 0 3px rgba(255, 225, 79, 0.15);
 }
 
 .leaderboard-search-clear:hover {
@@ -430,7 +357,7 @@ body.theme-light .canvas-container {
 }
 
 .leaderboard-search-clear:active {
-  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .leaderboard-search-count {

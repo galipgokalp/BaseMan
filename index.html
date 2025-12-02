@@ -56,24 +56,66 @@
         </div>
       </section>
     </div>
-    <!-- Search Modal - Enhanced with better UX -->
-    <div class="leaderboard-search-modal" data-search-modal hidden>
+    <!-- Search Modal - Redesigned for Mobile UX -->
+    <div class="leaderboard-search-modal" data-search-modal hidden role="dialog" aria-modal="true" aria-labelledby="search-modal-title">
+      <div class="leaderboard-search-modal-backdrop" data-search-backdrop></div>
       <div class="leaderboard-search-modal-content">
+        <!-- Drag Handle for Mobile -->
+        <div class="leaderboard-search-modal-handle" aria-hidden="true"></div>
+        
+        <!-- Header with Input (Input at top for better mobile UX) -->
         <div class="leaderboard-search-modal-header">
-          <h3>Search User</h3>
-          <button type="button" class="leaderboard-search-close" data-search-close aria-label="Close search">×</button>
-        </div>
-        <div class="leaderboard-search-modal-body">
           <div class="leaderboard-search-input-wrapper">
-            <input type="text" class="leaderboard-search-input" data-search-input placeholder="Search by username, name, or address..." autocomplete="off" inputmode="text" />
-            <button type="button" class="leaderboard-search-clear" data-search-clear title="Clear search" aria-label="Clear search" hidden>×</button>
+            <input 
+              type="text" 
+              class="leaderboard-search-input" 
+              data-search-input 
+              placeholder="Search by username, name, or address..." 
+              autocomplete="off" 
+              inputmode="text"
+              aria-label="Search users"
+              aria-describedby="search-input-hint"
+            />
+            <button 
+              type="button" 
+              class="leaderboard-search-clear" 
+              data-search-clear 
+              title="Clear search" 
+              aria-label="Clear search" 
+              hidden
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
           </div>
+          <button 
+            type="button" 
+            class="leaderboard-search-close" 
+            data-search-close 
+            aria-label="Close search"
+            title="Close"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Body with Results -->
+        <div class="leaderboard-search-modal-body">
           <div class="leaderboard-search-loading" data-search-loading hidden>
             <div class="leaderboard-search-loading-spinner"></div>
             <span>Searching...</span>
           </div>
-          <div class="leaderboard-recent-searches" data-recent-searches hidden></div>
-          <div class="leaderboard-search-results" data-search-results></div>
+          <div class="leaderboard-recent-searches" data-recent-searches hidden>
+            <div class="leaderboard-recent-searches-header">
+              <span>Recent Searches</span>
+              <button type="button" class="leaderboard-recent-clear" data-recent-clear aria-label="Clear recent searches">Clear</button>
+            </div>
+            <div class="leaderboard-recent-searches-list"></div>
+          </div>
+          <div class="leaderboard-search-results" data-search-results role="listbox" aria-label="Search results"></div>
         </div>
       </div>
     </div>

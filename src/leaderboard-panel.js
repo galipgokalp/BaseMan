@@ -691,6 +691,8 @@
     const searchClear = document.querySelector('[data-search-clear]');
     const searchLoading = document.querySelector('[data-search-loading]');
     const recentSearches = document.querySelector('[data-recent-searches]');
+    const searchBackdrop = document.querySelector('[data-search-backdrop]');
+    const recentClear = document.querySelector('[data-recent-clear]');
     
     // Search state
     let searchTimeout = null;
@@ -731,34 +733,44 @@
       if (!recentSearches) return;
       const recent = getRecentSearches();
       if (recent.length === 0) {
-        recentSearches.innerHTML = '';
         recentSearches.hidden = true;
         return;
       }
       
       recentSearches.hidden = false;
-      const fragment = document.createDocumentFragment();
-      const list = document.createElement('div');
-      list.className = 'leaderboard-recent-searches-list';
+      const listContainer = recentSearches.querySelector('.leaderboard-recent-searches-list');
+      if (!listContainer) return;
       
-      recent.forEach((query, index) => {
+      // Clear existing items
+      listContainer.innerHTML = '';
+      
+      recent.forEach((query) => {
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'leaderboard-recent-search-item';
         item.textContent = query;
-        item.addEventListener('click', () => {
+        item.setAttribute('aria-label', `Search for ${query}`);
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           if (searchInput) {
             searchInput.value = query;
             searchInput.focus();
             performSearch(query);
           }
         });
-        list.appendChild(item);
+        listContainer.appendChild(item);
       });
-      
-      fragment.appendChild(list);
-      recentSearches.innerHTML = '';
-      recentSearches.appendChild(fragment);
+    };
+    
+    // Clear recent searches
+    const clearRecentSearches = () => {
+      try {
+        localStorage.removeItem('baseman_recent_searches');
+        renderRecentSearches();
+      } catch {
+        // Ignore storage errors
+      }
     };
     
     // Highlight search term in text
@@ -1049,56 +1061,55 @@
         
         if (!searchInput || !searchModal) return;
         
-        // REVOLUTIONARY SOLUTION: Simulate touch event on input to trigger keyboard
-        // This is the only way to reliably open keyboard on mobile webviews
-        
-        // Step 1: Open modal first
+        // NEW APPROACH: Bottom sheet modal with input at top
+        // Step 1: Open modal (input is already in DOM, visible)
         searchModal.removeAttribute('hidden');
-        searchModal.classList.add('modal-open');
         
-        // Step 2: Prepare input
+        // Step 2: Trigger animation
+        requestAnimationFrame(() => {
+          searchModal.classList.add('modal-open');
+        });
+        
+        // Step 3: Prepare input
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
         searchInput.setAttribute('tabindex', '0');
-        searchInput.style.display = 'block';
-        searchInput.style.visibility = 'visible';
-        searchInput.style.opacity = '1';
-        searchInput.style.pointerEvents = 'auto';
         
-        // Step 3: Show recent searches if input is empty
+        // Step 4: Show recent searches if input is empty
         if (!searchInput.value || !searchInput.value.trim()) {
           renderRecentSearches();
         }
         
-        // Step 4: Trigger keyboard by simulating user interaction
-        // Mobile webviews require actual user interaction - we use the button click event
-        // and immediately focus the input while that interaction is still valid
-        
-        // Focus input immediately (while button click event is still active)
+        // Step 5: Focus input IMMEDIATELY while user interaction is still valid
+        // This is critical for mobile webviews - focus must happen during the click event
         searchInput.focus();
         
-        // Set selection to trigger keyboard
+        // Step 6: Set selection to trigger keyboard
         if (searchInput.setSelectionRange) {
           const len = searchInput.value.length;
           searchInput.setSelectionRange(len, len);
         }
         
-        // Platform-specific handling
+        // Step 7: Platform-specific handling
         if (platform.isIOS) {
-          // iOS readonly trick
+          // iOS readonly trick - forces keyboard to open
           searchInput.setAttribute('readonly', 'readonly');
-          void searchInput.offsetHeight;
+          void searchInput.offsetHeight; // Force reflow
           searchInput.removeAttribute('readonly');
           searchInput.focus();
+          if (searchInput.setSelectionRange) {
+            const len = searchInput.value.length;
+            searchInput.setSelectionRange(len, len);
+          }
         }
         
-        // Android: Click as well
         if (platform.isAndroid) {
+          // Android: Click as fallback
           searchInput.click();
           searchInput.focus();
         }
         
-        // Also try after modal is fully visible (for webviews that need it)
+        // Step 8: Retry focus after modal animation (for stubborn webviews)
         requestAnimationFrame(() => {
           setTimeout(() => {
             if (document.activeElement !== searchInput) {
@@ -1108,7 +1119,7 @@
                 searchInput.setSelectionRange(len, len);
               }
             }
-          }, 50);
+          }, 100);
         });
       };
       
@@ -1168,12 +1179,30 @@
       });
     }
 
-    // Close modal when clicking outside
+    // Close modal when clicking backdrop
+    if (searchBackdrop) {
+      searchBackdrop.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSearchModal();
+      });
+    }
+    
+    // Also close when clicking modal background (fallback)
     if (searchModal) {
       searchModal.addEventListener('click', (e) => {
         if (e.target === searchModal) {
           closeSearchModal();
         }
+      });
+    }
+    
+    // Clear recent searches button
+    if (recentClear) {
+      recentClear.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearRecentSearches();
       });
     }
     

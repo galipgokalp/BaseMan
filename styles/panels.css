@@ -196,34 +196,26 @@
 }
 
 /* Search Modal - Enhanced with smooth animations and better UX */
+/* ============================================
+   SEARCH MODAL - REDESIGNED FOR MOBILE UX
+   Bottom Sheet Style Modal with Better Keyboard Handling
+   ============================================ */
+
 .leaderboard-search-modal {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   z-index: 100000;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: var(--spacing-md);
-  padding-top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  flex-direction: column;
+  justify-content: flex-end;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-}
-
-/* When keyboard is open on mobile, adjust modal position */
-@supports (height: 100dvh) {
-  .leaderboard-search-modal {
-    min-height: 100dvh;
-  }
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s;
+  /* Prevent body scroll when modal is open */
+  overscroll-behavior: contain;
 }
 
 .leaderboard-search-modal[hidden] {
@@ -235,63 +227,96 @@
   visibility: visible;
 }
 
-.leaderboard-search-modal-content {
-  background: rgba(20, 20, 32, 0.98);
-  border: 2px solid var(--color-border-bright);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 400px;
-  max-height: calc(100dvh - var(--spacing-md) * 2 - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-  margin-top: max(env(safe-area-inset-top, 0px), var(--spacing-md));
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  position: relative;
-  z-index: 1;
-  transform: translateY(20px) scale(0.95);
+/* Backdrop */
+.leaderboard-search-modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   opacity: 0;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.leaderboard-search-modal.modal-open .leaderboard-search-modal-content {
-  transform: translateY(0) scale(1);
+.leaderboard-search-modal.modal-open .leaderboard-search-modal-backdrop {
   opacity: 1;
 }
 
-.leaderboard-search-modal-header {
+/* Modal Content - Bottom Sheet Style */
+.leaderboard-search-modal-content {
+  background: rgba(20, 20, 32, 0.98);
+  border-top: 2px solid var(--color-border-bright);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  width: 100%;
+  max-height: 90vh;
+  max-height: 90dvh;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  flex-direction: column;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 1;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Safe area support */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Prevent content from being cut off by keyboard */
+  overflow: hidden;
 }
 
-.leaderboard-search-modal-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: var(--color-text-primary);
-  font-weight: 600;
+.leaderboard-search-modal.modal-open .leaderboard-search-modal-content {
+  transform: translateY(0);
+}
+
+/* Drag Handle for Mobile */
+.leaderboard-search-modal-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin: 8px auto;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.leaderboard-search-modal-handle:active {
+  cursor: grabbing;
+}
+
+/* Header with Input at Top */
+.leaderboard-search-modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  /* Safe area support */
+  padding-top: calc(var(--spacing-sm) + env(safe-area-inset-top, 0px));
 }
 
 .leaderboard-search-close {
   background: transparent;
   border: none;
   color: var(--color-text-primary);
-  font-size: 1.5rem;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   min-width: 44px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  pointer-events: auto !important;
-  z-index: 100;
-  position: relative;
+  flex-shrink: 0;
   touch-action: manipulation;
-  /* No transitions - instant response */
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease;
 }
 
 .leaderboard-search-close:hover {
@@ -300,6 +325,7 @@
 
 .leaderboard-search-close:active {
   background: rgba(255, 255, 255, 0.15);
+  transform: scale(0.95);
 }
 
 .leaderboard-search-modal-body {
@@ -307,32 +333,85 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  /* Prevent body scroll when scrolling results */
+}
+
+/* Input Wrapper - Now in Header */
+.leaderboard-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0; /* Allow flex item to shrink */
 }
 
 .leaderboard-search-input {
   width: 100%;
-  padding: var(--spacing-sm);
+  padding: 12px 40px 12px 16px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
   color: var(--color-text-primary);
-  font-size: 0.9rem;
+  font-size: 16px; /* Prevent zoom on iOS */
   font-family: inherit;
   touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: rgba(255, 225, 79, 0.2);
   user-select: text;
   -webkit-user-select: text;
-  /* No transitions - instant response */
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  /* Ensure input is always interactive */
+  pointer-events: auto;
+  cursor: text;
 }
 
 .leaderboard-search-input:focus {
   outline: none;
   border-color: var(--color-primary);
   background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 225, 79, 0.15);
 }
 
 .leaderboard-search-input::placeholder {
   color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.leaderboard-search-clear {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  pointer-events: auto;
+}
+
+.leaderboard-search-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+}
+
+.leaderboard-search-clear:active {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(0.9);
 }
 
 .leaderboard-search-loading {
@@ -358,8 +437,42 @@
   to { transform: rotate(360deg); }
 }
 
+/* Recent Searches */
 .leaderboard-recent-searches {
   padding: var(--spacing-sm) 0;
+  flex-shrink: 0;
+}
+
+.leaderboard-recent-searches-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xs) 0;
+  margin-bottom: var(--spacing-xs);
+}
+
+.leaderboard-recent-searches-header span {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.leaderboard-recent-clear {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+}
+
+.leaderboard-recent-clear:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
 }
 
 .leaderboard-recent-searches-list {
@@ -371,12 +484,17 @@
 .leaderboard-recent-search-item {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 20px;
+  padding: 8px 16px;
   color: var(--color-text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: all 0.15s ease;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .leaderboard-recent-search-item:hover {
@@ -387,15 +505,17 @@
 
 .leaderboard-recent-search-item:active {
   transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .leaderboard-search-results {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
   padding: var(--spacing-xs) 0;
-  max-height: 60vh;
+  flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .leaderboard-search-results-container {
