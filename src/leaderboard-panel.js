@@ -103,6 +103,17 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     });
   };
 
+  // Helper to update DOM visibility
+  const updatePanelVisibility = (visible) => {
+    if (visible) {
+      panel.removeAttribute('hidden');
+      panel.classList.add('open');
+    } else {
+      panel.setAttribute('hidden', '');
+      panel.classList.remove('open');
+    }
+  };
+
   // Initialize panel
   const init = () => {
     // Determine initial visibility
@@ -116,15 +127,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     
     // Set visibility
     setVisible(initialVisible, {
-      onChange: (visible) => {
-        if (visible) {
-          panel.removeAttribute('hidden');
-          panel.classList.add('open');
-        } else {
-          panel.setAttribute('hidden', '');
-          panel.classList.remove('open');
-        }
-      },
+      onChange: updatePanelVisibility,
       onShow: loadLeaderboardData,
       reload: true
     });
@@ -135,7 +138,10 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       const handleClose = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setVisible(false, { reload: false });
+        setVisible(false, { 
+          reload: false,
+          onChange: updatePanelVisibility
+        });
         if (window.BottomNav) {
           window.BottomNav.setActive(null);
         }
@@ -189,35 +195,22 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     show() {
       window.__BaseManLeaderboardDesiredVisible = true;
       setVisible(true, {
-        onChange: (visible) => {
-          if (visible) {
-            panel.removeAttribute('hidden');
-            panel.classList.add('open');
-          } else {
-            panel.setAttribute('hidden', '');
-            panel.classList.remove('open');
-          }
-        },
+        onChange: updatePanelVisibility,
         onShow: loadLeaderboardData,
         reload: true
       });
     },
     hide() {
       window.__BaseManLeaderboardDesiredVisible = false;
-      setVisible(false, { reload: false });
+      setVisible(false, { 
+        reload: false,
+        onChange: updatePanelVisibility
+      });
     },
     setVisible(value, options = {}) {
       window.__BaseManLeaderboardDesiredVisible = Boolean(value);
       setVisible(value, {
-        onChange: (visible) => {
-          if (visible) {
-            panel.removeAttribute('hidden');
-            panel.classList.add('open');
-          } else {
-            panel.setAttribute('hidden', '');
-            panel.classList.remove('open');
-          }
-        },
+        onChange: updatePanelVisibility,
         onShow: loadLeaderboardData,
         ...options
       });
