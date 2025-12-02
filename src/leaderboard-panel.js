@@ -1039,55 +1039,50 @@
         
         if (!searchInput || !searchModal) return;
         
-        // CRITICAL INSIGHT: Input must be visible and in DOM before focus
-        // Modal might be hidden, but input needs to be accessible
+        // PROVEN SOLUTION: Open modal first, then focus after animation completes
+        // This is the most reliable approach based on community solutions
         
-        // Step 1: Make modal visible FIRST (but keep it visually hidden with opacity)
-        // This ensures input is in the DOM and accessible
+        // Step 1: Open modal (with animation)
         searchModal.removeAttribute('hidden');
-        searchModal.style.display = 'flex';
-        searchModal.style.opacity = '0'; // Visually hidden but in DOM
-        searchModal.style.visibility = 'visible';
+        searchModal.classList.add('modal-open');
         
-        // Step 2: Ensure input is visible and ready
+        // Step 2: Prepare input
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
         searchInput.setAttribute('tabindex', '0');
-        searchInput.style.display = 'block';
-        searchInput.style.visibility = 'visible';
-        searchInput.style.opacity = '1';
-        searchInput.style.pointerEvents = 'auto';
         
-        // Step 3: Platform-specific keyboard opening
-        if (platform.isIOS) {
-          searchInput.setAttribute('readonly', 'readonly');
-          void searchInput.offsetHeight;
-          searchInput.removeAttribute('readonly');
-        }
-        
-        // Step 4: Focus input NOW (input is visible and in DOM)
-        searchInput.focus();
-        
-        // Step 5: Set selection to trigger keyboard
-        if (searchInput.setSelectionRange) {
-          const len = searchInput.value.length;
-          searchInput.setSelectionRange(len, len);
-        }
-        
-        // Step 6: Android fallback
-        if (platform.isAndroid && document.activeElement !== searchInput) {
-          searchInput.click();
-          searchInput.focus();
-        }
-        
-        // Step 7: NOW show modal with animation (input is already focused)
-        searchModal.classList.add('modal-open');
-        searchModal.style.opacity = '1';
-        
-        // Step 8: Show recent searches
+        // Step 3: Show recent searches if input is empty
         if (!searchInput.value || !searchInput.value.trim()) {
           renderRecentSearches();
         }
+        
+        // Step 4: Focus input AFTER modal animation completes (300ms delay)
+        // This is the proven solution from Stack Overflow and community
+        // The delay ensures modal is fully visible and input is accessible
+        setTimeout(() => {
+          // Platform-specific keyboard opening
+          if (platform.isIOS) {
+            // iOS readonly trick
+            searchInput.setAttribute('readonly', 'readonly');
+            void searchInput.offsetHeight; // Force reflow
+            searchInput.removeAttribute('readonly');
+          }
+          
+          // Focus input
+          searchInput.focus();
+          
+          // Set selection to trigger keyboard
+          if (searchInput.setSelectionRange) {
+            const len = searchInput.value.length;
+            searchInput.setSelectionRange(len, len);
+          }
+          
+          // Android fallback
+          if (platform.isAndroid && document.activeElement !== searchInput) {
+            searchInput.click();
+            searchInput.focus();
+          }
+        }, 300); // 300ms delay - proven to work in community solutions
       };
       
       searchBtn.addEventListener('click', handleSearchClick);
