@@ -948,6 +948,7 @@
       
       // Debounce search
       searchTimeout = setTimeout(() => {
+        // Hide loading immediately when search completes
         isSearching = false;
         if (searchLoading) {
           searchLoading.hidden = true;
@@ -971,6 +972,10 @@
           }
           selectedResultIndex = -1;
           currentSearchResults = [];
+          // Ensure loading is hidden
+          if (searchLoading) {
+            searchLoading.hidden = true;
+          }
           return;
         }
 
@@ -989,6 +994,11 @@
 
         currentSearchResults = filtered;
         selectedResultIndex = -1;
+
+        // Hide loading before rendering results
+        if (searchLoading) {
+          searchLoading.hidden = true;
+        }
 
         if (filtered.length === 0) {
           if (searchResults) {
@@ -1042,6 +1052,11 @@
               
               searchResults.innerHTML = '';
               searchResults.appendChild(fragment);
+              
+              // Ensure loading is hidden after render
+              if (searchLoading) {
+                searchLoading.hidden = true;
+              }
             });
           }
         }
@@ -1158,6 +1173,10 @@
           setTimeout(() => {
             if (document.activeElement !== searchInput) {
               focusInput();
+            }
+            // Ensure loading is still hidden after animation
+            if (searchLoading) {
+              searchLoading.hidden = true;
             }
           }, 150); // Slightly longer delay for animation to complete
         });
