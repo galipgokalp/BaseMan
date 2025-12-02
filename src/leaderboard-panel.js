@@ -773,63 +773,60 @@
       searchModal.setAttribute('hidden', '');
       searchModal.classList.remove('modal-open');
     }
+    
+    // Prepare input for mobile keyboard - ensure it's always ready
+    if (searchInput) {
+      // Set inputmode for better mobile keyboard
+      searchInput.setAttribute('inputmode', 'text');
+      searchInput.setAttribute('autocomplete', 'off');
+      // Ensure input is not readonly initially
+      searchInput.removeAttribute('readonly');
+    }
 
-    const openSearchModal = () => {
+    const openSearchModal = (userEvent = null) => {
       if (!searchModal || !searchInput) {
         console.warn('[leaderboard-panel] Cannot open modal: searchModal or searchInput missing');
         return;
       }
       
-      // Remove hidden attribute and add open class for animation
-      searchModal.removeAttribute('hidden');
-      searchModal.classList.add('modal-open');
-      
-      // Prepare input - ensure it's ready for focus
+      // CRITICAL: Prepare input FIRST, before opening modal
+      // This ensures input is ready when modal opens
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
       searchInput.setAttribute('tabindex', '0');
+      
+      // Remove hidden attribute and add open class for animation
+      searchModal.removeAttribute('hidden');
+      searchModal.classList.add('modal-open');
       
       // Show recent searches if input is empty
       if (!searchInput.value || !searchInput.value.trim()) {
         renderRecentSearches();
       }
       
-      // iOS Safari keyboard trick: Use readonly to enable programmatic focus
-      // This is the most reliable method for iOS Safari
-      const openKeyboard = () => {
-        // Step 1: Set readonly (iOS Safari requires this for programmatic focus)
-        searchInput.setAttribute('readonly', 'readonly');
-        
-        // Step 2: Force reflow to ensure readonly is applied
-        void searchInput.offsetHeight;
-        
-        // Step 3: Remove readonly and focus immediately (must be synchronous)
-        searchInput.removeAttribute('readonly');
+      // CRITICAL FOR iOS: Focus must happen SYNCHRONOUSLY while user interaction is valid
+      // No setTimeout, no requestAnimationFrame - must be immediate
+      // iOS Safari only allows programmatic keyboard opening during user interaction
+      
+      // Step 1: iOS Safari readonly trick (MUST be first, synchronous)
+      searchInput.setAttribute('readonly', 'readonly');
+      void searchInput.offsetHeight; // Force reflow
+      searchInput.removeAttribute('readonly');
+      
+      // Step 2: Focus immediately (while user interaction is still valid)
+      searchInput.focus();
+      
+      // Step 3: Set selection to trigger keyboard (helps on iOS)
+      if (searchInput.setSelectionRange) {
+        const len = searchInput.value.length;
+        searchInput.setSelectionRange(len, len);
+      }
+      
+      // Step 4: Click as backup (preserves user interaction chain)
+      if (document.activeElement !== searchInput) {
+        searchInput.click();
         searchInput.focus();
-        
-        // Step 4: Set cursor position to end (helps trigger keyboard)
-        if (searchInput.setSelectionRange) {
-          const len = searchInput.value.length;
-          searchInput.setSelectionRange(len, len);
-        }
-        
-        // Step 5: Fallback - click if focus didn't work
-        if (document.activeElement !== searchInput) {
-          searchInput.click();
-          searchInput.focus();
-        }
-      };
-      
-      // Try immediately (while user interaction is still valid - critical for iOS)
-      openKeyboard();
-      
-      // Also try after a very short delay (for iOS Safari timing issues)
-      setTimeout(openKeyboard, 10);
-      
-      // And after animation frame (for smooth transitions)
-      requestAnimationFrame(() => {
-        setTimeout(openKeyboard, 10);
-      });
+      }
     };
 
     const closeSearchModal = () => {
@@ -1053,7 +1050,9 @@
       const handleSearchClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        openSearchModal();
+        // Pass the original event to preserve user interaction
+        // This is critical for iOS Safari to allow programmatic keyboard opening
+        openSearchModal(e);
       };
       
       searchBtn.addEventListener('click', handleSearchClick);
