@@ -794,28 +794,41 @@
         renderRecentSearches();
       }
       
-      // Aggressively focus input to open keyboard on mobile
-      // Use multiple strategies for maximum compatibility
-      const focusInput = () => {
-        // Strategy 1: Direct focus
+      // iOS Safari keyboard trick: Use readonly to enable programmatic focus
+      // This is the most reliable method for iOS Safari
+      const openKeyboard = () => {
+        // Step 1: Set readonly (iOS Safari requires this for programmatic focus)
+        searchInput.setAttribute('readonly', 'readonly');
+        
+        // Step 2: Force reflow to ensure readonly is applied
+        void searchInput.offsetHeight;
+        
+        // Step 3: Remove readonly and focus immediately (must be synchronous)
+        searchInput.removeAttribute('readonly');
         searchInput.focus();
         
-        // Strategy 2: Click if focus didn't work (for iOS)
+        // Step 4: Set cursor position to end (helps trigger keyboard)
+        if (searchInput.setSelectionRange) {
+          const len = searchInput.value.length;
+          searchInput.setSelectionRange(len, len);
+        }
+        
+        // Step 5: Fallback - click if focus didn't work
         if (document.activeElement !== searchInput) {
           searchInput.click();
           searchInput.focus();
         }
       };
       
-      // Try immediately (while user interaction is still valid)
-      focusInput();
+      // Try immediately (while user interaction is still valid - critical for iOS)
+      openKeyboard();
       
-      // Also try after a short delay (for slower devices)
-      setTimeout(focusInput, 50);
+      // Also try after a very short delay (for iOS Safari timing issues)
+      setTimeout(openKeyboard, 10);
       
       // And after animation frame (for smooth transitions)
       requestAnimationFrame(() => {
-        setTimeout(focusInput, 50);
+        setTimeout(openKeyboard, 10);
       });
     };
 
