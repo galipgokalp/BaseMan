@@ -820,6 +820,8 @@
     };
     
     // Open search modal with immediate keyboard
+    // CRITICAL: This function must be called from within a user gesture event handler
+    // (click/touchend) to preserve user gesture context for keyboard opening
     const openSearchModal = () => {
       if (!ensureSearchDOM()) return;
       
@@ -842,39 +844,62 @@
         searchSpinner.parentElement.hidden = true;
       }
       
-      // Show modal
+      // CRITICAL FIX 1: Remove hidden attribute FIRST to make modal visible
+      // This ensures input is in the DOM and can receive focus
       searchModal.removeAttribute('hidden');
       
-      // Trigger animation
+      // CRITICAL FIX 2: Prepare input immediately (remove readonly/disabled)
+      searchInput.removeAttribute('readonly');
+      searchInput.removeAttribute('disabled');
+      searchInput.setAttribute('tabindex', '0');
+      
+      // CRITICAL FIX 3: Focus IMMEDIATELY while user gesture context is still active
+      // This is the key to making keyboard open on iOS/Android
+      // We do this BEFORE the animation starts
+      if (isAndroid()) {
+        // Android: click() before focus for webview compatibility
+        try {
+          searchInput.click();
+        } catch (e) {}
+      }
+      
+      if (isIOS()) {
+        // iOS: Dispatch pointerdown event for reliable focus
+        try {
+          const ev = new PointerEvent('pointerdown', { bubbles: true, cancelable: true });
+          searchInput.dispatchEvent(ev);
+        } catch (e) {}
+      }
+      
+      // Common focus (works for both platforms after platform-specific tricks)
+      searchInput.focus({ preventScroll: true });
+      try {
+        const end = searchInput.value.length;
+        searchInput.setSelectionRange(end, end);
+      } catch (e) {}
+      
+      // CRITICAL FIX 4: Start animation AFTER focus (non-blocking)
+      // This allows keyboard to open while modal animates
       requestAnimationFrame(() => {
         searchModal.classList.add('modal-open');
         
-        // Focus input after modal becomes visible (rAF + setTimeout for reliability)
-        setTimeout(() => {
-          if (!searchInput) return;
-          
-          // 1) Android: Some webviews need click() before focus
-          if (isAndroid()) {
-            try {
-              searchInput.click();
-            } catch (e) {}
+        // Retry focus after animation starts (for stubborn webviews)
+        requestAnimationFrame(() => {
+          if (document.activeElement !== searchInput) {
+            if (isAndroid()) {
+              try {
+                searchInput.click();
+              } catch (e) {}
+            }
+            if (isIOS()) {
+              try {
+                const ev = new PointerEvent('pointerdown', { bubbles: true });
+                searchInput.dispatchEvent(ev);
+              } catch (e) {}
+            }
+            searchInput.focus({ preventScroll: true });
           }
-          
-          // 2) iOS: Dispatch pointerdown event for reliable focus
-          if (isIOS()) {
-            try {
-              const ev = new PointerEvent('pointerdown', { bubbles: true });
-              searchInput.dispatchEvent(ev);
-            } catch (e) {}
-          }
-          
-          // 3) Common focus + set cursor to end
-          searchInput.focus({ preventScroll: true });
-          try {
-            const end = searchInput.value.length;
-            searchInput.setSelectionRange(end, end);
-          } catch (e) {}
-        }, 60);
+        });
         
         // Attach visual viewport shim for keyboard adjustment
         attachViewportShim();
