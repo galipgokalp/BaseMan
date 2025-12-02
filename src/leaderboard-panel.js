@@ -894,10 +894,17 @@
         recentSearches.hidden = true;
       }
       
-      // Show loading state
-      if (searchLoading && query && query.trim()) {
-        searchLoading.hidden = false;
-        isSearching = true;
+      // Show loading state only if there's actual text to search
+      const hasQuery = query && query.trim();
+      if (searchLoading) {
+        if (hasQuery) {
+          searchLoading.hidden = false;
+          isSearching = true;
+        } else {
+          // Hide loading immediately if no query
+          searchLoading.hidden = true;
+          isSearching = false;
+        }
       }
       
       // Debounce search
@@ -1040,36 +1047,35 @@
         e.preventDefault();
         e.stopPropagation();
         
-        if (!searchInput || !searchModal || !inputWrapper) return;
+        if (!searchInput || !searchModal) return;
         
-        // REVOLUTIONARY SOLUTION: Move input outside modal, focus it, then move it back
-        // This ensures input is visible and accessible when focus happens
+        // FINAL SOLUTION: Make modal visible first (but transparent), focus input, then show modal
+        // This ensures input is in DOM and accessible when focus happens
         
-        // Step 1: Move input to body (temporarily, outside modal)
-        // Make it visible but off-screen
-        const originalParent = inputWrapper;
-        searchInput.style.position = 'fixed';
-        searchInput.style.left = '-9999px';
-        searchInput.style.top = '0';
-        searchInput.style.opacity = '1';
-        searchInput.style.visibility = 'visible';
-        searchInput.style.display = 'block';
-        searchInput.style.zIndex = '999999';
-        document.body.appendChild(searchInput);
+        // Step 1: Make modal visible in DOM (but transparent) - input becomes accessible
+        searchModal.removeAttribute('hidden');
+        searchModal.style.display = 'flex';
+        searchModal.style.opacity = '0';
+        searchModal.style.visibility = 'visible';
+        searchModal.style.pointerEvents = 'none'; // Don't block interactions yet
         
-        // Step 2: Prepare input
+        // Step 2: Ensure input is visible and ready
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
         searchInput.setAttribute('tabindex', '0');
+        searchInput.style.display = 'block';
+        searchInput.style.visibility = 'visible';
+        searchInput.style.opacity = '1';
+        searchInput.style.pointerEvents = 'auto';
         
-        // Step 3: Platform-specific keyboard opening (while input is in body)
+        // Step 3: Platform-specific keyboard opening
         if (platform.isIOS) {
           searchInput.setAttribute('readonly', 'readonly');
           void searchInput.offsetHeight;
           searchInput.removeAttribute('readonly');
         }
         
-        // Step 4: Focus input NOW (while it's in body and visible)
+        // Step 4: Focus input NOW (modal is in DOM, input is visible)
         searchInput.focus();
         
         // Step 5: Set selection to trigger keyboard
@@ -1084,29 +1090,12 @@
           searchInput.focus();
         }
         
-        // Step 7: Open modal (input is already focused in body)
-        searchModal.removeAttribute('hidden');
+        // Step 7: Show modal with animation (input is already focused)
+        searchModal.style.pointerEvents = 'auto';
         searchModal.classList.add('modal-open');
+        searchModal.style.opacity = '1';
         
-        // Step 8: Move input back to modal (keyboard should stay open)
-        // Use requestAnimationFrame to ensure focus is established
-        requestAnimationFrame(() => {
-          // Reset input styles
-          searchInput.style.position = '';
-          searchInput.style.left = '';
-          searchInput.style.top = '';
-          searchInput.style.zIndex = '';
-          
-          // Move input back to original position
-          originalParent.appendChild(searchInput);
-          
-          // Ensure input stays focused
-          if (document.activeElement !== searchInput) {
-            searchInput.focus();
-          }
-        });
-        
-        // Step 9: Show recent searches if input is empty
+        // Step 8: Show recent searches if input is empty
         if (!searchInput.value || !searchInput.value.trim()) {
           renderRecentSearches();
         }
