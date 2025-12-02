@@ -789,12 +789,6 @@
         return;
       }
       
-      // CRITICAL: Prepare input FIRST, before opening modal
-      // This ensures input is ready when modal opens
-      searchInput.removeAttribute('readonly');
-      searchInput.removeAttribute('disabled');
-      searchInput.setAttribute('tabindex', '0');
-      
       // Remove hidden attribute and add open class for animation
       searchModal.removeAttribute('hidden');
       searchModal.classList.add('modal-open');
@@ -804,27 +798,9 @@
         renderRecentSearches();
       }
       
-      // CRITICAL FOR iOS: Focus must happen SYNCHRONOUSLY while user interaction is valid
-      // No setTimeout, no requestAnimationFrame - must be immediate
-      // iOS Safari only allows programmatic keyboard opening during user interaction
-      
-      // Step 1: iOS Safari readonly trick (MUST be first, synchronous)
-      searchInput.setAttribute('readonly', 'readonly');
-      void searchInput.offsetHeight; // Force reflow
-      searchInput.removeAttribute('readonly');
-      
-      // Step 2: Focus immediately (while user interaction is still valid)
-      searchInput.focus();
-      
-      // Step 3: Set selection to trigger keyboard (helps on iOS)
-      if (searchInput.setSelectionRange) {
-        const len = searchInput.value.length;
-        searchInput.setSelectionRange(len, len);
-      }
-      
-      // Step 4: Click as backup (preserves user interaction chain)
+      // Input should already be focused from handleSearchClick
+      // Just ensure it's still focused after modal opens
       if (document.activeElement !== searchInput) {
-        searchInput.click();
         searchInput.focus();
       }
     };
@@ -1050,8 +1026,32 @@
       const handleSearchClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Pass the original event to preserve user interaction
-        // This is critical for iOS Safari to allow programmatic keyboard opening
+        
+        // CRITICAL: Prepare input and focus BEFORE opening modal
+        // This preserves user interaction for iOS Safari
+        if (searchInput && searchModal) {
+          // Step 1: Make input visible and ready (but keep modal hidden)
+          searchInput.removeAttribute('readonly');
+          searchInput.removeAttribute('disabled');
+          searchInput.setAttribute('tabindex', '0');
+          
+          // Step 2: iOS Safari trick - set readonly, then remove and focus
+          // This MUST happen while user interaction is valid
+          searchInput.setAttribute('readonly', 'readonly');
+          void searchInput.offsetHeight; // Force reflow
+          searchInput.removeAttribute('readonly');
+          
+          // Step 3: Focus input NOW (while user interaction is valid)
+          searchInput.focus();
+          
+          // Step 4: Set selection to trigger keyboard
+          if (searchInput.setSelectionRange) {
+            const len = searchInput.value.length;
+            searchInput.setSelectionRange(len, len);
+          }
+        }
+        
+        // Step 5: NOW open modal (input is already focused)
         openSearchModal(e);
       };
       
