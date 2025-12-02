@@ -195,14 +195,16 @@
   display: block;
 }
 
-/* Search Modal - Simplified for maximum performance */
+/* Search Modal - Enhanced with smooth animations and better UX */
 .leaderboard-search-modal {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 100000;
   display: flex;
   align-items: flex-start;
@@ -212,33 +214,25 @@
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* No animations, no GPU acceleration, no containment - keep it simple */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 /* When keyboard is open on mobile, adjust modal position */
 @supports (height: 100dvh) {
   .leaderboard-search-modal {
-    /* Use dynamic viewport height to account for keyboard */
     min-height: 100dvh;
   }
 }
 
 .leaderboard-search-modal[hidden] {
   display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
 }
 
-/* Ensure modal is visible when not hidden */
-.leaderboard-search-modal:not([hidden]) {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.leaderboard-search-modal.modal-open {
+  opacity: 1;
+  visibility: visible;
 }
 
 .leaderboard-search-modal-content {
@@ -254,18 +248,14 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   position: relative;
   z-index: 1;
-  /* No animations, no GPU acceleration, no containment - keep it simple */
+  transform: translateY(20px) scale(0.95);
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.leaderboard-search-modal.modal-open .leaderboard-search-modal-content {
+  transform: translateY(0) scale(1);
+  opacity: 1;
 }
 
 .leaderboard-search-modal-header {
@@ -345,6 +335,60 @@
   color: var(--color-text-muted);
 }
 
+.leaderboard-search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.leaderboard-search-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.leaderboard-recent-searches {
+  padding: var(--spacing-sm) 0;
+}
+
+.leaderboard-recent-searches-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.leaderboard-recent-search-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.leaderboard-recent-search-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.leaderboard-recent-search-item:active {
+  transform: scale(0.95);
+}
+
 .leaderboard-search-results {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
@@ -382,12 +426,39 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-sm);
-  /* No transitions - instant response */
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.leaderboard-search-list .leaderboard-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+.leaderboard-search-list .leaderboard-item:hover,
+.leaderboard-search-list .leaderboard-item.leaderboard-search-result-selected {
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+.leaderboard-search-list .leaderboard-item mark {
+  background: rgba(255, 225, 79, 0.3);
+  color: var(--color-primary);
+  font-weight: 600;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.leaderboard-item-highlight {
+  animation: highlightPulse 2s ease;
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--color-border);
+  }
+  50% {
+    background: rgba(255, 225, 79, 0.2);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 12px rgba(255, 225, 79, 0.4);
+  }
 }
 
 .leaderboard-search-no-results {

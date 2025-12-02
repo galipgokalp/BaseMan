@@ -318,21 +318,18 @@ body.theme-light .canvas-container {
 
 /* ===== Leaderboard Search Modal - Enhanced (Modern Theme) ===== */
 .leaderboard-search-modal {
-  background: rgba(0, 0, 0, 0.9); /* Darker background instead of blur for better performance */
-  /* backdrop-filter removed for better mobile performance */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .leaderboard-search-modal[hidden] {
   display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
 }
 
-/* Ensure modal is visible when not hidden */
-.leaderboard-search-modal:not([hidden]) {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+.leaderboard-search-modal.modal-open {
+  opacity: 1;
+  visibility: visible;
 }
 
 .leaderboard-search-modal-content {
@@ -343,10 +340,7 @@ body.theme-light .canvas-container {
   overflow: hidden;
   pointer-events: auto;
   z-index: 1;
-  /* No animations, no GPU acceleration, no containment - keep it simple */
 }
-
-/* Removed ::before animation for better performance */
 
 .leaderboard-search-modal-header {
   border-bottom: 1px solid var(--color-border);

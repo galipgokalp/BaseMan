@@ -682,22 +682,97 @@
       }
     });
 
-    // Search functionality
+    // Search functionality - Enhanced with better UX
     const searchBtn = panel.querySelector('[data-search-btn]');
-    // Search modal is now at body level (separated from Bottom Navigation Bar)
     const searchModal = document.querySelector('[data-search-modal]');
     const searchInput = document.querySelector('[data-search-input]');
     const searchResults = document.querySelector('[data-search-results]');
     const searchClose = document.querySelector('[data-search-close]');
     const searchClear = document.querySelector('[data-search-clear]');
+    const searchLoading = document.querySelector('[data-search-loading]');
+    const recentSearches = document.querySelector('[data-recent-searches]');
+    
+    // Search state
+    let searchTimeout = null;
+    let isSearching = false;
+    let selectedResultIndex = -1;
+    let currentSearchResults = [];
+    const MAX_RECENT_SEARCHES = 5;
+    const SEARCH_DEBOUNCE = 200; // Faster response (200ms instead of 300ms)
+    
+    // Recent searches storage
+    const getRecentSearches = () => {
+      try {
+        const stored = localStorage.getItem('baseman_recent_searches');
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    };
+    
+    const saveRecentSearch = (query) => {
+      if (!query || !query.trim()) return;
+      try {
+        const recent = getRecentSearches();
+        const trimmed = query.trim();
+        // Remove if already exists
+        const filtered = recent.filter(s => s.toLowerCase() !== trimmed.toLowerCase());
+        // Add to beginning
+        filtered.unshift(trimmed);
+        // Keep only MAX_RECENT_SEARCHES
+        const limited = filtered.slice(0, MAX_RECENT_SEARCHES);
+        localStorage.setItem('baseman_recent_searches', JSON.stringify(limited));
+      } catch {
+        // Ignore storage errors
+      }
+    };
+    
+    const renderRecentSearches = () => {
+      if (!recentSearches) return;
+      const recent = getRecentSearches();
+      if (recent.length === 0) {
+        recentSearches.innerHTML = '';
+        recentSearches.hidden = true;
+        return;
+      }
+      
+      recentSearches.hidden = false;
+      const fragment = document.createDocumentFragment();
+      const list = document.createElement('div');
+      list.className = 'leaderboard-recent-searches-list';
+      
+      recent.forEach((query, index) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'leaderboard-recent-search-item';
+        item.textContent = query;
+        item.addEventListener('click', () => {
+          if (searchInput) {
+            searchInput.value = query;
+            searchInput.focus();
+            performSearch(query);
+          }
+        });
+        list.appendChild(item);
+      });
+      
+      fragment.appendChild(list);
+      recentSearches.innerHTML = '';
+      recentSearches.appendChild(fragment);
+    };
+    
+    // Highlight search term in text
+    const highlightText = (text, searchTerm) => {
+      if (!searchTerm || !text) return text;
+      const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return text.replace(regex, '<mark>$1</mark>');
+    };
     
     // Ensure modal is closed on initialization
     if (searchModal) {
       searchModal.setAttribute('hidden', '');
+      searchModal.classList.remove('modal-open');
     }
-
-    // visualViewport handler removed for better performance
-    // Native browser behavior handles keyboard positioning better
 
     const openSearchModal = () => {
       if (!searchModal || !searchInput) {
@@ -705,49 +780,41 @@
         return;
       }
       
-      console.log('[leaderboard-panel] Opening search modal');
-      
-      // Simple, fast modal opening - no animations, no delays
+      // Remove hidden attribute and add open class for animation
       searchModal.removeAttribute('hidden');
-      searchModal.style.display = 'flex';
+      searchModal.classList.add('modal-open');
       
-      // Prepare input for interaction
+      // Prepare input
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
-      searchInput.setAttribute('autofocus', 'autofocus');
       
-      console.log('[leaderboard-panel] Input prepared, attempting focus...');
+      // Show recent searches if input is empty
+      if (!searchInput.value || !searchInput.value.trim()) {
+        renderRecentSearches();
+      }
       
-      // iOS Safari hack: Use readonly trick to enable programmatic focus
-      // This allows focus() to work on iOS when triggered by user interaction
-      searchInput.setAttribute('readonly', 'readonly');
-      
-      // Force reflow to ensure readonly is applied
-      void searchInput.offsetHeight;
-      
-      // Remove readonly and focus - this works on iOS when done synchronously
-      setTimeout(() => {
-        searchInput.removeAttribute('readonly');
-        const focused = searchInput.focus();
-        console.log('[leaderboard-panel] Focus attempt result:', focused);
-        console.log('[leaderboard-panel] Active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
-        
-        // Also try click() method as fallback
+      // Focus input with better iOS support
+      requestAnimationFrame(() => {
+        searchInput.focus();
+        // iOS Safari fallback
         if (document.activeElement !== searchInput) {
-          console.log('[leaderboard-panel] Focus failed, trying click() method...');
-          searchInput.click();
-          console.log('[leaderboard-panel] After click(), active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
+          setTimeout(() => {
+            searchInput.focus();
+            if (document.activeElement !== searchInput) {
+              searchInput.click();
+            }
+          }, 100);
         }
-      }, 0);
+      });
     };
 
     const closeSearchModal = () => {
       if (!searchModal) return;
       
-      // Simple, fast modal closing
-      searchModal.setAttribute('hidden', '');
-      searchModal.style.display = 'none';
+      // Remove open class for closing animation
+      searchModal.classList.remove('modal-open');
       
+      // Clear search state immediately
       if (searchInput) {
         searchInput.value = '';
         searchInput.blur();
@@ -758,41 +825,96 @@
       if (searchResults) {
         searchResults.innerHTML = '';
       }
-      if (allEntries && allEntries.length > 0) {
-        renderRows(allEntries);
+      if (recentSearches) {
+        recentSearches.hidden = true;
       }
+      if (searchLoading) {
+        searchLoading.hidden = true;
+      }
+      selectedResultIndex = -1;
+      currentSearchResults = [];
+      
+      // Wait for animation, then hide completely
+      setTimeout(() => {
+        searchModal.setAttribute('hidden', '');
+        if (allEntries && allEntries.length > 0) {
+          renderRows(allEntries);
+        }
+      }, 200); // Match CSS animation duration
+      
       if (searchTimeout) {
         clearTimeout(searchTimeout);
         searchTimeout = null;
       }
     };
+    
+    // Scroll to user in leaderboard
+    const scrollToUser = (address) => {
+      if (!address) return;
+      closeSearchModal();
+      
+      // Wait for modal to close, then scroll
+      setTimeout(() => {
+        const allItems = [...(topListEl?.querySelectorAll('.leaderboard-item') || []), 
+                          ...(restListEl?.querySelectorAll('.leaderboard-item') || [])];
+        const targetItem = Array.from(allItems).find(item => {
+          const itemAddress = item.dataset.address || item.querySelector('[data-address]')?.dataset.address;
+          return itemAddress && itemAddress.toLowerCase() === address.toLowerCase();
+        });
+        
+        if (targetItem) {
+          targetItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Highlight briefly
+          targetItem.classList.add('leaderboard-item-highlight');
+          setTimeout(() => {
+            targetItem.classList.remove('leaderboard-item-highlight');
+          }, 2000);
+        }
+      }, 250);
+    };
 
-    // Debounce search for better performance
-    let searchTimeout = null;
     const performSearch = (query) => {
       // Clear previous timeout
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
       
-      // Debounce: wait 300ms after user stops typing (increased for better performance)
+      // Hide recent searches when typing
+      if (recentSearches) {
+        recentSearches.hidden = true;
+      }
+      
+      // Show loading state
+      if (searchLoading && query && query.trim()) {
+        searchLoading.hidden = false;
+        isSearching = true;
+      }
+      
+      // Debounce search
       searchTimeout = setTimeout(() => {
+        isSearching = false;
+        if (searchLoading) {
+          searchLoading.hidden = true;
+        }
+        
         if (!query || !query.trim()) {
-          // Restore original leaderboard
-          if (allEntries && allEntries.length > 0) {
-            renderRows(allEntries);
-          }
+          // Show recent searches when empty
+          renderRecentSearches();
           if (searchResults) {
             searchResults.innerHTML = '';
           }
+          selectedResultIndex = -1;
+          currentSearchResults = [];
           return;
         }
 
-        // Ensure allEntries is available and is an array
+        // Ensure allEntries is available
         if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
           if (searchResults) {
             searchResults.innerHTML = '<div class="leaderboard-search-no-results">No entries available</div>';
           }
+          selectedResultIndex = -1;
+          currentSearchResults = [];
           return;
         }
 
@@ -809,57 +931,98 @@
                  abbreviatedAddress.includes(searchTerm);
         });
 
+        currentSearchResults = filtered;
+        selectedResultIndex = -1;
+
         if (filtered.length === 0) {
           if (searchResults) {
             searchResults.innerHTML = '<div class="leaderboard-search-no-results">No users found</div>';
           }
-          // Clear leaderboard lists
-          if (topListEl) topListEl.innerHTML = '';
-          if (restListEl) restListEl.innerHTML = '';
-          if (scrollWrapper) scrollWrapper.hidden = true;
         } else {
-          // Render search results in modal (optimized for performance)
+          // Save to recent searches
+          saveRecentSearch(query);
+          
+          // Render results with highlighting
           if (searchResults) {
-            // Limit results to 30 for better performance (reduced from 50)
-            const displayLimit = 30;
-            const displayResults = filtered.slice(0, displayLimit);
-            const hasMore = filtered.length > displayLimit;
-            
-            // Use DocumentFragment for better performance
             const fragment = document.createDocumentFragment();
             const resultsContainer = document.createElement('div');
             resultsContainer.className = 'leaderboard-search-results-container';
             
-            // Add count header
+            // Count header
             const countHeader = document.createElement('div');
             countHeader.className = 'leaderboard-search-count';
-            countHeader.textContent = hasMore 
-              ? `Found ${filtered.length} user(s), showing ${displayLimit}` 
-              : `Found ${filtered.length} user(s)`;
+            countHeader.textContent = `Found ${filtered.length} user${filtered.length !== 1 ? 's' : ''}`;
             resultsContainer.appendChild(countHeader);
             
-            // Create list for search results
+            // Results list
             const resultsList = document.createElement('ol');
             resultsList.className = 'leaderboard-search-list';
             
-            // Use DocumentFragment for batch DOM updates
             const listFragment = document.createDocumentFragment();
-            displayResults.forEach((entry, index) => {
+            filtered.forEach((entry, index) => {
               const listItem = createListItem(entry, index + 1);
+              listItem.setAttribute('data-result-index', index);
+              listItem.setAttribute('data-address', entry?.player || '');
+              
+              // Add click handler to scroll to user
+              listItem.addEventListener('click', () => {
+                scrollToUser(entry?.player);
+              });
+              
+              // Highlight search term in username/displayName
+              const nameEl = listItem.querySelector('.leaderboard-item-name');
+              if (nameEl && searchTerm) {
+                const originalText = nameEl.textContent;
+                nameEl.innerHTML = highlightText(originalText, searchTerm);
+              }
+              
               listFragment.appendChild(listItem);
             });
             resultsList.appendChild(listFragment);
-            
             resultsContainer.appendChild(resultsList);
             fragment.appendChild(resultsContainer);
             
-            // Single DOM update instead of multiple
             searchResults.innerHTML = '';
             searchResults.appendChild(fragment);
           }
-          // Don't update leaderboard when searching (reduces DOM manipulation)
         }
-      }, 300); // 300ms debounce delay (increased for better performance)
+      }, SEARCH_DEBOUNCE);
+    };
+
+    // Keyboard navigation for search results
+    const handleKeyboardNavigation = (e) => {
+      if (!searchResults || currentSearchResults.length === 0) return;
+      
+      const resultItems = searchResults.querySelectorAll('[data-result-index]');
+      if (resultItems.length === 0) return;
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedResultIndex = Math.min(selectedResultIndex + 1, resultItems.length - 1);
+        updateSelectedResult(resultItems);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedResultIndex = Math.max(selectedResultIndex - 1, -1);
+        updateSelectedResult(resultItems);
+      } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+        e.preventDefault();
+        const selectedItem = resultItems[selectedResultIndex];
+        if (selectedItem) {
+          const address = selectedItem.getAttribute('data-address');
+          scrollToUser(address);
+        }
+      }
+    };
+    
+    const updateSelectedResult = (resultItems) => {
+      resultItems.forEach((item, index) => {
+        if (index === selectedResultIndex) {
+          item.classList.add('leaderboard-search-result-selected');
+          item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          item.classList.remove('leaderboard-search-result-selected');
+        }
+      });
     };
 
     if (searchBtn) {
@@ -887,34 +1050,11 @@
     }
 
     if (searchInput) {
-      // Ensure input is always ready for interaction
       searchInput.removeAttribute('readonly');
       searchInput.removeAttribute('disabled');
       searchInput.setAttribute('tabindex', '0');
       
-      // Handle touchstart for mobile keyboard (iOS Safari requires user interaction)
-      // This ensures keyboard opens on single tap
-      searchInput.addEventListener('touchstart', (e) => {
-        console.log('[leaderboard-panel] Input touchstart event fired');
-        // Remove readonly if present (from iOS hack)
-        searchInput.removeAttribute('readonly');
-        // Focus immediately on touch
-        const focused = searchInput.focus();
-        console.log('[leaderboard-panel] Touchstart focus result:', focused);
-        console.log('[leaderboard-panel] After touchstart focus, active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
-        // Don't preventDefault - let browser handle the touch normally
-      }, { passive: true });
-      
-      // Handle click for desktop and as fallback
-      searchInput.addEventListener('click', () => {
-        console.log('[leaderboard-panel] Input click event fired');
-        searchInput.removeAttribute('readonly');
-        const focused = searchInput.focus();
-        console.log('[leaderboard-panel] Click focus result:', focused);
-        console.log('[leaderboard-panel] After click focus, active element:', document.activeElement === searchInput ? 'INPUT (success)' : document.activeElement?.tagName || 'unknown');
-      });
-      
-      // Handle input for search
+      // Input event
       searchInput.addEventListener('input', (e) => {
         const value = e.target.value;
         if (searchClear) {
@@ -923,15 +1063,17 @@
         performSearch(value);
       });
 
-      // Handle keyboard events
+      // Keyboard events
       searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           closeSearchModal();
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+          handleKeyboardNavigation(e);
         }
       });
     }
 
-    // Clear button functionality
+    // Clear button
     if (searchClear) {
       searchClear.addEventListener('click', (e) => {
         e.preventDefault();
@@ -941,6 +1083,7 @@
           searchInput.focus();
           searchClear.hidden = true;
           performSearch('');
+          renderRecentSearches();
         }
       });
     }
@@ -953,6 +1096,13 @@
         }
       });
     }
+    
+    // Close on Escape key (global)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && searchModal && !searchModal.hasAttribute('hidden')) {
+        closeSearchModal();
+      }
+    });
 
     if (visible) {
       loadLeaderboard();
