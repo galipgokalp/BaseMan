@@ -4190,50 +4190,9 @@ var hud = (function(){
     return {
 
         update: function() {
-            // Log that update is being called (first few times to verify it's working)
-            if (typeof window.__hudUpdateCount === 'undefined') {
-                window.__hudUpdateCount = 0;
-                logHUD('HUD.update() called for the first time');
-            }
-            window.__hudUpdateCount++;
-            if (window.__hudUpdateCount <= 5) {
-                logHUD('HUD.update() called', {count: window.__hudUpdateCount});
-            }
-            
             var valid = this.isValidState();
             
-            // Debug: Log state check periodically
-            if (typeof window.__hudUpdateCount === 'undefined') {
-                window.__hudUpdateCount = 0;
-            }
-            window.__hudUpdateCount++;
-            if (window.__hudUpdateCount % 180 === 0) { // Log every 3 seconds at 60fps
-                // Try to identify current state
-                var stateName = 'unknown';
-                if (typeof state !== 'undefined' && state) {
-                    if (state === playState) stateName = 'playState';
-                    else if (state === newGameState) stateName = 'newGameState';
-                    else if (state === readyNewState) stateName = 'readyNewState';
-                    else if (state === readyRestartState) stateName = 'readyRestartState';
-                    else if (state === finishState) stateName = 'finishState';
-                    else if (state === deadState) stateName = 'deadState';
-                    else if (state === overState) stateName = 'overState';
-                    else if (state === homeState) stateName = 'homeState';
-                    else if (state === readyState) stateName = 'readyState';
-                    else stateName = 'other';
-                }
-                logHUD('Update check:', {
-                    valid: valid,
-                    on: on,
-                    currentState: stateName,
-                    tileSize: typeof tileSize !== 'undefined' ? tileSize : 'undefined',
-                    mapWidth: typeof mapWidth !== 'undefined' ? mapWidth : 'undefined',
-                    stateExists: typeof state !== 'undefined',
-                    playStateExists: typeof playState !== 'undefined',
-                    newGameStateExists: typeof newGameState !== 'undefined'
-                });
-            }
-            
+            // Only log when state actually changes (not on every update)
             if (valid != on) {
                 on = valid;
                 logHUD('[HUD] State changed:', {on: on, valid: valid});
@@ -4250,18 +4209,6 @@ var hud = (function(){
         draw: function(ctx) {
             inGameMenu.draw(ctx);
             vcr.draw(ctx);
-            
-            // Debug: Log draw conditions
-            if (typeof window.__hudDebugCount === 'undefined') {
-                window.__hudDebugCount = 0;
-            }
-            window.__hudDebugCount++;
-            if (window.__hudDebugCount % 60 === 0) { // Log every 60 frames (1 second at 60fps)
-                logHUD('[HUD] Draw check:', {
-                    on: on,
-                    menuOpen: inGameMenu.isOpen()
-                });
-            }
         },
         isValidState: function() {
             return (
@@ -11692,8 +11639,58 @@ var initSwipe = function() {
 
     // minimum distance from anchor before direction is registered
     var r = 4;
+
+    // NEW: detect UI interactions that should NOT be swallowed by game swipe handlers
+    var isUIInteraction = function(event) {
+        if (!event) return false;
+
+        var target = event.target || event.srcElement;
+        if (!target) return false;
+
+        // Use closest when available to detect if the touch is inside UI
+        if (typeof target.closest === "function") {
+            if (target.closest(
+                [
+                    "input",
+                    "textarea",
+                    "select",
+                    "button",
+                    "a[href]",
+                    "[role='button']",
+                    "[data-panel]",
+                    ".panel",
+                    ".panel-content",
+                    "#leaderboard-panel",
+                    ".leaderboard-panel",
+                    ".leaderboard-search-modal",
+                    ".leaderboard-search-input",
+                    "[data-search-modal]",
+                    "[data-search-input]",
+                    "[data-search-results]",
+                    "[data-search-close]",
+                    "[data-search-clear]",
+                    "[data-search-backdrop]"
+                ].join(",")
+            )) {
+                return true;
+            }
+        } else {
+            // Fallback: basic tagName check if closest is not available
+            var tag = (target.tagName || "").toLowerCase();
+            if (tag === "input" || tag === "textarea" || tag === "button" || tag === "select" || tag === "a") {
+                return true;
+            }
+        }
+
+        return false;
+    };
     
     var touchStart = function(event) {
+        // If this is a UI interaction (e.g., search modal, input, button), do not interfere
+        if (isUIInteraction(event)) {
+            return;
+        }
+
         event.preventDefault();
         var fingerCount = event.touches.length;
         if (fingerCount == 1) {
@@ -11709,6 +11706,10 @@ var initSwipe = function() {
     };
 
     var touchMove = function(event) {
+        if (isUIInteraction(event)) {
+            return;
+        }
+
         event.preventDefault();
         var fingerCount = event.touches.length;
         if (fingerCount == 1) {
@@ -11739,15 +11740,25 @@ var initSwipe = function() {
     };
 
     var touchEnd = function(event) {
+        if (isUIInteraction(event)) {
+            return;
+        }
         event.preventDefault();
     };
 
     var touchCancel = function(event) {
+        if (isUIInteraction(event)) {
+            return;
+        }
         event.preventDefault();
         x=y=dx=dy=0;
     };
 
     var touchTap = function(event) {
+        // Do not clear game input if this tap was on UI (buttons, inputs, etc.)
+        if (isUIInteraction(event)) {
+            return;
+        }
         // tap to clear input directions
         pacman.clearInputDir(undefined);
     };

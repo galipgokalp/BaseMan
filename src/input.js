@@ -205,8 +205,58 @@ var initSwipe = function() {
 
     // minimum distance from anchor before direction is registered
     var r = 4;
+
+    // NEW: detect UI interactions that should NOT be swallowed by game swipe handlers
+    var isUIInteraction = function(event) {
+        if (!event) return false;
+
+        var target = event.target || event.srcElement;
+        if (!target) return false;
+
+        // Use closest when available to detect if the touch is inside UI
+        if (typeof target.closest === "function") {
+            if (target.closest(
+                [
+                    "input",
+                    "textarea",
+                    "select",
+                    "button",
+                    "a[href]",
+                    "[role='button']",
+                    "[data-panel]",
+                    ".panel",
+                    ".panel-content",
+                    "#leaderboard-panel",
+                    ".leaderboard-panel",
+                    ".leaderboard-search-modal",
+                    ".leaderboard-search-input",
+                    "[data-search-modal]",
+                    "[data-search-input]",
+                    "[data-search-results]",
+                    "[data-search-close]",
+                    "[data-search-clear]",
+                    "[data-search-backdrop]"
+                ].join(",")
+            )) {
+                return true;
+            }
+        } else {
+            // Fallback: basic tagName check if closest is not available
+            var tag = (target.tagName || "").toLowerCase();
+            if (tag === "input" || tag === "textarea" || tag === "button" || tag === "select" || tag === "a") {
+                return true;
+            }
+        }
+
+        return false;
+    };
     
     var touchStart = function(event) {
+        // If this is a UI interaction (e.g., search modal, input, button), do not interfere
+        if (isUIInteraction(event)) {
+            return;
+        }
+
         event.preventDefault();
         var fingerCount = event.touches.length;
         if (fingerCount == 1) {
@@ -222,6 +272,10 @@ var initSwipe = function() {
     };
 
     var touchMove = function(event) {
+        if (isUIInteraction(event)) {
+            return;
+        }
+
         event.preventDefault();
         var fingerCount = event.touches.length;
         if (fingerCount == 1) {
@@ -252,15 +306,25 @@ var initSwipe = function() {
     };
 
     var touchEnd = function(event) {
+        if (isUIInteraction(event)) {
+            return;
+        }
         event.preventDefault();
     };
 
     var touchCancel = function(event) {
+        if (isUIInteraction(event)) {
+            return;
+        }
         event.preventDefault();
         x=y=dx=dy=0;
     };
 
     var touchTap = function(event) {
+        // Do not clear game input if this tap was on UI (buttons, inputs, etc.)
+        if (isUIInteraction(event)) {
+            return;
+        }
         // tap to clear input directions
         pacman.clearInputDir(undefined);
     };
