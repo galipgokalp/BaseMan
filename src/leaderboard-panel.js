@@ -960,12 +960,13 @@
         leftEl.className = 'leaderboard-search-result-left';
         
         const name = entry?.profile?.username || entry?.profile?.displayName || abbreviateAddress(entry?.player || '');
-        leftEl.textContent = name;
+        leftEl.textContent = name || 'Unknown';
         
-        // Right: score
+        // Right: score (use totalScore or highScore, same as createListItem)
         const rightEl = document.createElement('div');
         rightEl.className = 'leaderboard-search-result-right';
-        rightEl.textContent = formatScore(entry?.score, '0');
+        const score = entry?.totalScore ?? entry?.highScore ?? 0;
+        rightEl.textContent = formatScore(score, entry?.highScore);
         
         listItem.appendChild(leftEl);
         listItem.appendChild(rightEl);
