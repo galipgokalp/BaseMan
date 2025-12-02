@@ -998,48 +998,51 @@
           // Save to recent searches
           saveRecentSearch(query);
           
-          // Render results with highlighting
+          // Render results with highlighting (optimized)
           if (searchResults) {
-            const fragment = document.createDocumentFragment();
-            const resultsContainer = document.createElement('div');
-            resultsContainer.className = 'leaderboard-search-results-container';
-            
-            // Count header
-            const countHeader = document.createElement('div');
-            countHeader.className = 'leaderboard-search-count';
-            countHeader.textContent = `Found ${filtered.length} user${filtered.length !== 1 ? 's' : ''}`;
-            resultsContainer.appendChild(countHeader);
-            
-            // Results list
-            const resultsList = document.createElement('ol');
-            resultsList.className = 'leaderboard-search-list';
-            
-            const listFragment = document.createDocumentFragment();
-            filtered.forEach((entry, index) => {
-              const listItem = createListItem(entry, index + 1);
-              listItem.setAttribute('data-result-index', index);
-              listItem.setAttribute('data-address', entry?.player || '');
+            // Use requestAnimationFrame for smooth rendering
+            requestAnimationFrame(() => {
+              const fragment = document.createDocumentFragment();
+              const resultsContainer = document.createElement('div');
+              resultsContainer.className = 'leaderboard-search-results-container';
               
-              // Add click handler to scroll to user
-              listItem.addEventListener('click', () => {
-                scrollToUser(entry?.player);
+              // Count header
+              const countHeader = document.createElement('div');
+              countHeader.className = 'leaderboard-search-count';
+              countHeader.textContent = `Found ${filtered.length} user${filtered.length !== 1 ? 's' : ''}`;
+              resultsContainer.appendChild(countHeader);
+              
+              // Results list
+              const resultsList = document.createElement('ol');
+              resultsList.className = 'leaderboard-search-list';
+              
+              const listFragment = document.createDocumentFragment();
+              filtered.forEach((entry, index) => {
+                const listItem = createListItem(entry, index + 1);
+                listItem.setAttribute('data-result-index', index);
+                listItem.setAttribute('data-address', entry?.player || '');
+                
+                // Add click handler to scroll to user (optimized - use event delegation if many items)
+                listItem.addEventListener('click', () => {
+                  scrollToUser(entry?.player);
+                }, { passive: true });
+                
+                // Highlight search term in username/displayName
+                const nameEl = listItem.querySelector('.leaderboard-item-name');
+                if (nameEl && searchTerm) {
+                  const originalText = nameEl.textContent;
+                  nameEl.innerHTML = highlightText(originalText, searchTerm);
+                }
+                
+                listFragment.appendChild(listItem);
               });
+              resultsList.appendChild(listFragment);
+              resultsContainer.appendChild(resultsList);
+              fragment.appendChild(resultsContainer);
               
-              // Highlight search term in username/displayName
-              const nameEl = listItem.querySelector('.leaderboard-item-name');
-              if (nameEl && searchTerm) {
-                const originalText = nameEl.textContent;
-                nameEl.innerHTML = highlightText(originalText, searchTerm);
-              }
-              
-              listFragment.appendChild(listItem);
+              searchResults.innerHTML = '';
+              searchResults.appendChild(fragment);
             });
-            resultsList.appendChild(listFragment);
-            resultsContainer.appendChild(resultsList);
-            fragment.appendChild(resultsContainer);
-            
-            searchResults.innerHTML = '';
-            searchResults.appendChild(fragment);
           }
         }
       }, SEARCH_DEBOUNCE);
