@@ -431,7 +431,7 @@
 }
 
 .leaderboard-search-loading {
-  display: flex;
+  display: none !important; /* ALWAYS HIDDEN - No loading indicator shown */
   align-items: center;
   justify-content: center;
   gap: var(--spacing-xs);
