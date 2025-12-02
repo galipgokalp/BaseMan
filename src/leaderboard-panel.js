@@ -937,7 +937,7 @@
       }, 300);
     };
     
-    // Render search results as rows (left: username/short address, right: score)
+    // Render search results as rows (left: avatar + username/short address + platform, right: score)
     const renderResults = (filtered) => {
       if (!searchResults) return;
       
@@ -955,12 +955,60 @@
         listItem.className = 'leaderboard-search-result-item';
         listItem.setAttribute('data-address', entry?.player || '');
         
-        // Left: username or short address
+        // Left: avatar + username/address + platform
         const leftEl = document.createElement('div');
         leftEl.className = 'leaderboard-search-result-left';
         
+        // Avatar
+        const avatar = document.createElement(entry?.profile?.profileUrl ? 'a' : 'div');
+        avatar.className = 'leaderboard-search-result-avatar';
+        if (entry?.profile?.profileUrl) {
+          avatar.href = entry.profile.profileUrl;
+          avatar.target = '_blank';
+          avatar.rel = 'noopener noreferrer';
+        }
+        if (entry?.profile?.avatarUrl || entry?.player) {
+          const img = document.createElement('img');
+          img.src = entry?.profile?.avatarUrl || fallbackAvatar(entry.player);
+          img.alt = entry?.profile?.username
+            ? `@${entry.profile.username}`
+            : entry?.profile?.displayName || abbreviateAddress(entry.player);
+          img.loading = 'lazy';
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = function() {
+            this.style.display = 'none';
+            avatar.textContent = '👾';
+          };
+          avatar.appendChild(img);
+        } else {
+          avatar.textContent = '👾';
+        }
+        
+        // Name container
+        const nameContainer = document.createElement('div');
+        nameContainer.className = 'leaderboard-search-result-name-container';
+        
+        // Name
+        const nameEl = document.createElement('div');
+        nameEl.className = 'leaderboard-search-result-name';
         const name = entry?.profile?.username || entry?.profile?.displayName || abbreviateAddress(entry?.player || '');
-        leftEl.textContent = name || 'Unknown';
+        nameEl.textContent = name || 'Unknown';
+        
+        // Platform logo (if available)
+        const platform = entry?.profile?.platform;
+        if (platform === 'farcaster' || platform === 'base-app') {
+          const platformLogo = document.createElement('span');
+          platformLogo.className = `leaderboard-platform-logo leaderboard-platform-logo-${platform}`;
+          platformLogo.setAttribute('title', platform === 'farcaster' ? 'Farcaster' : 'Base App');
+          platformLogo.setAttribute('aria-label', platform === 'farcaster' ? 'Farcaster' : 'Base App');
+          nameContainer.appendChild(nameEl);
+          nameContainer.appendChild(platformLogo);
+        } else {
+          nameContainer.appendChild(nameEl);
+        }
+        
+        leftEl.appendChild(avatar);
+        leftEl.appendChild(nameContainer);
         
         // Right: score (use totalScore or highScore, same as createListItem)
         const rightEl = document.createElement('div');
