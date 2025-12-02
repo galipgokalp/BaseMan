@@ -1220,13 +1220,34 @@
       searchInput.removeAttribute('disabled');
       searchInput.setAttribute('tabindex', '0');
       
-      // Input event
+      // Input event - only search if there's actual text
       searchInput.addEventListener('input', (e) => {
         const value = e.target.value;
         if (searchClear) {
           searchClear.hidden = !value || value.trim() === '';
         }
-        performSearch(value);
+        
+        // CRITICAL: Only perform search if there's actual text
+        // This prevents loading from showing when input is empty
+        if (value && value.trim()) {
+          performSearch(value);
+        } else {
+          // Input is empty - clear everything immediately
+          if (searchLoading) {
+            searchLoading.hidden = true;
+          }
+          isSearching = false;
+          if (searchTimeout) {
+            clearTimeout(searchTimeout);
+            searchTimeout = null;
+          }
+          renderRecentSearches();
+          if (searchResults) {
+            searchResults.innerHTML = '';
+          }
+          selectedResultIndex = -1;
+          currentSearchResults = [];
+        }
       });
 
       // Keyboard events
