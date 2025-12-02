@@ -774,6 +774,29 @@
       searchModal.classList.remove('modal-open');
     }
     
+    // Detect platform for keyboard handling
+    const detectPlatform = () => {
+      const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+      const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+      const isAndroid = /android/i.test(ua);
+      
+      // Also check SDK context for platform info (Farcaster/Base App)
+      let platformType = null;
+      try {
+        if (window.fc?.miniapp?.context?.client?.platformType) {
+          platformType = window.fc.miniapp.context.client.platformType;
+        }
+      } catch (e) {}
+      
+      return {
+        isIOS: isIOS || platformType === 'mobile' && isIOS,
+        isAndroid: isAndroid || platformType === 'mobile' && isAndroid,
+        isMobile: isIOS || isAndroid || platformType === 'mobile'
+      };
+    };
+    
+    const platform = detectPlatform();
+    
     // Prepare input for mobile keyboard - ensure it's always ready
     if (searchInput) {
       // Set inputmode for better mobile keyboard
@@ -1028,30 +1051,39 @@
         e.stopPropagation();
         
         // CRITICAL: Prepare input and focus BEFORE opening modal
-        // This preserves user interaction for iOS Safari
+        // This preserves user interaction for both iOS and Android
         if (searchInput && searchModal) {
           // Step 1: Make input visible and ready (but keep modal hidden)
           searchInput.removeAttribute('readonly');
           searchInput.removeAttribute('disabled');
           searchInput.setAttribute('tabindex', '0');
           
-          // Step 2: iOS Safari trick - set readonly, then remove and focus
-          // This MUST happen while user interaction is valid
-          searchInput.setAttribute('readonly', 'readonly');
-          void searchInput.offsetHeight; // Force reflow
-          searchInput.removeAttribute('readonly');
+          // Step 2: Platform-specific keyboard opening strategy
+          if (platform.isIOS) {
+            // iOS requires readonly trick for programmatic keyboard
+            searchInput.setAttribute('readonly', 'readonly');
+            void searchInput.offsetHeight; // Force reflow
+            searchInput.removeAttribute('readonly');
+          }
           
           // Step 3: Focus input NOW (while user interaction is valid)
+          // This works for both Android and iOS
           searchInput.focus();
           
-          // Step 4: Set selection to trigger keyboard
+          // Step 4: Set selection to trigger keyboard (helps on both platforms)
           if (searchInput.setSelectionRange) {
             const len = searchInput.value.length;
             searchInput.setSelectionRange(len, len);
           }
+          
+          // Step 5: Android webview sometimes needs click() as well
+          if (platform.isAndroid && document.activeElement !== searchInput) {
+            searchInput.click();
+            searchInput.focus();
+          }
         }
         
-        // Step 5: NOW open modal (input is already focused)
+        // Step 6: NOW open modal (input is already focused)
         openSearchModal(e);
       };
       
