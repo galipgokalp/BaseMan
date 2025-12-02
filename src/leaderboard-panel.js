@@ -1130,25 +1130,35 @@
           searchModal.classList.add('modal-open');
         });
         
-        // Step 4: Prepare input
+        // Step 4: Clear input and ensure loading is hidden FIRST
+        if (searchInput) {
+          searchInput.value = ''; // Clear any previous value
+        }
+        if (searchClear) {
+          searchClear.hidden = true;
+        }
+        if (searchLoading) {
+          searchLoading.hidden = true; // FORCE hide loading
+        }
+        isSearching = false;
+        
+        // Clear any pending search
+        if (searchTimeout) {
+          clearTimeout(searchTimeout);
+          searchTimeout = null;
+        }
+        
+        // Step 5: Prepare input
         searchInput.removeAttribute('readonly');
         searchInput.removeAttribute('disabled');
         searchInput.setAttribute('tabindex', '0');
         
-        // Step 4.5: Ensure loading is hidden when modal opens
-        if (searchLoading) {
-          searchLoading.hidden = true;
-        }
-        isSearching = false;
+        // Step 6: Show recent searches (input is now empty)
+        requestAnimationFrame(() => {
+          renderRecentSearches();
+        });
         
-        // Step 5: Show recent searches if input is empty (defer to avoid blocking)
-        if (!searchInput.value || !searchInput.value.trim()) {
-          requestAnimationFrame(() => {
-            renderRecentSearches();
-          });
-        }
-        
-        // Step 6: Focus input IMMEDIATELY while user interaction is still valid
+        // Step 7: Focus input IMMEDIATELY while user interaction is still valid
         // This is critical for mobile webviews - focus must happen during the click event
         const focusInput = () => {
           searchInput.focus();
@@ -1161,7 +1171,7 @@
         // Immediate focus
         focusInput();
         
-        // Step 7: Platform-specific handling (optimized)
+        // Step 8: Platform-specific handling (optimized)
         if (platform.isIOS) {
           // iOS readonly trick - forces keyboard to open
           searchInput.setAttribute('readonly', 'readonly');
@@ -1174,7 +1184,7 @@
           focusInput();
         }
         
-        // Step 8: Retry focus after modal animation (single retry, optimized timing)
+        // Step 9: Retry focus after modal animation (single retry, optimized timing)
         requestAnimationFrame(() => {
           setTimeout(() => {
             if (document.activeElement !== searchInput) {
