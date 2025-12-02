@@ -682,305 +682,396 @@
       }
     });
 
-    // Search functionality - Enhanced with better UX
-    const searchBtn = panel.querySelector('[data-search-btn]');
-    const searchModal = document.querySelector('[data-search-modal]');
-    const searchInput = document.querySelector('[data-search-input]');
-    const searchResults = document.querySelector('[data-search-results]');
-    const searchClose = document.querySelector('[data-search-close]');
-    const searchClear = document.querySelector('[data-search-clear]');
-    const searchLoading = document.querySelector('[data-search-loading]');
-    const recentSearches = document.querySelector('[data-recent-searches]');
-    const searchBackdrop = document.querySelector('[data-search-backdrop]');
-    const recentClear = document.querySelector('[data-recent-clear]');
+    // ============================================
+    // PLATFORM-AGNOSTIC SEARCH MODAL
+    // ============================================
     
-    // Search state
-    let searchTimeout = null;
-    let isSearching = false;
-    let selectedResultIndex = -1;
-    let currentSearchResults = [];
-    const MAX_RECENT_SEARCHES = 5;
-    const SEARCH_DEBOUNCE = 200; // Faster response (200ms instead of 300ms)
-    
-    // Recent searches storage
-    const getRecentSearches = () => {
-      try {
-        const stored = localStorage.getItem('baseman_recent_searches');
-        return stored ? JSON.parse(stored) : [];
-      } catch {
-        return [];
-      }
-    };
-    
-    const saveRecentSearch = (query) => {
-      if (!query || !query.trim()) return;
-      try {
-        const recent = getRecentSearches();
-        const trimmed = query.trim();
-        // Remove if already exists
-        const filtered = recent.filter(s => s.toLowerCase() !== trimmed.toLowerCase());
-        // Add to beginning
-        filtered.unshift(trimmed);
-        // Keep only MAX_RECENT_SEARCHES
-        const limited = filtered.slice(0, MAX_RECENT_SEARCHES);
-        localStorage.setItem('baseman_recent_searches', JSON.stringify(limited));
-      } catch {
-        // Ignore storage errors
-      }
-    };
-    
-    const renderRecentSearches = () => {
-      if (!recentSearches) return;
-      const recent = getRecentSearches();
-      if (recent.length === 0) {
-        recentSearches.hidden = true;
-        return;
-      }
-      
-      recentSearches.hidden = false;
-      const listContainer = recentSearches.querySelector('.leaderboard-recent-searches-list');
-      if (!listContainer) return;
-      
-      // Clear existing items
-      listContainer.innerHTML = '';
-      
-      recent.forEach((query) => {
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'leaderboard-recent-search-item';
-        item.textContent = query;
-        item.setAttribute('aria-label', `Search for ${query}`);
-        item.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (searchInput) {
-            searchInput.value = query;
-            searchInput.focus();
-            performSearch(query);
-          }
-        });
-        listContainer.appendChild(item);
-      });
-    };
-    
-    // Clear recent searches
-    const clearRecentSearches = () => {
-      try {
-        localStorage.removeItem('baseman_recent_searches');
-        renderRecentSearches();
-      } catch {
-        // Ignore storage errors
-      }
-    };
-    
-    // Highlight search term in text
-    const highlightText = (text, searchTerm) => {
-      if (!searchTerm || !text) return text;
-      const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      return text.replace(regex, '<mark>$1</mark>');
-    };
-    
-    // Ensure modal is closed on initialization
-    if (searchModal) {
-      searchModal.setAttribute('hidden', '');
-      searchModal.classList.remove('modal-open');
-    }
-    
-    // Detect platform for keyboard handling
-    const detectPlatform = () => {
+    // Platform detection helpers
+    const isIOS = () => {
       const ua = navigator.userAgent || navigator.vendor || window.opera || '';
-      const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-      const isAndroid = /android/i.test(ua);
-      
-      // Also check SDK context for platform info (Farcaster/Base App)
-      let platformType = null;
+      const iosMatch = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
       try {
-        if (window.fc?.miniapp?.context?.client?.platformType) {
-          platformType = window.fc.miniapp.context.client.platformType;
-        }
-      } catch (e) {}
-      
+        const platformType = window.fc?.miniapp?.context?.client?.platformType;
+        return iosMatch || (platformType === 'mobile' && /iPad|iPhone|iPod/.test(ua));
+      } catch {
+        return iosMatch;
+      }
+    };
+    
+    const isAndroid = () => {
+      const ua = navigator.userAgent || '';
+      const androidMatch = /android/i.test(ua);
+      try {
+        const platformType = window.fc?.miniapp?.context?.client?.platformType;
+        return androidMatch || (platformType === 'mobile' && /android/i.test(ua));
+      } catch {
+        return androidMatch;
+      }
+    };
+    
+    // Visual viewport shim for keyboard detection
+    const getVisualViewport = () => {
+      if (window.visualViewport) {
+        return window.visualViewport;
+      }
+      // Fallback shim
       return {
-        isIOS: isIOS || platformType === 'mobile' && isIOS,
-        isAndroid: isAndroid || platformType === 'mobile' && isAndroid,
-        isMobile: isIOS || isAndroid || platformType === 'mobile'
+        height: window.innerHeight,
+        width: window.innerWidth,
+        offsetTop: 0,
+        offsetLeft: 0,
+        scale: 1,
+        addEventListener: () => {},
+        removeEventListener: () => {}
       };
     };
     
-    const platform = detectPlatform();
-    
-    // Prepare input for mobile keyboard - ensure it's always ready
-    if (searchInput) {
-      // Set inputmode for better mobile keyboard
-      searchInput.setAttribute('inputmode', 'text');
-      searchInput.setAttribute('autocomplete', 'off');
-      // Ensure input is not readonly initially
-      searchInput.removeAttribute('readonly');
-    }
-    
-    // Store original input wrapper for moving input in/out of modal
-    const inputWrapper = searchInput?.parentElement;
-
-    const openSearchModal = (userEvent = null) => {
-      // This function is now handled entirely in handleSearchClick
-      // Keeping it for backwards compatibility but it shouldn't be called directly
-      if (!searchModal || !searchInput) {
-        console.warn('[leaderboard-panel] Cannot open modal: searchModal or searchInput missing');
-        return;
-      }
+    // Debounce helper
+    const debounce = (fn, delay) => {
+      let timeoutId = null;
+      return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+      };
     };
-
-    // Body scroll lock for modal
+    
+    // Search DOM elements
+    let searchModal = null;
+    let searchInput = null;
+    let searchResults = null;
+    let searchClose = null;
+    let searchClear = null;
+    let searchSpinner = null;
+    let searchBackdrop = null;
+    
+    // Search state
+    let searchAbortController = null;
+    let searchDebounced = null;
+    let bodyScrollLocked = false;
     let originalBodyOverflow = '';
     let originalBodyPaddingRight = '';
     
+    // Ensure search DOM is ready
+    const ensureSearchDOM = () => {
+      if (searchModal && searchInput) return true;
+      
+      searchModal = document.querySelector('[data-search-modal]');
+      searchInput = document.querySelector('[data-search-input]');
+      searchResults = document.querySelector('[data-search-results]');
+      searchClose = document.querySelector('[data-search-close]');
+      searchClear = document.querySelector('[data-search-clear]');
+      searchBackdrop = document.querySelector('[data-search-backdrop]');
+      
+      // Find or create spinner (optional tiny spinner)
+      const loadingEl = document.querySelector('[data-search-loading]');
+      if (loadingEl) {
+        searchSpinner = loadingEl.querySelector('.leaderboard-search-loading-spinner') || null;
+        // Ensure loading container is hidden by default
+        loadingEl.hidden = true;
+      }
+      
+      if (!searchModal || !searchInput) {
+        console.warn('[leaderboard-panel] Search modal DOM not found');
+        return false;
+      }
+      
+      // Configure input attributes for mobile
+      searchInput.setAttribute('autocapitalize', 'off');
+      searchInput.setAttribute('autocomplete', 'off');
+      searchInput.setAttribute('autocorrect', 'off');
+      searchInput.setAttribute('spellcheck', 'false');
+      searchInput.setAttribute('inputmode', 'search');
+      searchInput.setAttribute('enterkeyhint', 'search');
+      searchInput.style.fontSize = '16px'; // Prevent zoom on iOS
+      
+      return true;
+    };
+    
+    // Body scroll lock
     const lockBodyScroll = () => {
+      if (bodyScrollLocked) return;
       if (document.body) {
         originalBodyOverflow = document.body.style.overflow || '';
         originalBodyPaddingRight = document.body.style.paddingRight || '';
-        // Calculate scrollbar width to prevent layout shift
         const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
         document.body.style.overflow = 'hidden';
         if (scrollbarWidth > 0) {
           document.body.style.paddingRight = `${scrollbarWidth}px`;
         }
+        bodyScrollLocked = true;
       }
     };
     
     const unlockBodyScroll = () => {
+      if (!bodyScrollLocked) return;
       if (document.body) {
         document.body.style.overflow = originalBodyOverflow;
         document.body.style.paddingRight = originalBodyPaddingRight;
+        bodyScrollLocked = false;
       }
     };
-
+    
+    // Visual viewport adjustment for keyboard
+    const adjustModalForKeyboard = () => {
+      if (!searchModal) return;
+      const vv = getVisualViewport();
+      const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
+      if (!modalContent) return;
+      
+      // Adjust top position when keyboard is open (from 12% to 6%)
+      const viewportHeight = vv.height;
+      const windowHeight = window.innerHeight;
+      const keyboardHeight = windowHeight - viewportHeight;
+      
+      if (keyboardHeight > 50) {
+        // Keyboard is open
+        modalContent.style.top = '6%';
+      } else {
+        // Keyboard is closed
+        modalContent.style.top = '';
+      }
+    };
+    
+    // Wire visual viewport listener
+    const wireVisualViewport = () => {
+      const vv = getVisualViewport();
+      if (vv && vv.addEventListener) {
+        vv.addEventListener('resize', adjustModalForKeyboard);
+        vv.addEventListener('scroll', adjustModalForKeyboard);
+      }
+    };
+    
+    // Open search modal with immediate keyboard
+    const openSearchModal = () => {
+      if (!ensureSearchDOM()) return;
+      
+      // Lock body scroll
+      lockBodyScroll();
+      
+      // Clear input
+      searchInput.value = '';
+      if (searchClear) {
+        searchClear.hidden = true;
+      }
+      
+      // Clear results
+      if (searchResults) {
+        searchResults.innerHTML = '';
+      }
+      
+      // Hide spinner (no persistent "SEARCHING")
+      if (searchSpinner && searchSpinner.parentElement) {
+        searchSpinner.parentElement.hidden = true;
+      }
+      
+      // Show modal
+      searchModal.removeAttribute('hidden');
+      
+      // Trigger animation
+      requestAnimationFrame(() => {
+        searchModal.classList.add('modal-open');
+        
+        // iOS focus strategy: rAF + setTimeout(~60ms), dispatch pointerdown, then focus
+        if (isIOS()) {
+          setTimeout(() => {
+            // Dispatch pointerdown event to simulate user interaction
+            const pointerDownEvent = new PointerEvent('pointerdown', {
+              bubbles: true,
+              cancelable: true,
+              pointerId: 1,
+              pointerType: 'touch'
+            });
+            searchInput.dispatchEvent(pointerDownEvent);
+            
+            // Focus with preventScroll
+            searchInput.focus({ preventScroll: true });
+            
+            // Set selection range
+            if (searchInput.setSelectionRange) {
+              const len = searchInput.value.length;
+              searchInput.setSelectionRange(len, len);
+            }
+          }, 60);
+        }
+        // Android focus strategy: click before focus
+        else if (isAndroid()) {
+          searchInput.click();
+          searchInput.focus();
+          if (searchInput.setSelectionRange) {
+            const len = searchInput.value.length;
+            searchInput.setSelectionRange(len, len);
+          }
+        }
+        // Fallback for other platforms
+        else {
+          searchInput.focus();
+          if (searchInput.setSelectionRange) {
+            const len = searchInput.value.length;
+            searchInput.setSelectionRange(len, len);
+          }
+        }
+        
+        // Wire visual viewport for keyboard adjustment
+        wireVisualViewport();
+      });
+    };
+    
+    // Close search modal
     const closeSearchModal = () => {
       if (!searchModal) return;
       
-      // Remove open class for closing animation
-      searchModal.classList.remove('modal-open');
+      // Cancel any pending search
+      if (searchAbortController) {
+        searchAbortController.abort();
+        searchAbortController = null;
+      }
       
       // Unlock body scroll
       unlockBodyScroll();
       
-      // Clear search state immediately
+      // Hide modal
+      searchModal.classList.remove('modal-open');
+      
+      // Clear input
       if (searchInput) {
         searchInput.value = '';
         searchInput.blur();
       }
-      if (searchClear) {
-        searchClear.hidden = true;
-      }
+      
+      // Clear results
       if (searchResults) {
         searchResults.innerHTML = '';
       }
-      if (recentSearches) {
-        recentSearches.hidden = true;
+      
+      // Hide spinner
+      if (searchSpinner && searchSpinner.parentElement) {
+        searchSpinner.parentElement.hidden = true;
       }
-      if (searchLoading) {
-        searchLoading.hidden = true;
+      
+      // Hide clear button
+      if (searchClear) {
+        searchClear.hidden = true;
       }
-      selectedResultIndex = -1;
-      currentSearchResults = [];
       
       // Wait for animation, then hide completely
       setTimeout(() => {
         searchModal.setAttribute('hidden', '');
+        // Restore leaderboard if needed
         if (allEntries && allEntries.length > 0) {
           renderRows(allEntries);
         }
-      }, 300); // Match CSS animation duration (0.3s)
-      
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-        searchTimeout = null;
-      }
+      }, 300);
     };
     
-    // Scroll to user in leaderboard
-    const scrollToUser = (address) => {
-      if (!address) return;
-      closeSearchModal();
+    // Render search results as rows (left: username/short address, right: score)
+    const renderResults = (filtered) => {
+      if (!searchResults) return;
       
-      // Wait for modal to close, then scroll
-      setTimeout(() => {
-        const allItems = [...(topListEl?.querySelectorAll('.leaderboard-item') || []), 
-                          ...(restListEl?.querySelectorAll('.leaderboard-item') || [])];
-        const targetItem = Array.from(allItems).find(item => {
-          const itemAddress = item.dataset.address || item.querySelector('[data-address]')?.dataset.address;
-          return itemAddress && itemAddress.toLowerCase() === address.toLowerCase();
-        });
+      if (filtered.length === 0) {
+        searchResults.innerHTML = '<div class="leaderboard-search-no-results">No users found</div>';
+        return;
+      }
+      
+      const fragment = document.createDocumentFragment();
+      const resultsList = document.createElement('ol');
+      resultsList.className = 'leaderboard-search-list';
+      
+      filtered.forEach((entry) => {
+        const listItem = document.createElement('li');
+        listItem.className = 'leaderboard-search-result-item';
+        listItem.setAttribute('data-address', entry?.player || '');
         
-        if (targetItem) {
-          targetItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Highlight briefly
-          targetItem.classList.add('leaderboard-item-highlight');
-          setTimeout(() => {
-            targetItem.classList.remove('leaderboard-item-highlight');
-          }, 2000);
-        }
-      }, 250);
+        // Left: username or short address
+        const leftEl = document.createElement('div');
+        leftEl.className = 'leaderboard-search-result-left';
+        
+        const name = entry?.profile?.username || entry?.profile?.displayName || abbreviateAddress(entry?.player || '');
+        leftEl.textContent = name;
+        
+        // Right: score
+        const rightEl = document.createElement('div');
+        rightEl.className = 'leaderboard-search-result-right';
+        rightEl.textContent = formatScore(entry?.score, '0');
+        
+        listItem.appendChild(leftEl);
+        listItem.appendChild(rightEl);
+        
+        // Click handler to scroll to user
+        listItem.addEventListener('click', () => {
+          const address = entry?.player;
+          if (address) {
+            closeSearchModal();
+            setTimeout(() => {
+              const allItems = [...(topListEl?.querySelectorAll('.leaderboard-item') || []), 
+                                ...(restListEl?.querySelectorAll('.leaderboard-item') || [])];
+              const targetItem = Array.from(allItems).find(item => {
+                const itemAddress = item.dataset.address || item.querySelector('[data-address]')?.dataset.address;
+                return itemAddress && itemAddress.toLowerCase() === address.toLowerCase();
+              });
+              if (targetItem) {
+                targetItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetItem.classList.add('leaderboard-item-highlight');
+                setTimeout(() => {
+                  targetItem.classList.remove('leaderboard-item-highlight');
+                }, 2000);
+              }
+            }, 250);
+          }
+        }, { passive: true });
+        
+        resultsList.appendChild(listItem);
+      });
+      
+      fragment.appendChild(resultsList);
+      searchResults.innerHTML = '';
+      searchResults.appendChild(fragment);
     };
-
-    const performSearch = (query) => {
-      // Clear previous timeout
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
+    
+    // Live search with debounce and AbortController
+    const performLiveSearch = (query) => {
+      if (!searchResults) return;
       
-      // Hide recent searches when typing
-      if (recentSearches) {
-        recentSearches.hidden = true;
+      // Cancel previous search
+      if (searchAbortController) {
+        searchAbortController.abort();
       }
+      searchAbortController = new AbortController();
       
-      // Show loading state only if there's actual text to search
-      const hasQuery = query && query.trim();
-      if (searchLoading) {
-        if (hasQuery) {
-          searchLoading.hidden = false;
-          isSearching = true;
-        } else {
-          // Hide loading immediately if no query
-          searchLoading.hidden = true;
-          isSearching = false;
+      const trimmedQuery = query.trim();
+      
+      // Clear results if empty
+      if (!trimmedQuery) {
+        searchResults.innerHTML = '';
+        if (searchSpinner && searchSpinner.parentElement) {
+          searchSpinner.parentElement.hidden = true;
         }
+        return;
       }
       
-      // Debounce search
-      searchTimeout = setTimeout(() => {
-        // Hide loading immediately when search completes
-        isSearching = false;
-        if (searchLoading) {
-          searchLoading.hidden = true;
+      // Show optional tiny spinner during fetch (not persistent "SEARCHING" label)
+      if (searchSpinner && searchSpinner.parentElement) {
+        searchSpinner.parentElement.hidden = false;
+      }
+      
+      // Perform search (synchronous filtering, but using AbortController pattern for future async)
+      const signal = searchAbortController.signal;
+      
+      // Use requestAnimationFrame to allow abort
+      requestAnimationFrame(() => {
+        if (signal.aborted) return;
+        
+        if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
+          if (signal.aborted) return;
+          searchResults.innerHTML = '<div class="leaderboard-search-no-results">No entries available</div>';
+          if (searchSpinner && searchSpinner.parentElement) {
+            searchSpinner.parentElement.hidden = true;
+          }
+          return;
         }
         
-        if (!query || !query.trim()) {
-          // Show recent searches when empty
-          renderRecentSearches();
-          if (searchResults) {
-            searchResults.innerHTML = '';
-          }
-          selectedResultIndex = -1;
-          currentSearchResults = [];
-          return;
-        }
-
-        // Ensure allEntries is available
-        if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
-          if (searchResults) {
-            searchResults.innerHTML = '<div class="leaderboard-search-no-results">No entries available</div>';
-          }
-          selectedResultIndex = -1;
-          currentSearchResults = [];
-          // Ensure loading is hidden
-          if (searchLoading) {
-            searchLoading.hidden = true;
-          }
-          return;
-        }
-
-        const searchTerm = query.trim().toLowerCase();
+        const searchTerm = trimmedQuery.toLowerCase();
         const filtered = allEntries.filter(entry => {
+          if (signal.aborted) return false;
           const username = entry?.profile?.username?.toLowerCase() || '';
           const displayName = entry?.profile?.displayName?.toLowerCase() || '';
           const address = entry?.player?.toLowerCase() || '';
@@ -991,276 +1082,78 @@
                  address.includes(searchTerm) ||
                  abbreviatedAddress.includes(searchTerm);
         });
-
-        currentSearchResults = filtered;
-        selectedResultIndex = -1;
-
-        // Hide loading before rendering results
-        if (searchLoading) {
-          searchLoading.hidden = true;
+        
+        if (signal.aborted) return;
+        
+        // Hide spinner before rendering
+        if (searchSpinner && searchSpinner.parentElement) {
+          searchSpinner.parentElement.hidden = true;
         }
-
-        if (filtered.length === 0) {
-          if (searchResults) {
-            searchResults.innerHTML = '<div class="leaderboard-search-no-results">No users found</div>';
-          }
-        } else {
-          // Save to recent searches
-          saveRecentSearch(query);
-          
-          // Render results with highlighting (optimized)
-          if (searchResults) {
-            // Use requestAnimationFrame for smooth rendering
-            requestAnimationFrame(() => {
-              const fragment = document.createDocumentFragment();
-              const resultsContainer = document.createElement('div');
-              resultsContainer.className = 'leaderboard-search-results-container';
-              
-              // Count header
-              const countHeader = document.createElement('div');
-              countHeader.className = 'leaderboard-search-count';
-              countHeader.textContent = `Found ${filtered.length} user${filtered.length !== 1 ? 's' : ''}`;
-              resultsContainer.appendChild(countHeader);
-              
-              // Results list
-              const resultsList = document.createElement('ol');
-              resultsList.className = 'leaderboard-search-list';
-              
-              const listFragment = document.createDocumentFragment();
-              filtered.forEach((entry, index) => {
-                const listItem = createListItem(entry, index + 1);
-                listItem.setAttribute('data-result-index', index);
-                listItem.setAttribute('data-address', entry?.player || '');
-                
-                // Add click handler to scroll to user (optimized - use event delegation if many items)
-                listItem.addEventListener('click', () => {
-                  scrollToUser(entry?.player);
-                }, { passive: true });
-                
-                // Highlight search term in username/displayName
-                const nameEl = listItem.querySelector('.leaderboard-item-name');
-                if (nameEl && searchTerm) {
-                  const originalText = nameEl.textContent;
-                  nameEl.innerHTML = highlightText(originalText, searchTerm);
-                }
-                
-                listFragment.appendChild(listItem);
-              });
-              resultsList.appendChild(listFragment);
-              resultsContainer.appendChild(resultsList);
-              fragment.appendChild(resultsContainer);
-              
-              searchResults.innerHTML = '';
-              searchResults.appendChild(fragment);
-              
-              // Ensure loading is hidden after render
-              if (searchLoading) {
-                searchLoading.hidden = true;
-              }
-            });
-          }
-        }
-      }, SEARCH_DEBOUNCE);
-    };
-
-    // Keyboard navigation for search results
-    const handleKeyboardNavigation = (e) => {
-      if (!searchResults || currentSearchResults.length === 0) return;
-      
-      const resultItems = searchResults.querySelectorAll('[data-result-index]');
-      if (resultItems.length === 0) return;
-      
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        selectedResultIndex = Math.min(selectedResultIndex + 1, resultItems.length - 1);
-        updateSelectedResult(resultItems);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        selectedResultIndex = Math.max(selectedResultIndex - 1, -1);
-        updateSelectedResult(resultItems);
-      } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
-        e.preventDefault();
-        const selectedItem = resultItems[selectedResultIndex];
-        if (selectedItem) {
-          const address = selectedItem.getAttribute('data-address');
-          scrollToUser(address);
-        }
-      }
+        
+        renderResults(filtered);
+      });
     };
     
-    const updateSelectedResult = (resultItems) => {
-      // Optimize: Use DocumentFragment for batch DOM updates
-      const fragment = document.createDocumentFragment();
-      let selectedItem = null;
+    // Wire live search with debounce
+    const wireLiveSearch = () => {
+      if (!searchInput) return;
       
-      resultItems.forEach((item, index) => {
-        if (index === selectedResultIndex) {
-          item.classList.add('leaderboard-search-result-selected');
-          selectedItem = item;
-        } else {
-          item.classList.remove('leaderboard-search-result-selected');
-        }
-      });
+      // Create debounced search function (120ms)
+      searchDebounced = debounce((query) => {
+        performLiveSearch(query);
+      }, 120);
       
-      // Scroll only once for selected item (optimized)
-      if (selectedItem) {
-        // Use requestAnimationFrame for smooth scrolling
-        requestAnimationFrame(() => {
-          selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-      }
-    };
-
-    if (searchBtn) {
-      const handleSearchClick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (!searchInput || !searchModal) return;
-        
-        // OPTIMIZED: Top sheet modal with optimized focus strategy
-        // Step 1: Lock body scroll
-        lockBodyScroll();
-        
-        // Step 2: Open modal (input is already in DOM, visible)
-        searchModal.removeAttribute('hidden');
-        
-        // Step 3: Trigger animation in next frame
-        requestAnimationFrame(() => {
-          searchModal.classList.add('modal-open');
-        });
-        
-        // Step 4: Clear input and ensure loading is hidden FIRST
-        if (searchInput) {
-          searchInput.value = ''; // Clear any previous value
-        }
-        if (searchClear) {
-          searchClear.hidden = true;
-        }
-        if (searchLoading) {
-          searchLoading.hidden = true; // FORCE hide loading
-        }
-        isSearching = false;
-        
-        // Clear any pending search
-        if (searchTimeout) {
-          clearTimeout(searchTimeout);
-          searchTimeout = null;
-        }
-        
-        // Step 5: Prepare input
-        searchInput.removeAttribute('readonly');
-        searchInput.removeAttribute('disabled');
-        searchInput.setAttribute('tabindex', '0');
-        
-        // Step 6: Show recent searches (input is now empty)
-        requestAnimationFrame(() => {
-          renderRecentSearches();
-        });
-        
-        // Step 7: Focus input IMMEDIATELY while user interaction is still valid
-        // This is critical for mobile webviews - focus must happen during the click event
-        const focusInput = () => {
-          searchInput.focus();
-          if (searchInput.setSelectionRange) {
-            const len = searchInput.value.length;
-            searchInput.setSelectionRange(len, len);
-          }
-        };
-        
-        // Immediate focus
-        focusInput();
-        
-        // Step 8: Platform-specific handling (optimized)
-        if (platform.isIOS) {
-          // iOS readonly trick - forces keyboard to open
-          searchInput.setAttribute('readonly', 'readonly');
-          void searchInput.offsetHeight; // Force reflow
-          searchInput.removeAttribute('readonly');
-          focusInput();
-        } else if (platform.isAndroid) {
-          // Android: Click as fallback
-          searchInput.click();
-          focusInput();
-        }
-        
-        // Step 9: Retry focus after modal animation (single retry, optimized timing)
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (document.activeElement !== searchInput) {
-              focusInput();
-            }
-            // Ensure loading is still hidden after animation
-            if (searchLoading) {
-              searchLoading.hidden = true;
-            }
-          }, 150); // Slightly longer delay for animation to complete
-        });
-      };
-      
-      searchBtn.addEventListener('click', handleSearchClick);
-      searchBtn.addEventListener('touchend', handleSearchClick, { passive: false });
-    }
-
-    if (searchClose) {
-      const handleClose = (e) => {
-        if (e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        closeSearchModal();
-      };
-      
-      searchClose.addEventListener('click', handleClose);
-      searchClose.addEventListener('touchend', handleClose, { passive: false });
-    }
-
-    if (searchInput) {
-      searchInput.removeAttribute('readonly');
-      searchInput.removeAttribute('disabled');
-      searchInput.setAttribute('tabindex', '0');
-      
-      // Input event - only search if there's actual text
+      // Input event listener
       searchInput.addEventListener('input', (e) => {
         const value = e.target.value;
+        
+        // Show/hide clear button
         if (searchClear) {
           searchClear.hidden = !value || value.trim() === '';
         }
         
-        // CRITICAL: Only perform search if there's actual text
-        // This prevents loading from showing when input is empty
-        if (value && value.trim()) {
-          performSearch(value);
-        } else {
-          // Input is empty - clear everything immediately
-          if (searchLoading) {
-            searchLoading.hidden = true;
-          }
-          isSearching = false;
-          if (searchTimeout) {
-            clearTimeout(searchTimeout);
-            searchTimeout = null;
-          }
-          renderRecentSearches();
-          if (searchResults) {
-            searchResults.innerHTML = '';
-          }
-          selectedResultIndex = -1;
-          currentSearchResults = [];
-        }
+        // Trigger debounced search
+        searchDebounced(value);
       });
-
+      
       // Keyboard events
       searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           closeSearchModal();
-        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
-          handleKeyboardNavigation(e);
         }
       });
+    };
+    
+    // Wire search button
+    const searchBtn = panel.querySelector('[data-search-btn]');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSearchModal();
+      });
+      searchBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSearchModal();
+      }, { passive: false });
     }
-
-    // Clear button
+    
+    // Wire close button
+    if (ensureSearchDOM() && searchClose) {
+      searchClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSearchModal();
+      });
+      searchClose.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSearchModal();
+      }, { passive: false });
+    }
+    
+    // Wire clear button
     if (searchClear) {
       searchClear.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1269,13 +1162,14 @@
           searchInput.value = '';
           searchInput.focus();
           searchClear.hidden = true;
-          performSearch('');
-          renderRecentSearches();
+          if (searchDebounced) {
+            searchDebounced('');
+          }
         }
       });
     }
-
-    // Close modal when clicking backdrop
+    
+    // Wire backdrop click
     if (searchBackdrop) {
       searchBackdrop.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1284,7 +1178,7 @@
       });
     }
     
-    // Also close when clicking modal background (fallback)
+    // Wire modal background click (fallback)
     if (searchModal) {
       searchModal.addEventListener('click', (e) => {
         if (e.target === searchModal) {
@@ -1293,16 +1187,12 @@
       });
     }
     
-    // Clear recent searches button
-    if (recentClear) {
-      recentClear.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        clearRecentSearches();
-      });
+    // Wire live search
+    if (ensureSearchDOM()) {
+      wireLiveSearch();
     }
     
-    // Close on Escape key (global)
+    // Global Escape key handler
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && searchModal && !searchModal.hasAttribute('hidden')) {
         closeSearchModal();
