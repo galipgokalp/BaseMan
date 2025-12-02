@@ -688,43 +688,18 @@
     
     // Platform detection helpers
     const isIOS = () => {
-      const ua = navigator.userAgent || navigator.vendor || window.opera || '';
-      const iosMatch = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-      try {
-        const platformType = window.fc?.miniapp?.context?.client?.platformType;
-        return iosMatch || (platformType === 'mobile' && /iPad|iPhone|iPod/.test(ua));
-      } catch {
-        return iosMatch;
-      }
+      return typeof navigator !== "undefined" &&
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        !window.MSStream;
     };
     
     const isAndroid = () => {
-      const ua = navigator.userAgent || '';
-      const androidMatch = /android/i.test(ua);
-      try {
-        const platformType = window.fc?.miniapp?.context?.client?.platformType;
-        return androidMatch || (platformType === 'mobile' && /android/i.test(ua));
-      } catch {
-        return androidMatch;
-      }
+      return typeof navigator !== "undefined" &&
+        /Android/.test(navigator.userAgent);
     };
     
-    // Visual viewport shim for keyboard detection
-    const getVisualViewport = () => {
-      if (window.visualViewport) {
-        return window.visualViewport;
-      }
-      // Fallback shim
-      return {
-        height: window.innerHeight,
-        width: window.innerWidth,
-        offsetTop: 0,
-        offsetLeft: 0,
-        scale: 1,
-        addEventListener: () => {},
-        removeEventListener: () => {}
-      };
-    };
+    // Visual viewport handler for keyboard detection
+    let viewportHandler = null;
     
     // Debounce helper
     const debounce = (fn, delay) => {
@@ -811,33 +786,36 @@
       }
     };
     
-    // Visual viewport adjustment for keyboard
-    const adjustModalForKeyboard = () => {
-      if (!searchModal) return;
-      const vv = getVisualViewport();
-      const modalContent = searchModal.querySelector('.leaderboard-search-modal-content');
+    // Attach visual viewport shim for keyboard detection
+    const attachViewportShim = () => {
+      if (!window.visualViewport || viewportHandler) return;
+      
+      const modalContent = searchModal?.querySelector('.leaderboard-search-modal-content');
       if (!modalContent) return;
       
-      // Adjust top position when keyboard is open (from 12% to 6%)
-      const viewportHeight = vv.height;
-      const windowHeight = window.innerHeight;
-      const keyboardHeight = windowHeight - viewportHeight;
+      viewportHandler = () => {
+        if (!modalContent) return;
+        const vh = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        const needsLift = vh < windowHeight * 0.8; // Keyboard open estimate
+        modalContent.style.top = needsLift ? '6%' : '12%';
+      };
       
-      if (keyboardHeight > 50) {
-        // Keyboard is open
-        modalContent.style.top = '6%';
-      } else {
-        // Keyboard is closed
-        modalContent.style.top = '';
-      }
+      window.visualViewport.addEventListener('resize', viewportHandler);
+      window.visualViewport.addEventListener('scroll', viewportHandler);
     };
     
-    // Wire visual viewport listener
-    const wireVisualViewport = () => {
-      const vv = getVisualViewport();
-      if (vv && vv.addEventListener) {
-        vv.addEventListener('resize', adjustModalForKeyboard);
-        vv.addEventListener('scroll', adjustModalForKeyboard);
+    // Detach visual viewport shim
+    const detachViewportShim = () => {
+      if (!window.visualViewport || !viewportHandler) return;
+      
+      window.visualViewport.removeEventListener('resize', viewportHandler);
+      window.visualViewport.removeEventListener('scroll', viewportHandler);
+      viewportHandler = null;
+      
+      const modalContent = searchModal?.querySelector('.leaderboard-search-modal-content');
+      if (modalContent) {
+        modalContent.style.top = '';
       }
     };
     
@@ -871,49 +849,42 @@
       requestAnimationFrame(() => {
         searchModal.classList.add('modal-open');
         
-        // iOS focus strategy: rAF + setTimeout(~60ms), dispatch pointerdown, then focus
-        if (isIOS()) {
-          setTimeout(() => {
-            // Dispatch pointerdown event to simulate user interaction
-            const pointerDownEvent = new PointerEvent('pointerdown', {
-              bubbles: true,
-              cancelable: true,
-              pointerId: 1,
-              pointerType: 'touch'
-            });
-            searchInput.dispatchEvent(pointerDownEvent);
-            
-            // Focus with preventScroll
-            searchInput.focus({ preventScroll: true });
-            
-            // Set selection range
-            if (searchInput.setSelectionRange) {
-              const len = searchInput.value.length;
-              searchInput.setSelectionRange(len, len);
-            }
-          }, 60);
-        }
-        // Android focus strategy: click before focus
-        else if (isAndroid()) {
-          searchInput.click();
-          searchInput.focus();
-          if (searchInput.setSelectionRange) {
-            const len = searchInput.value.length;
-            searchInput.setSelectionRange(len, len);
+        // Focus input after modal becomes visible (rAF + setTimeout for reliability)
+        setTimeout(() => {
+          if (!searchInput) return;
+          
+          // 1) Android: Some webviews need click() before focus
+          if (isAndroid()) {
+            try {
+              searchInput.click();
+            } catch (e) {}
           }
-        }
-        // Fallback for other platforms
-        else {
-          searchInput.focus();
-          if (searchInput.setSelectionRange) {
-            const len = searchInput.value.length;
-            searchInput.setSelectionRange(len, len);
+          
+          // 2) iOS: Dispatch pointerdown event for reliable focus
+          if (isIOS()) {
+            try {
+              const ev = new PointerEvent('pointerdown', { bubbles: true });
+              searchInput.dispatchEvent(ev);
+            } catch (e) {}
           }
-        }
+          
+          // 3) Common focus + set cursor to end
+          searchInput.focus({ preventScroll: true });
+          try {
+            const end = searchInput.value.length;
+            searchInput.setSelectionRange(end, end);
+          } catch (e) {}
+        }, 60);
         
-        // Wire visual viewport for keyboard adjustment
-        wireVisualViewport();
+        // Attach visual viewport shim for keyboard adjustment
+        attachViewportShim();
       });
+      
+      // Wire live search
+      wireLiveSearch();
+      
+      // Show empty state initially
+      renderResults([]);
     };
     
     // Close search modal
@@ -925,6 +896,9 @@
         searchAbortController.abort();
         searchAbortController = null;
       }
+      
+      // Detach viewport shim
+      detachViewportShim();
       
       // Unlock body scroll
       unlockBodyScroll();
