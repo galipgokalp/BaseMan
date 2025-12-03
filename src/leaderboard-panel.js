@@ -18,7 +18,8 @@ import {
   renderRows, 
   renderError, 
   showDebugInfo, 
-  hideDebugInfo 
+  hideDebugInfo,
+  formatScore
 } from './leaderboard/dom.js';
 import { initSearch, closeSearchModal } from './leaderboard/search.js';
 
@@ -32,12 +33,187 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   const scrollWrapper = panel.querySelector("[data-scroll-wrapper]");
   const limit = Number(panel.dataset.limit || "10");
 
+  // Current user state (cached)
+  let currentUser = null;
+  let currentAddress = null;
+
+  /**
+   * Normalize address for comparison
+   */
+  const normalizeAddress = (addr) => {
+    return typeof addr === "string" ? addr.toLowerCase() : null;
+  };
+
+  /**
+   * Get current user and address (async)
+   */
+  const getCurrentUserInfo = async () => {
+    let address = null;
+    let user = null;
+
+    try {
+      // Try to get address from BaseManOnchain
+      if (window.BaseManOnchain) {
+        const isWalletReady = window.BaseManOnchain?.isWalletReady?.();
+        if (isWalletReady) {
+          address = window.BaseManOnchain?.getWalletAddress?.() || null;
+        }
+      }
+
+      // Try to get user from SDK context
+      if (window.sdk && window.sdk.context) {
+        try {
+          const context = await window.sdk.context;
+          user = context?.user;
+        } catch (ctxErr) {
+          // SDK context not available
+        }
+      }
+    } catch (err) {
+      console.warn('[leaderboard-panel] Error getting user info:', err);
+    }
+
+    return { address, user };
+  };
+
+  /**
+   * Check if an entry belongs to the current user
+   */
+  const isMyEntry = (entry) => {
+    if (!entry) return false;
+
+    // Match by FID if available
+    if (currentUser?.fid && entry?.profile?.fid) {
+      if (Number(currentUser.fid) === Number(entry.profile.fid)) {
+        return true;
+      }
+    }
+
+    // Match by address
+    const entryAddress = entry?.player || entry?.address;
+    if (currentAddress && entryAddress) {
+      const normalizedCurrent = normalizeAddress(currentAddress);
+      const normalizedEntry = normalizeAddress(entryAddress);
+      if (normalizedCurrent && normalizedEntry && normalizedCurrent === normalizedEntry) {
+        return true;
+      }
+    }
+
+    // Also check entry.addresses array if it exists
+    if (currentAddress && Array.isArray(entry?.addresses)) {
+      const normalizedCurrent = normalizeAddress(currentAddress);
+      const matches = entry.addresses.some(addr => {
+        const normalizedAddr = normalizeAddress(addr);
+        return normalizedCurrent && normalizedAddr && normalizedCurrent === normalizedAddr;
+      });
+      if (matches) return true;
+    }
+
+    return false;
+  };
+
+  /**
+   * Update the "My Rank" summary card
+   */
+  const updateMyRankSummary = (entries) => {
+    const myRankSummaryEl = panel.querySelector("[data-my-rank-summary]");
+    if (!myRankSummaryEl) return;
+
+    // If no user or address, show connect wallet message
+    if (!currentUser && !currentAddress) {
+      myRankSummaryEl.hidden = false;
+      myRankSummaryEl.innerHTML = `
+        <div class="leaderboard-my-rank-message">
+          Connect your wallet to see your rank.
+        </div>
+      `;
+      return;
+    }
+
+    // Find user's entry
+    const myEntry = entries.find(entry => isMyEntry(entry));
+
+    // If user exists but no entry found
+    if (!myEntry) {
+      myRankSummaryEl.hidden = false;
+      myRankSummaryEl.innerHTML = `
+        <div class="leaderboard-my-rank-message">
+          You don't have a score yet. Play to enter the leaderboard.
+        </div>
+      `;
+      return;
+    }
+
+    // User has an entry - show rank card
+    const rank = typeof myEntry.rank === "number" && Number.isFinite(myEntry.rank)
+      ? myEntry.rank
+      : entries.findIndex(e => isMyEntry(e)) + 1;
+    
+    const formattedScore = formatScore(myEntry.totalScore, myEntry.highScore);
+
+    myRankSummaryEl.hidden = false;
+    myRankSummaryEl.innerHTML = `
+      <button type="button" class="leaderboard-my-rank-inner" data-my-rank-scroll>
+        <div class="leaderboard-my-rank-position">#${rank}</div>
+        <div class="leaderboard-my-rank-meta">
+          <div class="leaderboard-my-rank-label">Your rank</div>
+          <div class="leaderboard-my-rank-score">${formattedScore}</div>
+        </div>
+        <div class="leaderboard-my-rank-cta">Scroll to me</div>
+      </button>
+    `;
+  };
+
+  /**
+   * Scroll to user's rank in the leaderboard
+   */
+  const scrollToMyRank = () => {
+    // Find user's item in both top and rest lists
+    const myItem = topListEl?.querySelector("[data-my-rank-item='true']") ||
+                   restListEl?.querySelector("[data-my-rank-item='true']") ||
+                   panel.querySelector("[data-my-rank-item='true']");
+
+    if (!myItem) return;
+
+    // If item is in top list, just scroll it into view (top list is not scrollable)
+    if (topListEl && topListEl.contains(myItem)) {
+      myItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } 
+    // If item is in rest list (scrollable area)
+    else if (scrollWrapper && restListEl && restListEl.contains(myItem)) {
+      // Scroll within the scrollWrapper
+      const scrollOffset = Math.max(
+        myItem.offsetTop - scrollWrapper.offsetTop - 16,
+        0
+      );
+      scrollWrapper.scrollTo({
+        top: scrollOffset,
+        behavior: "smooth"
+      });
+    } 
+    // Fallback: scroll item into view
+    else {
+      myItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Add highlight class temporarily
+    myItem.classList.add('leaderboard-item-me-highlight');
+    setTimeout(() => {
+      myItem.classList.remove('leaderboard-item-me-highlight');
+    }, 1200);
+  };
+
   // Load leaderboard data
   const loadLeaderboardData = async () => {
     if (getLoading()) return;
     if (!getVisible()) return;
     setLoading(true);
     if (statusEl) statusEl.textContent = "";
+
+    // Update current user info
+    const userInfo = await getCurrentUserInfo();
+    currentUser = userInfo.user;
+    currentAddress = userInfo.address;
 
     await loadLeaderboard({
       limit,
@@ -48,8 +224,12 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
           restListEl,
           scrollWrapper,
           statusEl,
-          limit
+          limit,
+          isMyEntry // Pass the function to renderRows
         });
+        
+        // Update My Rank summary
+        updateMyRankSummary(items);
         
         if (isDebugMode && debugInfo) {
           showDebugInfo(panel, debugInfo);
@@ -175,10 +355,19 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
             restListEl,
             scrollWrapper,
             statusEl,
-            limit
+            limit,
+            isMyEntry
           });
         }
       }
+    });
+
+    // Click listener for "Scroll to me" button
+    panel.addEventListener("click", (event) => {
+      const trigger = event.target.closest("[data-my-rank-scroll]");
+      if (!trigger) return;
+      event.preventDefault();
+      scrollToMyRank();
     });
 
     // Initial load if visible

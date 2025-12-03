@@ -115,10 +115,24 @@ export function formatTimestamp(value) {
 
 /**
  * Create a leaderboard list item
+ * @param {Object} entry - Leaderboard entry
+ * @param {number} fallbackRank - Fallback rank if entry.rank is not available
+ * @param {boolean} isMe - Whether this entry belongs to the current user
  */
-export function createListItem(entry, fallbackRank) {
+export function createListItem(entry, fallbackRank, isMe = false) {
   const li = document.createElement("li");
   li.className = "leaderboard-item";
+  
+  // Store address for easier querying
+  if (entry?.player) {
+    li.dataset.address = entry.player.toLowerCase();
+  }
+  
+  // Mark user's own row
+  if (isMe) {
+    li.classList.add("leaderboard-item-me");
+    li.dataset.myRankItem = "true";
+  }
 
   // Rank
   const rank = document.createElement("span");
@@ -272,8 +286,16 @@ export function hideDebugInfo(panel) {
 
 /**
  * Render leaderboard rows
+ * @param {Array} items - Leaderboard entries
+ * @param {Object} options - Rendering options
+ * @param {HTMLElement} options.topListEl - Top list element
+ * @param {HTMLElement} options.restListEl - Rest list element
+ * @param {HTMLElement} options.scrollWrapper - Scroll wrapper element
+ * @param {HTMLElement} options.statusEl - Status element
+ * @param {number} options.limit - Limit of items to render
+ * @param {Function} options.isMyEntry - Function to check if entry belongs to current user
  */
-export function renderRows(items, { topListEl, restListEl, scrollWrapper, statusEl, limit }) {
+export function renderRows(items, { topListEl, restListEl, scrollWrapper, statusEl, limit, isMyEntry }) {
   if (topListEl) {
     topListEl.innerHTML = "";
   }
@@ -295,7 +317,8 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   if (topListEl) {
     const fragmentTop = document.createDocumentFragment();
     topItems.forEach((entry, index) => {
-      fragmentTop.appendChild(createListItem(entry, index + 1));
+      const isMe = isMyEntry ? isMyEntry(entry) : false;
+      fragmentTop.appendChild(createListItem(entry, index + 1, isMe));
     });
     topListEl.appendChild(fragmentTop);
   }
@@ -304,7 +327,8 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
     const fragmentRest = document.createDocumentFragment();
     restItems.forEach((entry, index) => {
       const fallbackRank = 10 + index + 1;
-      fragmentRest.appendChild(createListItem(entry, fallbackRank));
+      const isMe = isMyEntry ? isMyEntry(entry) : false;
+      fragmentRest.appendChild(createListItem(entry, fallbackRank, isMe));
     });
     restListEl.appendChild(fragmentRest);
     scrollWrapper.hidden = false;
