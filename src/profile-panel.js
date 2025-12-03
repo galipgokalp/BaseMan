@@ -1,39 +1,24 @@
-(() => {
-  const PANEL_ID = 'baseman-profile-panel';
-  const BTN_ID = 'baseman-profile-btn';
+import { abbreviateAddress, networkLabel, networkName, getEnv, createElement } from './utils/panel-base.js';
 
-  function $(sel) { return document.querySelector(sel); }
+const PANEL_ID = 'baseman-profile-panel';
+const BTN_ID = 'baseman-profile-btn';
 
-  function abbreviate(addr) {
-    if (!addr || typeof addr !== 'string') return '';
-    if (addr.length <= 10) return addr;
-    return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+// Use helpers from panel-base
+const abbreviate = abbreviateAddress;
+const el = createElement;
+
+function registryFor(chainId) {
+  const env = getEnv();
+  if (Number(chainId) === 8453) {
+    return env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS || env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
   }
-
-  function getEnv() {
-    return (window.__ENV && typeof window.__ENV === 'object') ? window.__ENV : {};
+  if (Number(chainId) === 84532) {
+    return env.NEXT_PUBLIC_BASE_SEPOLIA_REGISTRY_ADDRESS || env.BASE_SEPOLIA_REGISTRY_ADDRESS || env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
   }
+  return env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
+}
 
-  function registryFor(chainId) {
-    const env = getEnv();
-    if (Number(chainId) === 8453) {
-      return env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS || env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
-    }
-    if (Number(chainId) === 84532) {
-      return env.NEXT_PUBLIC_BASE_SEPOLIA_REGISTRY_ADDRESS || env.BASE_SEPOLIA_REGISTRY_ADDRESS || env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
-    }
-    return env.NEXT_PUBLIC_REGISTRY_ADDRESS || null;
-  }
-
-  function networkLabel(chainId) {
-    return Number(chainId) === 8453 ? 'Base' : (Number(chainId) === 84532 ? 'Base Sepolia' : `Chain ${chainId}`);
-  }
-
-  function networkName(chainId) {
-    return Number(chainId) === 8453 ? 'Base Mainnet' : (Number(chainId) === 84532 ? 'Base Sepolia' : `Chain ${chainId}`);
-  }
-
-  function createBaseLogo() {
+function createBaseLogo() {
     // Base logo: Blue square (#0000FF) - Base's official brand color
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 16 16');
@@ -50,9 +35,9 @@
     
     svg.appendChild(rect);
     return svg;
-  }
+}
 
-  function setupNetworkLogos(panel) {
+function setupNetworkLogos(panel) {
     const logoElements = panel.querySelectorAll('.profile-network-logo');
     logoElements.forEach((logoEl) => {
       // Only create logo if it doesn't already have one
@@ -61,14 +46,14 @@
         logoEl.appendChild(svg);
       }
     });
-  }
+}
 
-  // Track if a dialog is currently open to prevent multiple dialogs
-  let currentDialog = null;
-  let isDialogHandling = false;
-  let dialogCloseTimeout = null;
+// Track if a dialog is currently open to prevent multiple dialogs
+let currentDialog = null;
+let isDialogHandling = false;
+let dialogCloseTimeout = null;
 
-  function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
+function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
     // If a dialog is already open, close it first
     if (currentDialog && document.body.contains(currentDialog)) {
       currentDialog.remove();
@@ -184,16 +169,10 @@
       }
     };
     document.addEventListener('keydown', handleEscape, { once: true, capture: true });
-  }
+}
 
-  function el(tag, className, text) {
-    const e = document.createElement(tag);
-    if (className) e.className = className;
-    if (text !== undefined) e.textContent = text;
-    return e;
-  }
 
-  function ensureShell() {
+function ensureShell() {
     // Ensure body exists before appending
     if (!document.body) {
       console.warn('[profile-panel] document.body not ready');
@@ -250,19 +229,19 @@
       document.body.appendChild(panel);
     }
     return { btn: null, panel };
-  }
+}
 
-  async function fetchJson(url) {
+async function fetchJson(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Request failed: ${res.status}`);
     return res.json();
-  }
+}
 
-  function currentNetworkKey(chainId) {
+function currentNetworkKey(chainId) {
     return Number(chainId) === 8453 ? 'base' : 'base-sepolia';
-  }
+}
 
-  async function refresh(panel) {
+async function refresh(panel) {
     const addrEl = panel.querySelector('[data-address]');
     const netEl = panel.querySelector('[data-network]');
     const ethEl = panel.querySelector('[data-eth]');
@@ -472,9 +451,9 @@
     } catch (err) {
       console.error('[profile] refresh error', err);
     }
-  }
+}
 
-  async function handleSwitch(chainId) {
+async function handleSwitch(chainId) {
     const nextRegistry = registryFor(chainId);
     if (!nextRegistry) {
       alert('Registry address not configured for selected network');
@@ -582,11 +561,11 @@
         dialogCloseTimeout = null;
       }, 500);
     }
-  }
+}
 
-  let isOpen = false;
+let isOpen = false;
 
-  function setVisible(visible) {
+function setVisible(visible) {
     const shell = ensureShell();
     if (!shell || !shell.panel) return;
 
@@ -604,9 +583,9 @@
         refresh(shell.panel);
       });
     }
-  }
+}
 
-  function wire(panel, btn) {
+function wire(panel, btn) {
     if (!panel) {
       console.error('[profile-panel] wire: panel missing');
       return;
@@ -721,9 +700,9 @@
           });
 
     // Complete Quest section removed - no longer needed
-  }
+}
 
-  function init() {
+function init() {
     try {
       const shell = ensureShell();
       if (!shell) {
@@ -748,10 +727,10 @@
     } catch (error) {
       console.error('[profile-panel] init error', error);
     }
-  }
+}
 
-  // Wait for both DOM ready and SDK ready (if in mini app)
-  function initWhenReady() {
+// Wait for both DOM ready and SDK ready (if in mini app)
+function initWhenReady() {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init, { once: true });
     } else {
@@ -766,10 +745,10 @@
         setTimeout(init, 1000);
       }
     }
-  }
+}
 
-  // Public API
-  window.ProfilePanel = {
+// Public API
+window.ProfilePanel = {
     show: () => setVisible(true),
     hide: () => setVisible(false),
     toggle: () => setVisible(!isOpen),
@@ -778,7 +757,6 @@
       if (shell && shell.panel) refresh(shell.panel);
     },
     isOpen: () => isOpen
-  };
+};
 
-  initWhenReady();
-})();
+initWhenReady();

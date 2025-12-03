@@ -3,21 +3,14 @@
  * Displays app settings and preferences
  */
 
-(function() {
-  'use strict';
+import { createElement } from './utils/panel-base.js';
 
-  const PANEL_ID = 'baseman-settings-panel';
+const PANEL_ID = 'baseman-settings-panel';
 
-  function $(sel) { return document.querySelector(sel); }
+// Use helpers from panel-base
+const el = createElement;
 
-  function el(tag, className, text) {
-    const e = document.createElement(tag);
-    if (className) e.className = className;
-    if (text !== undefined) e.textContent = text;
-    return e;
-  }
-
-  function ensurePanel() {
+function ensurePanel() {
     if (!document.body) {
       console.warn('[settings-panel] document.body not ready');
       return null;
@@ -125,11 +118,11 @@
       document.body.appendChild(panel);
     }
     return panel;
-  }
+}
 
-  let isOpen = false;
+let isOpen = false;
 
-  function setVisible(visible) {
+function setVisible(visible) {
     const panel = ensurePanel();
     if (!panel) return;
 
@@ -150,9 +143,9 @@
         refresh();
       });
     }
-  }
+}
 
-  function loadSettings() {
+function loadSettings() {
     const panel = ensurePanel();
     if (!panel) return;
 
@@ -176,9 +169,9 @@
       const showProfile = getSetting('showProfile', true);
       profileToggle.checked = showProfile;
     }
-  }
+}
 
-  function refresh() {
+function refresh() {
     const panel = ensurePanel();
     if (!panel) return;
 
@@ -196,10 +189,10 @@
     } catch (error) {
       console.error('[settings-panel] refresh error', error);
     }
-  }
+}
 
-  // Settings storage
-  function getSetting(key, defaultValue) {
+// Settings storage
+function getSetting(key, defaultValue) {
     try {
       const stored = localStorage.getItem(`baseman_${key}`);
       if (stored !== null) {
@@ -209,18 +202,18 @@
       }
     } catch (e) {}
     return defaultValue;
-  }
+}
 
-  function setSetting(key, value) {
+function setSetting(key, value) {
     try {
       localStorage.setItem(`baseman_${key}`, String(value));
     } catch (e) {
       console.warn('[settings-panel] Failed to save setting:', key, e);
     }
-  }
+}
 
-  // Wrap audio track functions to respect settings
-  function wrapAudioTracks() {
+// Wrap audio track functions to respect settings
+function wrapAudioTracks() {
     if (typeof window.audio === 'undefined' || !window.audio) {
       return;
     }
@@ -302,9 +295,9 @@
         window.audio[trackName]._wrapped = true;
       }
     });
-  }
+}
 
-  function applySettings() {
+function applySettings() {
     // Apply theme
     const theme = getSetting('theme', 'dark');
     document.body.classList.toggle('theme-light', theme === 'light');
@@ -402,9 +395,9 @@
     // Apply profile button visibility setting
     const showProfile = getSetting('showProfile', true);
     ensureProfileButton(showProfile);
-  }
+}
 
-  function ensureProfileButton(show) {
+function ensureProfileButton(show) {
     // Profile button is now in bottom nav, but we keep this function for compatibility
     // If a top-right profile button exists, show/hide it based on setting
     let profileBtn = document.getElementById('baseman-profile-btn');
@@ -413,12 +406,12 @@
     }
     // Note: Bottom nav profile button is always visible and controlled by bottom-nav.js
     // This setting only affects any legacy top-right profile button if it exists
-  }
+}
 
-  // Track if elements are already wired to prevent duplicate listeners
-  const wiredElements = new WeakSet();
+// Track if elements are already wired to prevent duplicate listeners
+const wiredElements = new WeakSet();
 
-  function wire(panel) {
+function wire(panel) {
     const closeBtn = panel.querySelector('[data-close]');
     if (closeBtn && !wiredElements.has(closeBtn)) {
       wiredElements.add(closeBtn);
@@ -722,9 +715,9 @@
         btn.style.borderColor = 'var(--color-primary, rgba(59, 130, 246, 0.5))';
       }
     });
-  }
+}
 
-  function showDebugLogs(panel) {
+function showDebugLogs(panel) {
     const container = panel.querySelector('[data-debug-logs-container]');
     const content = panel.querySelector('[data-debug-logs-content]');
     if (!container || !content) return;
@@ -733,19 +726,19 @@
     
     // Load logs with current filter
     loadDebugLogs(content, currentLogFilter);
-  }
+}
 
-  function hideDebugLogs(panel) {
+function hideDebugLogs(panel) {
     const container = panel.querySelector('[data-debug-logs-container]');
     if (!container) return;
     container.style.display = 'none';
-  }
+}
 
-  // Store current filter and all logs
-  let currentLogFilter = localStorage.getItem('debugLogsFilter') || 'all';
-  let allLogsCache = [];
+// Store current filter and all logs
+let currentLogFilter = localStorage.getItem('debugLogsFilter') || 'all';
+let allLogsCache = [];
 
-  async function loadDebugLogs(contentEl, filter = null) {
+async function loadDebugLogs(contentEl, filter = null) {
     if (!contentEl) return;
     
     // Use provided filter or saved filter
@@ -806,9 +799,9 @@
 
     // No logs available
     contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Open the leaderboard or play a game to generate logs. Logs are stored in your browser\'s memory and reset on page refresh.</div>';
-  }
+}
 
-  function renderDebugLogs(contentEl, logs, filter = 'all') {
+function renderDebugLogs(contentEl, logs, filter = 'all') {
     if (!contentEl) return;
 
     if (!logs || logs.length === 0) {
@@ -907,9 +900,9 @@
     
     // Scroll to top
     contentEl.scrollTop = 0;
-  }
+}
 
-  function clearDebugLogs(panel) {
+function clearDebugLogs(panel) {
     if (!confirm('Are you sure you want to clear all logs?')) {
       return;
     }
@@ -931,9 +924,9 @@
 
     // Hide logs container
     hideDebugLogs(panel);
-  }
+}
 
-  async function copyAllLogs(panel) {
+async function copyAllLogs(panel) {
     const copyBtn = panel.querySelector('[data-debug-logs-copy]');
     const originalText = copyBtn ? copyBtn.textContent : '📋 Copy';
     
@@ -1066,9 +1059,9 @@
         copyBtn.disabled = false;
       }
     }
-  }
+}
 
-  async function copyToClipboard(text) {
+async function copyToClipboard(text) {
     if (!text || typeof text !== 'string') {
       throw new Error('Invalid text to copy');
     }
@@ -1159,9 +1152,9 @@
       // Last resort: Show the text in an alert or prompt so user can manually copy
       throw new Error('Failed to copy to clipboard. Please copy manually from the logs view.');
     }
-  }
+}
 
-  function showCopyFeedback(button, text, success) {
+function showCopyFeedback(button, text, success) {
     if (!button) return;
     const originalText = button.textContent;
     button.textContent = text;
@@ -1170,9 +1163,9 @@
       button.textContent = originalText;
       button.style.color = '';
     }, 2000);
-  }
+}
 
-  function exportDebugLogs() {
+function exportDebugLogs() {
     try {
       // Try to export from ConsoleLogger API
       if (window.ConsoleLogger && typeof window.ConsoleLogger.export === 'function') {
@@ -1202,15 +1195,15 @@
         console.error('[settings-panel] Failed to export logs:', error);
         alert('Failed to export logs. Please try again.');
       });
-  }
+}
 
-  function escapeHtml(text) {
+function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-  }
+}
 
-  function init() {
+function init() {
     try {
       const panel = ensurePanel();
       if (!panel) {
@@ -1224,10 +1217,10 @@
     } catch (error) {
       console.error('[settings-panel] init error', error);
     }
-  }
+}
 
-  // Public API
-  window.SettingsPanel = {
+// Public API
+window.SettingsPanel = {
     show: () => setVisible(true),
     hide: () => setVisible(false),
     toggle: () => setVisible(!isOpen),
@@ -1237,13 +1230,13 @@
     setSetting: setSetting,
     applySettings: applySettings,
     wrapAudioTracks: wrapAudioTracks
-  };
-  
-  // Alias for compatibility with in-game menu
-  window.BaseManSettings = window.SettingsPanel;
+};
 
-  // Wait for DOM and SDK ready
-  function initWhenReady() {
+// Alias for compatibility with in-game menu
+window.BaseManSettings = window.SettingsPanel;
+
+// Wait for DOM and SDK ready
+function initWhenReady() {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         if (window.__basemanSDKReadyFired) {
@@ -1265,10 +1258,10 @@
         setTimeout(init, 1000);
       }
     }
-  }
+}
 
-  // Apply settings on load
-  if (typeof window !== 'undefined') {
+// Apply settings on load
+if (typeof window !== 'undefined') {
     function doApplySettings() {
       // Wait for audio to be ready, then wrap and apply settings
       function tryApply() {
@@ -1295,8 +1288,7 @@
     } else {
       setTimeout(doApplySettings, 100);
     }
-  }
+}
 
-  initWhenReady();
-})();
+initWhenReady();
 
