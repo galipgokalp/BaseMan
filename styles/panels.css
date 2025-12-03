@@ -234,11 +234,22 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.7);
+  /* Removed backdrop-filter for mobile performance - blur is expensive on webviews */
+  /* backdrop-filter: blur(8px); */
+  /* -webkit-backdrop-filter: blur(8px); */
   opacity: 0;
   transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enable blur only on desktop/high-power browsers */
+@media (pointer: fine) {
+  @supports (backdrop-filter: blur(8px)) {
+    .leaderboard-search-modal-backdrop {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+  }
 }
 
 .leaderboard-search-modal.modal-open .leaderboard-search-modal-backdrop {

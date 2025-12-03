@@ -40,6 +40,7 @@ let viewportHandler = null;
 let bodyScrollLocked = false;
 let originalBodyOverflow = '';
 let originalBodyPaddingRight = '';
+let searchInputWired = false; // Flag to prevent duplicate event listener registrations
 
 /**
  * Ensure search DOM elements are ready
@@ -297,7 +298,9 @@ function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemCli
  * Wire live search
  */
 function wireLiveSearch(getAllEntries, { topListEl, restListEl, onItemClick, onClose }) {
-  if (!searchInput) return;
+  if (!searchInput || searchInputWired) return; // Guard: do nothing if already wired
+  
+  searchInputWired = true;
   
   searchDebounced = debounce((query) => {
     const allEntries = typeof getAllEntries === 'function' ? getAllEntries() : getAllEntries;

@@ -347,18 +347,8 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       restListEl,
       onItemClick: handleSearchItemClick,
       onClose: () => {
-        // Restore leaderboard when search closes
-        const entries = getAllEntries();
-        if (entries && entries.length > 0) {
-          renderRows(entries, {
-            topListEl,
-            restListEl,
-            scrollWrapper,
-            statusEl,
-            limit,
-            isMyEntry
-          });
-        }
+        // Modal close callback - no need to re-render leaderboard
+        // The main leaderboard content remains unchanged when search closes
       }
     });
 

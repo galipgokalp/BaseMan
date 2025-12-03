@@ -319,9 +319,8 @@ body.theme-light .canvas-container {
 /* ===== Leaderboard Search Modal - Enhanced (Modern Theme) ===== */
 /* Search Modal - Modern Theme Overrides */
 .leaderboard-search-modal-backdrop {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.7);
+  /* Blur removed for mobile performance - handled by @media query in panels.css */
 }
 
 .leaderboard-search-modal-content {
