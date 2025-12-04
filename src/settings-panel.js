@@ -744,8 +744,12 @@ async function loadDebugLogs(contentEl, filter = null) {
     // Use provided filter or saved filter
     const activeFilter = filter !== null ? filter : currentLogFilter;
 
-    // Show loading state
-    contentEl.innerHTML = '<div class="settings-debug-logs-empty">Loading logs...</div>';
+    // Show loading state (safe DOM)
+    contentEl.textContent = '';
+    const loadingEl = document.createElement('div');
+    loadingEl.className = 'settings-debug-logs-empty';
+    loadingEl.textContent = 'Loading logs...';
+    contentEl.appendChild(loadingEl);
 
     // PRIORITY 1: Try to get logs from ConsoleLogger API (client-side buffer - most reliable)
     // This is more reliable than server-side logs because it's in-memory on the client
@@ -797,15 +801,23 @@ async function loadDebugLogs(contentEl, filter = null) {
       console.warn('[settings-panel] Failed to load logs from API:', error);
     }
 
-    // No logs available
-    contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available. Open the leaderboard or play a game to generate logs. Logs are stored in your browser\'s memory and reset on page refresh.</div>';
+    // No logs available (safe DOM)
+    contentEl.textContent = '';
+    const noLogsEl = document.createElement('div');
+    noLogsEl.className = 'settings-debug-logs-empty';
+    noLogsEl.textContent = "No logs available. Open the leaderboard or play a game to generate logs. Logs are stored in your browser's memory and reset on page refresh.";
+    contentEl.appendChild(noLogsEl);
 }
 
 function renderDebugLogs(contentEl, logs, filter = 'all') {
     if (!contentEl) return;
 
     if (!logs || logs.length === 0) {
-      contentEl.innerHTML = '<div class="settings-debug-logs-empty">No logs available</div>';
+      contentEl.textContent = '';
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'settings-debug-logs-empty';
+      emptyEl.textContent = 'No logs available';
+      contentEl.appendChild(emptyEl);
       return;
     }
 
@@ -850,14 +862,22 @@ function renderDebugLogs(contentEl, logs, filter = 'all') {
     // filter === 'all' shows all logs
 
     if (filteredLogs.length === 0) {
-      contentEl.innerHTML = `<div class="settings-debug-logs-empty">No ${filter === 'all' ? '' : filter + ' '}logs available. Try playing a game and check again.</div>`;
+      contentEl.textContent = '';
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'settings-debug-logs-empty';
+      const filterText = filter === 'all' ? '' : filter + ' ';
+      emptyEl.textContent = `No ${filterText}logs available. Try playing a game and check again.`;
+      contentEl.appendChild(emptyEl);
       return;
     }
 
     // Limit to last 200 logs for performance (increased from 50)
     const displayLogs = filteredLogs.slice(0, 200);
     
-    let html = displayLogs.map(log => {
+    // Build DOM safely without innerHTML
+    const fragment = document.createDocumentFragment();
+    
+    displayLogs.forEach(log => {
       const ts = log.ts || log.timestamp || '';
       const event = log.event || log.type || 'unknown';
       const message = log.message || '';
@@ -880,23 +900,51 @@ function renderDebugLogs(contentEl, logs, filter = 'all') {
       // Truncate very long messages
       const displayMessage = message.length > 500 ? message.substring(0, 500) + '...' : message;
 
-      return `
-        <div class="${logClass}">
-          <div class="settings-debug-log-time">${timeStr}</div>
-          <div class="settings-debug-log-event">${escapeHtml(event)}</div>
-          <div class="settings-debug-log-message">${escapeHtml(displayMessage)}</div>
-          ${Object.keys(meta).length > 0 ? `<div class="settings-debug-log-meta">${escapeHtml(JSON.stringify(meta, null, 2))}</div>` : ''}
-        </div>
-      `;
-    }).join('');
+      // Create log entry DOM
+      const logDiv = document.createElement('div');
+      logDiv.className = logClass;
+      
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'settings-debug-log-time';
+      timeDiv.textContent = timeStr;
+      logDiv.appendChild(timeDiv);
+      
+      const eventDiv = document.createElement('div');
+      eventDiv.className = 'settings-debug-log-event';
+      eventDiv.textContent = event;
+      logDiv.appendChild(eventDiv);
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'settings-debug-log-message';
+      messageDiv.textContent = displayMessage;
+      logDiv.appendChild(messageDiv);
+      
+      if (Object.keys(meta).length > 0) {
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'settings-debug-log-meta';
+        metaDiv.textContent = JSON.stringify(meta, null, 2);
+        logDiv.appendChild(metaDiv);
+      }
+      
+      fragment.appendChild(logDiv);
+    });
+    
+    // Add count footer
+    const filterText = filter === 'all' ? '' : filter + ' ';
+    const footerDiv = document.createElement('div');
+    footerDiv.className = 'settings-debug-logs-empty';
+    footerDiv.style.cssText = 'padding: var(--spacing-sm); text-align: center; color: var(--color-text-muted); font-size: 0.5rem;';
     
     if (filteredLogs.length > 200) {
-      html += `<div class="settings-debug-logs-empty" style="padding: var(--spacing-sm); text-align: center; color: var(--color-text-muted); font-size: 0.5rem;">Showing last 200 of ${filteredLogs.length} ${filter === 'all' ? '' : filter + ' '}logs</div>`;
+      footerDiv.textContent = `Showing last 200 of ${filteredLogs.length} ${filterText}logs`;
     } else if (filteredLogs.length > 0) {
-      html += `<div class="settings-debug-logs-empty" style="padding: var(--spacing-sm); text-align: center; color: var(--color-text-muted); font-size: 0.5rem;">Showing ${filteredLogs.length} ${filter === 'all' ? '' : filter + ' '}log${filteredLogs.length > 1 ? 's' : ''}</div>`;
+      footerDiv.textContent = `Showing ${filteredLogs.length} ${filterText}log${filteredLogs.length > 1 ? 's' : ''}`;
     }
+    fragment.appendChild(footerDiv);
 
-    contentEl.innerHTML = html;
+    // Clear and append safely
+    contentEl.textContent = '';
+    contentEl.appendChild(fragment);
     
     // Scroll to top
     contentEl.scrollTop = 0;
@@ -916,10 +964,14 @@ function clearDebugLogs(panel) {
       console.warn('[settings-panel] Failed to clear ConsoleLogger logs:', error);
     }
 
-    // Clear displayed logs
+    // Clear displayed logs (safe DOM)
     const content = panel.querySelector('[data-debug-logs-content]');
     if (content) {
-      content.innerHTML = '<div class="settings-debug-logs-empty">Logs cleared</div>';
+      content.textContent = '';
+      const clearedEl = document.createElement('div');
+      clearedEl.className = 'settings-debug-logs-empty';
+      clearedEl.textContent = 'Logs cleared';
+      content.appendChild(clearedEl);
     }
 
     // Hide logs container

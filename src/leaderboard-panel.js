@@ -114,19 +114,22 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
 
   /**
    * Update the "My Rank" summary card
+   * Uses safe DOM APIs instead of innerHTML
    */
   const updateMyRankSummary = (entries) => {
     const myRankSummaryEl = panel.querySelector("[data-my-rank-summary]");
     if (!myRankSummaryEl) return;
 
+    // Clear existing content safely
+    myRankSummaryEl.textContent = '';
+
     // If no user or address, show connect wallet message
     if (!currentUser && !currentAddress) {
       myRankSummaryEl.hidden = false;
-      myRankSummaryEl.innerHTML = `
-        <div class="leaderboard-my-rank-message">
-          Connect your wallet to see your rank.
-        </div>
-      `;
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'leaderboard-my-rank-message';
+      msgDiv.textContent = 'Connect your wallet to see your rank.';
+      myRankSummaryEl.appendChild(msgDiv);
       return;
     }
 
@@ -136,11 +139,10 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     // If user exists but no entry found
     if (!myEntry) {
       myRankSummaryEl.hidden = false;
-      myRankSummaryEl.innerHTML = `
-        <div class="leaderboard-my-rank-message">
-          You don't have a score yet. Play to enter the leaderboard.
-        </div>
-      `;
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'leaderboard-my-rank-message';
+      msgDiv.textContent = "You don't have a score yet. Play to enter the leaderboard.";
+      myRankSummaryEl.appendChild(msgDiv);
       return;
     }
 
@@ -152,16 +154,39 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     const formattedScore = formatScore(myEntry.totalScore, myEntry.highScore);
 
     myRankSummaryEl.hidden = false;
-    myRankSummaryEl.innerHTML = `
-      <button type="button" class="leaderboard-my-rank-inner" data-my-rank-scroll>
-        <div class="leaderboard-my-rank-position">#${rank}</div>
-        <div class="leaderboard-my-rank-meta">
-          <div class="leaderboard-my-rank-label">Your rank</div>
-          <div class="leaderboard-my-rank-score">${formattedScore}</div>
-        </div>
-        <div class="leaderboard-my-rank-cta">Scroll to me</div>
-      </button>
-    `;
+    
+    // Build rank card using safe DOM APIs
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'leaderboard-my-rank-inner';
+    button.setAttribute('data-my-rank-scroll', '');
+    
+    const positionDiv = document.createElement('div');
+    positionDiv.className = 'leaderboard-my-rank-position';
+    positionDiv.textContent = `#${rank}`;
+    button.appendChild(positionDiv);
+    
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'leaderboard-my-rank-meta';
+    
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'leaderboard-my-rank-label';
+    labelDiv.textContent = 'Your rank';
+    metaDiv.appendChild(labelDiv);
+    
+    const scoreDiv = document.createElement('div');
+    scoreDiv.className = 'leaderboard-my-rank-score';
+    scoreDiv.textContent = formattedScore;
+    metaDiv.appendChild(scoreDiv);
+    
+    button.appendChild(metaDiv);
+    
+    const ctaDiv = document.createElement('div');
+    ctaDiv.className = 'leaderboard-my-rank-cta';
+    ctaDiv.textContent = 'Scroll to me';
+    button.appendChild(ctaDiv);
+    
+    myRankSummaryEl.appendChild(button);
   };
 
   /**

@@ -73,16 +73,40 @@ function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
     const targetNetworkName = networkName(targetChainId);
     const dialog = document.createElement('div');
     dialog.className = 'network-confirm-dialog';
-    dialog.innerHTML = `
-      <div class="network-confirm-content">
-        <h3 class="network-confirm-title">${targetNetworkName}</h3>
-        <p class="network-confirm-message">Do you want to switch to this network?</p>
-        <div class="network-confirm-buttons">
-          <button type="button" class="network-confirm-btn confirm" data-action="confirm">Switch</button>
-          <button type="button" class="network-confirm-btn cancel" data-action="cancel">Cancel</button>
-        </div>
-      </div>
-    `;
+    
+    // Build dialog content using safe DOM APIs
+    const content = document.createElement('div');
+    content.className = 'network-confirm-content';
+    
+    const title = document.createElement('h3');
+    title.className = 'network-confirm-title';
+    title.textContent = targetNetworkName;
+    content.appendChild(title);
+    
+    const message = document.createElement('p');
+    message.className = 'network-confirm-message';
+    message.textContent = 'Do you want to switch to this network?';
+    content.appendChild(message);
+    
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.className = 'network-confirm-buttons';
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'network-confirm-btn confirm';
+    confirmBtn.setAttribute('data-action', 'confirm');
+    confirmBtn.textContent = 'Switch';
+    buttonsDiv.appendChild(confirmBtn);
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'network-confirm-btn cancel';
+    cancelBtn.setAttribute('data-action', 'cancel');
+    cancelBtn.textContent = 'Cancel';
+    buttonsDiv.appendChild(cancelBtn);
+    
+    content.appendChild(buttonsDiv);
+    dialog.appendChild(content);
     
     document.body.appendChild(dialog);
     currentDialog = dialog;
@@ -364,7 +388,7 @@ async function refresh(panel) {
           interEl.textContent = String(hist.totalEvents || 0);
           const list = panel.querySelector('[data-history]');
           if (list) {
-            list.innerHTML = '';
+            list.textContent = ''; // Clear safely
             (hist.items || []).forEach((item) => {
               const li = document.createElement('li');
               const label = item.type === 'score' ? `Score: ${item.score}` : `Quest: ${item.questId}`;

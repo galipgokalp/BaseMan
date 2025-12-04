@@ -158,7 +158,15 @@
     // Utility functions
     function showStatus(elementId, type, message) {
       const el = document.getElementById(elementId);
-      el.innerHTML = `<div class="status ${type}"><span class="icon">${getIcon(type)}</span>${message}</div>`;
+      el.textContent = ''; // Clear existing content
+      const statusDiv = document.createElement('div');
+      statusDiv.className = `status ${type}`;
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'icon';
+      iconSpan.textContent = getIcon(type);
+      statusDiv.appendChild(iconSpan);
+      statusDiv.appendChild(document.createTextNode(message));
+      el.appendChild(statusDiv);
     }
 
     function getIcon(type) {
@@ -166,20 +174,28 @@
       return icons[type] || 'ℹ️';
     }
 
-    function addKeyValue(container, key, value, valueClass = '') {
+    function addKeyValue(container, key, value, valueClass = '', isHTML = false) {
       const div = document.createElement('div');
       div.className = 'key-value';
-      div.innerHTML = `
-        <div class="key">${key}:</div>
-        <div class="value ${valueClass}">${value}</div>
-      `;
+      const keyDiv = document.createElement('div');
+      keyDiv.className = 'key';
+      keyDiv.textContent = `${key}:`;
+      const valueDiv = document.createElement('div');
+      valueDiv.className = `value ${valueClass}`.trim();
+      if (isHTML) {
+        valueDiv.innerHTML = value; // Only for trusted HTML (links, etc.)
+      } else {
+        valueDiv.textContent = value;
+      }
+      div.appendChild(keyDiv);
+      div.appendChild(valueDiv);
       container.appendChild(div);
     }
 
     // 1. Check environment configuration
     async function checkEnvironment() {
       const container = document.getElementById('env-config');
-      container.innerHTML = '';
+      container.textContent = ''; // Clear existing content safely
 
       try {
         const response = await fetch(CONFIG.debugEnvEndpoint);
@@ -198,11 +214,15 @@
         if (!registryMatch && data.registryAddress) {
           const warning = document.createElement('div');
           warning.className = 'status warning';
-          warning.innerHTML = `⚠️ Registry address mismatch! Expected: ${CONFIG.registryAddress}, Got: ${data.registryAddress}`;
+          warning.textContent = `⚠️ Registry address mismatch! Expected: ${CONFIG.registryAddress}, Got: ${data.registryAddress}`;
           container.appendChild(warning);
         }
       } catch (error) {
-        container.innerHTML = `<div class="status error">❌ Failed to load environment: ${error.message}</div>`;
+        container.textContent = ''; // Clear safely
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'status error';
+        errorDiv.textContent = `❌ Failed to load environment: ${error.message}`;
+        container.appendChild(errorDiv);
         diagnosticResults.envConfig = { error: error.message };
       }
     }
@@ -210,13 +230,17 @@
     // 2. Check contract status
     async function checkContract() {
       const container = document.getElementById('contract-status');
-      container.innerHTML = '<div class="status loading">⏳ Connecting to Base Mainnet RPC...</div>';
+      container.textContent = ''; // Clear safely
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'status loading';
+      loadingDiv.textContent = '⏳ Connecting to Base Mainnet RPC...';
+      container.appendChild(loadingDiv);
 
       try {
         const provider = new ethers.JsonRpcProvider(CONFIG.rpcUrl);
         const contract = new ethers.Contract(CONFIG.registryAddress, CONTRACT_ABI, provider);
 
-        container.innerHTML = '';
+        container.textContent = ''; // Clear safely
 
         // Get contract data
         const [authorizer, paused, version] = await Promise.all([
@@ -227,19 +251,25 @@
 
         diagnosticResults.contractCheck = { authorizer, paused, version };
 
-        addKeyValue(container, 'Contract Address', `<a href="https://basescan.org/address/${CONFIG.registryAddress}" target="_blank" class="address">${CONFIG.registryAddress}</a>`);
-        addKeyValue(container, 'Authorizer Address', `<span class="address">${authorizer}</span>`);
+        // Contract Address with link (trusted static URL)
+        addKeyValue(container, 'Contract Address', `<a href="https://basescan.org/address/${CONFIG.registryAddress}" target="_blank" class="address">${CONFIG.registryAddress}</a>`, '', true);
+        // Authorizer Address (trusted contract data)
+        addKeyValue(container, 'Authorizer Address', `<span class="address">${authorizer}</span>`, '', true);
         addKeyValue(container, 'Paused', paused ? '🔴 YES (CRITICAL!)' : '✅ No', paused ? 'error' : '');
         addKeyValue(container, 'EIP-712 Version', version);
 
         if (paused) {
           const warning = document.createElement('div');
           warning.className = 'status error';
-          warning.innerHTML = '❌ CONTRACT IS PAUSED! Score submissions will fail. Contact contract owner to unpause.';
+          warning.textContent = '❌ CONTRACT IS PAUSED! Score submissions will fail. Contact contract owner to unpause.';
           container.appendChild(warning);
         }
       } catch (error) {
-        container.innerHTML = `<div class="status error">❌ Failed to read contract: ${error.message}</div>`;
+        container.textContent = ''; // Clear safely
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'status error';
+        errorDiv.textContent = `❌ Failed to read contract: ${error.message}`;
+        container.appendChild(errorDiv);
         diagnosticResults.contractCheck = { error: error.message };
       }
     }
@@ -250,7 +280,11 @@
       const btn = document.getElementById('test-api-btn');
 
       btn.disabled = true;
-      resultDiv.innerHTML = '<div class="status loading">⏳ Testing /api/score-sign endpoint...</div>';
+      resultDiv.textContent = ''; // Clear safely
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'status loading';
+      loadingDiv.textContent = '⏳ Testing /api/score-sign endpoint...';
+      resultDiv.appendChild(loadingDiv);
 
       try {
         const testAddress = '0x0000000000000000000000000000000000000001';
@@ -274,7 +308,11 @@
         const data = await response.json();
         diagnosticResults.apiTest = { success: true, data };
 
-        resultDiv.innerHTML = '<div class="status success">✅ API is working correctly!</div>';
+        resultDiv.textContent = ''; // Clear safely
+        const successDiv = document.createElement('div');
+        successDiv.className = 'status success';
+        successDiv.textContent = '✅ API is working correctly!';
+        resultDiv.appendChild(successDiv);
         const details = document.createElement('div');
         details.style.marginTop = '10px';
         addKeyValue(details, 'Signature', data.signature ? `${data.signature.substring(0, 20)}...` : '❌ Missing');
@@ -283,7 +321,11 @@
         addKeyValue(details, 'Chain ID', data.chainId || '❌ Missing');
         resultDiv.appendChild(details);
       } catch (error) {
-        resultDiv.innerHTML = `<div class="status error">❌ API Test Failed: ${error.message}</div>`;
+        resultDiv.textContent = ''; // Clear safely
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'status error';
+        errorDiv.textContent = `❌ API Test Failed: ${error.message}`;
+        resultDiv.appendChild(errorDiv);
         diagnosticResults.apiTest = { success: false, error: error.message };
       } finally {
         btn.disabled = false;
@@ -296,7 +338,11 @@
       const btn = document.getElementById('test-wallet-btn');
 
       btn.disabled = true;
-      resultDiv.innerHTML = '<div class="status loading">⏳ Connecting to wallet...</div>';
+      resultDiv.textContent = ''; // Clear safely
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'status loading';
+      loadingDiv.textContent = '⏳ Connecting to wallet...';
+      resultDiv.appendChild(loadingDiv);
 
       try {
         if (!window.ethereum) {
@@ -320,10 +366,15 @@
 
         diagnosticResults.walletTest = { success: true, address, chainId: chainIdNumber };
 
-        resultDiv.innerHTML = '<div class="status success">✅ Wallet connected successfully!</div>';
+        resultDiv.textContent = ''; // Clear safely
+        const successDiv = document.createElement('div');
+        successDiv.className = 'status success';
+        successDiv.textContent = '✅ Wallet connected successfully!';
+        resultDiv.appendChild(successDiv);
         const details = document.createElement('div');
         details.style.marginTop = '10px';
-        addKeyValue(details, 'Address', `<span class="address">${address}</span>`);
+        // Address display (trusted wallet data with HTML wrapper)
+        addKeyValue(details, 'Address', `<span class="address">${address}</span>`, '', true);
 
         // Check if chain ID matches (handle both BigInt and Number comparison)
         const chainIdMatches = chainIdString === CONFIG.chainId.toString() || chainIdNumber === CONFIG.chainId;
@@ -334,13 +385,17 @@
         if (!chainIdMatches) {
           const warning = document.createElement('div');
           warning.className = 'status warning';
-          warning.innerHTML = `⚠️ Wrong network! Connected to Chain ID: ${chainIdString}, Expected: ${CONFIG.chainId} (Base Mainnet)`;
+          warning.textContent = `⚠️ Wrong network! Connected to Chain ID: ${chainIdString}, Expected: ${CONFIG.chainId} (Base Mainnet)`;
           details.appendChild(warning);
         }
 
         resultDiv.appendChild(details);
       } catch (error) {
-        resultDiv.innerHTML = `<div class="status error">❌ Wallet Test Failed: ${error.message}</div>`;
+        resultDiv.textContent = ''; // Clear safely
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'status error';
+        errorDiv.textContent = `❌ Wallet Test Failed: ${error.message}`;
+        resultDiv.appendChild(errorDiv);
         diagnosticResults.walletTest = { success: false, error: error.message };
       } finally {
         btn.disabled = false;
@@ -350,7 +405,7 @@
     // Generate summary
     function generateSummary() {
       const container = document.getElementById('summary');
-      container.innerHTML = '';
+      container.textContent = ''; // Clear safely
 
       const issues = [];
       const warnings = [];
@@ -385,37 +440,79 @@
 
       // Display results
       if (issues.length === 0 && warnings.length === 0) {
-        container.innerHTML = '<div class="status success">✅ All checks passed! Configuration looks good.</div>';
+        const successDiv = document.createElement('div');
+        successDiv.className = 'status success';
+        successDiv.textContent = '✅ All checks passed! Configuration looks good.';
+        container.appendChild(successDiv);
       } else {
         if (issues.length > 0) {
           const issuesDiv = document.createElement('div');
           issuesDiv.className = 'status error';
-          issuesDiv.innerHTML = '<strong>❌ Critical Issues:</strong><ul>' +
-            issues.map(i => `<li>${i}</li>`).join('') + '</ul>';
+          const strong = document.createElement('strong');
+          strong.textContent = '❌ Critical Issues:';
+          issuesDiv.appendChild(strong);
+          const ul = document.createElement('ul');
+          issues.forEach(issue => {
+            const li = document.createElement('li');
+            li.textContent = issue;
+            ul.appendChild(li);
+          });
+          issuesDiv.appendChild(ul);
           container.appendChild(issuesDiv);
         }
 
         if (warnings.length > 0) {
           const warningsDiv = document.createElement('div');
           warningsDiv.className = 'status warning';
-          warningsDiv.innerHTML = '<strong>⚠️ Warnings:</strong><ul>' +
-            warnings.map(w => `<li>${w}</li>`).join('') + '</ul>';
+          const strong = document.createElement('strong');
+          strong.textContent = '⚠️ Warnings:';
+          warningsDiv.appendChild(strong);
+          const ul = document.createElement('ul');
+          warnings.forEach(warn => {
+            const li = document.createElement('li');
+            li.textContent = warn;
+            ul.appendChild(li);
+          });
+          warningsDiv.appendChild(ul);
           container.appendChild(warningsDiv);
         }
       }
 
-      // Show next steps
+      // Show next steps (static trusted content)
       const nextSteps = document.createElement('div');
       nextSteps.style.marginTop = '20px';
-      nextSteps.innerHTML = `
-        <h3 style="color: #00ffff; margin-bottom: 10px;">📌 Next Steps:</h3>
-        <ol style="margin-left: 20px; color: #ffff00;">
-          <li>Share this page with other users who are experiencing issues</li>
-          <li>Check Vercel Function Logs for errors: <a href="https://vercel.com" target="_blank">Vercel Dashboard</a></li>
-          <li>Check BaseScan for failed transactions: <a href="https://basescan.org/address/${CONFIG.registryAddress}" target="_blank">View on BaseScan</a></li>
-          <li>Ask users to check their browser console (F12) when submitting scores</li>
-        </ol>
-      `;
+      
+      const h3 = document.createElement('h3');
+      h3.style.color = '#00ffff';
+      h3.style.marginBottom = '10px';
+      h3.textContent = '📌 Next Steps:';
+      nextSteps.appendChild(h3);
+      
+      const ol = document.createElement('ol');
+      ol.style.marginLeft = '20px';
+      ol.style.color = '#ffff00';
+      
+      const steps = [
+        { text: 'Share this page with other users who are experiencing issues' },
+        { text: 'Check Vercel Function Logs for errors: ', link: { href: 'https://vercel.com', text: 'Vercel Dashboard' } },
+        { text: 'Check BaseScan for failed transactions: ', link: { href: `https://basescan.org/address/${CONFIG.registryAddress}`, text: 'View on BaseScan' } },
+        { text: 'Ask users to check their browser console (F12) when submitting scores' }
+      ];
+      
+      steps.forEach(step => {
+        const li = document.createElement('li');
+        li.appendChild(document.createTextNode(step.text));
+        if (step.link) {
+          const a = document.createElement('a');
+          a.href = step.link.href;
+          a.target = '_blank';
+          a.textContent = step.link.text;
+          li.appendChild(a);
+        }
+        ol.appendChild(li);
+      });
+      
+      nextSteps.appendChild(ol);
       container.appendChild(nextSteps);
 
       // Update main status

@@ -297,10 +297,10 @@ export function hideDebugInfo(panel) {
  */
 export function renderRows(items, { topListEl, restListEl, scrollWrapper, statusEl, limit, isMyEntry }) {
   if (topListEl) {
-    topListEl.innerHTML = "";
+    topListEl.textContent = ""; // Clear safely
   }
   if (restListEl) {
-    restListEl.innerHTML = "";
+    restListEl.textContent = ""; // Clear safely
   }
   if (scrollWrapper) {
     scrollWrapper.hidden = true;
@@ -343,14 +343,15 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
 
 /**
  * Render error state
+ * Uses safe DOM APIs instead of innerHTML
  */
 export function renderError(message, { topListEl, restListEl, scrollWrapper, statusEl }) {
   if (statusEl) statusEl.textContent = "";
   if (topListEl) {
-    topListEl.innerHTML = "";
+    topListEl.textContent = ""; // Clear safely
   }
   if (restListEl) {
-    restListEl.innerHTML = "";
+    restListEl.textContent = ""; // Clear safely
   }
   if (scrollWrapper) {
     scrollWrapper.hidden = true;

@@ -147,12 +147,17 @@ function detachViewportShim() {
 
 /**
  * Render search results
+ * Uses safe DOM APIs instead of innerHTML
  */
 function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
   if (!searchResults) return;
   
   if (filtered.length === 0) {
-    searchResults.innerHTML = '<div class="leaderboard-search-no-results">No users found</div>';
+    searchResults.textContent = ''; // Clear safely
+    const noResults = document.createElement('div');
+    noResults.className = 'leaderboard-search-no-results';
+    noResults.textContent = 'No users found';
+    searchResults.appendChild(noResults);
     return;
   }
   
@@ -240,12 +245,13 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
   });
   
   fragment.appendChild(resultsList);
-  searchResults.innerHTML = '';
+  searchResults.textContent = ''; // Clear safely
   searchResults.appendChild(fragment);
 }
 
 /**
  * Perform live search
+ * Uses safe DOM APIs instead of innerHTML
  */
 function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemClick }) {
   if (!searchResults) return;
@@ -259,7 +265,7 @@ function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemCli
   const trimmedQuery = query.trim();
   
   if (!trimmedQuery) {
-    searchResults.innerHTML = '';
+    searchResults.textContent = ''; // Clear safely
     return;
   }
   
@@ -270,7 +276,11 @@ function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemCli
     
     if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
       if (signal.aborted) return;
-      searchResults.innerHTML = '<div class="leaderboard-search-no-results">No entries available</div>';
+      searchResults.textContent = ''; // Clear safely
+      const noEntries = document.createElement('div');
+      noEntries.className = 'leaderboard-search-no-results';
+      noEntries.textContent = 'No entries available';
+      searchResults.appendChild(noEntries);
       return;
     }
     
@@ -339,7 +349,7 @@ export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemCl
   }
   
   if (searchResults) {
-    searchResults.innerHTML = '';
+    searchResults.textContent = ''; // Clear safely
   }
   
   const loadingEl = document.querySelector('[data-search-loading]');
@@ -423,7 +433,7 @@ export function closeSearchModal(onRestore) {
   }
   
   if (searchResults) {
-    searchResults.innerHTML = '';
+    searchResults.textContent = ''; // Clear safely
   }
   
   const loadingEl = document.querySelector('[data-search-loading]');
