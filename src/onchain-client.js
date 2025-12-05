@@ -5,9 +5,32 @@
   let attempts = 0;
 
   const debug = createDebugOverlay();
-  // Use logger if available, fallback to console.log for backward compatibility
-  const log = (typeof window !== 'undefined' && window.logger) ? window.logger.log : console.log;
-  log("[BaseMan] onchain-client bootstrap");
+  
+  // Use BaseManLogger if available (from utils/logger.js), else fallback to console
+  const _getLog = () => {
+    if (typeof window !== 'undefined' && window.BaseManCreateLogger) {
+      return window.BaseManCreateLogger('Onchain');
+    }
+    if (typeof window !== 'undefined' && window.BaseManLogger) {
+      return window.BaseManLogger;
+    }
+    // Fallback to console wrapper
+    return {
+      debug: (...args) => console.debug('[Onchain]', ...args),
+      log: (...args) => console.log('[Onchain]', ...args),
+      info: (...args) => console.info('[Onchain]', ...args),
+      warn: (...args) => console.warn('[Onchain]', ...args),
+      error: (...args) => console.error('[Onchain]', ...args),
+      warnOnce: (key, ...args) => console.warn('[Onchain]', ...args),
+      errorOnce: (key, ...args) => console.error('[Onchain]', ...args)
+    };
+  };
+  let _log = null;
+  const log = () => {
+    if (!_log) _log = _getLog();
+    return _log;
+  };
+  log().debug("onchain-client bootstrap");
 
   // Best-effort: prefetch mini app auth token once at startup to minimize delays during score submit
   (async () => {
@@ -24,9 +47,7 @@
     if (typeof window.__showModuleFailure === "function") {
       window.__showModuleFailure(message);
     } else {
-      // Use logger if available, fallback to console.error for backward compatibility
-      const error = (typeof window !== 'undefined' && window.logger) ? window.logger.error : console.error;
-      error("[BaseMan] " + message);
+      log().error(message);
     }
   }
 
@@ -281,8 +302,7 @@
               if (isRequestError) {
                 debug(`SDK ready request failed (non-critical): ${errorMsg}`);
                 // Log but don't block - allow game to continue
-                const error = (typeof window !== 'undefined' && window.logger) ? window.logger.error : console.error;
-                error(`[BaseMan] SDK ready request failed: ${errorMsg}`, readyError);
+                log().error(`SDK ready request failed: ${errorMsg}`, readyError);
               } else {
                 debug(`Error calling sdk.actions.ready: ${errorMsg}`);
                 throw readyError; // Re-throw non-request errors
@@ -511,8 +531,7 @@
             if (isRequestError) {
               debug(`SDK getEthereumProvider request failed: ${errorMsg}`);
               // Log error but try to continue with fallback
-              const error = (typeof window !== 'undefined' && window.logger) ? window.logger.error : console.error;
-              error(`[BaseMan] SDK getEthereumProvider request failed: ${errorMsg}`, providerError);
+              log().error(`SDK getEthereumProvider request failed: ${errorMsg}`, providerError);
               throw new Error(`Failed to get Ethereum provider: ${errorMsg}`);
             } else {
               throw providerError; // Re-throw non-request errors
@@ -554,7 +573,7 @@
             if (requestAccounts) {
               try {
                 debug("Transaction initiated - requesting account access (may prompt passkey)...");
-                console.log('[BaseMan] Requesting wallet connection for transaction...');
+                log().debug('Requesting wallet connection for transaction...');
                 // Add timeout to prevent hanging
                 const requestPromise = provider.request({ method: 'eth_requestAccounts' });
                 const timeoutPromise = new Promise((_, reject) => 
@@ -564,7 +583,7 @@
                 if (Array.isArray(req) && req.length) {
                   address = req[0];
                   debug(`Account access granted for transaction: ${address}`);
-                  console.log(`[BaseMan] Wallet connected: ${address}`);
+                  log().debug(`Wallet connected: ${address}`);
                 } else {
                   throw new Error('No accounts returned from eth_requestAccounts');
                 }
@@ -603,7 +622,7 @@
                 }
                 
                 debug(`eth_requestAccounts error during transaction: ${errMsg}`);
-                console.error(`[BaseMan] Wallet connection failed: ${errMsg}`, reqErr);
+                log().error(`Wallet connection failed: ${errMsg}`, reqErr);
                 
                 // User might have rejected the request - this is OK, don't throw error
                 if (errMsg && (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User rejected') || errMsg.includes('User cancelled'))) {
@@ -1317,7 +1336,7 @@
         const errorMsg = error?.message || String(error);
         const errorCode = error?.code || error?.error?.code || null;
         debug(`wallet_sendCalls error: ${errorMsg} (code: ${errorCode})`);
-        console.error('[BaseMan] wallet_sendCalls failed:', error);
+        log().error('wallet_sendCalls failed:', error);
         
         // Log error with details
         try { 
@@ -1358,8 +1377,7 @@
 
     async function submitScore() {
       debug('submitScore: Function called');
-      console.log('[BaseMan] submitScore: Function called - START');
-      console.log('[BaseMan] submitScore: Stack trace:', new Error().stack);
+      log().debug('submitScore: Function called - START');
       try { 
         fetch('/api/app-log', { 
           method: 'POST', 
@@ -1383,7 +1401,7 @@
       // Check if already submitting
       if (state.submitting) {
         debug('submitScore: Already submitting, skipping');
-        console.log('[BaseMan] submitScore: Already submitting, skipping');
+        log().debug('submitScore: Already submitting, skipping');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:already-submitting', meta: { timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
@@ -1391,7 +1409,7 @@
       // Check if getScore function is available
       if (typeof window.getScore !== "function") {
         debug('submitScore: getScore function not available');
-        console.warn('[BaseMan] submitScore: getScore function not available');
+        log().warn(' submitScore: getScore function not available');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-unavailable', meta: { timestamp: new Date().toISOString(), windowGetScore: typeof window.getScore } }) }).catch(()=>{});} catch(_) {}
         return;
       }
@@ -1404,14 +1422,14 @@
         score = BigInt(scoreValue);
       } catch (scoreError) {
         debug(`submitScore: Error getting score: ${scoreError?.message || scoreError}`);
-        console.error('[BaseMan] submitScore: Error getting score:', scoreError);
+        log().error(' submitScore: Error getting score:', scoreError);
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-error', meta: { error: scoreError?.message || String(scoreError) } }) }).catch(()=>{});} catch(_) {}
         return;
       }
       
       if (score <= 0n) {
         debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
-        console.log(`[BaseMan] submitScore: Score is 0 or negative (${score.toString()}), skipping`);
+        log().debug(` submitScore: Score is 0 or negative (${score.toString()}), skipping`);
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:score-zero', meta: { score: score.toString(), timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
@@ -1422,7 +1440,7 @@
           : 0;
 
       debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
-      console.log(`[BaseMan] submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
+      log().debug(` submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
       try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:starting', meta: { score: score.toString(), durationMs } }) }).catch(()=>{});} catch(_) {}
 
       try {
@@ -1431,13 +1449,13 @@
         // Request accounts if needed (may prompt passkey, but user initiated transaction)
         // For Base App users, always request accounts to ensure wallet connection
         debug('submitScore: Ensuring wallet connection...');
-        console.log('[BaseMan] submitScore: Ensuring wallet connection for score submission...');
+        log().debug(' submitScore: Ensuring wallet connection for score submission...');
         try {
           await ensureWallet(true); // Always request accounts for transaction
         } catch (walletError) {
           const walletErrorMsg = walletError?.message || String(walletError);
           debug(`submitScore: Wallet connection failed: ${walletErrorMsg}`);
-          console.error(`[BaseMan] submitScore: Wallet connection failed: ${walletErrorMsg}`);
+          log().error(` submitScore: Wallet connection failed: ${walletErrorMsg}`);
           
           // If wallet connection fails, provide helpful error message
           if (walletErrorMsg.includes('reject') || walletErrorMsg.includes('denied') || walletErrorMsg.includes('User rejected')) {
@@ -1449,11 +1467,11 @@
         if (!state.address) {
           const errorMsg = "Wallet connection required - no address available";
           debug(`submitScore: ${errorMsg}`);
-          console.error(`[BaseMan] submitScore: ${errorMsg}`);
+          log().error(` submitScore: ${errorMsg}`);
           throw new Error(errorMsg);
         }
         debug(`submitScore: Wallet connected - address=${state.address}`);
-        console.log(`[BaseMan] submitScore: Wallet connected successfully - address=${state.address}`);
+        log().debug(` submitScore: Wallet connected successfully - address=${state.address}`);
 
         // Send profile mapping to backend for leaderboard enrichment
         // This ensures user profile data is available for other users viewing the leaderboard
@@ -1499,8 +1517,8 @@
               // CRITICAL: Platform bilgisi olmadan skor gönderilmemeli
               // Çünkü leaderboard'da her kullanıcının yanında, o kullanıcının skorunu gönderdiği platformun logosu görünmeli
               if (!platform) {
-                console.warn('[BaseMan] submitScore: ⚠️ Platform detection failed - profile mapping will be saved without platform info');
-                console.warn('[BaseMan] submitScore: Platform detection details:', {
+                log().warn(' submitScore: ⚠️ Platform detection failed - profile mapping will be saved without platform info');
+                log().warn(' submitScore: Platform detection details:', {
                   hasGetPlatform: typeof window.getPlatform === 'function',
                   hasIsFarcasterMiniApp: typeof window.isFarcasterMiniApp === 'function',
                   hasIsBaseApp: typeof window.isBaseApp === 'function',
@@ -1511,7 +1529,7 @@
                   userAgent: window.navigator?.userAgent?.substring(0, 100) || 'unknown'
                 });
               } else {
-                console.log('[BaseMan] submitScore: ✅ Platform detected successfully:', platform);
+                log().debug(' submitScore: ✅ Platform detected successfully:', platform);
               }
               
               const profileMapping = {
@@ -1524,7 +1542,7 @@
               };
               
               debug(`submitScore: Sending profile mapping for leaderboard: ${profileMapping.username || profileMapping.displayName || 'unnamed'} (platform: ${platform || 'unknown'})`);
-              console.log('[BaseMan] submitScore: Sending profile mapping for leaderboard enrichment:', {
+              log().debug(' submitScore: Sending profile mapping for leaderboard enrichment:', {
                 address: profileMapping.address.substring(0, 10) + '...',
                 fid: profileMapping.fid,
                 username: profileMapping.username,
@@ -1540,28 +1558,28 @@
               }).then((response) => {
                 if (response.ok) {
                   debug('submitScore: Profile mapping sent successfully');
-                  console.log('[BaseMan] submitScore: ✅ Profile mapping sent successfully for leaderboard enrichment');
+                  log().debug(' submitScore: ✅ Profile mapping sent successfully for leaderboard enrichment');
                 } else {
                   debug(`submitScore: Profile mapping failed with status ${response.status}`);
-                  console.warn('[BaseMan] submitScore: Profile mapping failed with status:', response.status);
+                  log().warn(' submitScore: Profile mapping failed with status:', response.status);
                 }
               }).catch((err) => {
                 // Silently fail - profile mapping is not critical for score submission
                 debug(`submitScore: Profile mapping failed (non-critical): ${err?.message || err}`);
-                console.warn('[BaseMan] submitScore: Profile mapping failed (non-critical):', err?.message || err);
+                log().warn(' submitScore: Profile mapping failed (non-critical):', err?.message || err);
               });
             } else {
               debug('submitScore: Skipping profile mapping - no user FID available');
-              console.log('[BaseMan] submitScore: Skipping profile mapping - no user FID available');
+              log().debug(' submitScore: Skipping profile mapping - no user FID available');
             }
           } else {
             debug('submitScore: Skipping profile mapping - SDK context or address not available');
-            console.log('[BaseMan] submitScore: Skipping profile mapping - SDK context or address not available');
+            log().debug(' submitScore: Skipping profile mapping - SDK context or address not available');
           }
         } catch (profileErr) {
           // Silently fail - profile mapping is not critical for score submission
           debug(`submitScore: Profile mapping error (non-critical): ${profileErr?.message || profileErr}`);
-          console.warn('[BaseMan] submitScore: Profile mapping error (non-critical):', profileErr?.message || profileErr);
+          log().warn(' submitScore: Profile mapping error (non-critical):', profileErr?.message || profileErr);
         }
 
         debug('submitScore: Requesting signature from backend...');
@@ -1687,7 +1705,7 @@
               // Check if error is "unsupported method" - Base App may not support wallet_sendCalls
               if (sendCallsErrorCode === 4200 || sendCallsErrorMsg.includes('UnsupportedMethodError') || sendCallsErrorMsg.includes('does not support the requested method')) {
                 debug(`submitScore: wallet_sendCalls not supported (code: ${sendCallsErrorCode}), falling back to eth_sendTransaction`);
-                console.warn(`[BaseMan] submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
+                log().warn(` submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
                 
                 // Fallback to eth_sendTransaction for Base App
                 if (isBaseAppSpecific || !isFarcasterSpecific) {
@@ -1696,7 +1714,7 @@
                     result = await sendEthTransaction(callData);
                     if (result) {
                       debug(`submitScore: eth_sendTransaction success: ${JSON.stringify(result)}`);
-                      console.log(`[BaseMan] Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
+                      log().debug(` Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
                     }
                   } catch (ethTxError) {
                     const ethTxErrorMsg = ethTxError?.message || String(ethTxError);
@@ -1725,7 +1743,7 @@
               }
             if (identifier) {
                 debug(`submitScore: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                console.log(`[BaseMan] Score submission transaction started: ${identifier}`);
+                log().debug(` Score submission transaction started: ${identifier}`);
                 try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
                 
                 // Optionally check transaction status after a delay
@@ -1758,7 +1776,7 @@
           } catch (sendCallsError) {
             const errorMsg = sendCallsError?.message || String(sendCallsError);
             debug(`submitScore: wallet_sendCalls failed: ${errorMsg}`);
-            console.error('[BaseMan] Score submission failed:', sendCallsError);
+            log().error(' Score submission failed:', sendCallsError);
             try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submission:error', meta: { error: errorMsg, score: scoreValue.toString(), address: state.address } }) }).catch(()=>{});} catch(_) {}
             throw new Error(`Failed to submit score: ${errorMsg}`);
           }
@@ -1771,7 +1789,7 @@
       } catch (error) {
         const errorMsg = error?.message || String(error);
         debug(`submitScore ERROR: ${errorMsg}`);
-        console.error('[BaseMan] submitScore failed:', error);
+        log().error(' submitScore failed:', error);
         
         // Log detailed error information
         try { 
@@ -1797,7 +1815,7 @@
           // Show error in console (already done above)
           // In the future, we could show a toast notification here
           // For now, errors are logged to console and debug overlay
-          console.error(`[BaseMan] Score submission failed: ${errorMsg}`);
+          log().error(` Score submission failed: ${errorMsg}`);
         }
       } finally {
         state.submitting = false;
@@ -1875,7 +1893,7 @@
                 }
                 if (identifier) {
                   debug(`completeQuest: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                  console.log(`[BaseMan] Quest completion transaction started: ${identifier}`);
+                  log().debug(` Quest completion transaction started: ${identifier}`);
                   return;
                 }
               }
@@ -1943,8 +1961,8 @@
         if (!target) {
           const errorMsg = `${label}: State not available yet (target is ${typeof target})`;
           debug(errorMsg);
-          console.warn(`[BaseMan] ${errorMsg}`);
-          console.warn(`[BaseMan] Available window states:`, {
+          log().warn(` ${errorMsg}`);
+          log().warn(` Available window states:`, {
             overState: typeof window.overState,
             finishState: typeof window.finishState,
             newGameState: typeof window.newGameState,
@@ -1956,7 +1974,7 @@
         if (!target.init) {
           const errorMsg = `${label}: init method not available (target type: ${typeof target})`;
           debug(errorMsg);
-          console.warn(`[BaseMan] ${errorMsg}`);
+          log().warn(` ${errorMsg}`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-init', meta: { label, targetType: typeof target } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
@@ -1969,14 +1987,14 @@
         if (!hook || typeof hook !== 'function') {
           const errorMsg = `${label}: Hook function is not available (hook type: ${typeof hook})`;
           debug(errorMsg);
-          console.error(`[BaseMan] ${errorMsg}`);
+          log().error(` ${errorMsg}`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-hook', meta: { label, hookType: typeof hook } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
         const original = target.init.bind(target);
         target.init = function patchedInit(...args) {
           debug(`${label}: init called (patched)`);
-          console.log(`[BaseMan] ${label}: init called (patched)`);
+          log().debug(` ${label}: init called (patched)`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
           
           // Execute hook BEFORE original init (important for submitScore)
@@ -1985,7 +2003,7 @@
             // For async hooks, execute asynchronously and don't block original init
             // BUT: Log immediately that we're starting the async hook
             debug(`${label}: Starting async hook BEFORE original init...`);
-            console.log(`[BaseMan] ${label}: Starting async hook (submitScore)...`);
+            log().debug(` ${label}: Starting async hook (submitScore)...`);
             try { 
               fetch('/api/app-log', { 
                 method: 'POST', 
@@ -2001,13 +2019,13 @@
             (async () => {
               try {
                 debug(`${label}: Executing async hook (awaiting)...`);
-                console.log(`[BaseMan] ${label}: Executing async hook (awaiting)...`);
+                log().debug(` ${label}: Executing async hook (awaiting)...`);
                 
                 // IMPORTANT: Actually call the hook function and await it
                 const hookResult = await hook?.apply(this, args);
                 
                 debug(`${label}: async hook completed successfully, result:`, hookResult);
-                console.log(`[BaseMan] ${label}: async hook completed successfully`);
+                log().debug(` ${label}: async hook completed successfully`);
                 try { 
                   fetch('/api/app-log', { 
                     method: 'POST', 
@@ -2022,8 +2040,8 @@
                 const errorMsg = error?.message || String(error);
                 const errorStack = error?.stack || new Error().stack;
                 debug(`${label} async hook ERROR: ${errorMsg}`);
-                console.error(`[BaseMan] ${label} async hook ERROR:`, error);
-                console.error(`[BaseMan] ${label} async hook ERROR stack:`, errorStack);
+                log().error(` ${label} async hook ERROR:`, error);
+                log().error(` ${label} async hook ERROR stack:`, errorStack);
                 try { 
                   fetch('/api/app-log', { 
                     method: 'POST', 
@@ -2048,7 +2066,7 @@
                     try {
                       // Try to show error in a non-blocking way
                       setTimeout(() => {
-                        console.error(`[BaseMan] Score submission failed: ${errorMsg}`);
+                        log().error(` Score submission failed: ${errorMsg}`);
                         // Could show a toast notification here in the future
                       }, 100);
                     } catch (_) {}
@@ -2060,15 +2078,15 @@
             // For sync hooks, execute synchronously
             try {
               debug(`${label}: Executing hook BEFORE original init...`);
-              console.log(`[BaseMan] ${label}: Executing hook...`);
+              log().debug(` ${label}: Executing hook...`);
               const hookResult = hook?.apply(this, args);
               debug(`${label}: hook executed successfully, result:`, hookResult);
-              console.log(`[BaseMan] ${label}: hook executed successfully`);
+              log().debug(` ${label}: hook executed successfully`);
               try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
             } catch (error) {
               const errorMsg = error?.message || String(error);
               debug(`${label} hook error: ${errorMsg}`);
-              console.error(`[BaseMan] ${label} hook error:`, error);
+              log().error(` ${label} hook error:`, error);
               try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
               // Don't throw - continue with original init even if hook fails
             }
@@ -2082,7 +2100,7 @@
             return originalResult;
           } catch (originalError) {
             debug(`${label}: original init error: ${originalError?.message || originalError}`);
-            console.error(`[BaseMan] ${label}: original init error:`, originalError);
+            log().error(` ${label}: original init error:`, originalError);
             throw originalError;
           }
         };
@@ -2103,13 +2121,13 @@
       };
       
       debug(`patchStateHooks: State availability check:`, stateCheck);
-      console.log('[BaseMan] patchStateHooks: State availability:', stateCheck);
+      log().debug(' patchStateHooks: State availability:', stateCheck);
       
       if (!stateCheck.overState || !stateCheck.finishState) {
         const missing = Object.entries(stateCheck).filter(([_, available]) => !available).map(([name]) => name);
         debug(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        console.warn(`[BaseMan] patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        console.warn(`[BaseMan] window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
+        log().warn(` patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
+        log().warn(` window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
         try { 
           fetch('/api/app-log', { 
             method: 'POST', 
@@ -2143,11 +2161,11 @@
       const failedStates = Object.entries(results).filter(([_, patched]) => !patched).map(([name]) => name);
 
       debug(`patchStateHooks: Results - Patched: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
-      console.log(`[BaseMan] patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
+      log().debug(` patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
 
       if (allPatched) {
         debug('patchStateHooks: All states patched successfully (including overState and finishState for score submission)');
-        console.log('[BaseMan] patchStateHooks: ✅ All states patched successfully - score submission hooks active');
+        log().debug(' patchStateHooks: ✅ All states patched successfully - score submission hooks active');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:success', meta: { attempt: attempt + 1, patchedStates } }) }).catch(()=>{});} catch(_) {}
       } else {
         const missing = Object.entries(results).filter(([_, patched]) => !patched).map(([name, _]) => name);
@@ -2158,7 +2176,7 @@
           setTimeout(() => patchStateHooks(attempt + 1), 500); // Increased from 250ms to 500ms
         } else {
           debug('patchStateHooks: Max attempts reached, some states may not be patched');
-          console.warn('[BaseMan] patchStateHooks: Max attempts reached. Missing states:', missing);
+          log().warn(' patchStateHooks: Max attempts reached. Missing states:', missing);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:max-attempts', meta: { missing } }) }).catch(()=>{});} catch(_) {}
         }
       }

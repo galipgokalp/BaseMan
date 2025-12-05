@@ -4,7 +4,9 @@
  */
 
 import { abbreviateAddress, networkLabel, getEnv, createElement } from './utils/panel-base.js';
+import { createLogger } from './utils/logger.js';
 
+const log = createLogger('Wallet');
 const PANEL_ID = 'baseman-wallet-panel';
 
 // Use helpers from panel-base
@@ -13,7 +15,7 @@ const el = createElement;
 
 function ensurePanel() {
   if (!document.body) {
-    console.warn('[wallet-panel] document.body not ready');
+    log.warn('document.body not ready');
     return null;
   }
 
@@ -186,7 +188,7 @@ async function refresh() {
           try {
             provider = await window.sdk.wallet.getEthereumProvider();
           } catch (e) {
-            console.warn('[wallet-panel] Failed to get provider from SDK:', e);
+            log.warn('Failed to get provider from SDK:', e);
           }
         }
         
@@ -209,7 +211,7 @@ async function refresh() {
           }
         }
       } catch (err) {
-        console.warn('[wallet-panel] Failed to fetch ETH balance from provider:', err);
+        log.warn('Failed to fetch ETH balance from provider:', err);
       }
       
       // Update ETH balance display
@@ -250,7 +252,7 @@ async function refresh() {
           }
         }
       } catch (apiErr) {
-        console.warn('[wallet-panel] API fallback failed:', apiErr);
+        log.warn('API fallback failed:', apiErr);
         // If API fails but we have provider balance, use that
         if (ethBalance !== null && !isNaN(ethBalance)) {
           ethEl.textContent = ethBalance.toFixed(6) + ' ETH';
@@ -286,11 +288,11 @@ async function refresh() {
             }
           } else {
             const errorText = await bal.text().catch(() => '');
-            console.warn('[wallet-panel] USDC balance API error:', bal.status, errorText);
+            log.warn('USDC balance API error:', bal.status, errorText);
             usdcEl.textContent = 'N/A';
           }
         } catch (apiErr) {
-          console.warn('[wallet-panel] USDC balance fetch error:', apiErr);
+          log.warn('USDC balance fetch error:', apiErr);
           usdcEl.textContent = 'N/A';
         }
       }
@@ -300,7 +302,7 @@ async function refresh() {
     }
 
   } catch (error) {
-    console.error('[wallet-panel] refresh error', error);
+    log.error('refresh error', error);
   }
 }
 
@@ -352,7 +354,7 @@ function init() {
     }
     wire(panel);
   } catch (error) {
-    console.error('[wallet-panel] init error', error);
+    log.error('init error', error);
   }
 }
 

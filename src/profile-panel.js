@@ -1,5 +1,7 @@
 import { abbreviateAddress, networkLabel, networkName, getEnv, createElement } from './utils/panel-base.js';
+import { createLogger } from './utils/logger.js';
 
+const log = createLogger('Profile');
 const PANEL_ID = 'baseman-profile-panel';
 const BTN_ID = 'baseman-profile-btn';
 
@@ -199,7 +201,7 @@ function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
 function ensureShell() {
     // Ensure body exists before appending
     if (!document.body) {
-      console.warn('[profile-panel] document.body not ready');
+      log.warn('document.body not ready');
       return null;
     }
 
@@ -339,7 +341,7 @@ async function refresh(panel) {
         if (usernameEl) usernameEl.textContent = 'Your Profile';
       }
     } catch (err) {
-      console.warn('[profile] Failed to load Farcaster user info:', err);
+      log.warn('Failed to load Farcaster user info:', err);
       if (avatarEl) avatarEl.style.display = 'none';
       if (usernameEl) usernameEl.textContent = 'Your Profile';
     }
@@ -421,7 +423,7 @@ async function refresh(panel) {
                                     providerError?.status === 400;
               
               if (isRequestError) {
-                console.warn(`[profile-panel] SDK getEthereumProvider request failed: ${errorMsg}`);
+                log.warn('SDK getEthereumProvider request failed:', errorMsg);
                 throw new Error(`Failed to get provider: ${errorMsg}`);
               } else {
                 throw providerError; // Re-throw non-request errors
@@ -456,7 +458,7 @@ async function refresh(panel) {
             } catch (readError) {
               // Contract read failed (likely eth_call not supported by Farcaster Wallet)
               // This is expected - silently show '-' for scores
-              console.debug('[profile] Contract read not available (eth_call not supported):', readError?.message || readError);
+              log.debug('Contract read not available (eth_call not supported):', readError?.message || readError);
               scoreEl.textContent = '-';
               if (bestScoreEl) bestScoreEl.textContent = '-';
               if (gamesPlayedEl) gamesPlayedEl.textContent = '-';
@@ -466,14 +468,14 @@ async function refresh(panel) {
         }
       } catch (err) {
         // Provider or SDK not available - show '-' for scores
-        console.debug('[profile] Contract read error:', err?.message || err);
+        log.debug('Contract read error:', err?.message || err);
         scoreEl.textContent = '-';
         if (bestScoreEl) bestScoreEl.textContent = '-';
         if (gamesPlayedEl) gamesPlayedEl.textContent = '-';
         if (avgScoreEl) avgScoreEl.textContent = '-';
       }
     } catch (err) {
-      console.error('[profile] refresh error', err);
+      log.error('refresh error', err);
     }
 }
 
@@ -489,7 +491,7 @@ async function handleSwitch(chainId) {
     
     // If already on target chain, skip
     if (currentChainId === targetChainId) {
-      console.log(`[profile] Already on chain ${targetChainId}`);
+      log.debug('Already on chain', targetChainId);
       return;
     }
     
@@ -500,7 +502,7 @@ async function handleSwitch(chainId) {
           const hexChainId = '0x' + targetChainId.toString(16);
           await window.sdk.wallet.switchEthereumChain({ chainId: hexChainId });
         } catch (sdkErr) {
-          console.warn('[profile] SDK switchEthereumChain failed:', sdkErr);
+          log.warn('SDK switchEthereumChain failed:', sdkErr);
           // Continue with provider-based switch
         }
       }
@@ -529,10 +531,10 @@ async function handleSwitch(chainId) {
                 params: [chainMetadata]
               });
             } catch (addErr) {
-              console.warn('[profile] wallet_addEthereumChain failed:', addErr);
+              log.warn('wallet_addEthereumChain failed:', addErr);
             }
           } else {
-            console.warn('[profile] wallet_switchEthereumChain failed:', ethErr);
+            log.warn('wallet_switchEthereumChain failed:', ethErr);
           }
         }
       }
@@ -574,7 +576,7 @@ async function handleSwitch(chainId) {
         }
       }
     } catch (err) {
-      console.error('[profile] switch error', err);
+      log.error('switch error', err);
       alert('Failed to switch network: ' + (err?.message || err));
       // Reset flag on error after a delay
       if (dialogCloseTimeout) {
@@ -611,7 +613,7 @@ function setVisible(visible) {
 
 function wire(panel, btn) {
     if (!panel) {
-      console.error('[profile-panel] wire: panel missing');
+      log.error('wire: panel missing');
       return;
     }
 
@@ -699,7 +701,7 @@ function wire(panel, btn) {
                   try {
                     await handleSwitch(id);
                   } catch (err) {
-                    console.error('[profile] switch button error:', err);
+                    log.error('switch button error:', err);
                     alert('Failed to switch network: ' + (err?.message || err));
                   } finally {
                     el.style.opacity = '';
@@ -741,7 +743,7 @@ function init() {
             wire(retry.panel, retry.btn);
           } else if (retries >= maxRetries) {
             clearInterval(retryInterval);
-            console.warn('[profile-panel] Max retries reached, profile panel may not work');
+            log.warn('Max retries reached, profile panel may not work');
           }
         }, 200);
         return;
@@ -749,7 +751,7 @@ function init() {
       // Button may be null now (controlled by bottom nav)
       wire(shell.panel, shell.btn);
     } catch (error) {
-      console.error('[profile-panel] init error', error);
+      log.error('init error', error);
     }
 }
 

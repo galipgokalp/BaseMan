@@ -3,7 +3,10 @@
  * Wires together API, state, DOM, and search modules
  */
 
+import { createLogger } from './utils/logger.js';
 import { loadLeaderboard } from './leaderboard/api.js';
+
+const log = createLogger('Leaderboard');
 import { 
   getLoading, 
   setLoading, 
@@ -70,7 +73,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
         }
       }
     } catch (err) {
-      console.warn('[leaderboard-panel] Error getting user info:', err);
+      log.warn('Error getting user info:', err);
     }
 
     return { address, user };
@@ -268,7 +271,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
         setLoading(false);
       },
       onError: (error) => {
-        console.error("[leaderboard-panel] load failed", error);
+        log.error("load failed", error);
         const errorMsg = error?.message || String(error);
         let message = "Leaderboard is currently unavailable. Please try refreshing.";
         if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
@@ -426,7 +429,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     }
   };
   
-  console.log('[leaderboard-panel] BaseManLeaderboard API exported');
+  log.debug('BaseManLeaderboard API exported');
 
   if (typeof window.__BaseManLeaderboardDesiredVisible === "boolean") {
     window.BaseManLeaderboard.setVisible(window.__BaseManLeaderboardDesiredVisible);

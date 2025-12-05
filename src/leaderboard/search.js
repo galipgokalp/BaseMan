@@ -3,7 +3,10 @@
  * Handles search modal functionality, live search, and platform detection
  */
 
+import { createLogger } from '../utils/logger.js';
 import { abbreviateAddress, fallbackAvatar, formatScore } from './dom.js';
+
+const log = createLogger('Search');
 
 // Platform detection helpers
 export function isIOS() {
@@ -63,7 +66,7 @@ function ensureSearchDOM() {
   }
   
   if (!searchModal || !searchInput) {
-    console.warn('[leaderboard-search] Search modal DOM not found');
+    log.warnOnce('no-search-dom', 'Search modal DOM not found');
     return false;
   }
   

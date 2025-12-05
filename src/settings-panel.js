@@ -4,7 +4,9 @@
  */
 
 import { createElement } from './utils/panel-base.js';
+import { createLogger } from './utils/logger.js';
 
+const log = createLogger('Settings');
 const PANEL_ID = 'baseman-settings-panel';
 
 // Use helpers from panel-base
@@ -12,7 +14,7 @@ const el = createElement;
 
 function ensurePanel() {
     if (!document.body) {
-      console.warn('[settings-panel] document.body not ready');
+      log.warn('document.body not ready');
       return null;
     }
 
@@ -187,7 +189,7 @@ function refresh() {
 
       // Network section removed
     } catch (error) {
-      console.error('[settings-panel] refresh error', error);
+      log.error('refresh error', error);
     }
 }
 
@@ -208,7 +210,7 @@ function setSetting(key, value) {
     try {
       localStorage.setItem(`baseman_${key}`, String(value));
     } catch (e) {
-      console.warn('[settings-panel] Failed to save setting:', key, e);
+      log.warn('Failed to save setting:', key, e);
     }
 }
 
@@ -357,7 +359,7 @@ function applySettings() {
           }
         });
       } catch (e) {
-        console.warn('[settings-panel] Failed to apply audio settings:', e);
+        log.warn('Failed to apply audio settings:', e);
       }
     }
 
@@ -381,9 +383,9 @@ function applySettings() {
             // Extreme: 120% speed (fastest)
             window.executive.setUpdatesPerSecond(72); // 60 * 1.2
           }
-          console.log('[settings-panel] Difficulty applied:', difficulty);
+          log.debug('Difficulty applied:', difficulty);
         } catch (err) {
-          console.warn('[settings-panel] Failed to apply difficulty:', err);
+          log.warn('Failed to apply difficulty:', err);
         }
       } else {
         // Executive not ready yet, retry after a short delay
@@ -757,7 +759,7 @@ async function loadDebugLogs(contentEl, filter = null) {
       if (window.ConsoleLogger && typeof window.ConsoleLogger.getLogs === 'function') {
         const logs = window.ConsoleLogger.getLogs();
         if (logs && logs.length > 0) {
-          console.log('[settings-panel] Loaded logs from ConsoleLogger (client-side):', logs.length);
+          log.debug('Loaded logs from ConsoleLogger (client-side):', logs.length);
           // Format logs to match expected structure
           const formattedLogs = logs.map(log => ({
             ts: log.timestamp || new Date().toISOString(),
@@ -776,7 +778,7 @@ async function loadDebugLogs(contentEl, filter = null) {
         }
       }
     } catch (error) {
-      console.warn('[settings-panel] Failed to load logs from ConsoleLogger:', error);
+      log.warn('Failed to load logs from ConsoleLogger:', error);
     }
 
     // PRIORITY 2: Try to get logs from API endpoint (server-side logs)
@@ -787,18 +789,18 @@ async function loadDebugLogs(contentEl, filter = null) {
         const data = await response.json();
         const logs = data.logs || [];
         if (logs && logs.length > 0) {
-          console.log('[settings-panel] Loaded logs from API (server-side):', logs.length);
+          log.debug('Loaded logs from API (server-side):', logs.length);
           allLogsCache = logs; // Cache all logs
           renderDebugLogs(contentEl, logs, activeFilter);
           return;
         } else {
-          console.log('[settings-panel] API returned empty logs (server may have restarted)');
+          log.debug('API returned empty logs (server may have restarted)');
         }
       } else {
-        console.warn('[settings-panel] API endpoint returned error:', response.status, response.statusText);
+        log.warn('API endpoint returned error:', response.status, response.statusText);
       }
     } catch (error) {
-      console.warn('[settings-panel] Failed to load logs from API:', error);
+      log.warn('Failed to load logs from API:', error);
     }
 
     // No logs available (safe DOM)
@@ -961,7 +963,7 @@ function clearDebugLogs(panel) {
         window.ConsoleLogger.clear();
       }
     } catch (error) {
-      console.warn('[settings-panel] Failed to clear ConsoleLogger logs:', error);
+      log.warn('Failed to clear ConsoleLogger logs:', error);
     }
 
     // Clear displayed logs (safe DOM)
@@ -996,12 +998,12 @@ async function copyAllLogs(panel) {
         if (response.ok) {
           const data = await response.json();
           logs = data.logs || [];
-          console.log('[settings-panel] Fetched logs from API:', logs.length);
+          log.debug('Fetched logs from API:', logs.length);
         } else {
-          console.warn('[settings-panel] API endpoint returned error:', response.status, response.statusText);
+          log.warn('API endpoint returned error:', response.status, response.statusText);
         }
       } catch (apiError) {
-        console.warn('[settings-panel] Failed to fetch logs from API:', apiError);
+        log.warn('Failed to fetch logs from API:', apiError);
       }
 
       // Fallback: Try to get logs from ConsoleLogger API
@@ -1015,10 +1017,10 @@ async function copyAllLogs(panel) {
               message: log.message,
               meta: log.meta || {}
             }));
-            console.log('[settings-panel] Fetched logs from ConsoleLogger:', logs.length);
+            log.debug('Fetched logs from ConsoleLogger:', logs.length);
           }
         } catch (loggerError) {
-          console.warn('[settings-panel] Failed to get logs from ConsoleLogger:', loggerError);
+          log.warn('Failed to get logs from ConsoleLogger:', loggerError);
         }
       }
 
@@ -1039,7 +1041,7 @@ async function copyAllLogs(panel) {
             const textToCopy = logTexts.join('\n\n---\n\n');
             
             if (textToCopy && textToCopy.trim().length > 0) {
-              console.log('[settings-panel] Copying logs from displayed content:', logTexts.length, 'logs');
+              log.debug('Copying logs from displayed content:', logTexts.length, 'logs');
               await copyToClipboard(textToCopy);
               showCopyFeedback(copyBtn, '✓ Copied!', true);
               return;
@@ -1048,7 +1050,7 @@ async function copyAllLogs(panel) {
         }
         
         // No logs found anywhere
-        console.warn('[settings-panel] No logs available to copy');
+        log.warn('No logs available to copy');
         if (copyBtn) {
           copyBtn.disabled = false;
         }
@@ -1088,11 +1090,11 @@ async function copyAllLogs(panel) {
         throw new Error('No log content to copy');
       }
       
-      console.log('[settings-panel] Copying', sortedLogs.length, 'formatted logs to clipboard');
+      log.debug('Copying', sortedLogs.length, 'formatted logs to clipboard');
       await copyToClipboard(textToCopy);
       showCopyFeedback(copyBtn, '✓ Copied!', true);
     } catch (error) {
-      console.error('[settings-panel] Failed to copy logs:', error);
+      log.error('Failed to copy logs:', error);
       const errorMessage = error?.message || String(error);
       showCopyFeedback(copyBtn, '✗ Failed', false);
       
@@ -1140,7 +1142,7 @@ async function copyToClipboard(text) {
         
         if (hasPermission) {
           await navigator.clipboard.writeText(text);
-          console.log('[settings-panel] Text copied to clipboard using Clipboard API');
+          log.debug('Text copied to clipboard using Clipboard API');
           return;
         }
         // Permission denied, fall through to fallback method silently
@@ -1151,7 +1153,7 @@ async function copyToClipboard(text) {
                                    clipboardError.message?.includes('permission') ||
                                    clipboardError.message?.includes('denied');
         if (!isPermissionError) {
-          console.warn('[settings-panel] Clipboard API failed, trying fallback:', clipboardError);
+          log.warn('Clipboard API failed, trying fallback:', clipboardError);
         }
         // Fall through to fallback method
       }
@@ -1198,9 +1200,9 @@ async function copyToClipboard(text) {
         throw new Error('execCommand copy failed');
       }
       
-      console.log('[settings-panel] Text copied to clipboard using fallback method');
+      log.debug('Text copied to clipboard using fallback method');
     } catch (fallbackError) {
-      console.error('[settings-panel] Fallback copy method also failed:', fallbackError);
+      log.error('Fallback copy method also failed:', fallbackError);
       // Last resort: Show the text in an alert or prompt so user can manually copy
       throw new Error('Failed to copy to clipboard. Please copy manually from the logs view.');
     }
@@ -1225,7 +1227,7 @@ function exportDebugLogs() {
         return;
       }
     } catch (error) {
-      console.warn('[settings-panel] Failed to export logs from ConsoleLogger:', error);
+      log.warn('Failed to export logs from ConsoleLogger:', error);
     }
 
     // Fallback: Fetch from API and export
@@ -1244,7 +1246,7 @@ function exportDebugLogs() {
         URL.revokeObjectURL(url);
       })
       .catch(error => {
-        console.error('[settings-panel] Failed to export logs:', error);
+        log.error('Failed to export logs:', error);
         alert('Failed to export logs. Please try again.');
       });
 }
@@ -1267,7 +1269,7 @@ function init() {
       }
       wire(panel);
     } catch (error) {
-      console.error('[settings-panel] init error', error);
+      log.error('init error', error);
     }
 }
 

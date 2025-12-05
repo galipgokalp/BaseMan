@@ -3,6 +3,10 @@
  * Handles rendering and formatting utilities
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('LeaderboardDOM');
+
 /**
  * Abbreviate Ethereum address
  */
@@ -188,20 +192,12 @@ export function createListItem(entry, fallbackRank, isMe = false) {
   
   // Platform logo
   const platform = entry?.profile?.platform;
-  console.log('[leaderboard-dom] Entry platform for', entry?.profile?.username || entry?.player, ':', platform);
   if (platform === 'farcaster' || platform === 'base-app') {
     const platformLogo = document.createElement("span");
     platformLogo.className = `leaderboard-platform-logo leaderboard-platform-logo-${platform}`;
     platformLogo.setAttribute("title", platform === 'farcaster' ? 'Farcaster' : 'Base App');
     platformLogo.setAttribute("aria-label", platform === 'farcaster' ? 'Farcaster' : 'Base App');
     identityText.appendChild(platformLogo);
-  } else if (entry?.profile) {
-    console.warn('[leaderboard-dom] Profile exists but platform is missing:', {
-      username: entry.profile.username,
-      displayName: entry.profile.displayName,
-      platform: entry.profile.platform,
-      provider: entry.profile.provider
-    });
   }
   
   identityRoot.appendChild(identityText);

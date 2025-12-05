@@ -6,20 +6,31 @@
 (function() {
   'use strict';
 
-  // Logger helper - use logger if available, fallback to console for backward compatibility
-  const getLogger = () => {
-    if (typeof window !== 'undefined' && window.logger) {
-      return window.logger;
+  // Use BaseManLogger if available (from utils/logger.js), else fallback
+  const getLog = () => {
+    if (typeof window !== 'undefined' && window.BaseManCreateLogger) {
+      return window.BaseManCreateLogger('Nav');
     }
-    // Fallback to console if logger not available
+    if (typeof window !== 'undefined' && window.BaseManLogger) {
+      return window.BaseManLogger;
+    }
+    // Fallback to console wrapper
     return {
-      log: console.log.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-      debug: console.debug.bind(console)
+      debug: (...args) => console.debug('[Nav]', ...args),
+      log: (...args) => console.log('[Nav]', ...args),
+      info: (...args) => console.info('[Nav]', ...args),
+      warn: (...args) => console.warn('[Nav]', ...args),
+      error: (...args) => console.error('[Nav]', ...args),
+      warnOnce: (key, ...args) => console.warn('[Nav]', ...args)
     };
   };
-  const logger = getLogger();
+  
+  // Lazy-init logger (after window.BaseManLogger is ready)
+  let _log = null;
+  const log = () => {
+    if (!_log) _log = getLog();
+    return _log;
+  };
 
   const BOTTOM_NAV = {
     LEADERBOARD: 'leaderboard',
@@ -30,6 +41,9 @@
 
   let currentActive = null;
   let currentOpenPanel = null;
+
+  // Guard flag to prevent multiple initializations
+  let _initialized = false;
 
   async function loadProfilePicture() {
     const profileButton = document.querySelector('[data-nav="profile"]');
@@ -86,7 +100,7 @@
         if (label) label.style.display = '';
       }
     } catch (err) {
-      logger.warn('[bottom-nav] Failed to load profile picture:', err);
+      log().warn('Failed to load profile picture:', err);
       // Fallback: show emoji
       const profileImg = profileButton.querySelector('.nav-profile-img');
       if (profileImg) profileImg.style.display = 'none';
@@ -97,17 +111,24 @@
   }
 
   function init() {
+    // Guard: prevent multiple initializations
+    if (_initialized) {
+      log().debug('Already initialized, skipping');
+      return;
+    }
+
     const nav = document.getElementById('bottom-nav');
     if (!nav) {
-      initStarted = false;
       return;
     }
 
     const items = nav.querySelectorAll('.nav-item');
     if (items.length === 0) {
-      initStarted = false;
       return;
     }
+
+    // Mark as initialized
+    _initialized = true;
 
     items.forEach((item) => {
       const navType = item.getAttribute('data-nav');
@@ -124,9 +145,9 @@
       
       // Use both click and touchstart for faster response on mobile
       const handleClick = (e) => {
-        logger.log('[bottom-nav] Button clicked:', navType, e.type);
+        log().debug('Button clicked:', navType, e.type);
         if (item.disabled) {
-          logger.log('[bottom-nav] Button disabled, ignoring');
+          log().debug('Button disabled, ignoring');
           return;
         }
         e.preventDefault();
@@ -220,18 +241,18 @@
   const CLICK_DEBOUNCE_MS = 100; // Minimum time between clicks
 
   function handleNavClick(navType, element) {
-    logger.log('[bottom-nav] handleNavClick called:', navType);
+    log().debug('handleNavClick called:', navType);
     // Debounce rapid clicks
     const now = Date.now();
     if (now - lastClickTime < CLICK_DEBOUNCE_MS) {
-      logger.log('[bottom-nav] Click debounced');
+      log().debug('Click debounced');
       return;
     }
     lastClickTime = now;
     
     // If clicking the same button, toggle (close panel)
     if (currentOpenPanel === navType) {
-      logger.log('[bottom-nav] Toggling panel closed');
+      log().debug('Toggling panel closed');
       closeAllPanels();
       setActive(null);
       return;
@@ -243,7 +264,7 @@
     // Open the selected panel immediately (synchronous)
     switch(navType) {
       case BOTTOM_NAV.LEADERBOARD:
-        logger.log('[bottom-nav] Opening leaderboard');
+        log().debug('Opening leaderboard');
         openLeaderboard();
         setActive(BOTTOM_NAV.LEADERBOARD);
         currentOpenPanel = BOTTOM_NAV.LEADERBOARD;
@@ -286,23 +307,20 @@
   }
 
   function openLeaderboard() {
-    logger.log('[bottom-nav] openLeaderboard called');
+    log().debug('openLeaderboard called');
     // Immediate panel opening - no async delays
     const panel = document.getElementById('leaderboard-panel');
     if (!panel) {
-      logger.error('[bottom-nav] leaderboard-panel not found in DOM');
+      log().error('leaderboard-panel not found in DOM');
       return;
     }
-    logger.log('[bottom-nav] Panel found, removing hidden attribute');
+    log().debug('Panel found, removing hidden attribute');
     
     // Always remove hidden attribute first (synchronous, immediate)
     panel.removeAttribute('hidden');
-    logger.debug('[bottom-nav] Hidden attribute removed, panel.hasAttribute("hidden"):', panel.hasAttribute('hidden'));
     
     // Force display style (inline style has higher specificity than CSS class)
     panel.style.display = 'flex';
-    logger.debug('[bottom-nav] Forced display: flex (inline style)');
-    logger.debug('[bottom-nav] Panel computed display:', window.getComputedStyle(panel).display);
     
     // Wait for API to be available (with retry mechanism)
     (async function waitForAPI() {
@@ -312,7 +330,7 @@
       for (let i = 0; i < maxRetries; i++) {
         if (typeof window.BaseManLeaderboard !== 'undefined' && 
             typeof window.BaseManLeaderboard.setVisible === 'function') {
-          logger.log('[bottom-nav] BaseManLeaderboard API available, calling setVisible()');
+          log().debug('BaseManLeaderboard API available, calling setVisible()');
           window.BaseManLeaderboard.setVisible(true, { force: true });
           
           // Refresh data in background (async, non-blocking)
@@ -330,10 +348,8 @@
         }
       }
       
-      // API still not available after retries - log once, don't spam
-      if (maxRetries > 0) {
-        logger.warn('[bottom-nav] BaseManLeaderboard API not available after retries - panel opened without API');
-      }
+      // API still not available after retries - log once
+      log().warnOnce('lb-api-unavailable', 'BaseManLeaderboard API not available after retries - panel opened without API');
     })();
   }
 
@@ -369,11 +385,11 @@
   }
 
   function openWallet() {
-    logger.log('[bottom-nav] openWallet called');
+    log().debug('openWallet called');
     
     // Try API first (preferred method)
     if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
-      logger.log('[bottom-nav] Using WalletPanel API');
+      log().debug('Using WalletPanel API');
       window.WalletPanel.show();
       // Refresh in background
       requestAnimationFrame(() => {
@@ -385,14 +401,14 @@
     }
 
     // Fallback: Wait for wallet-panel.js to initialize
-    logger.log('[bottom-nav] WalletPanel API not ready, waiting for initialization...');
+    log().debug('WalletPanel API not ready, waiting for initialization...');
     let attempts = 0;
     const maxAttempts = 20; // 4 seconds max wait
     const checkInterval = setInterval(() => {
       attempts++;
       if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
         clearInterval(checkInterval);
-        logger.log('[bottom-nav] WalletPanel API now available, using it');
+        log().debug('WalletPanel API now available, using it');
         window.WalletPanel.show();
         requestAnimationFrame(() => {
           if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
@@ -401,11 +417,11 @@
         });
       } else if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
-        logger.warn('[bottom-nav] WalletPanel API not available after waiting');
+        log().warn('WalletPanel API not available after waiting');
         // Last resort: try to open panel directly if it exists
         const panel = document.getElementById('baseman-wallet-panel');
         if (panel) {
-          logger.log('[bottom-nav] Panel exists, opening directly as fallback');
+          log().debug('Panel exists, opening directly as fallback');
           panel.classList.add('open');
           panel.setAttribute('aria-hidden', 'false');
         }
@@ -436,38 +452,23 @@
     getCurrentActive: () => currentActive
   };
 
-  // Initialize immediately - don't wait for SDK
-  // Event listeners should be attached as soon as DOM is ready
-  let initStarted = false;
-  let initComplete = false;
-  
+  // Initialize when DOM is ready
   function initWhenReady() {
-    if (initStarted) {
+    if (_initialized) {
       return;
-    }
-    initStarted = true;
-    
-    function doInit() {
-      if (initComplete) {
-        return;
-      }
-      initComplete = true;
-      init();
     }
     
     // Initialize immediately if DOM is ready, otherwise wait for DOMContentLoaded
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', doInit, { once: true });
-      // Fallback: init immediately if DOMContentLoaded takes too long
-      setTimeout(doInit, 100);
+      document.addEventListener('DOMContentLoaded', init, { once: true });
+      // Fallback: init if DOMContentLoaded takes too long
+      setTimeout(init, 100);
     } else {
       // DOM already ready - init immediately
-      doInit();
+      init();
     }
   }
 
   // Start initialization immediately
   initWhenReady();
 })();
-
-
