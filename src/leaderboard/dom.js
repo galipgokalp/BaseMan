@@ -1,11 +1,25 @@
 /**
  * Leaderboard DOM Module
  * Handles rendering and formatting utilities
+ * 
+ * Phase 4.1: Performance optimizations
+ * - View state caching for DOM references
+ * - DocumentFragment batch rendering
+ * - Minimized DOM writes per frame
  */
 
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('LeaderboardDOM');
+
+// ============================================
+// VIEW STATE CACHE
+// ============================================
+// Cached DOM references to avoid repeated querySelector calls
+const viewCache = {
+  debugEl: null,
+  lastRenderHash: null, // Track last render to skip redundant work
+};
 
 /**
  * Abbreviate Ethereum address
@@ -217,9 +231,15 @@ export function createListItem(entry, fallbackRank, isMe = false) {
 
 /**
  * Show debug info
+ * Phase 4.1: Cache debug element reference
  */
 export function showDebugInfo(panel, debugInfo) {
-  let debugEl = panel.querySelector('[data-debug-info]');
+  // Use cached reference if available and still in DOM
+  let debugEl = viewCache.debugEl;
+  if (!debugEl || !debugEl.parentElement) {
+    debugEl = panel.querySelector('[data-debug-info]');
+  }
+  
   if (!debugEl) {
     debugEl = document.createElement('div');
     debugEl.setAttribute('data-debug-info', '');
@@ -238,6 +258,10 @@ export function showDebugInfo(panel, debugInfo) {
     panel.appendChild(debugEl);
   }
   
+  // Cache the reference
+  viewCache.debugEl = debugEl;
+  
+  // Build info array
   const info = [];
   info.push(`🔍 DEBUG MODE`);
   if (debugInfo.headerReceived !== undefined) {
@@ -255,11 +279,13 @@ export function showDebugInfo(panel, debugInfo) {
   if (debugInfo.profileDetails) {
     info.push('');
     info.push('Profile Details:');
-    debugInfo.profileDetails.forEach(detail => {
+    const details = debugInfo.profileDetails;
+    for (let i = 0, len = details.length; i < len; i++) {
+      const detail = details[i];
       const hasProfile = detail.hasProfile ? '✅' : '❌';
       const user = detail.username ? `@${detail.username}` : detail.address;
       info.push(`  ${hasProfile} ${user.substring(0, 20)}${detail.fid ? ` (FID: ${detail.fid})` : ''}`);
-    });
+    }
   }
   if (debugInfo.error) {
     info.push('');
@@ -272,12 +298,42 @@ export function showDebugInfo(panel, debugInfo) {
 
 /**
  * Hide debug info
+ * Phase 4.1: Use cached reference
  */
 export function hideDebugInfo(panel) {
-  const debugEl = panel.querySelector('[data-debug-info]');
+  // Use cached reference if available
+  let debugEl = viewCache.debugEl;
+  if (!debugEl || !debugEl.parentElement) {
+    debugEl = panel.querySelector('[data-debug-info]');
+    if (debugEl) viewCache.debugEl = debugEl;
+  }
   if (debugEl) {
     debugEl.style.display = 'none';
   }
+}
+
+/**
+ * Reset render cache
+ * Call this when you need to force a fresh render on next call
+ */
+export function resetRenderCache() {
+  viewCache.lastRenderHash = null;
+}
+
+/**
+ * Compute a simple hash for render comparison
+ * Used to skip redundant DOM work when data hasn't changed
+ */
+function computeRenderHash(items, limit) {
+  if (!items || items.length === 0) return 'empty';
+  const effectiveItems = items.slice(0, limit);
+  // Create a lightweight hash from player addresses and scores
+  let hash = effectiveItems.length.toString();
+  for (let i = 0, len = effectiveItems.length; i < len; i++) {
+    const entry = effectiveItems[i];
+    hash += '|' + (entry?.player || '') + ':' + (entry?.totalScore || entry?.highScore || 0);
+  }
+  return hash;
 }
 
 /**
@@ -290,8 +346,27 @@ export function hideDebugInfo(panel) {
  * @param {HTMLElement} options.statusEl - Status element
  * @param {number} options.limit - Limit of items to render
  * @param {Function} options.isMyEntry - Function to check if entry belongs to current user
+ * @param {boolean} options.forceRender - Force re-render even if data unchanged
+ * 
+ * Phase 4.1 optimizations:
+ * - Skip render if data hash unchanged (avoids redundant DOM work)
+ * - Use DocumentFragment for batch DOM insertion
+ * - Use simple for-loop instead of forEach in hot path
  */
-export function renderRows(items, { topListEl, restListEl, scrollWrapper, statusEl, limit, isMyEntry }) {
+export function renderRows(items, { topListEl, restListEl, scrollWrapper, statusEl, limit, isMyEntry, forceRender = false }) {
+  // Compute hash to detect if data actually changed
+  const renderHash = computeRenderHash(items, limit);
+  
+  // Skip redundant render if data unchanged (unless forced)
+  if (!forceRender && viewCache.lastRenderHash === renderHash) {
+    log.debug('renderRows: skipping redundant render (data unchanged)');
+    return null;
+  }
+  
+  // Update hash before rendering
+  viewCache.lastRenderHash = renderHash;
+
+  // Clear containers
   if (topListEl) {
     topListEl.textContent = ""; // Clear safely
   }
@@ -301,39 +376,45 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   if (scrollWrapper) {
     scrollWrapper.hidden = true;
   }
-  if (!items.length) {
+  
+  if (!items || items.length === 0) {
     if (statusEl) statusEl.textContent = "No scores yet.";
     return null;
   }
 
   const effectiveItems = items.slice(0, limit);
-  const topItems = effectiveItems.slice(0, 10);
-  const restItems = effectiveItems.slice(10);
-
-  if (topListEl) {
+  const topCount = Math.min(10, effectiveItems.length);
+  
+  // Build top items using DocumentFragment
+  if (topListEl && topCount > 0) {
     const fragmentTop = document.createDocumentFragment();
-    topItems.forEach((entry, index) => {
+    // Use simple for-loop for better performance in hot path
+    for (let i = 0; i < topCount; i++) {
+      const entry = effectiveItems[i];
       const isMe = isMyEntry ? isMyEntry(entry) : false;
-      fragmentTop.appendChild(createListItem(entry, index + 1, isMe));
-    });
+      fragmentTop.appendChild(createListItem(entry, i + 1, isMe));
+    }
     topListEl.appendChild(fragmentTop);
   }
 
-  if (restItems.length && restListEl && scrollWrapper) {
+  // Build rest items using DocumentFragment
+  const restCount = effectiveItems.length - topCount;
+  if (restCount > 0 && restListEl && scrollWrapper) {
     const fragmentRest = document.createDocumentFragment();
-    restItems.forEach((entry, index) => {
-      const fallbackRank = 10 + index + 1;
+    for (let i = 0; i < restCount; i++) {
+      const entry = effectiveItems[topCount + i];
+      const fallbackRank = topCount + i + 1;
       const isMe = isMyEntry ? isMyEntry(entry) : false;
       fragmentRest.appendChild(createListItem(entry, fallbackRank, isMe));
-    });
+    }
     restListEl.appendChild(fragmentRest);
     scrollWrapper.hidden = false;
   }
 
   return {
     total: items.length,
-    pinned: topItems.length,
-    scrollable: restItems.length
+    pinned: topCount,
+    scrollable: restCount
   };
 }
 

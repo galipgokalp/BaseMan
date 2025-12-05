@@ -1,6 +1,11 @@
 /**
  * Leaderboard Search Module
  * Handles search modal functionality, live search, and platform detection
+ * 
+ * Phase 4.1: Performance optimizations
+ * - Query caching to skip redundant searches
+ * - Result caching to skip redundant renders
+ * - Optimized filtering with for-loops
  */
 
 import { createLogger } from '../utils/logger.js';
@@ -44,6 +49,11 @@ let bodyScrollLocked = false;
 let originalBodyOverflow = '';
 let originalBodyPaddingRight = '';
 let searchInputWired = false; // Flag to prevent duplicate event listener registrations
+
+// Phase 4.1: Query and result caching
+let lastNormalizedQuery = ''; // Track last search query to skip redundant work
+let lastResultCount = -1; // Track last result count for comparison
+let lastResultHash = ''; // Simple hash of results to detect changes
 
 /**
  * Ensure search DOM elements are ready
@@ -149,11 +159,40 @@ function detachViewportShim() {
 }
 
 /**
+ * Compute simple hash for result comparison
+ */
+function computeResultHash(filtered) {
+  if (!filtered || filtered.length === 0) return 'empty';
+  // Use first few addresses as hash (good enough for detecting changes)
+  let hash = filtered.length.toString();
+  const maxCheck = Math.min(filtered.length, 10);
+  for (let i = 0; i < maxCheck; i++) {
+    hash += '|' + (filtered[i]?.player || '');
+  }
+  return hash;
+}
+
+/**
  * Render search results
  * Uses safe DOM APIs instead of innerHTML
+ * 
+ * Phase 4.1: Skip redundant renders when results unchanged
  */
 function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
   if (!searchResults) return;
+  
+  // Compute hash to detect if results changed
+  const resultHash = computeResultHash(filtered);
+  
+  // Skip render if results unchanged
+  if (resultHash === lastResultHash && lastResultCount === filtered.length) {
+    log.debug('renderResults: skipping (results unchanged)');
+    return;
+  }
+  
+  // Update cache
+  lastResultHash = resultHash;
+  lastResultCount = filtered.length;
   
   if (filtered.length === 0) {
     searchResults.textContent = ''; // Clear safely
@@ -168,7 +207,9 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
   const resultsList = document.createElement('ol');
   resultsList.className = 'leaderboard-search-list';
   
-  filtered.forEach((entry) => {
+  // Phase 4.1: Use for-loop instead of forEach for better performance
+  for (let i = 0, len = filtered.length; i < len; i++) {
+    const entry = filtered[i];
     const listItem = document.createElement('li');
     listItem.className = 'leaderboard-search-result-item';
     listItem.setAttribute('data-address', entry?.player || '');
@@ -178,9 +219,10 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
     leftEl.className = 'leaderboard-search-result-left';
     
     // Avatar
-    const avatar = document.createElement(entry?.profile?.profileUrl ? 'a' : 'div');
+    const hasProfileUrl = entry?.profile?.profileUrl;
+    const avatar = document.createElement(hasProfileUrl ? 'a' : 'div');
     avatar.className = 'leaderboard-search-result-avatar';
-    if (entry?.profile?.profileUrl) {
+    if (hasProfileUrl) {
       avatar.href = entry.profile.profileUrl;
       avatar.target = '_blank';
       avatar.rel = 'noopener noreferrer';
@@ -245,7 +287,7 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
     }
     
     resultsList.appendChild(listItem);
-  });
+  }
   
   fragment.appendChild(resultsList);
   searchResults.textContent = ''; // Clear safely
@@ -255,6 +297,8 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
 /**
  * Perform live search
  * Uses safe DOM APIs instead of innerHTML
+ * 
+ * Phase 4.1: Query caching to skip redundant searches
  */
 function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemClick }) {
   if (!searchResults) return;
@@ -266,11 +310,25 @@ function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemCli
   searchAbortController = new AbortController();
   
   const trimmedQuery = query.trim();
+  const normalizedQuery = trimmedQuery.toLowerCase();
   
+  // Handle empty query
   if (!trimmedQuery) {
+    // Reset cache state
+    lastNormalizedQuery = '';
+    lastResultHash = '';
+    lastResultCount = -1;
     searchResults.textContent = ''; // Clear safely
     return;
   }
+  
+  // Phase 4.1: Skip if query unchanged (after normalization)
+  if (normalizedQuery === lastNormalizedQuery) {
+    log.debug('performLiveSearch: skipping (query unchanged)');
+    return;
+  }
+  
+  lastNormalizedQuery = normalizedQuery;
   
   const signal = searchAbortController.signal;
   
@@ -279,6 +337,9 @@ function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemCli
     
     if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
       if (signal.aborted) return;
+      // Reset result cache
+      lastResultHash = 'no-entries';
+      lastResultCount = 0;
       searchResults.textContent = ''; // Clear safely
       const noEntries = document.createElement('div');
       noEntries.className = 'leaderboard-search-no-results';
@@ -287,19 +348,31 @@ function performLiveSearch(query, allEntries, { topListEl, restListEl, onItemCli
       return;
     }
     
-    const searchTerm = trimmedQuery.toLowerCase();
-    const filtered = allEntries.filter(entry => {
-      if (signal.aborted) return false;
+    // Phase 4.1: Use for-loop for filtering (better performance)
+    const searchTerm = normalizedQuery;
+    const filtered = [];
+    
+    for (let i = 0, len = allEntries.length; i < len; i++) {
+      if (signal.aborted) break;
+      
+      const entry = allEntries[i];
       const username = entry?.profile?.username?.toLowerCase() || '';
       const displayName = entry?.profile?.displayName?.toLowerCase() || '';
       const address = entry?.player?.toLowerCase() || '';
-      const abbreviatedAddress = abbreviateAddress(entry?.player || '').toLowerCase();
       
-      return username.includes(searchTerm) || 
-             displayName.includes(searchTerm) || 
-             address.includes(searchTerm) ||
-             abbreviatedAddress.includes(searchTerm);
-    });
+      // Check matches (most likely to least likely order for short-circuit)
+      if (username.includes(searchTerm) || 
+          displayName.includes(searchTerm) || 
+          address.includes(searchTerm)) {
+        filtered.push(entry);
+      } else {
+        // Only compute abbreviated address if other checks failed
+        const abbreviatedAddress = abbreviateAddress(entry?.player || '').toLowerCase();
+        if (abbreviatedAddress.includes(searchTerm)) {
+          filtered.push(entry);
+        }
+      }
+    }
     
     if (signal.aborted) return;
     
@@ -315,10 +388,11 @@ function wireLiveSearch(getAllEntries, { topListEl, restListEl, onItemClick, onC
   
   searchInputWired = true;
   
+  // Phase 4.1: Increased debounce to 150ms for better mobile performance
   searchDebounced = debounce((query) => {
     const allEntries = typeof getAllEntries === 'function' ? getAllEntries() : getAllEntries;
     performLiveSearch(query, allEntries, { topListEl, restListEl, onItemClick });
-  }, 120);
+  }, 150);
   
   searchInput.addEventListener('input', (e) => {
     const value = e.target.value;
@@ -339,10 +413,16 @@ function wireLiveSearch(getAllEntries, { topListEl, restListEl, onItemClick, onC
 
 /**
  * Open search modal
+ * Phase 4.1: Reset cache state on open for fresh search
  */
 export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemClick, onClose }) {
   const allEntries = typeof getAllEntries === 'function' ? getAllEntries() : getAllEntries;
   if (!ensureSearchDOM()) return;
+  
+  // Phase 4.1: Reset query and result cache on open
+  lastNormalizedQuery = '';
+  lastResultHash = '';
+  lastResultCount = -1;
   
   lockBodyScroll();
   
@@ -416,6 +496,7 @@ export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemCl
 
 /**
  * Close search modal
+ * Phase 4.1: Reset query cache on close
  */
 export function closeSearchModal(onRestore) {
   if (!searchModal) return;
@@ -424,6 +505,11 @@ export function closeSearchModal(onRestore) {
     searchAbortController.abort();
     searchAbortController = null;
   }
+  
+  // Phase 4.1: Reset query and result cache
+  lastNormalizedQuery = '';
+  lastResultHash = '';
+  lastResultCount = -1;
   
   detachViewportShim();
   unlockBodyScroll();

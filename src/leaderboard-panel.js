@@ -1,6 +1,11 @@
 /**
  * Leaderboard Panel Entry Point
  * Wires together API, state, DOM, and search modules
+ * 
+ * Phase 4.1: Performance optimizations
+ * - View state caching for DOM references
+ * - requestAnimationFrame for scroll operations
+ * - Minimized DOM writes and layout thrashing
  */
 
 import { createLogger } from './utils/logger.js';
@@ -22,7 +27,8 @@ import {
   renderError, 
   showDebugInfo, 
   hideDebugInfo,
-  formatScore
+  formatScore,
+  resetRenderCache
 } from './leaderboard/dom.js';
 import { initSearch, closeSearchModal } from './leaderboard/search.js';
 
@@ -30,15 +36,34 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   const panel = document.getElementById("leaderboard-panel");
   if (!panel) return;
 
-  const statusEl = panel.querySelector("[data-status]");
-  const topListEl = panel.querySelector("[data-list-top]");
-  const restListEl = panel.querySelector("[data-list-rest]");
-  const scrollWrapper = panel.querySelector("[data-scroll-wrapper]");
+  // ============================================
+  // VIEW CACHE - Phase 4.1 optimization
+  // ============================================
+  // Cache DOM references to avoid repeated querySelector calls
+  const view = {
+    panel,
+    statusEl: panel.querySelector("[data-status]"),
+    topListEl: panel.querySelector("[data-list-top]"),
+    restListEl: panel.querySelector("[data-list-rest]"),
+    scrollWrapper: panel.querySelector("[data-scroll-wrapper]"),
+    myRankSummaryEl: null, // Lazy-init on first use
+    myRankRow: null, // Cache for scroll-to-me
+    closeBtn: null, // Lazy-init
+  };
+  
+  // Shorthand references for backward compatibility
+  const statusEl = view.statusEl;
+  const topListEl = view.topListEl;
+  const restListEl = view.restListEl;
+  const scrollWrapper = view.scrollWrapper;
   const limit = Number(panel.dataset.limit || "10");
 
   // Current user state (cached)
   let currentUser = null;
   let currentAddress = null;
+  
+  // My rank state cache - avoid redundant DOM updates
+  let lastMyRankState = null; // { rank, score, hasEntry, connected }
 
   /**
    * Normalize address for comparison
@@ -118,16 +143,54 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   /**
    * Update the "My Rank" summary card
    * Uses safe DOM APIs instead of innerHTML
+   * 
+   * Phase 4.1: Skip redundant DOM updates when state unchanged
    */
   const updateMyRankSummary = (entries) => {
-    const myRankSummaryEl = panel.querySelector("[data-my-rank-summary]");
+    // Lazy-init and cache the element reference
+    if (!view.myRankSummaryEl) {
+      view.myRankSummaryEl = panel.querySelector("[data-my-rank-summary]");
+    }
+    const myRankSummaryEl = view.myRankSummaryEl;
     if (!myRankSummaryEl) return;
+
+    // Determine current state
+    const isConnected = !!(currentUser || currentAddress);
+    const myEntry = isConnected ? entries.find(entry => isMyEntry(entry)) : null;
+    const hasEntry = !!myEntry;
+    
+    let rank = 0;
+    let score = '';
+    
+    if (hasEntry) {
+      rank = typeof myEntry.rank === "number" && Number.isFinite(myEntry.rank)
+        ? myEntry.rank
+        : entries.findIndex(e => isMyEntry(e)) + 1;
+      score = formatScore(myEntry.totalScore, myEntry.highScore);
+    }
+    
+    // Create state hash to detect changes
+    const newState = { connected: isConnected, hasEntry, rank, score };
+    const stateKey = `${isConnected}|${hasEntry}|${rank}|${score}`;
+    const lastStateKey = lastMyRankState 
+      ? `${lastMyRankState.connected}|${lastMyRankState.hasEntry}|${lastMyRankState.rank}|${lastMyRankState.score}`
+      : null;
+    
+    // Skip DOM work if state unchanged
+    if (stateKey === lastStateKey) {
+      log.debug('updateMyRankSummary: skipping (state unchanged)');
+      return;
+    }
+    
+    lastMyRankState = newState;
 
     // Clear existing content safely
     myRankSummaryEl.textContent = '';
+    // Invalidate my rank row cache since DOM structure changed
+    view.myRankRow = null;
 
     // If no user or address, show connect wallet message
-    if (!currentUser && !currentAddress) {
+    if (!isConnected) {
       myRankSummaryEl.hidden = false;
       const msgDiv = document.createElement('div');
       msgDiv.className = 'leaderboard-my-rank-message';
@@ -136,11 +199,8 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       return;
     }
 
-    // Find user's entry
-    const myEntry = entries.find(entry => isMyEntry(entry));
-
     // If user exists but no entry found
-    if (!myEntry) {
+    if (!hasEntry) {
       myRankSummaryEl.hidden = false;
       const msgDiv = document.createElement('div');
       msgDiv.className = 'leaderboard-my-rank-message';
@@ -150,15 +210,11 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     }
 
     // User has an entry - show rank card
-    const rank = typeof myEntry.rank === "number" && Number.isFinite(myEntry.rank)
-      ? myEntry.rank
-      : entries.findIndex(e => isMyEntry(e)) + 1;
-    
-    const formattedScore = formatScore(myEntry.totalScore, myEntry.highScore);
-
     myRankSummaryEl.hidden = false;
     
-    // Build rank card using safe DOM APIs
+    // Build rank card using DocumentFragment for single DOM insertion
+    const fragment = document.createDocumentFragment();
+    
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'leaderboard-my-rank-inner';
@@ -179,7 +235,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     
     const scoreDiv = document.createElement('div');
     scoreDiv.className = 'leaderboard-my-rank-score';
-    scoreDiv.textContent = formattedScore;
+    scoreDiv.textContent = score;
     metaDiv.appendChild(scoreDiv);
     
     button.appendChild(metaDiv);
@@ -189,46 +245,64 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     ctaDiv.textContent = 'Scroll to me';
     button.appendChild(ctaDiv);
     
-    myRankSummaryEl.appendChild(button);
+    fragment.appendChild(button);
+    myRankSummaryEl.appendChild(fragment);
   };
 
   /**
    * Scroll to user's rank in the leaderboard
+   * Phase 4.1: Use requestAnimationFrame to avoid layout thrashing
    */
   const scrollToMyRank = () => {
-    // Find user's item in both top and rest lists
-    const myItem = topListEl?.querySelector("[data-my-rank-item='true']") ||
-                   restListEl?.querySelector("[data-my-rank-item='true']") ||
-                   panel.querySelector("[data-my-rank-item='true']");
+    // Find user's item - check cached reference first
+    let myItem = view.myRankRow;
+    
+    // Verify cached reference is still valid, otherwise re-query
+    if (!myItem || !myItem.parentElement) {
+      myItem = view.topListEl?.querySelector("[data-my-rank-item='true']") ||
+               view.restListEl?.querySelector("[data-my-rank-item='true']") ||
+               panel.querySelector("[data-my-rank-item='true']");
+      view.myRankRow = myItem; // Cache for next time
+    }
 
     if (!myItem) return;
 
-    // If item is in top list, just scroll it into view (top list is not scrollable)
-    if (topListEl && topListEl.contains(myItem)) {
-      myItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } 
-    // If item is in rest list (scrollable area)
-    else if (scrollWrapper && restListEl && restListEl.contains(myItem)) {
-      // Scroll within the scrollWrapper
-      const scrollOffset = Math.max(
-        myItem.offsetTop - scrollWrapper.offsetTop - 16,
-        0
-      );
-      scrollWrapper.scrollTo({
-        top: scrollOffset,
-        behavior: "smooth"
-      });
-    } 
-    // Fallback: scroll item into view
-    else {
-      myItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    // Use requestAnimationFrame for all scroll operations to avoid layout thrashing
+    requestAnimationFrame(() => {
+      // Read layout values in one batch
+      const itemInTopList = view.topListEl && view.topListEl.contains(myItem);
+      const itemInRestList = view.scrollWrapper && view.restListEl && view.restListEl.contains(myItem);
+      
+      // If item is in top list, just scroll it into view (top list is not scrollable)
+      if (itemInTopList) {
+        myItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } 
+      // If item is in rest list (scrollable area)
+      else if (itemInRestList) {
+        // Read layout values
+        const scrollOffset = Math.max(
+          myItem.offsetTop - view.scrollWrapper.offsetTop - 16,
+          0
+        );
+        // Schedule scroll in next frame to separate read/write
+        requestAnimationFrame(() => {
+          view.scrollWrapper.scrollTo({
+            top: scrollOffset,
+            behavior: "smooth"
+          });
+        });
+      } 
+      // Fallback: scroll item into view
+      else {
+        myItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
 
-    // Add highlight class temporarily
-    myItem.classList.add('leaderboard-item-me-highlight');
-    setTimeout(() => {
-      myItem.classList.remove('leaderboard-item-me-highlight');
-    }, 1200);
+      // Add highlight class temporarily
+      myItem.classList.add('leaderboard-item-me-highlight');
+      setTimeout(() => {
+        myItem.classList.remove('leaderboard-item-me-highlight');
+      }, 1200);
+    });
   };
 
   // Load leaderboard data
@@ -286,26 +360,52 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   };
 
   // Handle search result item click (scroll to user in leaderboard)
+  // Phase 4.1: Use requestAnimationFrame for scroll, optimized item lookup
   const handleSearchItemClick = (entry) => {
     closeSearchModal(() => {
       setTimeout(() => {
-        const allItems = [
-          ...(topListEl?.querySelectorAll('.leaderboard-item') || []), 
-          ...(restListEl?.querySelectorAll('.leaderboard-item') || [])
-        ];
         const address = entry?.player;
-        if (address) {
-          const targetItem = Array.from(allItems).find(item => {
-            const itemAddress = item.dataset.address || item.querySelector('[data-address]')?.dataset.address;
-            return itemAddress && itemAddress.toLowerCase() === address.toLowerCase();
-          });
-          if (targetItem) {
+        if (!address) return;
+        
+        const normalizedAddress = address.toLowerCase();
+        
+        // Query items once and use simple for-loop
+        const topItems = view.topListEl?.querySelectorAll('.leaderboard-item') || [];
+        const restItems = view.restListEl?.querySelectorAll('.leaderboard-item') || [];
+        
+        let targetItem = null;
+        
+        // Search top items first
+        for (let i = 0, len = topItems.length; i < len; i++) {
+          const item = topItems[i];
+          const itemAddress = item.dataset.address;
+          if (itemAddress && itemAddress.toLowerCase() === normalizedAddress) {
+            targetItem = item;
+            break;
+          }
+        }
+        
+        // Search rest items if not found in top
+        if (!targetItem) {
+          for (let i = 0, len = restItems.length; i < len; i++) {
+            const item = restItems[i];
+            const itemAddress = item.dataset.address;
+            if (itemAddress && itemAddress.toLowerCase() === normalizedAddress) {
+              targetItem = item;
+              break;
+            }
+          }
+        }
+        
+        if (targetItem) {
+          // Use requestAnimationFrame for scroll to avoid layout thrashing
+          requestAnimationFrame(() => {
             targetItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
             targetItem.classList.add('leaderboard-item-highlight');
             setTimeout(() => {
               targetItem.classList.remove('leaderboard-item-highlight');
             }, 2000);
-          }
+          });
         }
       }, 250);
     });
@@ -340,12 +440,15 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       reload: true
     });
 
-    // Close button event listener
-    const closeBtn = panel.querySelector('[data-close]');
-    if (closeBtn) {
+    // Close button event listener (use cached reference)
+    view.closeBtn = panel.querySelector('[data-close]');
+    if (view.closeBtn) {
       const handleClose = (e) => {
         e.preventDefault();
         e.stopPropagation();
+        // Reset render cache when closing so next show gets fresh render
+        resetRenderCache();
+        lastMyRankState = null;
         setVisible(false, { 
           reload: false,
           onChange: updatePanelVisibility
@@ -354,8 +457,8 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
           window.BottomNav.setActive(null);
         }
       };
-      closeBtn.addEventListener('click', handleClose);
-      closeBtn.addEventListener('touchend', handleClose, { passive: false });
+      view.closeBtn.addEventListener('click', handleClose);
+      view.closeBtn.addEventListener('touchend', handleClose, { passive: false });
     }
 
     // Visibility change handler
