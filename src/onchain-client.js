@@ -1429,7 +1429,7 @@
       
       if (score <= 0n) {
         debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
-        log().debug(` submitScore: Score is 0 or negative (${score.toString()}), skipping`);
+        log().debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:score-zero', meta: { score: score.toString(), timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
@@ -1440,7 +1440,7 @@
           : 0;
 
       debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
-      log().debug(` submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
+      log().debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
       try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:starting', meta: { score: score.toString(), durationMs } }) }).catch(()=>{});} catch(_) {}
 
       try {
@@ -1455,7 +1455,7 @@
         } catch (walletError) {
           const walletErrorMsg = walletError?.message || String(walletError);
           debug(`submitScore: Wallet connection failed: ${walletErrorMsg}`);
-          log().error(` submitScore: Wallet connection failed: ${walletErrorMsg}`);
+          log().error(`submitScore: Wallet connection failed: ${walletErrorMsg}`);
           
           // If wallet connection fails, provide helpful error message
           if (walletErrorMsg.includes('reject') || walletErrorMsg.includes('denied') || walletErrorMsg.includes('User rejected')) {
@@ -1467,11 +1467,11 @@
         if (!state.address) {
           const errorMsg = "Wallet connection required - no address available";
           debug(`submitScore: ${errorMsg}`);
-          log().error(` submitScore: ${errorMsg}`);
+          log().error(`submitScore: ${errorMsg}`);
           throw new Error(errorMsg);
         }
         debug(`submitScore: Wallet connected - address=${state.address}`);
-        log().debug(` submitScore: Wallet connected successfully - address=${state.address}`);
+        log().debug(`submitScore: Wallet connected successfully - address=${state.address}`);
 
         // Send profile mapping to backend for leaderboard enrichment
         // This ensures user profile data is available for other users viewing the leaderboard
@@ -1705,7 +1705,7 @@
               // Check if error is "unsupported method" - Base App may not support wallet_sendCalls
               if (sendCallsErrorCode === 4200 || sendCallsErrorMsg.includes('UnsupportedMethodError') || sendCallsErrorMsg.includes('does not support the requested method')) {
                 debug(`submitScore: wallet_sendCalls not supported (code: ${sendCallsErrorCode}), falling back to eth_sendTransaction`);
-                log().warn(` submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
+                log().warn(`submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
                 
                 // Fallback to eth_sendTransaction for Base App
                 if (isBaseAppSpecific || !isFarcasterSpecific) {
@@ -1714,7 +1714,7 @@
                     result = await sendEthTransaction(callData);
                     if (result) {
                       debug(`submitScore: eth_sendTransaction success: ${JSON.stringify(result)}`);
-                      log().debug(` Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
+                      log().debug(`Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
                     }
                   } catch (ethTxError) {
                     const ethTxErrorMsg = ethTxError?.message || String(ethTxError);
@@ -1743,7 +1743,7 @@
               }
             if (identifier) {
                 debug(`submitScore: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                log().debug(` Score submission transaction started: ${identifier}`);
+                log().debug(`Score submission transaction started: ${identifier}`);
                 try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
                 
                 // Optionally check transaction status after a delay
@@ -1815,7 +1815,7 @@
           // Show error in console (already done above)
           // In the future, we could show a toast notification here
           // For now, errors are logged to console and debug overlay
-          log().error(` Score submission failed: ${errorMsg}`);
+          log().error(`Score submission failed: ${errorMsg}`);
         }
       } finally {
         state.submitting = false;
@@ -1893,7 +1893,7 @@
                 }
                 if (identifier) {
                   debug(`completeQuest: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                  log().debug(` Quest completion transaction started: ${identifier}`);
+                  log().debug(`Quest completion transaction started: ${identifier}`);
                   return;
                 }
               }
@@ -1961,8 +1961,8 @@
         if (!target) {
           const errorMsg = `${label}: State not available yet (target is ${typeof target})`;
           debug(errorMsg);
-          log().warn(` ${errorMsg}`);
-          log().warn(` Available window states:`, {
+          log().warn(`${errorMsg}`);
+          log().warn(`Available window states:`, {
             overState: typeof window.overState,
             finishState: typeof window.finishState,
             newGameState: typeof window.newGameState,
@@ -1974,7 +1974,7 @@
         if (!target.init) {
           const errorMsg = `${label}: init method not available (target type: ${typeof target})`;
           debug(errorMsg);
-          log().warn(` ${errorMsg}`);
+          log().warn(`${errorMsg}`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-init', meta: { label, targetType: typeof target } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
@@ -1987,14 +1987,14 @@
         if (!hook || typeof hook !== 'function') {
           const errorMsg = `${label}: Hook function is not available (hook type: ${typeof hook})`;
           debug(errorMsg);
-          log().error(` ${errorMsg}`);
+          log().error(`${errorMsg}`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-hook', meta: { label, hookType: typeof hook } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
         const original = target.init.bind(target);
         target.init = function patchedInit(...args) {
           debug(`${label}: init called (patched)`);
-          log().debug(` ${label}: init called (patched)`);
+          log().debug(`${label}: init called (patched)`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
           
           // Execute hook BEFORE original init (important for submitScore)
@@ -2003,7 +2003,7 @@
             // For async hooks, execute asynchronously and don't block original init
             // BUT: Log immediately that we're starting the async hook
             debug(`${label}: Starting async hook BEFORE original init...`);
-            log().debug(` ${label}: Starting async hook (submitScore)...`);
+            log().debug(`${label}: Starting async hook (submitScore)...`);
             try { 
               fetch('/api/app-log', { 
                 method: 'POST', 
@@ -2019,13 +2019,13 @@
             (async () => {
               try {
                 debug(`${label}: Executing async hook (awaiting)...`);
-                log().debug(` ${label}: Executing async hook (awaiting)...`);
+                log().debug(`${label}: Executing async hook (awaiting)...`);
                 
                 // IMPORTANT: Actually call the hook function and await it
                 const hookResult = await hook?.apply(this, args);
                 
                 debug(`${label}: async hook completed successfully, result:`, hookResult);
-                log().debug(` ${label}: async hook completed successfully`);
+                log().debug(`${label}: async hook completed successfully`);
                 try { 
                   fetch('/api/app-log', { 
                     method: 'POST', 
@@ -2040,8 +2040,8 @@
                 const errorMsg = error?.message || String(error);
                 const errorStack = error?.stack || new Error().stack;
                 debug(`${label} async hook ERROR: ${errorMsg}`);
-                log().error(` ${label} async hook ERROR:`, error);
-                log().error(` ${label} async hook ERROR stack:`, errorStack);
+                log().error(`${label} async hook ERROR:`, error);
+                log().error(`${label} async hook ERROR stack:`, errorStack);
                 try { 
                   fetch('/api/app-log', { 
                     method: 'POST', 
@@ -2066,7 +2066,7 @@
                     try {
                       // Try to show error in a non-blocking way
                       setTimeout(() => {
-                        log().error(` Score submission failed: ${errorMsg}`);
+                        log().error(`Score submission failed: ${errorMsg}`);
                         // Could show a toast notification here in the future
                       }, 100);
                     } catch (_) {}
@@ -2078,15 +2078,15 @@
             // For sync hooks, execute synchronously
             try {
               debug(`${label}: Executing hook BEFORE original init...`);
-              log().debug(` ${label}: Executing hook...`);
+              log().debug(`${label}: Executing hook...`);
               const hookResult = hook?.apply(this, args);
               debug(`${label}: hook executed successfully, result:`, hookResult);
-              log().debug(` ${label}: hook executed successfully`);
+              log().debug(`${label}: hook executed successfully`);
               try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
             } catch (error) {
               const errorMsg = error?.message || String(error);
               debug(`${label} hook error: ${errorMsg}`);
-              log().error(` ${label} hook error:`, error);
+              log().error(`${label} hook error:`, error);
               try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
               // Don't throw - continue with original init even if hook fails
             }
@@ -2100,7 +2100,7 @@
             return originalResult;
           } catch (originalError) {
             debug(`${label}: original init error: ${originalError?.message || originalError}`);
-            log().error(` ${label}: original init error:`, originalError);
+            log().error(`${label}: original init error:`, originalError);
             throw originalError;
           }
         };
@@ -2126,8 +2126,8 @@
       if (!stateCheck.overState || !stateCheck.finishState) {
         const missing = Object.entries(stateCheck).filter(([_, available]) => !available).map(([name]) => name);
         debug(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        log().warn(` patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        log().warn(` window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
+        log().warn(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
+        log().warn(`window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
         try { 
           fetch('/api/app-log', { 
             method: 'POST', 
@@ -2161,11 +2161,11 @@
       const failedStates = Object.entries(results).filter(([_, patched]) => !patched).map(([name]) => name);
 
       debug(`patchStateHooks: Results - Patched: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
-      log().debug(` patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
+      log().debug(`patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
 
       if (allPatched) {
         debug('patchStateHooks: All states patched successfully (including overState and finishState for score submission)');
-        log().debug(' patchStateHooks: ✅ All states patched successfully - score submission hooks active');
+        log().debug('patchStateHooks: ✅ All states patched successfully - score submission hooks active');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:success', meta: { attempt: attempt + 1, patchedStates } }) }).catch(()=>{});} catch(_) {}
       } else {
         const missing = Object.entries(results).filter(([_, patched]) => !patched).map(([name, _]) => name);
