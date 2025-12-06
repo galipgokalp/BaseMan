@@ -27,6 +27,8 @@ import {
 import { 
   renderRows, 
   renderError, 
+  renderEmpty,
+  renderLoading,
   showDebugInfo, 
   hideDebugInfo,
   formatScore,
@@ -248,11 +250,14 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   };
 
   // Load leaderboard data
+  // Phase 6: Enhanced error handling with loading/error/empty states
   const loadLeaderboardData = async () => {
     if (getLoading()) return;
     if (!getVisible()) return;
     setLoading(true);
-    if (statusEl) statusEl.textContent = "";
+    
+    // Phase 6: Show loading state
+    renderLoading({ topListEl, restListEl, scrollWrapper, statusEl });
 
     // Update current user info
     const userInfo = await getCurrentUserInfo();
@@ -262,6 +267,15 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     await loadLeaderboard({
       limit,
       onSuccess: (items, debugInfo, isDebugMode) => {
+        // Phase 6: Handle empty state
+        if (!items || items.length === 0) {
+          renderEmpty({ topListEl, restListEl, scrollWrapper, statusEl });
+          setAllEntries([]);
+          updateMyRankSummary([]);
+          setLoading(false);
+          return;
+        }
+        
         setAllEntries(items);
         const rendered = renderRows(items, {
           topListEl,
@@ -288,14 +302,51 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       },
       onError: (error) => {
         log.error("load failed", error);
+        
+        // Phase 6: Map error to user-friendly message
         const errorMsg = error?.message || String(error);
-        let message = "Leaderboard is currently unavailable. Please try refreshing.";
-        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
-          message = "Network error. Please check your connection and try again.";
-        } else if (errorMsg.includes('429')) {
-          message = "Too many requests. Please wait a moment and refresh.";
+        let message = "Couldn't load the leaderboard right now.";
+        
+        // Check if it's an AppError with kind
+        if (error?.kind) {
+          switch (error.kind) {
+            case 'NETWORK_ERROR':
+            case 'TIMEOUT':
+              message = "Network error. Please check your connection and try again.";
+              break;
+            case 'UNAUTHORIZED':
+              message = "Authentication failed. Please try again.";
+              break;
+            case 'BAD_RESPONSE':
+              message = "Invalid response from server. Please try again.";
+              break;
+            default:
+              message = error.message || message;
+          }
+        } else {
+          // Fallback to message-based detection
+          if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError') || errorMsg.includes('network')) {
+            message = "Network error. Please check your connection and try again.";
+          } else if (errorMsg.includes('timeout') || errorMsg.includes('Timeout')) {
+            message = "Request timed out. Please try again.";
+          } else if (errorMsg.includes('429')) {
+            message = "Too many requests. Please wait a moment and refresh.";
+          }
         }
-        renderError(message, { topListEl, restListEl, scrollWrapper, statusEl });
+        
+        // Phase 6: Show error with retry button
+        renderError(message, { 
+          topListEl, 
+          restListEl, 
+          scrollWrapper, 
+          statusEl,
+          onRetry: () => {
+            // Retry after a short delay
+            setTimeout(() => {
+              loadLeaderboardData();
+            }, 500);
+          }
+        });
         setLoading(false);
       }
     });

@@ -5,9 +5,14 @@
  * - Score signature requests
  * - Transaction sending (wallet_sendCalls, eth_sendTransaction)
  * - Paymaster integration (currently disabled - sponsorless mode)
+ * 
+ * Phase 6: Error handling & stability
+ * - Uses safeFetchJson for robust error handling
  */
 
 import { createLogger } from '../utils/logger.js';
+import { safeFetchJson, requireOnline } from '../lib/safe-fetch.js';
+import { createAppError } from '../lib/errors.js';
 import { getChainKey } from './provider.js';
 
 const log = createLogger('OnchainScoreService');
@@ -64,7 +69,17 @@ export async function requestScoreSignature({
     }
   }
 
-  const response = await fetch(scoreEndpoint, {
+  // Phase 6: Check if online before making request
+  const offlineCheck = requireOnline('requestScoreSignature', 'submitScore');
+  if (offlineCheck) {
+    throw createAppError(offlineCheck.error, {
+      context: 'submitScore',
+      meta: { score: score.toString(), durationMs, chainKey }
+    });
+  }
+
+  // Phase 6: Use safeFetchJson for robust error handling
+  const result = await safeFetchJson(scoreEndpoint, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -74,21 +89,32 @@ export async function requestScoreSignature({
       level: window.level ?? 1,
       chain: chainKey
     })
+  }, {
+    context: 'submitScore',
+    timeoutMs: 10000 // 10 seconds for score signature
   });
 
-  const payload = await response.json();
-  if (!response.ok) {
-    const message = payload?.error || "Failed to obtain score signature";
+  if (!result.ok) {
+    const error = result.error;
+    const message = error.message || "Failed to obtain score signature";
     debug(`requestScoreSignature: score-sign failed: ${message}`);
+    log.error('Score signature request failed:', {
+      kind: error.kind,
+      message: error.technicalMessage,
+      context: error.context,
+      meta: error.meta
+    });
     try { 
       fetch('/api/app-log', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ event: 'score-sign:error', meta: { message: String(message), durationMs } }) 
+        body: JSON.stringify({ event: 'score-sign:error', meta: { message: String(message), durationMs, errorKind: error.kind } }) 
       }).catch(()=>{});
     } catch(_) {}
-    throw new Error(message);
+    throw error;
   }
+
+  const payload = result.data;
   debug(`requestScoreSignature: score-sign succeeded: ${score} (duration ${durationMs}ms)`);
   try { 
     fetch('/api/app-log', { 

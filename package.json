@@ -59,7 +59,9 @@
     "test:phase5:axis-a": "node scripts/test-phase5-axis-a.mjs",
     "test:phase5:axis-b": "node scripts/test-phase5-axis-b.mjs",
     "test:phase5:axis-c": "node scripts/test-phase5-axis-c.mjs",
-    "test:phase5": "node scripts/test-phase5-all.mjs"
+    "test:phase5": "node scripts/test-phase5-all.mjs",
+    "test:phase6": "node scripts/test-phase6.mjs",
+    "test:all": "npm run test:phase5 && npm run test:phase6"
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",

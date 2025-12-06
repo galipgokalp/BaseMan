@@ -119,15 +119,26 @@
   }
 
   async function sendToken(token) {
+    // Phase 6: Use safeFetchJson for robust error handling
     try {
-      const res = await fetch('/api/miniapp-auth', {
+      const { safeFetchJson } = await import('./lib/safe-fetch.js');
+      const result = await safeFetchJson('/api/miniapp-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
+      }, {
+        context: 'auth',
+        timeoutMs: 5000
       });
-      const txt = await res.text();
-      let json = null; try { json = JSON.parse(txt); } catch {}
-      window.__MINIAPP_AUTH__ = { status: res.status, response: json || txt };
+      
+      if (result.ok) {
+        window.__MINIAPP_AUTH__ = { status: 200, response: result.data };
+      } else {
+        window.__MINIAPP_AUTH__ = { 
+          status: result.error.meta?.status || 500, 
+          error: result.error.message 
+        };
+      }
     } catch (e) {
       window.__MINIAPP_AUTH__ = { error: String(e?.message || e) };
     }

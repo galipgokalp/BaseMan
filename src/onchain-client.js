@@ -1662,7 +1662,9 @@ if (typeof window !== "undefined") {
         debug('submitScore: Non-mini-app environment detected - this should not happen in BaseMan');
         throw new Error("Mini-app environment required. BaseMan only works in Farcaster or Base App mini-app environments.");
       } catch (error) {
+        // Phase 6: Enhanced error handling with AppError
         const errorMsg = error?.message || String(error);
+        const errorKind = error?.kind || 'UNKNOWN';
         debug(`submitScore ERROR: ${errorMsg}`);
         log().error(' submitScore failed:', error);
         
@@ -1675,24 +1677,38 @@ if (typeof window !== "undefined") {
               event: 'score:submission:error', 
               meta: { 
                 error: errorMsg,
+                errorKind,
                 score: score?.toString() || 'unknown',
-                address: state.address || null, // Use null instead of 'unknown' for filtering
-                stateAddress: state.address || null, // Keep for backward compatibility
-                stack: error?.stack || null
+                address: state.address || null,
+                chainId: config.chainId || null,
+                platform: isMiniAppEnv() ? 'miniapp' : 'web',
+                stack: error?.stack || null,
+                context: error?.context || 'submitScore'
               } 
             }) 
           }).catch(()=>{});
         } catch(_) {}
         
-        // Show user-friendly error message for critical errors
+        // Phase 6: Show user-friendly error message
         // Don't show error if user rejected (that's expected behavior)
-        if (!errorMsg.includes('reject') && !errorMsg.includes('denied') && !errorMsg.includes('User rejected')) {
-          // Show error in console (already done above)
+        if (errorKind !== 'USER_REJECTED' && !errorMsg.includes('reject') && !errorMsg.includes('denied') && !errorMsg.includes('User rejected')) {
+          // Map error kind to user-friendly message
+          let userMessage = "Score submission failed. Please try again.";
+          if (errorKind === 'NETWORK_ERROR' || errorKind === 'TIMEOUT') {
+            userMessage = "Network error. Please check your connection and try again.";
+          } else if (errorKind === 'UNAUTHORIZED') {
+            userMessage = "Authentication failed. Please try again.";
+          } else if (errorKind === 'CONTRACT_REVERT') {
+            userMessage = "Transaction failed. Please try again.";
+          }
+          
+          // Log user-friendly message
+          log().error(`Score submission failed: ${userMessage}`);
           // In the future, we could show a toast notification here
           // For now, errors are logged to console and debug overlay
-          log().error(`Score submission failed: ${errorMsg}`);
         }
       } finally {
+        // Phase 6: Always return to idle state
         state.submitting = false;
         state.runStartedAt = null;
         debug('submitScore: Finished (submitting flag cleared)');

@@ -422,7 +422,7 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
  * Render error state
  * Uses safe DOM APIs instead of innerHTML
  */
-export function renderError(message, { topListEl, restListEl, scrollWrapper, statusEl }) {
+export function renderError(message, { topListEl, restListEl, scrollWrapper, statusEl, onRetry = null }) {
   if (statusEl) statusEl.textContent = "";
   if (topListEl) {
     topListEl.textContent = ""; // Clear safely
@@ -430,8 +430,89 @@ export function renderError(message, { topListEl, restListEl, scrollWrapper, sta
   if (restListEl) {
     restListEl.textContent = ""; // Clear safely
   }
-  if (scrollWrapper) {
-    scrollWrapper.hidden = true;
+  
+  // Phase 6: Show error message with retry button
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'leaderboard-error-state';
+  errorDiv.style.cssText = 'padding: 40px 20px; text-align: center; color: #fff;';
+  
+  const errorMsg = document.createElement('p');
+  errorMsg.textContent = message || "Couldn't load the leaderboard right now.";
+  errorMsg.style.cssText = 'margin: 0 0 16px 0; font-size: 16px; opacity: 0.9;';
+  errorDiv.appendChild(errorMsg);
+  
+  if (onRetry && typeof onRetry === 'function') {
+    const retryBtn = document.createElement('button');
+    retryBtn.textContent = 'Retry';
+    retryBtn.className = 'leaderboard-retry-btn';
+    retryBtn.style.cssText = 'padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;';
+    retryBtn.addEventListener('click', () => {
+      retryBtn.disabled = true;
+      retryBtn.textContent = 'Retrying...';
+      onRetry();
+    });
+    errorDiv.appendChild(retryBtn);
   }
+  
+  if (topListEl) {
+    topListEl.appendChild(errorDiv);
+  } else if (restListEl) {
+    restListEl.appendChild(errorDiv);
+  }
+  
+  if (scrollWrapper) {
+    scrollWrapper.hidden = false; // Show wrapper so error is visible
+  }
+}
+
+/**
+ * Render empty state (no scores yet)
+ * Phase 6: Empty state handling
+ */
+export function renderEmpty({ topListEl, restListEl, scrollWrapper, statusEl }) {
+  if (statusEl) statusEl.textContent = "";
+  if (topListEl) {
+    topListEl.textContent = ""; // Clear safely
+  }
+  if (restListEl) {
+    restListEl.textContent = ""; // Clear safely
+  }
+  
+  const emptyDiv = document.createElement('div');
+  emptyDiv.className = 'leaderboard-empty-state';
+  emptyDiv.style.cssText = 'padding: 40px 20px; text-align: center; color: #fff; opacity: 0.8;';
+  
+  const emptyMsg = document.createElement('p');
+  emptyMsg.textContent = "No scores yet. Be the first to play and get on the board!";
+  emptyMsg.style.cssText = 'margin: 0; font-size: 16px;';
+  emptyDiv.appendChild(emptyMsg);
+  
+  if (topListEl) {
+    topListEl.appendChild(emptyDiv);
+  } else if (restListEl) {
+    restListEl.appendChild(emptyDiv);
+  }
+  
+  if (scrollWrapper) {
+    scrollWrapper.hidden = false; // Show wrapper so empty state is visible
+  }
+}
+
+/**
+ * Render loading state
+ * Phase 6: Loading state handling
+ */
+export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }) {
+  if (statusEl) {
+    statusEl.textContent = "Loading leaderboard...";
+    statusEl.style.cssText = 'text-align: center; color: #fff; opacity: 0.8; padding: 20px;';
+  }
+  
+  // Optionally show skeleton rows or keep old data visible
+  // For now, we'll just show the status message
+  if (scrollWrapper) {
+    scrollWrapper.hidden = false;
+  }
+}
 }
 

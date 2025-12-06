@@ -150,6 +150,13 @@
     <script type="module" src="src/utils/platform-detection.js"></script>
     <!-- Logger utility (should load early, before other scripts) -->
     <script type="module" src="src/utils/logger.js"></script>
+    <!-- Network status monitoring & global error handler (Phase 6) -->
+    <script type="module">
+      import { initNetworkStatus } from './src/lib/network-status.js';
+      import { initGlobalErrorHandler } from './src/lib/global-error-handler.js';
+      initNetworkStatus();
+      initGlobalErrorHandler();
+    </script>
     <!-- Unified SDK detection utility (depends on platform-detection) -->
     <script type="module" src="src/utils/sdk-detection.js"></script>
     <!-- Connect menu suppressor (depends on platform-detection, loads after it) -->

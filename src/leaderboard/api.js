@@ -6,9 +6,14 @@
  * - In-memory cache for leaderboard data (short TTL)
  * - In-flight request deduplication
  * - Profile mapping deduplication (sent once per session)
+ * 
+ * Phase 6: Error handling & stability
+ * - Uses safeFetchJson for robust error handling
+ * - Returns Result<T> pattern for safe error propagation
  */
 
 import { createLogger } from '../utils/logger.js';
+import { safeFetchJson, requireOnline } from '../lib/safe-fetch.js';
 import { getCachedUserInfo } from './services/user-detection.js';
 import { sendProfileMappingIfNeeded, buildProfileMappingHeader } from './services/profile-mapping.js';
 
@@ -119,18 +124,33 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
       const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}`;
       log.debug('Fetching leaderboard from:', apiUrl);
       
-      const response = await fetch(apiUrl, {
+      // Phase 6: Check if online before making request
+      const offlineCheck = requireOnline('loadLeaderboard', 'leaderboard');
+      if (offlineCheck) {
+        throw offlineCheck.error;
+      }
+      
+      // Phase 6: Use safeFetchJson for robust error handling
+      const result = await safeFetchJson(apiUrl, {
         headers,
         cache: "no-store"
+      }, {
+        context: 'leaderboard',
+        timeoutMs: 7000
       });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        log.error('API error response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+      if (!result.ok) {
+        log.error('Leaderboard API error:', {
+          kind: result.error.kind,
+          message: result.error.message,
+          technicalMessage: result.error.technicalMessage,
+          context: result.error.context,
+          meta: result.error.meta
+        });
+        throw result.error;
       }
 
-      const payload = await response.json();
+      const payload = result.data;
       log.debug('API payload:', {
         source: payload.source,
         chainId: payload.chainId,

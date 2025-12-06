@@ -406,7 +406,8 @@ async function refresh(panel) {
       }
 
       // Contract read: getScore
-      // NOTE: Farcaster Wallet does not support eth_call, so this will fail silently
+      // Phase 6: Use safeContractRead for graceful eth_call handling
+      // NOTE: Farcaster Wallet does not support eth_call, so this will fail gracefully
       // This is expected behavior - we show '-' when contract read is unavailable
       try {
         if (window.ethers && window.BaseManOnchain && window.BaseManOnchain.ensureWallet) {
@@ -433,32 +434,50 @@ async function refresh(panel) {
               throw new Error('Provider not available');
             }
             
-            // Check if provider supports eth_call before attempting contract read
-            // Farcaster Wallet does not support eth_call, so we skip contract read
+            // Phase 6: Use safeContractRead for graceful error handling
             const browser = new window.ethers.BrowserProvider(provider);
             const signer = await browser.getSigner();
             const contract = new window.ethers.Contract(reg, [
               'function getScore(address player) view returns (tuple(uint256 highScore,uint256 totalScore,uint256 lastUpdatedAt))'
             ], signer);
             
-            // Attempt contract read with timeout and error handling
-            // If eth_call is not supported (Farcaster Wallet), this will fail gracefully
-            try {
-              const result = await Promise.race([
-                contract.getScore(effectiveAddress),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Contract read timeout')), 5000))
-              ]);
-              const total = result?.totalScore ? BigInt(result.totalScore).toString() : '0';
-              const high = result?.highScore ? BigInt(result.highScore).toString() : '0';
+            // Import safeContractRead dynamically to avoid circular dependencies
+            const { safeContractRead } = await import('./lib/safe-contract-read.js');
+            
+            const result = await safeContractRead(
+              () => contract.getScore(effectiveAddress),
+              {
+                context: 'profile',
+                timeoutMs: 5000,
+                meta: {
+                  address: effectiveAddress,
+                  registry: reg
+                }
+              }
+            );
+            
+            if (result.ok) {
+              const data = result.data;
+              const total = data?.totalScore ? BigInt(data.totalScore).toString() : '0';
+              const high = data?.highScore ? BigInt(data.highScore).toString() : '0';
               scoreEl.textContent = total;
               if (bestScoreEl) bestScoreEl.textContent = high;
               // Games played and average would need additional contract calls or API
               if (gamesPlayedEl) gamesPlayedEl.textContent = '-'; // TODO: Calculate from history
               if (avgScoreEl) avgScoreEl.textContent = total !== '0' ? (Number(total) / 1).toFixed(0) : '-'; // TODO: Calculate properly
-            } catch (readError) {
-              // Contract read failed (likely eth_call not supported by Farcaster Wallet)
-              // This is expected - silently show '-' for scores
-              log.debug('Contract read not available (eth_call not supported):', readError?.message || readError);
+            } else {
+              // Contract read failed - log error but show user-friendly message
+              if (result.error.kind === 'WALLET_METHOD_UNSUPPORTED') {
+                log.debug('Contract read not supported (eth_call unavailable):', result.error.technicalMessage);
+                // Show user-friendly message if there's a UI element for it
+                // For now, just show '-' for scores (expected behavior)
+              } else {
+                log.warn('Contract read failed:', {
+                  kind: result.error.kind,
+                  message: result.error.technicalMessage,
+                  context: result.error.context
+                });
+              }
               scoreEl.textContent = '-';
               if (bestScoreEl) bestScoreEl.textContent = '-';
               if (gamesPlayedEl) gamesPlayedEl.textContent = '-';
