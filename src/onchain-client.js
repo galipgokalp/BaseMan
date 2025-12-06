@@ -200,6 +200,57 @@
       walletError: null
     };
 
+    // ============================================
+    // CACHING & DEDUPLICATION - Phase 4.3
+    // ============================================
+    
+    // Profile mapping deduplication (sent once per session per address)
+    const sentProfileMappings = new Set();
+    
+    // In-flight ensureWallet deduplication
+    let inflightEnsureWallet = null;
+    
+    // Cached SDK context to avoid repeated async calls
+    let cachedSDKContext = null;
+    let cachedSDKContextTimestamp = 0;
+    const SDK_CONTEXT_CACHE_TTL_MS = 30000; // 30 seconds
+    
+    /**
+     * Get cached SDK context or fetch fresh
+     */
+    async function getCachedSDKContext() {
+      const now = Date.now();
+      if (cachedSDKContext && (now - cachedSDKContextTimestamp) < SDK_CONTEXT_CACHE_TTL_MS) {
+        return cachedSDKContext;
+      }
+      
+      if (sdk && sdk.context) {
+        try {
+          cachedSDKContext = await sdk.context;
+          cachedSDKContextTimestamp = now;
+        } catch (_) {
+          cachedSDKContext = null;
+        }
+      }
+      return cachedSDKContext;
+    }
+    
+    /**
+     * Check if profile mapping was already sent for this address
+     */
+    function hasProfileMappingBeenSent(address) {
+      if (!address) return true; // Treat null as "sent" to skip
+      return sentProfileMappings.has(address.toLowerCase());
+    }
+    
+    /**
+     * Mark profile mapping as sent for this address
+     */
+    function markProfileMappingSent(address) {
+      if (!address) return;
+      sentProfileMappings.add(address.toLowerCase());
+    }
+
     function emitWalletStatus(ready, error) {
       state.walletReady = !!ready;
       state.walletError = ready ? null : error ? String(error) : null;
@@ -1475,9 +1526,11 @@
 
         // Send profile mapping to backend for leaderboard enrichment
         // This ensures user profile data is available for other users viewing the leaderboard
+        // Phase 4.3: Skip if already sent this session to avoid duplicate network calls
         try {
-          if (window.sdk && window.sdk.context && state.address) {
-            const context = await window.sdk.context;
+          if (window.sdk && window.sdk.context && state.address && !hasProfileMappingBeenSent(state.address)) {
+            // Phase 4.3: Use cached SDK context to avoid redundant async calls
+            const context = await getCachedSDKContext();
             const user = context?.user;
             if (user && user.fid) {
               // OFFICIAL METHOD: Detect platform using clientFid (per Base App docs)
@@ -1550,6 +1603,9 @@
                 platform: profileMapping.platform || '⚠️ NULL - logo will not be displayed'
               });
               
+              // Phase 4.3: Mark as sent BEFORE making request to prevent race conditions
+              markProfileMappingSent(state.address);
+              
               // Send profile mapping asynchronously, don't block score submission
               fetch('/api/leaderboard?action=profile-mapping', {
                 method: 'POST',
@@ -1572,6 +1628,9 @@
               debug('submitScore: Skipping profile mapping - no user FID available');
               log().debug(' submitScore: Skipping profile mapping - no user FID available');
             }
+          } else if (hasProfileMappingBeenSent(state.address)) {
+            // Phase 4.3: Already sent this session, skip
+            debug('submitScore: Skipping profile mapping - already sent this session');
           } else {
             debug('submitScore: Skipping profile mapping - SDK context or address not available');
             log().debug(' submitScore: Skipping profile mapping - SDK context or address not available');

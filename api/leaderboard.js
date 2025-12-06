@@ -1,9 +1,35 @@
+/**
+ * Leaderboard API Handler
+ * Handles fetching leaderboard data from CDP SQL API or RPC fallback
+ * 
+ * Phase 4.3: Performance optimizations
+ * - Short TTL cache for leaderboard results (reduces SQL/RPC calls)
+ * - In-flight request deduplication
+ * - Profile mapping caching (already present)
+ */
 import { ethers } from "ethers";
 import { registryAddress, getRegistryContext, getRegistryChainIdNumber } from "./_lib/registry.js";
 import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
 
 // Redis import - static import, wrap all Redis calls in try-catch blocks
 import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFromRedis } from "./_lib/redis-profiles.js";
+
+// ============================================
+// LEADERBOARD RESULT CACHE - Phase 4.3
+// ============================================
+
+// Cache leaderboard results to reduce SQL/RPC calls
+const leaderboardResultCache = {
+  data: null,
+  timestamp: 0,
+  chainId: null,
+  limit: null
+};
+const LEADERBOARD_RESULT_CACHE_TTL_MS = 15000; // 15 seconds
+
+// In-flight leaderboard query deduplication
+let inflightLeaderboardQuery = null;
+let inflightLeaderboardQueryKey = null;
 
 // Profile mapping storage (integrated into leaderboard endpoint to avoid Vercel function limit)
 const ADDRESS_TO_PROFILE_MAP = new Map();
@@ -853,44 +879,117 @@ export default async function handler(req, res) {
   }
 
   try {
+    const now = Date.now();
+    const cacheKey = `${chainId}:${limit}`;
     
-    const statement = buildQuery(limit, chainId);
-    let rows = [];
+    // Phase 4.3: Check cache for recent results
+    if (leaderboardResultCache.data && 
+        leaderboardResultCache.chainId === chainId &&
+        leaderboardResultCache.limit >= limit &&
+        (now - leaderboardResultCache.timestamp) < LEADERBOARD_RESULT_CACHE_TTL_MS) {
+      console.log(`[leaderboard] Returning cached results (age: ${now - leaderboardResultCache.timestamp}ms)`);
+      const cachedItems = leaderboardResultCache.data.slice(0, limit);
+      const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';
+      const result = await enrichWithProfiles(cachedItems, req);
+      const enriched = Array.isArray(result) ? result : result.enriched;
+      const debugInfo = Array.isArray(result) ? null : result.debugInfo;
+      const response = {
+        source: "cdp-sql-api-cached",
+        chainId,
+        limit,
+        count: enriched.length,
+        items: enriched,
+        updatedAt: new Date().toISOString()
+      };
+      if (debugInfo) {
+        response._debug = debugInfo;
+      }
+      return res.status(200).json(response);
+    }
     
-    // Skip SQL query if registry address is not configured
-    if (statement && statement.trim()) {
+    // Phase 4.3: Check for in-flight query with same parameters
+    if (inflightLeaderboardQuery && inflightLeaderboardQueryKey === cacheKey) {
+      console.log(`[leaderboard] Waiting for in-flight query: ${cacheKey}`);
       try {
-        rows = await runQuery(statement);
-      } catch (sqlError) {
-        console.warn(`[leaderboard] SQL query failed for chain ${chainId}:`, sqlError?.message || sqlError);
+        const cachedItems = await inflightLeaderboardQuery;
+        const result = await enrichWithProfiles(cachedItems.slice(0, limit), req);
+        const enriched = Array.isArray(result) ? result : result.enriched;
+        const debugInfo = Array.isArray(result) ? null : result.debugInfo;
+        const response = {
+          source: "cdp-sql-api",
+          chainId,
+          limit,
+          count: enriched.length,
+          items: enriched,
+          updatedAt: new Date().toISOString()
+        };
+        if (debugInfo) {
+          response._debug = debugInfo;
+        }
+        return res.status(200).json(response);
+      } catch (inflightError) {
+        console.warn(`[leaderboard] In-flight query failed:`, inflightError?.message);
+        // Fall through to make a new query
+      }
+    }
+    
+    // Create the query promise and track it
+    const queryPromise = (async () => {
+      const statement = buildQuery(limit, chainId);
+      let rows = [];
+      
+      // Skip SQL query if registry address is not configured
+      if (statement && statement.trim()) {
+        try {
+          rows = await runQuery(statement);
+        } catch (sqlError) {
+          console.warn(`[leaderboard] SQL query failed for chain ${chainId}:`, sqlError?.message || sqlError);
+          rows = [];
+        }
+      } else {
+        console.warn(`[leaderboard] SQL query skipped: registry address not configured for chain ${chainId}`);
         rows = [];
       }
-    } else {
-      console.warn(`[leaderboard] SQL query skipped: registry address not configured for chain ${chainId}`);
-      rows = [];
-    }
 
-    let items = Array.isArray(rows) ? rows.map(mapRow).filter(Boolean) : [];
-    console.log(`[leaderboard] SQL query returned ${items.length} items after mapping`);
-
-    if (!items.length) {
-      // Try RPC fallback for quick freshness
-      console.log(`[leaderboard] SQL returned no items, trying RPC fallback...`);
-      try {
-        const fallback = await fetchFromRpcFallback(limit, chainId);
-        console.log(`[leaderboard] RPC fallback returned ${fallback.length} items`);
-        if (fallback.length) {
-          items = fallback;
-          console.log(`[leaderboard] Using ${fallback.length} items from RPC fallback`);
-        } else {
-          console.warn(`[leaderboard] RPC fallback returned empty, leaderboard will be empty`);
+      let items = Array.isArray(rows) ? rows.map(mapRow).filter(Boolean) : [];
+      
+      if (!items.length) {
+        // Try RPC fallback for quick freshness
+        console.log(`[leaderboard] SQL returned no items, trying RPC fallback...`);
+        try {
+          const fallback = await fetchFromRpcFallback(limit, chainId);
+          console.log(`[leaderboard] RPC fallback returned ${fallback.length} items`);
+          if (fallback.length) {
+            items = fallback;
+          }
+        } catch (fallbackError) {
+          console.error(`[leaderboard] RPC fallback failed:`, fallbackError?.message || fallbackError);
         }
-      } catch (fallbackError) {
-        console.error(`[leaderboard] RPC fallback failed:`, fallbackError?.message || fallbackError);
       }
-    } else {
-      console.log(`[leaderboard] Using ${items.length} items from SQL query, skipping RPC fallback`);
+      
+      // Phase 4.3: Update cache
+      leaderboardResultCache.data = items;
+      leaderboardResultCache.timestamp = Date.now();
+      leaderboardResultCache.chainId = chainId;
+      leaderboardResultCache.limit = limit;
+      
+      return items;
+    })();
+    
+    // Track in-flight query
+    inflightLeaderboardQuery = queryPromise;
+    inflightLeaderboardQueryKey = cacheKey;
+    
+    let items;
+    try {
+      items = await queryPromise;
+    } finally {
+      // Clear in-flight tracking
+      inflightLeaderboardQuery = null;
+      inflightLeaderboardQueryKey = null;
     }
+    
+    console.log(`[leaderboard] Query returned ${items.length} items`);
     const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
     const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
     const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';

@@ -1,3 +1,12 @@
+/**
+ * Farcaster Profiles Module
+ * Handles fetching and caching user profiles from Neynar API
+ * 
+ * Phase 4.3: Performance optimizations
+ * - In-memory caching (PROFILE_CACHE, MANUAL_PROFILE_CACHE)
+ * - In-flight request deduplication for Neynar API calls
+ * - Bulk FID lookups to minimize API calls
+ */
 import { ethers } from "ethers";
 import { getAllFidMappings, getProfileMapping } from "../leaderboard.js";
 import { getProfileMappings as getFromRedis } from "./redis-profiles.js";
@@ -10,6 +19,17 @@ const MANUAL_PROFILE_CACHE = new Map();
 const FALLBACK_PROVIDER = "neynar";
 const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
 let ENRICHMENT_DISABLED_REASON = null;
+
+// ============================================
+// IN-FLIGHT REQUEST DEDUPLICATION - Phase 4.3
+// ============================================
+
+// Track in-flight Neynar API requests to avoid duplicate calls
+const inflightNeynarRequests = new Map(); // key: address, value: Promise
+
+// Track in-flight bulk FID requests
+let inflightBulkFidRequest = null;
+let inflightBulkFidRequestFids = null;
 
 function normalizeAddress(value) {
   if (!value) return null;
@@ -92,110 +112,153 @@ function normalizeUser(user, address) {
 }
 
 async function fetchNeynarProfile(address) {
-  const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/by/verified_address?address=${encodeURIComponent(
-    address
-  )}`;
-
-  const headers = {
-    accept: "application/json",
-    "api_key": NEYNAR_API_KEY,
-    "x-api-key": NEYNAR_API_KEY,
-    "x-neynar-experimental": "true"
-  };
-
-  const response = await fetch(url, { headers });
-  if (!response.ok) {
-    if (response.status === 404) {
-      return null;
-    }
-    // Treat auth/payment errors as "disabled" to avoid spamming logs
-    if (response.status === 401 || response.status === 402) {
-      ENRICHMENT_DISABLED_REASON = `neynar-${response.status}`;
-      return null;
-    }
-    const text = await response.text();
-    throw new Error(`Neynar responded with ${response.status}: ${text}`);
+  const cacheKey = address.toLowerCase();
+  
+  // Phase 4.3: Check for in-flight request for this address
+  if (inflightNeynarRequests.has(cacheKey)) {
+    console.log(`[farcaster-profiles] Reusing in-flight request for ${cacheKey.substring(0, 10)}...`);
+    return inflightNeynarRequests.get(cacheKey);
   }
+  
+  const fetchPromise = (async () => {
+    try {
+      const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/by/verified_address?address=${encodeURIComponent(
+        address
+      )}`;
 
-  const payload = await response.json();
-  const user = payload?.result?.user ?? payload?.user ?? (Array.isArray(payload?.users) ? payload.users[0] : null);
-  return normalizeUser(user, address);
+      const headers = {
+        accept: "application/json",
+        "api_key": NEYNAR_API_KEY,
+        "x-api-key": NEYNAR_API_KEY,
+        "x-neynar-experimental": "true"
+      };
+
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        // Treat auth/payment errors as "disabled" to avoid spamming logs
+        if (response.status === 401 || response.status === 402) {
+          ENRICHMENT_DISABLED_REASON = `neynar-${response.status}`;
+          return null;
+        }
+        const text = await response.text();
+        throw new Error(`Neynar responded with ${response.status}: ${text}`);
+      }
+
+      const payload = await response.json();
+      const user = payload?.result?.user ?? payload?.user ?? (Array.isArray(payload?.users) ? payload.users[0] : null);
+      return normalizeUser(user, address);
+    } finally {
+      // Phase 4.3: Clear in-flight request when done
+      inflightNeynarRequests.delete(cacheKey);
+    }
+  })();
+  
+  // Phase 4.3: Store in-flight request
+  inflightNeynarRequests.set(cacheKey, fetchPromise);
+  return fetchPromise;
 }
 
 // Fetch profiles by FID using bulk endpoint (free tier)
+// Phase 4.3: Added in-flight request deduplication
 async function fetchProfilesByFids(fids) {
   if (!fids || !fids.length || !NEYNAR_API_KEY) {
     return new Map();
   }
 
-  try {
-    // Filter out invalid FIDs
-    const validFids = fids
-      .map(fid => typeof fid === 'string' ? fid : String(fid))
-      .filter(fid => fid && fid !== 'null' && fid !== 'undefined');
+  // Filter out invalid FIDs
+  const validFids = fids
+    .map(fid => typeof fid === 'string' ? fid : String(fid))
+    .filter(fid => fid && fid !== 'null' && fid !== 'undefined');
 
-    if (!validFids.length) {
-      return new Map();
-    }
-
-    const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/bulk?fids=${validFids.join(',')}`;
-    const response = await fetch(url, {
-      headers: {
-        'api_key': NEYNAR_API_KEY,
-        'x-api-key': NEYNAR_API_KEY,
-        'accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return new Map();
-      }
-      // Don't set ENRICHMENT_DISABLED_REASON for bulk endpoint failures
-      // It's optional and shouldn't disable the whole enrichment
-      console.warn(`[farcaster-profiles] Bulk API error: ${response.status}`);
-      return new Map();
-    }
-
-    const payload = await response.json();
-    const users = payload?.users || [];
-
-    // Create FID -> Address mapping from verified_addresses
-    const fidToAddressMap = new Map();
-    const addressToProfileMap = new Map();
-
-    users.forEach(user => {
-      if (!user.fid) return;
-
-      const fidStr = String(user.fid);
-      const normalizedUser = normalizeUser(user, null);
-
-      // Map FID to all verified addresses
-      if (user.verified_addresses?.eth_addresses) {
-        user.verified_addresses.eth_addresses.forEach(addr => {
-          const normalized = normalizeAddress(addr);
-          if (normalized) {
-            fidToAddressMap.set(fidStr, normalized.toLowerCase());
-            // Create profile for each address
-            addressToProfileMap.set(normalized.toLowerCase(), {
-              ...normalizedUser,
-              address: normalized
-            });
-          }
-        });
-      }
-
-      // If no verified addresses, still store the profile keyed by FID
-      if (!fidToAddressMap.has(fidStr)) {
-        addressToProfileMap.set(`fid:${fidStr}`, normalizedUser);
-      }
-    });
-
-    return addressToProfileMap;
-  } catch (error) {
-    console.error('[farcaster-profiles] Bulk fetch error:', error);
+  if (!validFids.length) {
     return new Map();
   }
+
+  // Phase 4.3: Check for in-flight bulk request with same FIDs
+  const sortedFidsKey = validFids.slice().sort().join(',');
+  if (inflightBulkFidRequest && inflightBulkFidRequestFids === sortedFidsKey) {
+    console.log(`[farcaster-profiles] Reusing in-flight bulk FID request for ${validFids.length} FIDs`);
+    return inflightBulkFidRequest;
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/bulk?fids=${validFids.join(',')}`;
+      const response = await fetch(url, {
+        headers: {
+          'api_key': NEYNAR_API_KEY,
+          'x-api-key': NEYNAR_API_KEY,
+          'accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return new Map();
+        }
+        // Don't set ENRICHMENT_DISABLED_REASON for bulk endpoint failures
+        // It's optional and shouldn't disable the whole enrichment
+        console.warn(`[farcaster-profiles] Bulk API error: ${response.status}`);
+        return new Map();
+      }
+
+      const payload = await response.json();
+      const users = payload?.users || [];
+
+      // Create FID -> Address mapping from verified_addresses
+      const fidToAddressMap = new Map();
+      const addressToProfileMap = new Map();
+
+      // Phase 4.3: Use for loop instead of forEach for micro-optimization
+      for (let i = 0; i < users.length; i++) {
+        const user = users[i];
+        if (!user.fid) continue;
+
+        const fidStr = String(user.fid);
+        const normalizedUser = normalizeUser(user, null);
+
+        // Map FID to all verified addresses
+        if (user.verified_addresses?.eth_addresses) {
+          const ethAddresses = user.verified_addresses.eth_addresses;
+          for (let j = 0; j < ethAddresses.length; j++) {
+            const addr = ethAddresses[j];
+            const normalized = normalizeAddress(addr);
+            if (normalized) {
+              fidToAddressMap.set(fidStr, normalized.toLowerCase());
+              // Create profile for each address
+              addressToProfileMap.set(normalized.toLowerCase(), {
+                ...normalizedUser,
+                address: normalized
+              });
+            }
+          }
+        }
+
+        // If no verified addresses, still store the profile keyed by FID
+        if (!fidToAddressMap.has(fidStr)) {
+          addressToProfileMap.set(`fid:${fidStr}`, normalizedUser);
+        }
+      }
+
+      return addressToProfileMap;
+    } catch (error) {
+      console.error('[farcaster-profiles] Bulk fetch error:', error);
+      return new Map();
+    } finally {
+      // Phase 4.3: Clear in-flight request
+      inflightBulkFidRequest = null;
+      inflightBulkFidRequestFids = null;
+    }
+  })();
+
+  // Phase 4.3: Store in-flight request
+  inflightBulkFidRequest = fetchPromise;
+  inflightBulkFidRequestFids = sortedFidsKey;
+  
+  return fetchPromise;
 }
 
 async function resolveProfile(address) {

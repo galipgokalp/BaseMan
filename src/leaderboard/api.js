@@ -1,11 +1,150 @@
 /**
  * Leaderboard API Module
  * Handles fetching leaderboard data and profile mapping
+ * 
+ * Phase 4.3: Performance optimizations
+ * - In-memory cache for leaderboard data (short TTL)
+ * - In-flight request deduplication
+ * - Profile mapping deduplication (sent once per session)
  */
 
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('LeaderboardAPI');
+
+// ============================================
+// CACHING & DEDUPLICATION - Phase 4.3
+// ============================================
+
+// Leaderboard cache with short TTL
+const leaderboardCache = {
+  data: null,
+  debugInfo: null,
+  timestamp: 0,
+  chainId: null,
+  limit: null
+};
+const LEADERBOARD_CACHE_TTL_MS = 10000; // 10 seconds
+
+// In-flight request deduplication
+let inflightLeaderboardRequest = null;
+
+// Profile mapping deduplication (per session)
+const sentProfileMappings = new Set(); // Track sent address mappings
+
+// Cached user info to avoid repeated SDK calls
+let cachedUserInfo = null;
+let cachedUserInfoTimestamp = 0;
+const USER_INFO_CACHE_TTL_MS = 30000; // 30 seconds
+
+/**
+ * Get cached user info or fetch fresh
+ */
+async function getCachedUserInfo() {
+  const now = Date.now();
+  
+  // Return cached if fresh
+  if (cachedUserInfo && (now - cachedUserInfoTimestamp) < USER_INFO_CACHE_TTL_MS) {
+    return cachedUserInfo;
+  }
+  
+  let address = null;
+  let user = null;
+  let platform = null;
+  
+  try {
+    // Get wallet address (fast check first)
+    if (window.BaseManOnchain?.isWalletReady?.()) {
+      address = window.BaseManOnchain?.getWalletAddress?.() || null;
+    }
+    
+    // If not ready, do a few quick retries
+    if (!address) {
+      const maxRetries = 5;
+      const delayMs = 100;
+      for (let i = 0; i < maxRetries && !address; i++) {
+        if (window.BaseManOnchain?.isWalletReady?.()) {
+          address = window.BaseManOnchain?.getWalletAddress?.() || null;
+        }
+        if (!address && i < maxRetries - 1) {
+          await new Promise(r => setTimeout(r, delayMs));
+        }
+      }
+    }
+    
+    // Get SDK context
+    if (window.sdk?.context) {
+      try {
+        const context = await window.sdk.context;
+        user = context?.user;
+        
+        // Platform detection via clientFid
+        if (context?.client?.clientFid === 309857) {
+          platform = 'base-app';
+        } else if (context?.client?.clientFid) {
+          platform = 'farcaster';
+        }
+      } catch (ctxErr) {
+        // SDK context not available
+      }
+    }
+  } catch (err) {
+    log.warn('Error getting user info:', err);
+  }
+  
+  cachedUserInfo = { address, user, platform };
+  cachedUserInfoTimestamp = now;
+  return cachedUserInfo;
+}
+
+/**
+ * Send profile mapping if not already sent this session
+ */
+async function sendProfileMappingIfNeeded(address, user, platform) {
+  if (!address || !user?.fid) return;
+  
+  const key = address.toLowerCase();
+  
+  // Skip if already sent this session
+  if (sentProfileMappings.has(key)) {
+    log.debug('Profile mapping already sent for:', key.substring(0, 10) + '...');
+    return;
+  }
+  
+  // Detect platform if not provided
+  let detectedPlatform = platform;
+  if (!detectedPlatform && typeof window.getPlatform === 'function') {
+    try {
+      detectedPlatform = await window.getPlatform();
+      if (detectedPlatform === 'base') detectedPlatform = 'base-app';
+    } catch (_) {}
+  }
+  
+  const mappingData = {
+    address: key,
+    fid: user.fid,
+    username: user.username || null,
+    displayName: user.displayName || null,
+    avatarUrl: user.pfpUrl || null,
+    platform: detectedPlatform || null
+  };
+  
+  log.debug('Sending profile mapping:', mappingData);
+  
+  // Mark as sent immediately to prevent duplicate sends
+  sentProfileMappings.add(key);
+  
+  // Send async, don't block
+  fetch('/api/leaderboard?action=profile-mapping', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(mappingData)
+  }).catch((err) => {
+    log.warn('Profile mapping POST failed:', err);
+    // Remove from sent set so it can be retried
+    sentProfileMappings.delete(key);
+  });
+}
 
 /**
  * Load leaderboard data from API
@@ -13,131 +152,74 @@ const log = createLogger('LeaderboardAPI');
  * @param {number} options.limit - Number of entries to fetch
  * @param {Function} options.onSuccess - Callback with (items, debugInfo)
  * @param {Function} options.onError - Callback with (error)
+ * @param {boolean} options.forceRefresh - Skip cache and fetch fresh data
+ * 
+ * Phase 4.3 optimizations:
+ * - Uses short-lived cache to avoid redundant fetches
+ * - Deduplicates in-flight requests (multiple callers share same Promise)
+ * - Profile mapping sent only once per session per address
  */
-export async function loadLeaderboard({ limit, onSuccess, onError }) {
-  try {
-    // Determine chain ID for leaderboard
-    let chainId = 8453; // Default to Base Mainnet
+export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh = false }) {
+  // Always use Base Mainnet for leaderboard
+  const leaderboardChainId = 8453;
+  const now = Date.now();
+  
+  // Check for debug mode
+  const urlHash = window.location.hash || '';
+  const isDebugMode = urlHash.includes('debug=1') || localStorage.getItem('baseManDebug') === '1';
+  
+  // Phase 4.3: Return cached data if fresh (unless forced refresh)
+  if (!forceRefresh && 
+      leaderboardCache.data && 
+      leaderboardCache.chainId === leaderboardChainId &&
+      leaderboardCache.limit >= limit &&
+      (now - leaderboardCache.timestamp) < LEADERBOARD_CACHE_TTL_MS) {
+    log.debug('Returning cached leaderboard data (age:', now - leaderboardCache.timestamp, 'ms)');
+    if (onSuccess) {
+      // Return subset if cached limit was higher
+      const items = leaderboardCache.data.slice(0, limit);
+      onSuccess(items, leaderboardCache.debugInfo, isDebugMode);
+    }
+    return;
+  }
+  
+  // Phase 4.3: Deduplicate in-flight requests
+  if (inflightLeaderboardRequest) {
+    log.debug('Reusing in-flight leaderboard request');
     try {
-      const config = window.BaseManOnchainConfig;
-      if (config && config.chainId) {
-        const configChainId = Number(config.chainId);
-        if (configChainId === 8453 || configChainId === 84532) {
-          chainId = configChainId;
-        }
+      const { items, debugInfo } = await inflightLeaderboardRequest;
+      if (onSuccess) {
+        onSuccess(items.slice(0, limit), debugInfo, isDebugMode);
       }
     } catch (error) {
-      log.warn('Failed to get chain ID from config:', error);
+      log.error("load failed (shared request)", error);
+      if (onError) {
+        onError(error);
+      }
     }
-    
-    // Always use Base Mainnet for leaderboard
-    const leaderboardChainId = 8453;
-    
-    // Get current user's profile mapping if available
-    let profileMappingHeader = null;
-    let address = null;
-    let user = null;
-    let platform = null;
-    
+    return;
+  }
+  
+  // Create the actual fetch promise
+  inflightLeaderboardRequest = (async () => {
     try {
-      // Wait for BaseManOnchain wallet to be ready
-      const maxWalletRetries = 10;
-      const walletDelayMs = 200;
+      // Phase 4.3: Get cached user info (fast, no redundant SDK calls)
+      const { address, user, platform } = await getCachedUserInfo();
       
-      for (let i = 0; i < maxWalletRetries; i++) {
-        if (window.BaseManOnchain) {
-          const isWalletReady = window.BaseManOnchain?.isWalletReady?.();
-          if (isWalletReady) {
-            address = window.BaseManOnchain?.getWalletAddress?.() || null;
-            if (address) {
-              log.debug('Got address from BaseManOnchain (attempt ' + (i + 1) + '):', address.substring(0, 10) + '...');
-              break;
-            }
-          }
-        }
-        
-        if (i < maxWalletRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, walletDelayMs));
-        }
-      }
+      log.debug('Profile mapping check:', {
+        hasAddress: !!address,
+        hasUser: !!user,
+        hasFid: !!user?.fid,
+        address: address ? address.substring(0, 10) + '...' : null
+      });
       
-      // Get SDK context
-      if (window.sdk && window.sdk.context) {
-        try {
-          const context = await window.sdk.context;
-          user = context?.user;
-          
-          // Platform detection via clientFid
-          if (context?.client?.clientFid === 309857) {
-            log.debug('Base App detected via clientFid (309857)');
-            platform = 'base-app';
-          } else if (context?.client?.clientFid) {
-            log.debug('Farcaster detected via clientFid (' + context.client.clientFid + ')');
-            platform = 'farcaster';
-          }
-        } catch (ctxErr) {
-          // SDK context not available
-        }
-      }
-    } catch (err) {
-      log.warn('Error getting profile data:', err);
-    }
-    
-    log.debug('Profile mapping check:', {
-      hasBaseManOnchain: !!window.BaseManOnchain,
-      isWalletReady: !!window.BaseManOnchain?.isWalletReady?.(),
-      hasAddress: !!address,
-      hasSDK: !!window.sdk,
-      hasSDKContext: !!(window.sdk && window.sdk.context),
-      hasUser: !!user,
-      hasFid: !!user?.fid,
-      address: address ? address.substring(0, 10) + '...' : null
-    });
-    
-    // If we have both address and user with FID, send mapping
-    if (address && user && user.fid) {
-      try {
-        // Platform detection fallback
-        if (!platform) {
-          log.debug('Platform not detected via clientFid, using centralized utility...');
-          try {
-            if (typeof window.getPlatform === 'function') {
-              platform = await window.getPlatform();
-              if (platform === 'base') {
-                platform = 'base-app';
-              }
-              log.debug('Platform detected via centralized utility:', platform);
-            } else {
-              log.warnOnce('no-getPlatform', 'getPlatform() not available, platform will be null');
-            }
-          } catch (err) {
-            log.error('Error using centralized platform detection:', err);
-          }
-        }
+      // Phase 4.3: Send profile mapping only if not already sent this session
+      let profileMappingHeader = null;
+      if (address && user?.fid) {
+        // Send mapping async (deduplicated)
+        sendProfileMappingIfNeeded(address, user, platform);
         
-        log.debug('Final detected platform:', platform);
-        
-        const mappingData = {
-          address: address.toLowerCase(),
-          fid: user.fid,
-          username: user.username || null,
-          displayName: user.displayName || null,
-          avatarUrl: user.pfpUrl || null,
-          platform: platform || null
-        };
-        
-        log.debug('Sending profile mapping:', mappingData);
-        
-        // Send mapping immediately before leaderboard request
-        await fetch('/api/leaderboard?action=profile-mapping', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mappingData)
-        }).catch((err) => {
-          log.warn('Profile mapping POST failed:', err);
-        });
-        
-        // Also include in header for same request
+        // Include in header for same request
         profileMappingHeader = JSON.stringify({
           [address.toLowerCase()]: {
             fid: user.fid,
@@ -147,59 +229,56 @@ export async function loadLeaderboard({ limit, onSuccess, onError }) {
             platform: platform || null
           }
         });
-        log.debug('Profile mapping header prepared with platform:', platform);
-      } catch (mappingErr) {
-        log.warn('Error creating profile mapping:', mappingErr);
       }
-    } else {
-      log.debug('Skipping profile mapping - missing data:', {
-        hasAddress: !!address,
-        hasUser: !!user,
-        hasFid: !!user?.fid
+      
+      const headers = { Accept: "application/json" };
+      if (profileMappingHeader) {
+        headers['X-Profile-Mapping'] = profileMappingHeader;
+      }
+      
+      const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}`;
+      log.debug('Fetching leaderboard from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        headers,
+        cache: "no-store"
       });
-    }
-    
-    const headers = { Accept: "application/json" };
-    if (profileMappingHeader) {
-      headers['X-Profile-Mapping'] = profileMappingHeader;
-      log.debug('Sending leaderboard request with profile mapping header');
-    } else {
-      log.debug('No profile mapping header to send');
-    }
-    
-    // Check for debug mode
-    const urlHash = window.location.hash || '';
-    const isDebugMode = urlHash.includes('debug=1') || localStorage.getItem('baseManDebug') === '1';
-    
-    const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}`;
-    log.debug('Fetching leaderboard from:', apiUrl);
-    const response = await fetch(apiUrl, {
-      headers,
-      cache: "no-store"
-    });
 
-    log.debug('API response status:', response.status, response.statusText);
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        log.error('API error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      log.error('API error response:', errorText);
-      throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+      const payload = await response.json();
+      log.debug('API payload:', {
+        source: payload.source,
+        chainId: payload.chainId,
+        count: payload.count,
+        itemsCount: Array.isArray(payload.items) ? payload.items.length : 0
+      });
+      
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      const debugInfo = payload._debug || null;
+      
+      // Phase 4.3: Update cache
+      leaderboardCache.data = items;
+      leaderboardCache.debugInfo = debugInfo;
+      leaderboardCache.timestamp = Date.now();
+      leaderboardCache.chainId = leaderboardChainId;
+      leaderboardCache.limit = limit;
+      
+      return { items, debugInfo };
+    } finally {
+      // Clear in-flight request
+      inflightLeaderboardRequest = null;
     }
-
-    const payload = await response.json();
-    log.debug('API payload:', {
-      source: payload.source,
-      chainId: payload.chainId,
-      count: payload.count,
-      itemsCount: Array.isArray(payload.items) ? payload.items.length : 0,
-      hasDebug: !!payload._debug
-    });
-    
-    const items = Array.isArray(payload.items) ? payload.items : [];
-    log.debug('Processing', items.length, 'items');
-    
+  })();
+  
+  try {
+    const { items, debugInfo } = await inflightLeaderboardRequest;
     if (onSuccess) {
-      onSuccess(items, payload._debug, isDebugMode);
+      onSuccess(items, debugInfo, isDebugMode);
     }
   } catch (error) {
     log.error("load failed", error);
