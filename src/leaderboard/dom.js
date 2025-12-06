@@ -514,5 +514,4 @@ export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }
     scrollWrapper.hidden = false;
   }
 }
-}
 
