@@ -1528,7 +1528,8 @@
         // This ensures user profile data is available for other users viewing the leaderboard
         // Phase 4.3: Skip if already sent this session to avoid duplicate network calls
         try {
-          if (window.sdk && window.sdk.context && state.address && !hasProfileMappingBeenSent(state.address)) {
+          // Use closure 'sdk' consistently (not window.sdk) to avoid mismatch if window.sdk is reassigned
+          if (sdk && sdk.context && state.address && !hasProfileMappingBeenSent(state.address)) {
             // Phase 4.3: Use cached SDK context to avoid redundant async calls
             // FIX: Always get fresh context for platform detection (cache may miss client info)
             let context = await getCachedSDKContext();
