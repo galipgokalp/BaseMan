@@ -55,7 +55,11 @@
     "docs:format": "prettier -w \"docs/**/*.md\"",
     "docs:verify": "npm run docs:lint && npm run docs:links && npm run docs:spell",
     "docs:fix": "node scripts/fix-docs.mjs",
-    "ui:build": "esbuild src/ui/connect-menu-v2.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"' --define:process.env='{\"NODE_ENV\":\"production\"}' --define:production='\"production\"' --define:'process.env.NODE_ENV'='\"production\"' --outfile=vendor/connect-menu.js"
+    "ui:build": "esbuild src/ui/connect-menu-v2.jsx --bundle --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"' --define:process.env='{\"NODE_ENV\":\"production\"}' --define:production='\"production\"' --define:'process.env.NODE_ENV'='\"production\"' --outfile=vendor/connect-menu.js",
+    "test:phase5:axis-a": "node scripts/test-phase5-axis-a.mjs",
+    "test:phase5:axis-b": "node scripts/test-phase5-axis-b.mjs",
+    "test:phase5:axis-c": "node scripts/test-phase5-axis-c.mjs",
+    "test:phase5": "node scripts/test-phase5-all.mjs"
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",

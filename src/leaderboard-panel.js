@@ -10,6 +10,8 @@
 
 import { createLogger } from './utils/logger.js';
 import { loadLeaderboard } from './leaderboard/api.js';
+import { getCachedUserInfo, isMyEntry as isMyEntryService } from './leaderboard/services/user-detection.js';
+import { calculateMyRank } from './leaderboard/services/rank-calculation.js';
 
 const log = createLogger('Leaderboard');
 import { 
@@ -65,79 +67,25 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   // My rank state cache - avoid redundant DOM updates
   let lastMyRankState = null; // { rank, score, hasEntry, connected }
 
-  /**
-   * Normalize address for comparison
-   */
-  const normalizeAddress = (addr) => {
-    return typeof addr === "string" ? addr.toLowerCase() : null;
-  };
-
+  // User detection is now handled by services module
+  // Using imported functions: getCachedUserInfo, isMyEntryService
+  
   /**
    * Get current user and address (async)
+   * Wrapper around service function
    */
   const getCurrentUserInfo = async () => {
-    let address = null;
-    let user = null;
-
-    try {
-      // Try to get address from BaseManOnchain
-      if (window.BaseManOnchain) {
-        const isWalletReady = window.BaseManOnchain?.isWalletReady?.();
-        if (isWalletReady) {
-          address = window.BaseManOnchain?.getWalletAddress?.() || null;
-        }
-      }
-
-      // Try to get user from SDK context
-      if (window.sdk && window.sdk.context) {
-        try {
-          const context = await window.sdk.context;
-          user = context?.user;
-        } catch (ctxErr) {
-          // SDK context not available
-        }
-      }
-    } catch (err) {
-      log.warn('Error getting user info:', err);
-    }
-
-    return { address, user };
+    const userInfo = await getCachedUserInfo();
+    return { address: userInfo.address, user: userInfo.user };
   };
 
   /**
    * Check if an entry belongs to the current user
+   * Wrapper around service function
    */
   const isMyEntry = (entry) => {
     if (!entry) return false;
-
-    // Match by FID if available
-    if (currentUser?.fid && entry?.profile?.fid) {
-      if (Number(currentUser.fid) === Number(entry.profile.fid)) {
-        return true;
-      }
-    }
-
-    // Match by address
-    const entryAddress = entry?.player || entry?.address;
-    if (currentAddress && entryAddress) {
-      const normalizedCurrent = normalizeAddress(currentAddress);
-      const normalizedEntry = normalizeAddress(entryAddress);
-      if (normalizedCurrent && normalizedEntry && normalizedCurrent === normalizedEntry) {
-        return true;
-      }
-    }
-
-    // Also check entry.addresses array if it exists
-    if (currentAddress && Array.isArray(entry?.addresses)) {
-      const normalizedCurrent = normalizeAddress(currentAddress);
-      const matches = entry.addresses.some(addr => {
-        const normalizedAddr = normalizeAddress(addr);
-        return normalizedCurrent && normalizedAddr && normalizedCurrent === normalizedAddr;
-      });
-      if (matches) return true;
-    }
-
-    return false;
+    return isMyEntryService(entry, { address: currentAddress, user: currentUser });
   };
 
   /**
@@ -156,18 +104,12 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
 
     // Determine current state
     const isConnected = !!(currentUser || currentAddress);
-    const myEntry = isConnected ? entries.find(entry => isMyEntry(entry)) : null;
-    const hasEntry = !!myEntry;
     
-    let rank = 0;
-    let score = '';
-    
-    if (hasEntry) {
-      rank = typeof myEntry.rank === "number" && Number.isFinite(myEntry.rank)
-        ? myEntry.rank
-        : entries.findIndex(e => isMyEntry(e)) + 1;
-      score = formatScore(myEntry.totalScore, myEntry.highScore);
-    }
+    // Use rank calculation service
+    const rankInfo = isConnected ? calculateMyRank(entries, isMyEntry) : null;
+    const hasEntry = rankInfo?.hasEntry || false;
+    const rank = rankInfo?.rank || 0;
+    const score = rankInfo?.score || '';
     
     // Create state hash to detect changes
     const newState = { connected: isConnected, hasEntry, rank, score };

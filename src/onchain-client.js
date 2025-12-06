@@ -1,3 +1,18 @@
+import {
+  CHAIN_METADATA,
+  toHexChainId,
+  ensureChain as ensureChainUtil,
+  getChainKey,
+  getCachedSDKContext,
+  getFreshSDKContext,
+  hasProfileMappingBeenSent,
+  markProfileMappingSent,
+  sendProfileMapping,
+  requestScoreSignature as requestScoreSignatureUtil,
+  sendCalls as sendCallsUtil,
+  sendEthTransaction as sendEthTransactionUtil
+} from './onchain/index.js';
+
 (function () {
   // Increase attempts for mobile environments where SDK may load slower
   const MAX_ATTEMPTS = 500; // ~100s at 200ms (increased for mobile)
@@ -174,20 +189,7 @@
       "function getScore(address player) view returns (tuple(uint256 highScore,uint256 totalScore,uint256 lastUpdatedAt))"
     ];
 
-    const CHAIN_METADATA = {
-      8453: {
-        chainName: "Base",
-        rpcUrls: ["https://mainnet.base.org"],
-        blockExplorerUrls: ["https://basescan.org"],
-        nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }
-      },
-      84532: {
-        chainName: "Base Sepolia",
-        rpcUrls: ["https://sepolia.base.org"],
-        blockExplorerUrls: ["https://sepolia.basescan.org"],
-        nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }
-      }
-    };
+    // CHAIN_METADATA is now imported from onchain/provider module
 
     const state = {
       signer: null,
@@ -204,52 +206,12 @@
     // CACHING & DEDUPLICATION - Phase 4.3
     // ============================================
     
-    // Profile mapping deduplication (sent once per session per address)
-    const sentProfileMappings = new Set();
-    
     // In-flight ensureWallet deduplication
+    // Note: Profile mapping deduplication is now handled by onchain/profile-service module
     let inflightEnsureWallet = null;
     
-    // Cached SDK context to avoid repeated async calls
-    let cachedSDKContext = null;
-    let cachedSDKContextTimestamp = 0;
-    const SDK_CONTEXT_CACHE_TTL_MS = 30000; // 30 seconds
-    
-    /**
-     * Get cached SDK context or fetch fresh
-     */
-    async function getCachedSDKContext() {
-      const now = Date.now();
-      if (cachedSDKContext && (now - cachedSDKContextTimestamp) < SDK_CONTEXT_CACHE_TTL_MS) {
-        return cachedSDKContext;
-      }
-      
-      if (sdk && sdk.context) {
-        try {
-          cachedSDKContext = await sdk.context;
-          cachedSDKContextTimestamp = now;
-        } catch (_) {
-          cachedSDKContext = null;
-        }
-      }
-      return cachedSDKContext;
-    }
-    
-    /**
-     * Check if profile mapping was already sent for this address
-     */
-    function hasProfileMappingBeenSent(address) {
-      if (!address) return true; // Treat null as "sent" to skip
-      return sentProfileMappings.has(address.toLowerCase());
-    }
-    
-    /**
-     * Mark profile mapping as sent for this address
-     */
-    function markProfileMappingSent(address) {
-      if (!address) return;
-      sentProfileMappings.add(address.toLowerCase());
-    }
+    // SDK context caching and profile mapping are now handled by onchain modules
+    // These functions are imported and used directly - no local implementation needed
 
     function emitWalletStatus(ready, error) {
       state.walletReady = !!ready;
@@ -798,7 +760,7 @@
         try { await eth.request({ method: "eth_requestAccounts" }); } catch (reqErr) {
           throw reqErr instanceof Error ? reqErr : new Error(String(reqErr));
         }
-        await ensureChain(eth, config.chainId);
+        await ensureChainUtil(eth, config.chainId, debug);
 
         const browserProvider = new ethers.BrowserProvider(eth);
         const signer = await browserProvider.getSigner();
@@ -832,7 +794,7 @@
         if (!state.provider) {
           // Will be initialized by ensureWallet
         } else {
-          await ensureChain(state.provider, nextChainId);
+          await ensureChainUtil(state.provider, nextChainId, debug);
         }
 
         // Update live config object
@@ -853,105 +815,21 @@
       }
     }
 
-    function toHexChainId(chainId) {
-      try {
-        if (typeof chainId === "bigint") {
-          return ethers.toBeHex(chainId);
-        }
-        if (typeof chainId === "number") {
-          return ethers.toBeHex(chainId);
-        }
-        if (typeof chainId === "string" && chainId.startsWith("0x")) {
-          return ethers.toBeHex(chainId);
-        }
-        if (typeof chainId === "string" && chainId.trim() !== "") {
-          return ethers.toBeHex(BigInt(chainId));
-        }
-        throw new Error("chainId cannot be empty");
-      } catch (error) {
-        throw new Error(`Invalid chainId: ${chainId} (${error?.message || error})`);
-      }
-    }
+    // toHexChainId and ensureChain are now imported from onchain/provider module
+    // Using imported functions: toHexChainId, ensureChainUtil
 
-    async function ensureChain(provider, chainId) {
-      const hexChainId = toHexChainId(chainId);
-      try {
-        await provider.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: hexChainId }]
-        });
-      } catch (error) {
-        if (error?.code === 4902) {
-          const metadata = CHAIN_METADATA[chainId] || {
-            chainName: `Chain ${chainId}`,
-            rpcUrls: [],
-            blockExplorerUrls: [],
-            nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }
-          };
-          await provider.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: hexChainId,
-                ...metadata
-              }
-            ]
-          });
-          debug(`wallet_addEthereumChain added ${chainId}`);
-        } else {
-          debug(`wallet_switchEthereumChain error: ${error?.message || error}`);
-        }
-      }
-    }
-
+    // requestScoreSignature is now imported from onchain/score-service module
     async function requestScoreSignature(score, durationMs) {
-      let playerAddress = state.address;
-      try {
-        playerAddress = ethers.getAddress(playerAddress);
-      } catch (error) {
-        debug(`score-sign address normalization failed: ${error?.message || error}`);
-        throw new Error("Invalid wallet address");
-      }
-
-      // Derive chain key for backend (matches server-side targets in api/_lib/registry.js)
-      const chainKey = config.chainId === 8453 ? 'base' : (config.chainId === 84532 ? 'base-sepolia' : 'base');
-
-      debug(
-        `Preparing score-sign request: score=${score.toString()} duration=${durationMs}ms chain=${chainKey}`
-      );
-
-      const headers = { "Content-Type": "application/json" };
-      if (isMiniAppEnv()) {
-        // QuickAuth token varsa ekle (profil için), yoksa isteği engelleme
-          const t = await getMiniAppAuthToken();
-        if (t) {
-          headers['Authorization'] = `Bearer ${t}`;
-          headers['X-MiniApp-Auth-Token'] = t;
-        }
-      }
-
-      const response = await fetch(config.scoreEndpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          playerAddress,
-          score: score.toString(),
-          durationMs,
-          level: window.level ?? 1,
-          chain: chainKey
-        })
+      return await requestScoreSignatureUtil({
+        address: state.address,
+        score,
+        durationMs,
+        chainId: config.chainId,
+        scoreEndpoint: config.scoreEndpoint,
+        isMiniAppEnv,
+        getMiniAppAuthToken,
+        debug
       });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        const message = payload?.error || "Failed to obtain score signature";
-        debug(`score-sign failed: ${message}`);
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score-sign:error', meta: { message: String(message), durationMs } }) }).catch(()=>{});} catch(_) {}
-        throw new Error(message);
-      }
-      debug(`score-sign succeeded: ${score} (duration ${durationMs}ms)`);
-      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score-sign:ok', meta: { score: score.toString(), durationMs } }) }).catch(()=>{});} catch(_) {}
-      return payload;
     }
 
     async function requestQuestSignature(questId) {
@@ -963,7 +841,7 @@
         throw new Error("Invalid wallet address");
       }
 
-      const chainKey = config.chainId === 8453 ? 'base' : (config.chainId === 84532 ? 'base-sepolia' : 'base');
+      const chainKey = getChainKey(config.chainId);
 
       const headers2 = { "Content-Type": "application/json" };
       if (isMiniAppEnv()) {
@@ -1262,19 +1140,20 @@
       }
     }
 
-    /**
-     * Send contract interaction calls using wallet_sendCalls (EIP-5792)
-     * 
-     * According to Farcaster and Base App documentation:
-     * - Farcaster: Sequential execution (atomicRequired: false), version: "1.0"
-     * - Base App: Atomic batch supported (atomicRequired: true), version: "2.0.0" (REQUIRED)
-     * - Paymaster: paymasterService: { url: "..." } format
-     * 
-     * @param {string} callData - Encoded contract function call data
-     * @param {string|null} paymasterUrl - Paymaster service URL (null for sponsorless mode)
-     * @returns {Promise<Object>} Transaction result with id or hash
-     */
+    // sendCalls is now imported from onchain/score-service module
     async function sendCalls(callData, paymasterUrl) {
+      return await sendCallsUtil({
+        callData,
+        paymasterUrl,
+        state,
+        config,
+        debug
+      });
+    }
+    
+    // Legacy implementation removed - using imported function above
+    /*
+    async function sendCalls_OLD(callData, paymasterUrl) {
       // Validate chainId
       const hexChainId = (() => { 
         try { 
@@ -1413,17 +1292,16 @@
       }
     }
 
-    // Last‑resort fallback for hosts without EIP‑5792: try eth_sendTransaction
+    // sendEthTransaction is now imported from onchain/score-service module
     async function sendEthTransaction(callData) {
-      if (!state.provider || typeof state.provider.request !== 'function') throw new Error('no provider');
-      const from = state.address;
-      if (!from) throw new Error('no from address');
-      const tx = { from, to: config.registryAddress, data: callData, value: '0x0' };
-      debug('Sending eth_sendTransaction fallback');
-      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'eth_sendTransaction:start' }) }).catch(()=>{});} catch(_) {}
-      const hash = await state.provider.request({ method: 'eth_sendTransaction', params: [tx] });
-      debug(`eth_sendTransaction hash: ${hash}`);
-      return { hash };
+      const result = await sendEthTransactionUtil({
+        callData,
+        state,
+        config,
+        debug
+      });
+      // Return in expected format
+      return typeof result === 'string' ? { hash: result } : result;
     }
 
     async function submitScore() {
@@ -1527,133 +1405,13 @@
         // Send profile mapping to backend for leaderboard enrichment
         // This ensures user profile data is available for other users viewing the leaderboard
         // Phase 4.3: Skip if already sent this session to avoid duplicate network calls
+        // Now using onchain/profile-service module
         try {
-          if (sdk && sdk.context && state.address && !hasProfileMappingBeenSent(state.address)) {
-            // Phase 4.3: Use cached SDK context to avoid redundant async calls
-            // FIX: Always get fresh context for platform detection (cache may miss client info)
-            let context = await getCachedSDKContext();
-            
-            // If cached context doesn't have client info, try getting fresh context
-            if (!context?.client?.clientFid) {
-              debug('submitScore: Cached context missing clientFid, fetching fresh context...');
-              try {
-                context = await sdk.context;
-                // Update cache with fresh context
-                cachedSDKContext = context;
-                cachedSDKContextTimestamp = Date.now();
-              } catch (freshErr) {
-                debug(`submitScore: Fresh context fetch failed: ${freshErr?.message || freshErr}`);
-              }
-            }
-            
-            const user = context?.user;
-            
-            // Debug: Log context structure for troubleshooting
-            debug(`submitScore: Context structure - hasUser: ${!!user}, hasClient: ${!!context?.client}, clientFid: ${context?.client?.clientFid || 'N/A'}`);
-            
-            if (user && user.fid) {
-              // OFFICIAL METHOD: Detect platform using clientFid (per Base App docs)
-              // Base App clientFid is 309857, Farcaster clientFid is typically 9152 (Warpcast)
-              let platform = null;
-              
-              // Check clientFid (OFFICIAL METHOD per Base App documentation)
-              if (context?.client?.clientFid === 309857) {
-                debug('submitScore: ✅ Base App detected via clientFid (309857) - OFFICIAL METHOD');
-                platform = 'base-app';
-              } else if (context?.client?.clientFid) {
-                // If clientFid exists but is not 309857, it's Farcaster
-                debug(`submitScore: ✅ Farcaster detected via clientFid (${context.client.clientFid}) - OFFICIAL METHOD`);
-                platform = 'farcaster';
-              }
-              
-              // If clientFid not available, use centralized utility (which also uses clientFid)
-              if (!platform) {
-                try {
-                  if (typeof window.getPlatform === 'function') {
-                    platform = await window.getPlatform();
-                    // Convert 'base' to 'base-app' for consistency
-                    if (platform === 'base') {
-                      platform = 'base-app';
-                    }
-                    debug(`submitScore: Platform detected via centralized utility: ${platform}`);
-                  } else {
-                    debug('submitScore: getPlatform() not available, platform will be null');
-                  }
-                } catch (err) {
-                  debug(`submitScore: Error using centralized platform detection: ${err?.message || err}`);
-                }
-              }
-              
-              debug(`submitScore: Detected platform: ${platform || 'unknown'}`);
-              
-              // CRITICAL: Platform bilgisi olmadan skor gönderilmemeli
-              // Çünkü leaderboard'da her kullanıcının yanında, o kullanıcının skorunu gönderdiği platformun logosu görünmeli
-              if (!platform) {
-                log().warn(' submitScore: ⚠️ Platform detection failed - profile mapping will be saved without platform info');
-                log().warn(' submitScore: Platform detection details:', {
-                  hasGetPlatform: typeof window.getPlatform === 'function',
-                  hasIsFarcasterMiniApp: typeof window.isFarcasterMiniApp === 'function',
-                  hasIsBaseApp: typeof window.isBaseApp === 'function',
-                  hasMiniKit: !!window.MiniKit,
-                  hasFc: !!window.fc?.miniapp,
-                  hasFarcaster: !!window.farcaster?.miniapp,
-                  hasReactNativeWebView: !!window.ReactNativeWebView,
-                  userAgent: window.navigator?.userAgent?.substring(0, 100) || 'unknown'
-                });
-              } else {
-                log().debug(' submitScore: ✅ Platform detected successfully:', platform);
-              }
-              
-              const profileMapping = {
-                address: state.address.toLowerCase(),
-                fid: user.fid,
-                username: user.username || null,
-                displayName: user.displayName || null,
-                avatarUrl: user.pfpUrl || null,
-                platform: platform || null // CRITICAL: Include platform for correct logo display
-              };
-              
-              debug(`submitScore: Sending profile mapping for leaderboard: ${profileMapping.username || profileMapping.displayName || 'unnamed'} (platform: ${platform || 'unknown'})`);
-              log().debug(' submitScore: Sending profile mapping for leaderboard enrichment:', {
-                address: profileMapping.address.substring(0, 10) + '...',
-                fid: profileMapping.fid,
-                username: profileMapping.username,
-                displayName: profileMapping.displayName,
-                platform: profileMapping.platform || '⚠️ NULL - logo will not be displayed'
-              });
-              
-              // Phase 4.3: Mark as sent BEFORE making request to prevent race conditions
-              markProfileMappingSent(state.address);
-              
-              // Send profile mapping asynchronously, don't block score submission
-              fetch('/api/leaderboard?action=profile-mapping', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(profileMapping)
-              }).then((response) => {
-                if (response.ok) {
-                  debug('submitScore: Profile mapping sent successfully');
-                  log().debug(' submitScore: ✅ Profile mapping sent successfully for leaderboard enrichment');
-                } else {
-                  debug(`submitScore: Profile mapping failed with status ${response.status}`);
-                  log().warn(' submitScore: Profile mapping failed with status:', response.status);
-                }
-              }).catch((err) => {
-                // Silently fail - profile mapping is not critical for score submission
-                debug(`submitScore: Profile mapping failed (non-critical): ${err?.message || err}`);
-                log().warn(' submitScore: Profile mapping failed (non-critical):', err?.message || err);
-              });
-            } else {
-              debug('submitScore: Skipping profile mapping - no user FID available');
-              log().debug(' submitScore: Skipping profile mapping - no user FID available');
-            }
-          } else if (hasProfileMappingBeenSent(state.address)) {
-            // Phase 4.3: Already sent this session, skip
-            debug('submitScore: Skipping profile mapping - already sent this session');
-          } else {
-            debug('submitScore: Skipping profile mapping - SDK context or address not available');
-            log().debug(' submitScore: Skipping profile mapping - SDK context or address not available');
-          }
+          await sendProfileMapping({
+            sdk,
+            address: state.address,
+            debug
+          });
         } catch (profileErr) {
           // Silently fail - profile mapping is not critical for score submission
           debug(`submitScore: Profile mapping error (non-critical): ${profileErr?.message || profileErr}`);

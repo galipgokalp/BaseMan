@@ -1,6 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////////////
 // Game
 
+// Game mode and score management are now handled by game/core modules
+// Note: This file is bundled into pacman.js, so we use dynamic import at runtime
+// For now, we keep the original implementation but mark it for future refactoring
+
 // game modes
 var GAME_PACMAN = 0;
 var GAME_MSPACMAN = 1;
@@ -199,6 +203,8 @@ var loadGame = function(t) {
 
 /// SCORING
 // (manages scores and high scores for each game type)
+// Note: Score management logic extracted to game/core/score-manager.js
+// This file maintains backward compatibility with existing code
 
 var scores = [
     0,0, // pacman

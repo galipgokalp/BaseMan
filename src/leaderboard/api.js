@@ -9,6 +9,8 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { getCachedUserInfo } from './services/user-detection.js';
+import { sendProfileMappingIfNeeded, buildProfileMappingHeader } from './services/profile-mapping.js';
 
 const log = createLogger('LeaderboardAPI');
 
@@ -29,122 +31,8 @@ const LEADERBOARD_CACHE_TTL_MS = 10000; // 10 seconds
 // In-flight request deduplication
 let inflightLeaderboardRequest = null;
 
-// Profile mapping deduplication (per session)
-const sentProfileMappings = new Set(); // Track sent address mappings
-
-// Cached user info to avoid repeated SDK calls
-let cachedUserInfo = null;
-let cachedUserInfoTimestamp = 0;
-const USER_INFO_CACHE_TTL_MS = 30000; // 30 seconds
-
-/**
- * Get cached user info or fetch fresh
- */
-async function getCachedUserInfo() {
-  const now = Date.now();
-  
-  // Return cached if fresh
-  if (cachedUserInfo && (now - cachedUserInfoTimestamp) < USER_INFO_CACHE_TTL_MS) {
-    return cachedUserInfo;
-  }
-  
-  let address = null;
-  let user = null;
-  let platform = null;
-  
-  try {
-    // Get wallet address (fast check first)
-    if (window.BaseManOnchain?.isWalletReady?.()) {
-      address = window.BaseManOnchain?.getWalletAddress?.() || null;
-    }
-    
-    // If not ready, do a few quick retries
-    if (!address) {
-      const maxRetries = 5;
-      const delayMs = 100;
-      for (let i = 0; i < maxRetries && !address; i++) {
-        if (window.BaseManOnchain?.isWalletReady?.()) {
-          address = window.BaseManOnchain?.getWalletAddress?.() || null;
-        }
-        if (!address && i < maxRetries - 1) {
-          await new Promise(r => setTimeout(r, delayMs));
-        }
-      }
-    }
-    
-    // Get SDK context
-    if (window.sdk?.context) {
-      try {
-        const context = await window.sdk.context;
-        user = context?.user;
-        
-        // Platform detection via clientFid
-        if (context?.client?.clientFid === 309857) {
-          platform = 'base-app';
-        } else if (context?.client?.clientFid) {
-          platform = 'farcaster';
-        }
-      } catch (ctxErr) {
-        // SDK context not available
-      }
-    }
-  } catch (err) {
-    log.warn('Error getting user info:', err);
-  }
-  
-  cachedUserInfo = { address, user, platform };
-  cachedUserInfoTimestamp = now;
-  return cachedUserInfo;
-}
-
-/**
- * Send profile mapping if not already sent this session
- */
-async function sendProfileMappingIfNeeded(address, user, platform) {
-  if (!address || !user?.fid) return;
-  
-  const key = address.toLowerCase();
-  
-  // Skip if already sent this session
-  if (sentProfileMappings.has(key)) {
-    log.debug('Profile mapping already sent for:', key.substring(0, 10) + '...');
-    return;
-  }
-  
-  // Detect platform if not provided
-  let detectedPlatform = platform;
-  if (!detectedPlatform && typeof window.getPlatform === 'function') {
-    try {
-      detectedPlatform = await window.getPlatform();
-      if (detectedPlatform === 'base') detectedPlatform = 'base-app';
-    } catch (_) {}
-  }
-  
-  const mappingData = {
-    address: key,
-    fid: user.fid,
-    username: user.username || null,
-    displayName: user.displayName || null,
-    avatarUrl: user.pfpUrl || null,
-    platform: detectedPlatform || null
-  };
-  
-  log.debug('Sending profile mapping:', mappingData);
-  
-  // Mark as sent immediately to prevent duplicate sends
-  sentProfileMappings.add(key);
-  
-  // Send async, don't block
-  fetch('/api/leaderboard?action=profile-mapping', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(mappingData)
-  }).catch((err) => {
-    log.warn('Profile mapping POST failed:', err);
-    // Remove from sent set so it can be retried
-    sentProfileMappings.delete(key);
-  });
-}
+// User detection and profile mapping are now handled by services modules
+// Using imported functions: getCachedUserInfo, sendProfileMappingIfNeeded, buildProfileMappingHeader
 
 /**
  * Load leaderboard data from API
@@ -220,15 +108,7 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
         sendProfileMappingIfNeeded(address, user, platform);
         
         // Include in header for same request
-        profileMappingHeader = JSON.stringify({
-          [address.toLowerCase()]: {
-            fid: user.fid,
-            username: user.username || null,
-            displayName: user.displayName || null,
-            avatarUrl: user.pfpUrl || null,
-            platform: platform || null
-          }
-        });
+        profileMappingHeader = buildProfileMappingHeader(address, user, platform);
       }
       
       const headers = { Accept: "application/json" };
