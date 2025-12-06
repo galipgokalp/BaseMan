@@ -1530,8 +1530,27 @@
         try {
           if (window.sdk && window.sdk.context && state.address && !hasProfileMappingBeenSent(state.address)) {
             // Phase 4.3: Use cached SDK context to avoid redundant async calls
-            const context = await getCachedSDKContext();
+            // FIX: Always get fresh context for platform detection (cache may miss client info)
+            let context = await getCachedSDKContext();
+            
+            // If cached context doesn't have client info, try getting fresh context
+            if (!context?.client?.clientFid) {
+              debug('submitScore: Cached context missing clientFid, fetching fresh context...');
+              try {
+                context = await sdk.context;
+                // Update cache with fresh context
+                cachedSDKContext = context;
+                cachedSDKContextTimestamp = Date.now();
+              } catch (freshErr) {
+                debug(`submitScore: Fresh context fetch failed: ${freshErr?.message || freshErr}`);
+              }
+            }
+            
             const user = context?.user;
+            
+            // Debug: Log context structure for troubleshooting
+            debug(`submitScore: Context structure - hasUser: ${!!user}, hasClient: ${!!context?.client}, clientFid: ${context?.client?.clientFid || 'N/A'}`);
+            
             if (user && user.fid) {
               // OFFICIAL METHOD: Detect platform using clientFid (per Base App docs)
               // Base App clientFid is 309857, Farcaster clientFid is typically 9152 (Warpcast)
