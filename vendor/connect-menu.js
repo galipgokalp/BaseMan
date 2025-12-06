@@ -509,7 +509,7 @@
       exports.useTransition = function() {
         return ReactSharedInternals.H.useTransition();
       };
-      exports.version = "19.2.0";
+      exports.version = "19.2.1";
     }
   });
 
@@ -959,7 +959,7 @@
       exports.useFormStatus = function() {
         return ReactSharedInternals.H.useHostTransitionStatus();
       };
-      exports.version = "19.2.0";
+      exports.version = "19.2.1";
     }
   });
 
@@ -12638,12 +12638,12 @@
         }
       };
       var isomorphicReactPackageVersion$jscomp$inline_1840 = React4.version;
-      if ("19.2.0" !== isomorphicReactPackageVersion$jscomp$inline_1840)
+      if ("19.2.1" !== isomorphicReactPackageVersion$jscomp$inline_1840)
         throw Error(
           formatProdErrorMessage(
             527,
             isomorphicReactPackageVersion$jscomp$inline_1840,
-            "19.2.0"
+            "19.2.1"
           )
         );
       ReactDOMSharedInternals.findDOMNode = function(componentOrElement) {
@@ -12661,10 +12661,10 @@
       };
       var internals$jscomp$inline_2347 = {
         bundleType: 0,
-        version: "19.2.0",
+        version: "19.2.1",
         rendererPackageName: "react-dom",
         currentDispatcherRef: ReactSharedInternals,
-        reconcilerVersion: "19.2.0"
+        reconcilerVersion: "19.2.1"
       };
       if ("undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__) {
         hook$jscomp$inline_2348 = __REACT_DEVTOOLS_GLOBAL_HOOK__;
@@ -12732,7 +12732,7 @@
         listenToAllSupportedEvents(container);
         return new ReactDOMHydrationRoot(initialChildren);
       };
-      exports.version = "19.2.0";
+      exports.version = "19.2.1";
     }
   });
 
@@ -210957,79 +210957,77 @@ Message: ${transactionMessage}.
 
   // src/utils/platform-detection.js
   init_define_process_env();
-  function isFarcasterMiniApp() {
+  async function getPlatform() {
     try {
-      if (typeof window === "undefined") return false;
-      const hasFarcasterSDK = Boolean(
-        window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.FarcasterMiniAppSDK
-      );
-      if (hasFarcasterSDK) return true;
-      if (window.navigator && window.navigator.userAgent) {
-        const ua3 = window.navigator.userAgent;
-        if ((ua3.includes("Farcaster") || ua3.includes("Warpcast")) && !ua3.includes("BaseApp")) {
-          return true;
+      if (typeof window === "undefined") return "web";
+      if (window.sdk && window.sdk.context) {
+        try {
+          const context = await window.sdk.context;
+          const hasClient = !!(context && context.client);
+          const clientFid = context?.client?.clientFid;
+          console.log("[platform-detection] Context received - hasClient:", hasClient, "clientFid:", clientFid);
+          if (context && context.client && typeof context.client.clientFid === "number") {
+            const fid = context.client.clientFid;
+            if (fid === 309857) {
+              console.log("[platform-detection] Base App detected via clientFid (309857) - OFFICIAL METHOD");
+              return "base";
+            }
+            console.log("[platform-detection] Farcaster detected via clientFid (" + fid + ") - OFFICIAL METHOD");
+            return "farcaster";
+          }
+          if (context && context.user && context.user.fid) {
+            console.log("[platform-detection] Context has user but no clientFid, checking other signals...");
+            if (window.MiniKit) {
+              console.log("[platform-detection] MiniKit detected, assuming Base App");
+              return "base";
+            }
+            if (window.fc?.miniapp || window.farcaster?.miniapp) {
+              console.log("[platform-detection] Farcaster SDK detected, assuming Farcaster");
+              return "farcaster";
+            }
+            console.log("[platform-detection] Has user FID but unknown platform, defaulting to farcaster");
+            return "farcaster";
+          }
+        } catch (err) {
+          console.warn("[platform-detection] Failed to get SDK context:", err?.message || err);
         }
-      }
-      return false;
-    } catch (_11) {
-      return false;
-    }
-  }
-  function isBaseApp() {
-    try {
-      if (typeof window === "undefined") return false;
-      if (window.ReactNativeWebView) {
-        if (isFarcasterMiniApp()) return false;
-        return true;
       }
       if (window.MiniKit) {
-        return true;
+        console.log("[platform-detection] MiniKit detected (no SDK), assuming Base App");
+        return "base";
       }
-      if (window.navigator && window.navigator.userAgent) {
-        const ua3 = window.navigator.userAgent;
-        if (ua3.includes("BaseApp") && !ua3.includes("Farcaster") && !ua3.includes("Warpcast")) {
-          return true;
-        }
+      if (window.fc?.miniapp || window.farcaster?.miniapp) {
+        console.log("[platform-detection] Farcaster SDK detected (no window.sdk), assuming Farcaster");
+        return "farcaster";
       }
-      return false;
-    } catch (_11) {
-      return false;
+      console.log("[platform-detection] SDK context not available, assuming web");
+      return "web";
+    } catch (err) {
+      console.error("[platform-detection] getPlatform() error:", err);
+      return "web";
     }
   }
-  function isMiniAppHost() {
-    return isFarcasterMiniApp() || isBaseApp();
+  async function isBaseApp() {
+    const platform = await getPlatform();
+    return platform === "base";
   }
-  function getPlatform() {
-    if (isFarcasterMiniApp()) return "farcaster";
-    if (isBaseApp()) return "base";
-    return "web";
+  async function isFarcasterMiniApp() {
+    const platform = await getPlatform();
+    return platform === "farcaster";
   }
-  function isMiniAppEnv() {
-    try {
-      if (typeof window === "undefined") return false;
-      if (isMiniAppHost()) return true;
-      const hasSDK = Boolean(
-        window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniKit || window.MiniApp && window.MiniApp.sdk || window.FarcasterMiniAppSDK || window.sdk
-      );
-      if (hasSDK) return true;
-      if (window.ReactNativeWebView) return true;
-      try {
-        if (window.self !== window.top) {
-          return true;
-        }
-      } catch (_11) {
-        return true;
-      }
-      return false;
-    } catch (_11) {
-      return false;
-    }
+  async function isMiniAppHost() {
+    const platform = await getPlatform();
+    return platform === "base" || platform === "farcaster";
+  }
+  async function isMiniAppEnv() {
+    const platform = await getPlatform();
+    return platform !== "web";
   }
   if (typeof window !== "undefined") {
-    window.isFarcasterMiniApp = isFarcasterMiniApp;
-    window.isBaseApp = isBaseApp;
-    window.isMiniAppHost = isMiniAppHost;
     window.getPlatform = getPlatform;
+    window.isBaseApp = isBaseApp;
+    window.isFarcasterMiniApp = isFarcasterMiniApp;
+    window.isMiniAppHost = isMiniAppHost;
     window.isMiniAppEnv = isMiniAppEnv;
   }
 
@@ -211342,9 +211340,12 @@ Message: ${transactionMessage}.
       if (typeof window !== "undefined" && typeof window.isMiniAppHost === "function") {
         return window.isMiniAppHost();
       }
-      return Boolean(
-        typeof window !== "undefined" && (window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniAppSDK || window.MiniApp?.sdk || window.MiniKit || window.ReactNativeWebView || window.navigator && window.navigator.userAgent && (window.navigator.userAgent.includes("Farcaster") || window.navigator.userAgent.includes("Warpcast") || window.navigator.userAgent.includes("BaseApp")))
-      );
+      if (typeof window !== "undefined") {
+        return Boolean(
+          window.fc && window.fc.miniapp || window.farcaster && window.farcaster.miniapp || window.MiniKit || window.ReactNativeWebView
+        );
+      }
+      return false;
     } catch (_11) {
       return false;
     }
