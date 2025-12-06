@@ -13,6 +13,44 @@ import {
   sendEthTransaction as sendEthTransactionUtil
 } from './onchain/index.js';
 
+// CRITICAL: Export window.BaseManOnchain immediately (before async initialization)
+// Base App Mini-App SDK requires this to be available synchronously
+if (typeof window !== "undefined") {
+  // Create a placeholder object that will be populated when initialize() runs
+  // This ensures Base App can detect the module even if SDK isn't ready yet
+  window.BaseManOnchain = {
+    // Placeholder methods that will be replaced in initialize()
+    ensureWallet: async function() {
+      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
+    },
+    setNetwork: async function() {
+      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
+    },
+    submitScore: async function() {
+      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
+    },
+    completeQuest: async function() {
+      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
+    },
+    handleRunStart: function() {
+      // No-op until initialized
+    },
+    getCurrentChainId: function() {
+      return null; // Will return actual chainId after initialization
+    },
+    log: function() {},
+    isWalletReady: function() {
+      return false; // Will return actual state after initialization
+    },
+    getWalletError: function() {
+      return null;
+    },
+    getWalletAddress: function() {
+      return null;
+    }
+  };
+}
+
 (function () {
   // Increase attempts for mobile environments where SDK may load slower
   const MAX_ATTEMPTS = 500; // ~100s at 200ms (increased for mobile)
@@ -1291,6 +1329,7 @@ import {
         throw new Error(`Transaction failed: ${errorMsg}${errorCode ? ` (code: ${errorCode})` : ''}`);
       }
     }
+    */
 
     // sendEthTransaction is now imported from onchain/score-service module
     async function sendEthTransaction(callData) {
@@ -2066,17 +2105,40 @@ import {
       }, { once: true });
     }
 
-    window.BaseManOnchain = {
-      ensureWallet,
-      setNetwork: reconfigureNetwork,
-      submitScore,
-      completeQuest,
-      handleRunStart,
-      log: debug,
-      isWalletReady: () => state.walletReady,
-      getWalletError: () => state.walletError,
-      getWalletAddress: () => state.address
-    };
+    // getCurrentChainId function
+    function getCurrentChainId() {
+      return config?.chainId || null;
+    }
+
+    // CRITICAL: Update window.BaseManOnchain with actual implementations
+    // This replaces the placeholder created at module load time
+    if (typeof window !== "undefined" && window.BaseManOnchain) {
+      // Update all methods with actual implementations
+      window.BaseManOnchain.ensureWallet = ensureWallet;
+      window.BaseManOnchain.setNetwork = reconfigureNetwork;
+      window.BaseManOnchain.submitScore = submitScore;
+      window.BaseManOnchain.completeQuest = completeQuest;
+      window.BaseManOnchain.handleRunStart = handleRunStart;
+      window.BaseManOnchain.getCurrentChainId = getCurrentChainId;
+      window.BaseManOnchain.log = debug;
+      window.BaseManOnchain.isWalletReady = () => state.walletReady;
+      window.BaseManOnchain.getWalletError = () => state.walletError;
+      window.BaseManOnchain.getWalletAddress = () => state.address;
+    } else {
+      // Fallback: create new object if placeholder wasn't created (shouldn't happen)
+      window.BaseManOnchain = {
+        ensureWallet,
+        setNetwork: reconfigureNetwork,
+        submitScore,
+        completeQuest,
+        handleRunStart,
+        getCurrentChainId,
+        log: debug,
+        isWalletReady: () => state.walletReady,
+        getWalletError: () => state.walletError,
+        getWalletAddress: () => state.address
+      };
+    }
 
     // Mini app'te açılışta passkey tetiklemeden read-only bağlanmayı dene.
     // Sadece eth_accounts çağrısı yap; hesap varsa ensureWallet(false) ile state'i güncelle.
