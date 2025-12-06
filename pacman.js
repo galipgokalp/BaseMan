@@ -7680,6 +7680,9 @@ Actor.prototype.update = function(j) {
 //@line 1 "src/Ghost.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Ghost class
+//
+// Phase 4.2: Performance optimizations
+// - Pre-allocated scratch objects to avoid per-frame allocations
 
 // modes representing the ghost's current state
 var GHOST_OUTSIDE = 0;
@@ -7688,6 +7691,11 @@ var GHOST_GOING_HOME = 2;
 var GHOST_ENTERING_HOME = 3;
 var GHOST_PACING_HOME = 4;
 var GHOST_LEAVING_HOME = 5;
+
+// Phase 4.2: Pre-allocated scratch objects for Ghost methods
+var _ghostBouncePixel = { x: 0, y: 0 };
+var _ghostBounceTilePixel = { x: 0, y: 0 };
+var _ghostNextTile = { x: 0, y: 0 };
 
 // Ghost constructor
 var Ghost = function() {
@@ -7735,7 +7743,10 @@ Ghost.prototype.getBounceY = (function(){
             return py;
         }
 
-        var tilePixel = this.getTilePixel({x:px,y:py});
+        // Phase 4.2: Reuse scratch objects instead of allocating new ones
+        _ghostBouncePixel.x = px;
+        _ghostBouncePixel.y = py;
+        var tilePixel = this.getTilePixel(_ghostBouncePixel, _ghostBounceTilePixel);
         var tileY = Math.floor(py / tileSize);
         var y = tileY*tileSize;
 
@@ -8050,14 +8061,12 @@ Ghost.prototype.steer = function() {
             this.dirEnum == DIR_UP    && this.tilePixel.y == midTile.y-1 ||
             this.dirEnum == DIR_DOWN  && this.tilePixel.y == midTile.y+1) {
 
-        // get next tile
-        var nextTile = {
-            x: this.tile.x + this.dir.x,
-            y: this.tile.y + this.dir.y,
-        };
+        // Phase 4.2: Reuse scratch object instead of allocating new one
+        _ghostNextTile.x = this.tile.x + this.dir.x;
+        _ghostNextTile.y = this.tile.y + this.dir.y;
 
         // get tiles surrounding next tile and their open indication
-        openTiles = getOpenTiles(nextTile, this.dirEnum);
+        openTiles = getOpenTiles(_ghostNextTile, this.dirEnum);
 
         if (this.scared) {
             // choose a random turn
@@ -8097,7 +8106,7 @@ Ghost.prototype.steer = function() {
                 // a custom algorithm to choose the next direction.
                 // Currently, procedurally-generated maps use this function
                 // to ensure that ghosts can return home without looping forever.
-                var exitDir = map.getExitDir(nextTile.x,nextTile.y);
+                var exitDir = map.getExitDir(_ghostNextTile.x, _ghostNextTile.y);
                 if (exitDir != undefined && exitDir != oppDirEnum) {
                     dirDecided = true;
                     dirEnum = exitDir;
@@ -8109,12 +8118,12 @@ Ghost.prototype.steer = function() {
                 if (this.mode != GHOST_GOING_HOME) {
                     if (map.constrainGhostTurns) {
                         // edit openTiles to reflect the current map's special contraints
-                        map.constrainGhostTurns(nextTile, openTiles, this.dirEnum);
+                        map.constrainGhostTurns(_ghostNextTile, openTiles, this.dirEnum);
                     }
                 }
 
                 // choose direction that minimizes distance to target
-                dirEnum = getTurnClosestToTarget(nextTile, this.targetTile, openTiles);
+                dirEnum = getTurnClosestToTarget(_ghostNextTile, this.targetTile, openTiles);
             }
         }
 
@@ -8424,6 +8433,9 @@ var ghosts = [blinky, pinky, inky, clyde];
 // Targetting
 // (a definition for each actor's targetting algorithm and a draw function to visualize it)
 // (getPathDistLeft is used to obtain a smoothly interpolated path endpoint)
+//
+// Phase 4.2: Performance optimizations
+// - Pre-allocated scratch objects for getTargetTile/getTargetPixel to avoid per-frame allocations
 
 // the tile length of the path drawn toward the target
 var actorPathLength = 16;
@@ -8432,6 +8444,18 @@ var actorPathLength = 16;
 
 // the size of the square rendered over a target tile (just half a tile)
 var targetSize = midTile.y;
+
+// Phase 4.2: Pre-allocated scratch objects for each ghost's targeting
+// These are reused every frame to avoid GC pressure
+var _blinkyTile = { x: 0, y: 0 };
+var _blinkyPixel = { x: 0, y: 0 };
+var _pinkyTile = { x: 0, y: 0 };
+var _pinkyPixel = { x: 0, y: 0 };
+var _inkyTile = { x: 0, y: 0 };
+var _inkyJointPixel = { x: 0, y: 0 };
+var _inkyPixel = { x: 0, y: 0 };
+var _clydeTile = { x: 0, y: 0 };
+var _clydePixel = { x: 0, y: 0 };
 
 // when drawing paths, use these offsets so they don't completely overlap each other
 pacman.pathCenter = { x:0, y:0};
@@ -8444,10 +8468,14 @@ clyde.pathCenter = { x:2, y:2 };
 // blinky directly targets pacman
 
 blinky.getTargetTile = function() {
-    return { x: pacman.tile.x, y: pacman.tile.y };
+    _blinkyTile.x = pacman.tile.x;
+    _blinkyTile.y = pacman.tile.y;
+    return _blinkyTile;
 };
 blinky.getTargetPixel = function() {
-    return { x: pacman.pixel.x, y: pacman.pixel.y };
+    _blinkyPixel.x = pacman.pixel.x;
+    _blinkyPixel.y = pacman.pixel.y;
+    return _blinkyPixel;
 };
 blinky.drawTarget = function(ctx) {
     if (!this.targetting) return;
@@ -8466,7 +8494,9 @@ pinky.getTargetTile = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 4;
     }
-    return { x : px, y : py };
+    _pinkyTile.x = px;
+    _pinkyTile.y = py;
+    return _pinkyTile;
 };
 pinky.getTargetPixel = function() {
     var px = pacman.pixel.x + 4*pacman.dir.x*tileSize;
@@ -8474,7 +8504,9 @@ pinky.getTargetPixel = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 4*tileSize;
     }
-    return { x : px, y : py };
+    _pinkyPixel.x = px;
+    _pinkyPixel.y = py;
+    return _pinkyPixel;
 };
 pinky.drawTarget = function(ctx) {
     if (!this.targetting) return;
@@ -8504,10 +8536,9 @@ inky.getTargetTile = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 2;
     }
-    return {
-        x : blinky.tile.x + 2*(px - blinky.tile.x),
-        y : blinky.tile.y + 2*(py - blinky.tile.y),
-    };
+    _inkyTile.x = blinky.tile.x + 2*(px - blinky.tile.x);
+    _inkyTile.y = blinky.tile.y + 2*(py - blinky.tile.y);
+    return _inkyTile;
 };
 inky.getJointPixel = function() {
     var px = pacman.pixel.x + 2*pacman.dir.x*tileSize;
@@ -8515,7 +8546,9 @@ inky.getJointPixel = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 2*tileSize;
     }
-    return { x: px, y: py };
+    _inkyJointPixel.x = px;
+    _inkyJointPixel.y = py;
+    return _inkyJointPixel;
 };
 inky.getTargetPixel = function() {
     var px = pacman.pixel.x + 2*pacman.dir.x*tileSize;
@@ -8523,10 +8556,9 @@ inky.getTargetPixel = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 2*tileSize;
     }
-    return {
-        x : blinky.pixel.x + 2*(px-blinky.pixel.x),
-        y : blinky.pixel.y + 2*(py-blinky.pixel.y),
-    };
+    _inkyPixel.x = blinky.pixel.x + 2*(px-blinky.pixel.x);
+    _inkyPixel.y = blinky.pixel.y + 2*(py-blinky.pixel.y);
+    return _inkyPixel;
 };
 inky.drawTarget = function(ctx) {
     if (!this.targetting) return;
@@ -8571,16 +8603,21 @@ clyde.getTargetTile = function() {
     var dist = dx*dx+dy*dy;
     if (dist >= 64) {
         this.targetting = 'pacman';
-        return { x: pacman.tile.x, y: pacman.tile.y };
+        _clydeTile.x = pacman.tile.x;
+        _clydeTile.y = pacman.tile.y;
     }
     else {
         this.targetting = 'corner';
-        return { x: this.cornerTile.x, y: this.cornerTile.y };
+        _clydeTile.x = this.cornerTile.x;
+        _clydeTile.y = this.cornerTile.y;
     }
+    return _clydeTile;
 };
 clyde.getTargetPixel = function() {
     // NOTE: won't ever need this function for corner tile because it is always outside
-    return { x: pacman.pixel.x, y: pacman.pixel.y };
+    _clydePixel.x = pacman.pixel.x;
+    _clydePixel.y = pacman.pixel.y;
+    return _clydePixel;
 };
 clyde.drawTarget = function(ctx) {
     if (!this.targetting) return;

@@ -2,6 +2,9 @@
 // Targetting
 // (a definition for each actor's targetting algorithm and a draw function to visualize it)
 // (getPathDistLeft is used to obtain a smoothly interpolated path endpoint)
+//
+// Phase 4.2: Performance optimizations
+// - Pre-allocated scratch objects for getTargetTile/getTargetPixel to avoid per-frame allocations
 
 // the tile length of the path drawn toward the target
 var actorPathLength = 16;
@@ -10,6 +13,18 @@ var actorPathLength = 16;
 
 // the size of the square rendered over a target tile (just half a tile)
 var targetSize = midTile.y;
+
+// Phase 4.2: Pre-allocated scratch objects for each ghost's targeting
+// These are reused every frame to avoid GC pressure
+var _blinkyTile = { x: 0, y: 0 };
+var _blinkyPixel = { x: 0, y: 0 };
+var _pinkyTile = { x: 0, y: 0 };
+var _pinkyPixel = { x: 0, y: 0 };
+var _inkyTile = { x: 0, y: 0 };
+var _inkyJointPixel = { x: 0, y: 0 };
+var _inkyPixel = { x: 0, y: 0 };
+var _clydeTile = { x: 0, y: 0 };
+var _clydePixel = { x: 0, y: 0 };
 
 // when drawing paths, use these offsets so they don't completely overlap each other
 pacman.pathCenter = { x:0, y:0};
@@ -22,10 +37,14 @@ clyde.pathCenter = { x:2, y:2 };
 // blinky directly targets pacman
 
 blinky.getTargetTile = function() {
-    return { x: pacman.tile.x, y: pacman.tile.y };
+    _blinkyTile.x = pacman.tile.x;
+    _blinkyTile.y = pacman.tile.y;
+    return _blinkyTile;
 };
 blinky.getTargetPixel = function() {
-    return { x: pacman.pixel.x, y: pacman.pixel.y };
+    _blinkyPixel.x = pacman.pixel.x;
+    _blinkyPixel.y = pacman.pixel.y;
+    return _blinkyPixel;
 };
 blinky.drawTarget = function(ctx) {
     if (!this.targetting) return;
@@ -44,7 +63,9 @@ pinky.getTargetTile = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 4;
     }
-    return { x : px, y : py };
+    _pinkyTile.x = px;
+    _pinkyTile.y = py;
+    return _pinkyTile;
 };
 pinky.getTargetPixel = function() {
     var px = pacman.pixel.x + 4*pacman.dir.x*tileSize;
@@ -52,7 +73,9 @@ pinky.getTargetPixel = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 4*tileSize;
     }
-    return { x : px, y : py };
+    _pinkyPixel.x = px;
+    _pinkyPixel.y = py;
+    return _pinkyPixel;
 };
 pinky.drawTarget = function(ctx) {
     if (!this.targetting) return;
@@ -82,10 +105,9 @@ inky.getTargetTile = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 2;
     }
-    return {
-        x : blinky.tile.x + 2*(px - blinky.tile.x),
-        y : blinky.tile.y + 2*(py - blinky.tile.y),
-    };
+    _inkyTile.x = blinky.tile.x + 2*(px - blinky.tile.x);
+    _inkyTile.y = blinky.tile.y + 2*(py - blinky.tile.y);
+    return _inkyTile;
 };
 inky.getJointPixel = function() {
     var px = pacman.pixel.x + 2*pacman.dir.x*tileSize;
@@ -93,7 +115,9 @@ inky.getJointPixel = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 2*tileSize;
     }
-    return { x: px, y: py };
+    _inkyJointPixel.x = px;
+    _inkyJointPixel.y = py;
+    return _inkyJointPixel;
 };
 inky.getTargetPixel = function() {
     var px = pacman.pixel.x + 2*pacman.dir.x*tileSize;
@@ -101,10 +125,9 @@ inky.getTargetPixel = function() {
     if (pacman.dirEnum == DIR_UP) {
         px -= 2*tileSize;
     }
-    return {
-        x : blinky.pixel.x + 2*(px-blinky.pixel.x),
-        y : blinky.pixel.y + 2*(py-blinky.pixel.y),
-    };
+    _inkyPixel.x = blinky.pixel.x + 2*(px-blinky.pixel.x);
+    _inkyPixel.y = blinky.pixel.y + 2*(py-blinky.pixel.y);
+    return _inkyPixel;
 };
 inky.drawTarget = function(ctx) {
     if (!this.targetting) return;
@@ -149,16 +172,21 @@ clyde.getTargetTile = function() {
     var dist = dx*dx+dy*dy;
     if (dist >= 64) {
         this.targetting = 'pacman';
-        return { x: pacman.tile.x, y: pacman.tile.y };
+        _clydeTile.x = pacman.tile.x;
+        _clydeTile.y = pacman.tile.y;
     }
     else {
         this.targetting = 'corner';
-        return { x: this.cornerTile.x, y: this.cornerTile.y };
+        _clydeTile.x = this.cornerTile.x;
+        _clydeTile.y = this.cornerTile.y;
     }
+    return _clydeTile;
 };
 clyde.getTargetPixel = function() {
     // NOTE: won't ever need this function for corner tile because it is always outside
-    return { x: pacman.pixel.x, y: pacman.pixel.y };
+    _clydePixel.x = pacman.pixel.x;
+    _clydePixel.y = pacman.pixel.y;
+    return _clydePixel;
 };
 clyde.drawTarget = function(ctx) {
     if (!this.targetting) return;

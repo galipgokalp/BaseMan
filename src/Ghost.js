@@ -1,5 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////////////
 // Ghost class
+//
+// Phase 4.2: Performance optimizations
+// - Pre-allocated scratch objects to avoid per-frame allocations
 
 // modes representing the ghost's current state
 var GHOST_OUTSIDE = 0;
@@ -8,6 +11,11 @@ var GHOST_GOING_HOME = 2;
 var GHOST_ENTERING_HOME = 3;
 var GHOST_PACING_HOME = 4;
 var GHOST_LEAVING_HOME = 5;
+
+// Phase 4.2: Pre-allocated scratch objects for Ghost methods
+var _ghostBouncePixel = { x: 0, y: 0 };
+var _ghostBounceTilePixel = { x: 0, y: 0 };
+var _ghostNextTile = { x: 0, y: 0 };
 
 // Ghost constructor
 var Ghost = function() {
@@ -55,7 +63,10 @@ Ghost.prototype.getBounceY = (function(){
             return py;
         }
 
-        var tilePixel = this.getTilePixel({x:px,y:py});
+        // Phase 4.2: Reuse scratch objects instead of allocating new ones
+        _ghostBouncePixel.x = px;
+        _ghostBouncePixel.y = py;
+        var tilePixel = this.getTilePixel(_ghostBouncePixel, _ghostBounceTilePixel);
         var tileY = Math.floor(py / tileSize);
         var y = tileY*tileSize;
 
@@ -370,14 +381,12 @@ Ghost.prototype.steer = function() {
             this.dirEnum == DIR_UP    && this.tilePixel.y == midTile.y-1 ||
             this.dirEnum == DIR_DOWN  && this.tilePixel.y == midTile.y+1) {
 
-        // get next tile
-        var nextTile = {
-            x: this.tile.x + this.dir.x,
-            y: this.tile.y + this.dir.y,
-        };
+        // Phase 4.2: Reuse scratch object instead of allocating new one
+        _ghostNextTile.x = this.tile.x + this.dir.x;
+        _ghostNextTile.y = this.tile.y + this.dir.y;
 
         // get tiles surrounding next tile and their open indication
-        openTiles = getOpenTiles(nextTile, this.dirEnum);
+        openTiles = getOpenTiles(_ghostNextTile, this.dirEnum);
 
         if (this.scared) {
             // choose a random turn
@@ -417,7 +426,7 @@ Ghost.prototype.steer = function() {
                 // a custom algorithm to choose the next direction.
                 // Currently, procedurally-generated maps use this function
                 // to ensure that ghosts can return home without looping forever.
-                var exitDir = map.getExitDir(nextTile.x,nextTile.y);
+                var exitDir = map.getExitDir(_ghostNextTile.x, _ghostNextTile.y);
                 if (exitDir != undefined && exitDir != oppDirEnum) {
                     dirDecided = true;
                     dirEnum = exitDir;
@@ -429,12 +438,12 @@ Ghost.prototype.steer = function() {
                 if (this.mode != GHOST_GOING_HOME) {
                     if (map.constrainGhostTurns) {
                         // edit openTiles to reflect the current map's special contraints
-                        map.constrainGhostTurns(nextTile, openTiles, this.dirEnum);
+                        map.constrainGhostTurns(_ghostNextTile, openTiles, this.dirEnum);
                     }
                 }
 
                 // choose direction that minimizes distance to target
-                dirEnum = getTurnClosestToTarget(nextTile, this.targetTile, openTiles);
+                dirEnum = getTurnClosestToTarget(_ghostNextTile, this.targetTile, openTiles);
             }
         }
 
