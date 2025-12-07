@@ -61,16 +61,18 @@
     "test:phase5:axis-c": "node scripts/test-phase5-axis-c.mjs",
     "test:phase5": "node scripts/test-phase5-all.mjs",
     "test:phase6": "node scripts/test-phase6.mjs",
-    "test:all": "npm run test:phase5 && npm run test:phase6"
+    "test:all": "npm run test:phase5 && npm run test:phase6",
+    "lint": "eslint \"src/**/*.js\" \"api/**/*.js\" \"scripts/**/*.mjs\"",
+    "lint:fix": "eslint \"src/**/*.js\" \"api/**/*.js\" \"scripts/**/*.mjs\" --fix"
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",
-    "@coinbase/cdp-sdk": "^1.38.5",
+    "@coinbase/cdp-sdk": "^1.39.0",
     "@farcaster/miniapp-sdk": "^0.2.1",
     "@farcaster/miniapp-wagmi-connector": "^1.1.0",
     "@farcaster/quick-auth": "^0.0.8",
     "@rollbar/react": "^1.0.0",
-    "@tanstack/react-query": "^5.90.6",
+    "@tanstack/react-query": "^5.90.12",
     "@upstash/redis": "^1.35.6",
     "ethers": "^6.15.0",
     "prompts": "^2.4.2",
@@ -85,15 +87,16 @@
     "@cspell/dict-tr-tr": "^3.0.6",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@openzeppelin/contracts": "^5.4.0",
-    "cspell": "^9.2.2",
+    "cspell": "^9.4.0",
     "doctoc": "^2.2.1",
     "dotenv": "^17.2.3",
-    "esbuild": "^0.25.12",
+    "esbuild": "^0.27.1",
+    "eslint": "^9.39.1",
     "express": "^5.1.0",
     "hardhat": "^2.26.5",
     "markdown-link-check": "^3.14.1",
-    "markdownlint-cli": "^0.45.0",
-    "prettier": "^3.6.2"
+    "markdownlint-cli": "^0.46.0",
+    "prettier": "^3.7.4"
   },
   "engines": {
     "node": "20.x"
