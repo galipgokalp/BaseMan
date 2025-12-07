@@ -227,12 +227,27 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
       avatar.target = '_blank';
       avatar.rel = 'noopener noreferrer';
     }
-    if (entry?.profile?.avatarUrl || entry?.player) {
+    // Show avatar from profile (all users should have profile data)
+    if (entry?.profile?.avatarUrl) {
       const img = document.createElement('img');
-      img.src = entry?.profile?.avatarUrl || fallbackAvatar(entry.player);
+      img.src = entry.profile.avatarUrl;
       img.alt = entry?.profile?.username
         ? `@${entry.profile.username}`
-        : entry?.profile?.displayName || abbreviateAddress(entry.player);
+        : entry?.profile?.displayName || '';
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function() {
+        this.style.display = 'none';
+        avatar.textContent = '👾';
+      };
+      avatar.appendChild(img);
+    } else if (entry?.player) {
+      // Fallback only if profile avatar is missing but we have address
+      const img = document.createElement('img');
+      img.src = fallbackAvatar(entry.player);
+      img.alt = entry?.profile?.username
+        ? `@${entry.profile.username}`
+        : entry?.profile?.displayName || '';
       img.loading = 'lazy';
       img.referrerPolicy = 'no-referrer';
       img.onerror = function() {
@@ -251,8 +266,9 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
     // Name
     const nameEl = document.createElement('div');
     nameEl.className = 'leaderboard-search-result-name';
-    const name = entry?.profile?.username || entry?.profile?.displayName || abbreviateAddress(entry?.player || '');
-    nameEl.textContent = name || 'Unknown';
+    // All users should have profile data - use displayName or username
+    const name = entry?.profile?.username || entry?.profile?.displayName || '';
+    nameEl.textContent = name || '';
     
     // Platform logo
     const platform = entry?.profile?.platform;

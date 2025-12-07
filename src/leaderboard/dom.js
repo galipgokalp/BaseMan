@@ -168,13 +168,28 @@ export function createListItem(entry, fallbackRank, isMe = false) {
     avatar.target = "_blank";
     avatar.rel = "noopener noreferrer";
   }
-  if (entry?.profile?.avatarUrl || entry?.player) {
+  // Show avatar from profile (all users should have profile data)
+  if (entry?.profile?.avatarUrl) {
     const img = document.createElement("img");
-    img.src = entry?.profile?.avatarUrl || fallbackAvatar(entry.player);
+    img.src = entry.profile.avatarUrl;
     img.alt =
       entry?.profile?.username
         ? `@${entry.profile.username}`
-        : entry?.profile?.displayName || abbreviateAddress(entry.player);
+        : entry?.profile?.displayName || "";
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.onerror = function() {
+      this.style.display = 'none';
+      avatar.textContent = "👾";
+    };
+    avatar.appendChild(img);
+  } else if (entry?.player) {
+    // Fallback only if profile avatar is missing but we have address
+    const img = document.createElement("img");
+    img.src = fallbackAvatar(entry.player);
+    img.alt = entry?.profile?.username
+      ? `@${entry.profile.username}`
+      : entry?.profile?.displayName || "";
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.onerror = function() {
@@ -200,8 +215,9 @@ export function createListItem(entry, fallbackRank, isMe = false) {
   identityText.className = "leaderboard-text";
   const name = document.createElement("span");
   name.className = "leaderboard-name";
-  const displayName = entry?.profile?.displayName || entry?.profile?.username || abbreviateAddress(entry.player);
-  name.textContent = displayName || "Unknown";
+  // All users should have profile data - use displayName or username
+  const displayName = entry?.profile?.displayName || entry?.profile?.username || "";
+  name.textContent = displayName || "";
   identityText.appendChild(name);
   
   // Platform logo
@@ -504,8 +520,8 @@ export function renderEmpty({ topListEl, restListEl, scrollWrapper, statusEl }) 
  */
 export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }) {
   if (statusEl) {
-    statusEl.textContent = "Loading leaderboard...";
-    statusEl.style.cssText = 'text-align: center; color: #fff; opacity: 0.8; padding: 20px;';
+    // Don't show loading message - keep status element empty
+    statusEl.textContent = "";
   }
   
   // Optionally show skeleton rows or keep old data visible
