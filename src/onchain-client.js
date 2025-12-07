@@ -1577,6 +1577,34 @@ if (typeof window !== "undefined") {
               const sendCallsErrorMsg = sendCallsError?.message || String(sendCallsError);
               const sendCallsErrorCode = sendCallsError?.code || sendCallsError?.error?.code || null;
               
+              // Enhanced error logging for Base App debugging
+              debug(`submitScore: wallet_sendCalls error details:`, {
+                message: sendCallsErrorMsg,
+                code: sendCallsErrorCode,
+                error: sendCallsError,
+                isBaseApp: isBaseAppSpecific,
+                isFarcaster: isFarcasterSpecific
+              });
+              
+              // Log to app-log for debugging
+              try { 
+                fetch('/api/app-log', { 
+                  method: 'POST', 
+                  headers: { 'Content-Type': 'application/json' }, 
+                  body: JSON.stringify({ 
+                    event: 'score:submission:wallet_sendCalls:error', 
+                    meta: { 
+                      error: sendCallsErrorMsg,
+                      code: sendCallsErrorCode,
+                      isBaseApp: isBaseAppSpecific,
+                      isFarcaster: isFarcasterSpecific,
+                      address: state.address,
+                      chainId: config.chainId
+                    } 
+                  }) 
+                }).catch(()=>{});
+              } catch(_) {}
+              
               // Check if error is "unsupported method" - Base App may not support wallet_sendCalls
               if (sendCallsErrorCode === 4200 || sendCallsErrorMsg.includes('UnsupportedMethodError') || sendCallsErrorMsg.includes('does not support the requested method')) {
                 debug(`submitScore: wallet_sendCalls not supported (code: ${sendCallsErrorCode}), falling back to eth_sendTransaction`);
@@ -1593,16 +1621,41 @@ if (typeof window !== "undefined") {
                     }
                   } catch (ethTxError) {
                     const ethTxErrorMsg = ethTxError?.message || String(ethTxError);
-                    debug(`submitScore: eth_sendTransaction also failed: ${ethTxErrorMsg}`);
-                    throw new Error(`Both wallet_sendCalls and eth_sendTransaction failed: ${ethTxErrorMsg}`);
+                    const ethTxErrorCode = ethTxError?.code || ethTxError?.error?.code || null;
+                    debug(`submitScore: eth_sendTransaction also failed:`, {
+                      message: ethTxErrorMsg,
+                      code: ethTxErrorCode,
+                      error: ethTxError
+                    });
+                    
+                    // Log detailed error for debugging
+                    try { 
+                      fetch('/api/app-log', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ 
+                          event: 'score:submission:eth_sendTransaction:error', 
+                          meta: { 
+                            error: ethTxErrorMsg,
+                            code: ethTxErrorCode,
+                            wallet_sendCallsError: sendCallsErrorMsg,
+                            wallet_sendCallsCode: sendCallsErrorCode,
+                            address: state.address,
+                            chainId: config.chainId
+                          } 
+                        }) 
+                      }).catch(()=>{});
+                    } catch(_) {}
+                    
+                    throw new Error(`Both wallet_sendCalls and eth_sendTransaction failed. wallet_sendCalls: ${sendCallsErrorMsg} (code: ${sendCallsErrorCode}), eth_sendTransaction: ${ethTxErrorMsg} (code: ${ethTxErrorCode})`);
                   }
                 } else {
                   // For Farcaster, re-throw the original error
                   throw sendCallsError;
                 }
               } else {
-                // For other errors, re-throw
-                throw sendCallsError;
+                // For other errors, re-throw with more context
+                throw new Error(`wallet_sendCalls failed: ${sendCallsErrorMsg} (code: ${sendCallsErrorCode})`);
               }
             }
             if (result) {
@@ -1650,10 +1703,35 @@ if (typeof window !== "undefined") {
             }
           } catch (sendCallsError) {
             const errorMsg = sendCallsError?.message || String(sendCallsError);
-            debug(`submitScore: wallet_sendCalls failed: ${errorMsg}`);
+            const errorCode = sendCallsError?.code || sendCallsError?.error?.code || null;
+            debug(`submitScore: wallet_sendCalls failed:`, {
+              message: errorMsg,
+              code: errorCode,
+              error: sendCallsError,
+              isBaseApp: isBaseAppSpecific,
+              isFarcaster: isFarcasterSpecific
+            });
             log().error(' Score submission failed:', sendCallsError);
-            try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submission:error', meta: { error: errorMsg, score: scoreValue.toString(), address: state.address } }) }).catch(()=>{});} catch(_) {}
-            throw new Error(`Failed to submit score: ${errorMsg}`);
+            try { 
+              fetch('/api/app-log', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                  event: 'score:submission:error', 
+                  meta: { 
+                    error: errorMsg,
+                    code: errorCode,
+                    score: scoreValue.toString(), 
+                    address: state.address,
+                    chainId: config.chainId,
+                    isBaseApp: isBaseAppSpecific,
+                    isFarcaster: isFarcasterSpecific,
+                    stack: sendCallsError?.stack || null
+                  } 
+                }) 
+              }).catch(()=>{});
+            } catch(_) {}
+            throw new Error(`Failed to submit score: ${errorMsg}${errorCode ? ` (code: ${errorCode})` : ''}`);
           }
         }
         
