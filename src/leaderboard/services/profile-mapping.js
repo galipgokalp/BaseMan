@@ -21,9 +21,9 @@ export async function sendProfileMappingIfNeeded(address, user, platform) {
   
   const key = address.toLowerCase();
   
-  // Skip if already sent this session
+  // Skip if already sent this session (reduce log noise)
   if (sentProfileMappings.has(key)) {
-    log.debug('Profile mapping already sent for:', key.substring(0, 10) + '...');
+    // Only log at trace level to reduce noise - this is expected behavior
     return;
   }
   

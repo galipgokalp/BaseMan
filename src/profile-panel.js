@@ -466,12 +466,22 @@ async function refresh(panel) {
               if (gamesPlayedEl) gamesPlayedEl.textContent = '-'; // TODO: Calculate from history
               if (avgScoreEl) avgScoreEl.textContent = total !== '0' ? (Number(total) / 1).toFixed(0) : '-'; // TODO: Calculate properly
             } else {
-              // Contract read failed - log error but show user-friendly message
+              // Contract read failed - handle gracefully
               if (result.error.kind === 'WALLET_METHOD_UNSUPPORTED') {
                 log.debug('Contract read not supported (eth_call unavailable):', result.error.technicalMessage);
                 // Show user-friendly message if there's a UI element for it
                 // For now, just show '-' for scores (expected behavior)
+              } else if (result.error.kind === 'CONTRACT_REVERT') {
+                // Contract revert is expected for users who haven't submitted scores yet
+                // Don't log as warning - this is normal behavior
+                const isMissingData = result.error.meta?.isMissingRevertData;
+                if (isMissingData) {
+                  log.debug('Contract read: No score data available yet (expected for new users)');
+                } else {
+                  log.debug('Contract read reverted:', result.error.technicalMessage);
+                }
               } else {
+                // Other errors (timeout, network, etc.) - log as warning
                 log.warn('Contract read failed:', {
                   kind: result.error.kind,
                   message: result.error.technicalMessage,

@@ -59,21 +59,34 @@ export async function safeContractRead(readFn, { timeoutMs = DEFAULT_TIMEOUT_MS,
     }
 
     // Check for contract revert / CALL_EXCEPTION
+    // Note: "missing revert data" is common when contract function reverts without reason
+    // This is expected when data doesn't exist (e.g., user hasn't submitted a score yet)
     if (
       errorMsg.includes('revert') ||
       errorMsg.includes('CALL_EXCEPTION') ||
       errorMsg.includes('execution reverted') ||
-      errorCode === 'CALL_EXCEPTION'
+      errorMsg.includes('missing revert data') ||
+      errorCode === 'CALL_EXCEPTION' ||
+      (error?.kind === 'CONTRACT_REVERT')
     ) {
-      log.debug('Contract read reverted:', errorMsg);
+      // Don't log as warning for missing revert data - this is expected for new users
+      const isMissingRevertData = errorMsg.includes('missing revert data');
+      if (isMissingRevertData) {
+        log.debug('Contract read reverted (no data available - expected for new users):', errorMsg);
+      } else {
+        log.debug('Contract read reverted:', errorMsg);
+      }
       return err(createAppError(error, {
         kind: 'CONTRACT_REVERT',
-        message: 'Contract read failed. This may be expected if the data is not available.',
+        message: isMissingRevertData 
+          ? 'No score data available yet. Submit a score to see your on-chain stats!'
+          : 'Contract read failed. This may be expected if the data is not available.',
         technicalMessage: `Contract revert: ${errorMsg}`,
         context,
         meta: {
           ...meta,
-          errorCode
+          errorCode,
+          isMissingRevertData
         }
       }));
     }
