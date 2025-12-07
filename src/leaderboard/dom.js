@@ -39,6 +39,41 @@ export function fallbackAvatar(address) {
 }
 
 /**
+ * Resolve display name for leaderboard entry
+ * Priority: profile.displayName > profile.username > abbreviated address
+ */
+function resolveDisplayName(entry) {
+  const profile = entry && entry.profile ? entry.profile : {};
+
+  if (profile.displayName && typeof profile.displayName === "string") {
+    return profile.displayName;
+  }
+
+  if (profile.username && typeof profile.username === "string") {
+    return profile.username.startsWith("@")
+      ? profile.username
+      : `@${profile.username}`;
+  }
+
+  if (entry && typeof entry.player === "string" && entry.player.length > 0) {
+    return abbreviateAddress(entry.player);
+  }
+
+  return "";
+}
+
+/**
+ * Resolve avatar URL for leaderboard entry
+ */
+function resolveAvatarUrl(entry) {
+  const profile = entry && entry.profile ? entry.profile : {};
+  if (profile.avatarUrl && typeof profile.avatarUrl === "string") {
+    return profile.avatarUrl;
+  }
+  return null; 
+}
+
+/**
  * Parse date value
  */
 export function parseDateValue(value) {
@@ -168,14 +203,12 @@ export function createListItem(entry, fallbackRank, isMe = false) {
     avatar.target = "_blank";
     avatar.rel = "noopener noreferrer";
   }
-  // Show avatar from profile (all users should have profile data)
-  if (entry?.profile?.avatarUrl) {
+  
+  const avatarUrl = resolveAvatarUrl(entry);
+  if (avatarUrl) {
     const img = document.createElement("img");
-    img.src = entry.profile.avatarUrl;
-    img.alt =
-      entry?.profile?.username
-        ? `@${entry.profile.username}`
-        : entry?.profile?.displayName || "";
+    img.src = avatarUrl;
+    img.alt = resolveDisplayName(entry) || "avatar";
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.onerror = function() {
@@ -187,9 +220,7 @@ export function createListItem(entry, fallbackRank, isMe = false) {
     // Fallback only if profile avatar is missing but we have address
     const img = document.createElement("img");
     img.src = fallbackAvatar(entry.player);
-    img.alt = entry?.profile?.username
-      ? `@${entry.profile.username}`
-      : entry?.profile?.displayName || "";
+    img.alt = resolveDisplayName(entry) || "avatar";
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.onerror = function() {
@@ -215,9 +246,8 @@ export function createListItem(entry, fallbackRank, isMe = false) {
   identityText.className = "leaderboard-text";
   const name = document.createElement("span");
   name.className = "leaderboard-name";
-  // All users should have profile data - use displayName or username
-  const displayName = entry?.profile?.displayName || entry?.profile?.username || "";
-  name.textContent = displayName || "";
+  const label = resolveDisplayName(entry);
+  name.textContent = label || "";
   identityText.appendChild(name);
   
   // Platform logo
@@ -370,6 +400,16 @@ function computeRenderHash(items, limit) {
  * - Use simple for-loop instead of forEach in hot path
  */
 export function renderRows(items, { topListEl, restListEl, scrollWrapper, statusEl, limit, isMyEntry, forceRender = false }) {
+  // Debug: Log render attempt
+  log.debug('renderRows called:', {
+    itemsCount: items?.length || 0,
+    hasTopListEl: !!topListEl,
+    hasRestListEl: !!restListEl,
+    hasScrollWrapper: !!scrollWrapper,
+    hasStatusEl: !!statusEl,
+    limit
+  });
+  
   // Compute hash to detect if data actually changed
   const renderHash = computeRenderHash(items, limit);
   
@@ -385,15 +425,22 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   // Clear containers
   if (topListEl) {
     topListEl.textContent = ""; // Clear safely
+  } else {
+    log.warn('renderRows: topListEl not found!');
   }
   if (restListEl) {
     restListEl.textContent = ""; // Clear safely
+  } else {
+    log.warn('renderRows: restListEl not found!');
   }
   if (scrollWrapper) {
     scrollWrapper.hidden = true;
+  } else {
+    log.warn('renderRows: scrollWrapper not found!');
   }
   
   if (!items || items.length === 0) {
+    log.debug('renderRows: items is empty, showing "No scores yet."');
     if (statusEl) statusEl.textContent = "No scores yet.";
     return null;
   }
@@ -401,16 +448,38 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   const effectiveItems = items.slice(0, limit);
   const topCount = Math.min(10, effectiveItems.length);
   
+  log.debug('renderRows: rendering', {
+    effectiveItemsCount: effectiveItems.length,
+    topCount,
+    restCount: effectiveItems.length - topCount
+  });
+  
   // Build top items using DocumentFragment
   if (topListEl && topCount > 0) {
     const fragmentTop = document.createDocumentFragment();
     // Use simple for-loop for better performance in hot path
     for (let i = 0; i < topCount; i++) {
       const entry = effectiveItems[i];
-      const isMe = isMyEntry ? isMyEntry(entry) : false;
-      fragmentTop.appendChild(createListItem(entry, i + 1, isMe));
+      if (!entry) {
+        log.warn(`renderRows: entry at index ${i} is null/undefined`);
+        continue;
+      }
+      try {
+        const isMe = isMyEntry ? isMyEntry(entry) : false;
+        const listItem = createListItem(entry, i + 1, isMe);
+        fragmentTop.appendChild(listItem);
+      } catch (error) {
+        log.error(`renderRows: failed to create list item for entry at index ${i}:`, error);
+      }
     }
-    topListEl.appendChild(fragmentTop);
+    if (fragmentTop.childNodes.length > 0) {
+      topListEl.appendChild(fragmentTop);
+      log.debug(`renderRows: appended ${fragmentTop.childNodes.length} top items`);
+    } else {
+      log.warn('renderRows: no top items were created');
+    }
+  } else if (topCount > 0 && !topListEl) {
+    log.error('renderRows: topCount > 0 but topListEl is missing!');
   }
 
   // Build rest items using DocumentFragment
@@ -419,12 +488,38 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
     const fragmentRest = document.createDocumentFragment();
     for (let i = 0; i < restCount; i++) {
       const entry = effectiveItems[topCount + i];
-      const fallbackRank = topCount + i + 1;
-      const isMe = isMyEntry ? isMyEntry(entry) : false;
-      fragmentRest.appendChild(createListItem(entry, fallbackRank, isMe));
+      if (!entry) {
+        log.warn(`renderRows: entry at index ${topCount + i} is null/undefined`);
+        continue;
+      }
+      try {
+        const fallbackRank = topCount + i + 1;
+        const isMe = isMyEntry ? isMyEntry(entry) : false;
+        const listItem = createListItem(entry, fallbackRank, isMe);
+        fragmentRest.appendChild(listItem);
+      } catch (error) {
+        log.error(`renderRows: failed to create list item for entry at index ${topCount + i}:`, error);
+      }
     }
-    restListEl.appendChild(fragmentRest);
-    scrollWrapper.hidden = false;
+    if (fragmentRest.childNodes.length > 0) {
+      restListEl.appendChild(fragmentRest);
+      scrollWrapper.hidden = false;
+      log.debug(`renderRows: appended ${fragmentRest.childNodes.length} rest items`);
+    } else {
+      log.warn('renderRows: no rest items were created');
+    }
+  } else if (restCount > 0 && (!restListEl || !scrollWrapper)) {
+    log.error('renderRows: restCount > 0 but restListEl or scrollWrapper is missing!', {
+      hasRestListEl: !!restListEl,
+      hasScrollWrapper: !!scrollWrapper
+    });
+  }
+  
+  if (topCount === 0 && restCount === 0 && effectiveItems.length > 0) {
+    log.warn('renderRows: effectiveItems.length > 0 but topCount and restCount are both 0!', {
+      effectiveItemsLength: effectiveItems.length,
+      limit
+    });
   }
 
   return {
@@ -530,4 +625,3 @@ export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }
     scrollWrapper.hidden = false;
   }
 }
-

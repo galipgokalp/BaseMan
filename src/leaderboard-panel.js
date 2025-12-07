@@ -55,6 +55,25 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     closeBtn: null, // Lazy-init
   };
   
+  // Debug: Log DOM element detection
+  log.debug('Leaderboard panel DOM elements:', {
+    hasPanel: !!panel,
+    hasStatusEl: !!view.statusEl,
+    hasTopListEl: !!view.topListEl,
+    hasRestListEl: !!view.restListEl,
+    hasScrollWrapper: !!view.scrollWrapper
+  });
+  
+  if (!view.topListEl) {
+    log.error('topListEl not found! Check HTML for [data-list-top] element');
+  }
+  if (!view.restListEl) {
+    log.error('restListEl not found! Check HTML for [data-list-rest] element');
+  }
+  if (!view.scrollWrapper) {
+    log.error('scrollWrapper not found! Check HTML for [data-scroll-wrapper] element');
+  }
+  
   // Shorthand references for backward compatibility
   const statusEl = view.statusEl;
   const topListEl = view.topListEl;
@@ -267,8 +286,17 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     await loadLeaderboard({
       limit,
       onSuccess: (items, debugInfo, isDebugMode) => {
+        log.debug('loadLeaderboard onSuccess:', {
+          itemsCount: items?.length || 0,
+          hasTopListEl: !!topListEl,
+          hasRestListEl: !!restListEl,
+          hasScrollWrapper: !!scrollWrapper,
+          hasStatusEl: !!statusEl
+        });
+        
         // Phase 6: Handle empty state
         if (!items || items.length === 0) {
+          log.debug('loadLeaderboard: items empty, rendering empty state');
           renderEmpty({ topListEl, restListEl, scrollWrapper, statusEl });
           setAllEntries([]);
           updateMyRankSummary([]);
@@ -277,6 +305,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
         }
         
         setAllEntries(items);
+        log.debug('loadLeaderboard: calling renderRows with', items.length, 'items');
         const rendered = renderRows(items, {
           topListEl,
           restListEl,
@@ -285,6 +314,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
           limit,
           isMyEntry // Pass the function to renderRows
         });
+        log.debug('loadLeaderboard: renderRows returned', rendered);
         
         // Update My Rank summary
         updateMyRankSummary(items);
