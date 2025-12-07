@@ -374,9 +374,17 @@ async function forwardToPaymaster(payload, authMode, overrideHeaders) {
 }
 
 export default async function handler(req, res) {
+  // Handle OPTIONS for CORS preflight
+  if (req.method === "OPTIONS") {
+    res.setHeader("Allow", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.status(200).end();
+  }
+  
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
+    res.setHeader("Allow", "POST, OPTIONS");
+    return res.status(405).json({ error: "Method not allowed. Use POST." });
   }
 
   if (!env('PAYMASTER_SERVICE_URL') && !env('PAYMASTER_URL')) {
