@@ -146,8 +146,7 @@
 /* Panel Headers - Fixed (synchronized across all panels) */
 .leaderboard-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: var(--spacing-sm);
   padding-bottom: var(--spacing-sm);
   border-bottom: 1px solid var(--color-border);
@@ -166,6 +165,30 @@
   margin-right: 0;
   margin-top: 0;
   margin-bottom: var(--spacing-md);
+}
+
+.leaderboard-header-top {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.leaderboard-header-bottom {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.leaderboard-header-bottom .leaderboard-my-rank {
+  flex: 1;
+  margin-top: 0;
+}
+
+.leaderboard-header-bottom .leaderboard-search-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0;
 }
 
 .leaderboard-search-btn {
@@ -700,7 +723,8 @@
 
 /* ===== My Rank Card ===== */
 .leaderboard-my-rank {
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 0;
+  margin-top: var(--spacing-xs);
   flex-shrink: 0;
 }
 
@@ -835,27 +859,76 @@
 
 /* Mobile responsive adjustments */
 @media (max-width: 480px) {
+  .leaderboard-header-bottom {
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .leaderboard-header-bottom .leaderboard-search-btn {
+    align-self: center;
+    padding: 6px;
+  }
+
   .leaderboard-my-rank-inner {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    gap: var(--spacing-xs);
+    padding: 6px 8px;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   .leaderboard-my-rank-position {
-    font-size: 1rem;
-    min-width: 40px;
+    font-size: 0.9rem;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+
+  .leaderboard-my-rank-meta {
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
+    overflow: hidden;
   }
 
   .leaderboard-my-rank-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    line-height: 1.3;
   }
 
   .leaderboard-my-rank-score {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
   }
 
   .leaderboard-my-rank-cta {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}
+
+/* Extra small screens - further optimization */
+@media (max-width: 360px) {
+  .leaderboard-my-rank-inner {
+    padding: 5px 6px;
+    gap: 4px;
+  }
+
+  .leaderboard-my-rank-position {
+    font-size: 0.85rem;
+    min-width: 32px;
+  }
+
+  .leaderboard-my-rank-label {
+    font-size: 0.65rem;
+  }
+
+  .leaderboard-my-rank-score {
     font-size: 0.75rem;
-    padding: 3px 6px;
+  }
+
+  .leaderboard-my-rank-cta {
+    font-size: 0.65rem;
+    padding: 2px 4px;
   }
 }
 

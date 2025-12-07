@@ -39,17 +39,21 @@
       <section id="leaderboard-panel" class="leaderboard-panel" data-limit="100" hidden>
         <button type="button" class="leaderboard-close" data-close>×</button>
         <header class="leaderboard-header">
-          <span class="leaderboard-title">PAC-BOARD</span>
-          <button type="button" class="leaderboard-search-btn" data-search-btn title="Search user">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
+          <div class="leaderboard-header-top">
+            <span class="leaderboard-title">PAC-BOARD</span>
+          </div>
+          <div class="leaderboard-header-bottom">
+            <div class="leaderboard-my-rank" data-my-rank-summary hidden></div>
+            <button type="button" class="leaderboard-search-btn" data-search-btn title="Search user">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
         </header>
         <div class="leaderboard-body">
           <div class="leaderboard-status" data-status>Loading leaderboard…</div>
-          <div class="leaderboard-my-rank" data-my-rank-summary hidden></div>
           <ol class="leaderboard-list leaderboard-list-top" data-list-top></ol>
           <div class="leaderboard-scroll" data-scroll-wrapper>
             <ol class="leaderboard-list leaderboard-list-rest" data-list-rest></ol>
