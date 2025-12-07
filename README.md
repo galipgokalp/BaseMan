@@ -1,256 +1,1122 @@
-BaseMan
-=======
-A historical tribute and accurate remake of the original BaseMan arcade game
+# BaseMan
 
-Inspired by [The Pac-Man Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html)
+**BaseMan** is a production-ready, on-chain Pac-Man style arcade game integrated with the **Base** blockchain and **Farcaster MiniApps**. Players compete globally, submit scores on-chain, and interact seamlessly through Base App and Farcaster mobile applications.
 
-### Under Construction
+---
 
-- Sound
-- Cutscenes
-- 2 Player switch-off
+## Table of Contents
 
-Contact me at shaunewilliams@gmail.com
+- [Introduction](#introduction--what-is-baseman)
+- [Key Features](#key-features)
+- [MiniApp Overview](#miniapp-overview-base-app--farcaster-integration)
+- [Architecture Overview](#architecture-overview)
+- [Quickstart](#quickstart-local-development)
+- [Environment Variables](#environment-variables)
+- [Smart Contract Details](#smart-contract-details)
+- [Score Submission Flow](#score-submission-flow)
+- [Leaderboard System](#leaderboard-system)
+- [MiniApp Authentication](#miniapp-authentication)
+- [Paymaster Integration](#paymaster-integration)
+- [Development Scripts](#development-scripts)
+- [Deployment Notes](#deployment-notes)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
-License
--------
+---
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the **GNU General Public License Version 3** as 
-published by the Free Software Foundation.
+## Introduction — What is BaseMan?
 
-Play
-----
+BaseMan is a fully functional Pac-Man arcade game that combines classic gameplay with modern blockchain technology. Built specifically for the Base ecosystem, it enables players to:
 
-You can play the game on all canvas-enabled browsers.  **Touch controls** are
-enabled for mobile browsers.  The game is **resolution-independent** and smoothly scales to
-fit the size of any screen.  **Performance** may increase by shrinking the window or zooming in with your browser.
+- **Play authentic Pac-Man gameplay** with accurate physics, ghost AI, and arcade mechanics
+- **Submit scores on-chain** to Base Mainnet (8453) or Base Sepolia (84532)
+- **Compete on a global leaderboard** with real-time rankings and profile enrichment
+- **Authenticate seamlessly** via Farcaster Quick Auth or Base App wallet integration
+- **Experience gasless transactions** through CDP Paymaster integration (configurable)
 
-### Main Controls
+The game runs as a **MiniApp** within Farcaster and Base App mobile applications, providing a native mobile gaming experience with automatic wallet connection and zero-friction onboarding.
 
-- **swipe**: steer pacman on mobile browsers
-- **arrows**: steer pacman
-- **end**: pause the game
-- **escape**: open in-game menu
+---
 
-### Confirmed Desktop Browers
+## Key Features
 
-- Safari
-- Firefox
-- Chrome
+### 🎮 Game Features
 
-### Confirmed Mobile Devices
+- **Multiple Game Modes**: Pac-Man, Ms. Pac-Man, Cookie-Man, and Crazy Otto
+- **Turbo Mode**: High-speed gameplay variant
+- **Practice Mode**: Slow-motion, rewind, and invincibility options
+- **Learn Mode**: Visualize ghost AI behavior patterns
+- **Resolution-Independent**: Scales perfectly to any screen size
+- **Touch Controls**: Full mobile swipe support
 
-- [iPad and iPhone (Mobile Safari)](http://www.atariage.com/forums/topic/202594-html5-pac-man/)
-- Samsung Galaxy Tablet 7 (Firefox Beta)
-- Nexus 7 (Chrome)
+### ⛓️ Blockchain Features
 
-Games
------
+- **On-Chain Score Storage**: All scores permanently recorded on Base blockchain
+- **EIP-712 v2 Signing**: Secure, replay-protected score submissions
+- **Gasless Transactions**: Optional Paymaster integration for sponsored transactions
+- **Smart Contract Registry**: `BaseManRegistry.sol` manages scores and quests
+- **Multi-Chain Support**: Base Mainnet and Base Sepolia
 
-Each of the following games are playable from the main menu.
+### 📊 Leaderboard Features
 
-![Montage](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/montage2.png)
+- **Global Rankings**: Real-time leaderboard with total score aggregation
+- **Profile Enrichment**: Farcaster profile integration (avatar, username, display name)
+- **Redis Caching**: Persistent profile storage for fast lookups
+- **CDP SQL API**: Primary data source with RPC fallback
+- **Search Functionality**: Find players by username, display name, or address
 
-- **Pac-Man**: 1980 original arcade by Namco.
-- **Ms. Pac-Man**: 1981 Pac-Man modification by GCC/Midway.
-- **Crazy Otto**: GCC's unreleased, in-house version of Ms. Pac-Man before it was sold to Midway. ([See video](http://www.youtube.com/watch?v=CEKAqWk-Tp4))
-- **Cookie-Man**: a brand new version of Ms. Pac-Man with a sophisticated **procedural map generator**.
+### 🔐 Security Features
 
-### Turbo Mode
+- **Replay Protection**: Nonce-based request deduplication
+- **Signature Verification**: EIP-712 v2 typed data signing
+- **Rate Limiting**: API endpoint protection
+- **Input Validation**: Comprehensive score and quest validation
+- **Authorizer Pattern**: Backend-controlled score signing authority
 
-Each game has an alternate mode called Turbo (a.k.a. speedy mode).  This is
-a popular hardware modification of the game found in many of the original
-arcade cabinets.  In this mode, Pac-Man travels about twice as fast (same speed as the
-disembodied eyes of the ghosts) and is not slowed down when eating pellets.
+---
 
-### High Scores
+## MiniApp Overview (Base App + Farcaster Integration)
 
-High scores for each game (normal and turbo separately) are stored on your
-local machine by your browser.
+BaseMan is designed as a **MiniApp** that runs natively within:
 
-Learn Mode
-----------
+- **Farcaster Mobile App**: Full integration with Farcaster SDK
+- **Base App**: Native Base ecosystem MiniApp support
 
-Learn Mode allows you to visualize the behaviors of the ghosts. (The colored
-square represents the ghost bait.)
+### MiniApp Capabilities
 
-![Learn](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/learn.png)
+- **Automatic Wallet Connection**: No user prompts required on app launch
+- **Seamless Authentication**: Quick Auth integration for instant access
+- **Native UI Integration**: Bottom navigation, panels, and modals
+- **Webhook Support**: Real-time event handling via `/api/miniapp-webhook`
+- **Manifest-Driven**: Configuration via `config/manifest.base.json`
 
-Practice Mode
--------------
+### Manifest Configuration
 
-This mode allows you to practice the game with special features.  You can go
-into **slow-motion** or **rewind time** with the special onscreen buttons or
-the hotkeys listed below.  (The time-manipulation controls and design were
-borrowed from the game [Braid](http://braid-game.com/)).  You can also turn
-on **invincibility** or **ghost visualizers** from the menu.
+The MiniApp manifest is generated from `config/manifest.base.json` and includes:
 
-![Practice](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/practice.png)
+- **Account Association**: Farcaster domain verification
+- **Base Builder**: Analytics and allowed addresses
+- **Content Security Policy**: Strict resource loading rules
+- **Required Chains**: Base Mainnet (8453) and Base Sepolia (84532)
+- **Required Capabilities**: `actions.ready`, `wallet.getEthereumProvider`
+
+Generate the manifest:
+
+```bash
+npm run manifest:generate
+```
 
-### Practice Controls
-
-- **shift**: hold down to rewind (a la Braid)
-- **1**: hold down to slow down the game to 0.5x
-- **2**: hold down to slow down the game to 0.25x
-- **o**: toggle pacman turbo mode
-- **p**: toggle pacman attract mode (autoplay)
-- **i**: toggle pacman invincibility
-- **n**: go to next level
-- **q,w,e,r,t**: toggle target graphic for blinky, pinky, inky, clyde, and pacman, respectively.
-- **a,s,d,f,g**: toggle path graphic for blinky, pinky, inky, clyde, and pacman, respectively.
-
-Procedurally-Generated Maps
----------------------------
-
-In the **Cookie-Man** game mode, the mazes change as often as they do in Ms.
-Pac-Man, but are **procedurally generated**.  Each level has a pre-defined
-color palette, granting an element of consistency to the random structure of
-the mazes.
-
-![Procedural](https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/procedural.png)
-
-### Algorithm Description
-
-The mazes are built carefully to closely match design patterns deduced from
-the original maps found in Pac-Man and Ms. Pac-Man.
-
-Accuracy
---------
-
-It is a goal of this project to stay reasonably accurate to the original
-arcade game.  The current accuracy is due to the work of reverse-engineers
-Jamey Pittman and Bart Grantham.
-
-Currently, the coordinate space, movement physics, ghost behavior, actor
-speeds, timers, and update rate match that of the original arcade game.
-
-### Inaccuracies
-
-The **timings** of certain non-critical events such as score display pauses
-and map-blinking animations are currently approximated.
-
-Unfortunately, you **cannot use patterns from the original Pac-Man** because
-of complications with random number generators.
-
-Also, the **collision detection** is tighter than the original (checked twice
-as often) to prevent pass-through "bugs".
-
-I also chose to leave out the **overflow bug** which shifts a ghost target when
-Pac-Man is facing up, [detailed here](http://donhodges.com/pacman_pinky_explanation.htm).
-
-### Report/Fix Bugs
-
-Feel free to report any inaccuracies that may detract or simply annoy.  Any
-reverse-engineers willing to contribute their expertise to this project would
-be a big help as well!
-
-Navigating the Repository
--------------------------
-
-- all javascript source files are located in the "src/" directory
-- `"pacman.js"` dosyası `src/` altındaki JavaScript dosyalarının birleştirilmiş halidir; kaynak kodda değişiklik yaptıktan sonra `npm run game:build` komutu ile yeniden oluşturulur.
-- "debug.htm" displays the game by using the "src/*.js" files
-- "index.htm" displays the game by using the "pacman.js" file only
-- the "fruit" directory contains notes and diagrams on Ms. Pac-Man fruit paths
-- the "mapgen" directory contains notes, diagrams, and experiments on procedural Pac-Man maze generation
-- the "sprites" directory contains references sprite sheets and an atlas viewer "atlas.htm" for viewing the scalable game sprites.
-- the "font" directory contains font resources used in the game.
-
-### Onchain Tools Belgeleri
-
-Coinbase Developer Docs kapsamındaki **ONCHAIN TOOLS** başlıklarıyla hizalanan çalışma planına `docs/onchain-tools/` dizininden ulaşabilirsiniz. Her kategori (Paymaster, Appchains, Data alt başlıkları ve AgentKit) için ayrı dokümanlar hazırlanmıştır.
-
-Credits
--------
-
-### Reverse-Engineers
-
-Thanks to **Jamey Pittman** for compiling [The Pac-Man
-Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html) from his own
-research and those of other reverse-engineers, notably 'Dav' and 'JamieVegas'
-from [this Atari Age forum
-thread](http://www.atariage.com/forums/topic/68707-pac-man-ghost-ai-question/).
-Further thanks to Jamey Pittman for replying to my arcade
-implementation-specific questions with some very elaborate details to meet the
-accuracy requirements of this project.
-
-Thanks to **Bart Grantham** for sharing his expert knowledge on Ms. Pac-Man's
-internals, providing me with an annotated disassembly and notes on how fruit
-paths work in meticulous detail.
-
-### Original Games
-
-Thanks to the original Pac-Man team at Namco for creating such an enduring
-game.  And thanks to the MAME team for their arcade emulator and very helpful
-debugger.
-
-Thanks to the Ms. Pac-Man team at GCC for improving Pac-Man with a variety of
-aesthetic maps that I based the map generator on.
-
-Thanks to Jonathan Blow for creating the rewind mechanic in
-[Braid](http://braid-game.com/) which inspired the same mechanic in my
-project.  Further thanks for presenting the implementation details in [this
-talk](https://store.cmpgame.com/product/5900/The-Implementation-of-Rewind-in-braid)
-which helped in my own implementation.
-
-### Art
-
-Thanks to Tang Yongfa and their cookie monster Pac-Man design at [threadless
-website](http://www.threadless.com/product/2362/Cookies) which I used as the
-character in the random maze mode.
-
-Links to Public Feedback
-------------------------
-
-- http://www.reddit.com/r/programming/comments/z0tuv/historical_tribute_and_accurate_remake_of_the/
-- http://www.reddit.com/r/javascript/comments/z7bc0/very_polished_javascript_remake_of_pac_man/
-- http://www.reddit.com/r/webdev/comments/z85lj/quite_accurate_remake_of_pacman_in_js/
-- http://news.ycombinator.com/item?id=4448539
-- http://news.ycombinator.com/item?id=4464006
-- http://www.lockergnome.com/news/2012/09/02/play-pac-man-online-for-free-no-download/
-- http://www.atariage.com/forums/topic/202594-html5-pac-man/
-- http://boards.straightdope.com/sdmb/showthread.php?t=664081
-- http://www.classicarcadegaming.com/forums/index.php?topic=4563.0
-- http://news.dice.com/2012/09/04/pac-man-online-open-source/
-
-[1]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/montage2.png
-[2]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/learn.png
-[3]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/practice.png
-[4]: https://bitbucket.org/shaunew/pac-man/raw/4714800233a9/shots/procedural.png
-
-## Deployment
-
-Vercel gibi ortamlara doğrudan deploy için, dosyalar kök dizine taşındı.
-
-**Not:** Deploy öncesinde `npm run game:build` komutunu çalıştırarak `pacman.js` dosyasını güncellediğinizden emin olun. Vercel statik servis yaptığı için komut çıktılarını repo kökünde bulundurmak gerekir; publish directory "/" (kök) kalmalıdır.
-
-## Base + Farcaster Integration (Checklist)
-
-- Env hazırlığı (.env → Vercel):
-  - Ağ/Registry: `REGISTRY_DEFAULT_TARGET`, `REGISTRY_CHAIN_ID`, `NEXT_PUBLIC_REGISTRY_ADDRESS`, `BASE_SEPOLIA_REGISTRY_ADDRESS`
-  - İmzalama: `BASE_SEPOLIA_SCORE_SIGNER_PRIVATE_KEY` (dedicated signer), `SCORE_SIGNER_PRIVATE_KEY` (healthcheck)
-  - RPC/Paymaster/Bundler: `BASE_SEPOLIA_RPC_URL`, `BASE_SEPOLIA_RPC_HEADERS`, `PAYMASTER_SERVICE_URL`, `PAYMASTER_API_KEY`, `NEXT_PUBLIC_BUNDLER_URL`, `PAYMASTER_ENFORCE_ALLOWLIST`
-  - Data/SQL: `CDP_SQL_API_KEY`, `CDP_SQL_API_BASE_URL`
-  - Leaderboard RPC fallback: `ADDRESS_HISTORY_RPC_URL` (header’sız RPC), opsiyonel `LEADERBOARD_FALLBACK_WINDOW_BLOCKS`, `LEADERBOARD_FALLBACK_CHUNK_SIZE`
-  - Farcaster profil (ops.): `FARCASTER_PROFILE_PROVIDER`, `NEYNAR_API_KEY`
-
-- Build/Run:
-  - Yerel: `npm run game:build && npm run dev`
-  - Manifest üret: `npm run manifest:generate` → `.well-known/farcaster.json`
-
-- Testler (yerel veya prod):
-  - Manifest: `curl -sS http://127.0.0.1:5173/.well-known/farcaster.json`
-  - Skor imzası: `POST /api/score-sign`
-  - Leaderboard: `GET /api/leaderboard?limit=5`
-
-- Notlar:
-  - Leaderboard, CDP SQL ingest gecikmesi olduğunda RPC fallback ile son N bloktan event okur.
-  - Production’da deployer private key tutmayın; dedicated signer kullanın ve authorizer’ı bu adrese ayarlayın.
-
-## Mini App Manifest ve Base.dev Entegrasyonu
-
-- `.well-known/farcaster.json` artık `config/manifest.base.json` dosyasından üretiliyor. Manifestteki alan yapısı Farcaster Mini Apps dokümantasyonunda (`https://miniapps.farcaster.xyz/`) ve Base Data Driven Growth rehberinde (`https://docs.base.org/mini-apps/technical-guides/data-driven-growth`) tanımlanan gereksinimlerle uyumludur.
-- Manifesti güncellemek için `config/manifest.base.json` dosyasını düzenleyin ve ardından `npm run manifest:generate` komutunu çalıştırın. Komut gereksinim alanlarını doğrular ve güncel manifesti `.well-known/farcaster.json` içinde oluşturur.
-- Base.dev analitiklerini kullanmak için Base hesabınızla ilişkili cüzdan adreslerini `baseBuilder.allowedAddresses` listesine ekleyin. Dağıtım ortamında farklı adresler kullanmak istiyorsanız komutu çağırmadan önce `BASE_BUILDER_ALLOWED_ADDRESSES` ortam değişkenini virgülle ayrılmış biçimde set edebilirsiniz.
-- Manifestteki `accountAssociation.header/payload/signature` alanları Farcaster domain doğrulaması için zorunludur. Değerleri yenilerken önce Base.dev/Farcaster araçlarıyla yeni imzaları üretip `config/manifest.base.json` dosyasına yazın.
+This creates `.well-known/farcaster.json` used by Farcaster and Base App platforms.
+
+---
+
+## Architecture Overview
+
+BaseMan follows a modular architecture with clear separation between game logic, blockchain integration, and API services.
+
+### Game Engine Layer
+
+**Location**: `src/` directory, bundled into `pacman.js`
+
+**Key Modules**:
+- `src/game.js` - Core game loop and state management
+- `src/Actor.js` - Base class for game entities
+- `src/Ghost.js` - Ghost AI implementation
+- `src/Player.js` - Player control and movement
+- `src/Map.js` - Maze generation and collision detection
+- `src/executive.js` - Game state orchestration
+- `src/hud.js` - Heads-up display and UI overlays
+
+**Build Process**:
+```bash
+npm run game:build  # Bundles src/*.js → pacman.js
+```
+
+### UI Layer
+
+**Components**:
+- `src/leaderboard-panel.js` - Leaderboard display and search
+- `src/profile-panel.js` - User profile and on-chain stats
+- `src/wallet-panel.js` - Wallet connection status
+- `src/bottom-nav.js` - Mobile navigation bar
+- `src/ui/connect-menu-v2.jsx` - React-based connection UI
+
+**Styling**:
+- `styles/main.css` - Core game styles
+- `styles/modern-theme.css` - Modern UI theme
+- `styles/panels.css` - Panel-specific styles
+
+### API Layer
+
+**Location**: `api/` directory (Vercel Serverless Functions)
+
+**Endpoints**:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/leaderboard` | GET | Global leaderboard with profile enrichment |
+| `/api/score-sign` | POST | EIP-712 v2 score signature generation |
+| `/api/quest-sign` | POST | Quest completion signature generation |
+| `/api/miniapp-auth` | GET | MiniApp authentication verification |
+| `/api/miniapp-webhook` | POST | Farcaster webhook handler |
+| `/api/paymaster-proxy` | POST | Paymaster transaction sponsorship |
+| `/api/address-history` | GET | On-chain transaction history |
+| `/api/token-balances` | GET | ERC-20 token balance queries |
+| `/api/app-log` | POST | Error logging and telemetry |
+
+**Supporting Libraries**:
+- `api/_lib/registry.js` - Smart contract interaction utilities
+- `api/_lib/farcaster-profiles.js` - Neynar API integration
+- `api/_lib/redis-profiles.js` - Redis profile caching
+- `api/_lib/miniapp-auth-verify.js` - Quick Auth verification
+- `api/_lib/cdp.js` - CDP SDK integration
+
+### On-chain Layer (Contract Design)
+
+**Smart Contract**: `contracts/BaseManRegistry.sol`
+
+**Key Properties**:
+
+```solidity
+struct Score {
+    uint256 highScore;      // Best single-run score
+    uint256 totalScore;     // Cumulative score across all runs
+    uint256 lastUpdatedAt;  // Timestamp of last update
+}
+
+mapping(address => Score) private _scores;
+mapping(bytes32 => bool) public usedRequests;  // Replay protection
+address public authorizer;  // Backend signer address
+bool public paused;  // Emergency pause mechanism
+```
+
+**Functions**:
+- `submitScore()` - Submit a new score with EIP-712 v2 signature
+- `completeQuest()` - Mark a quest as completed
+- `getScore(address)` - Query player's score data
+- `setAuthorizer(address)` - Update backend signer (owner only)
+- `pause() / unpause()` - Emergency controls (owner only)
+
+**Events**:
+- `ScoreSubmitted` - Emitted when high score is broken
+- `ScoreAdded` - Emitted on every score submission
+- `QuestCompleted` - Emitted when quest is completed
+
+### Data Flow Diagram
+
+```
+┌─────────────────┐
+│  Mobile App     │
+│  (Farcaster/    │
+│   Base App)     │
+└────────┬─────────┘
+         │
+         │ SDK Context
+         ▼
+┌─────────────────┐
+│  Frontend       │
+│  (index.html)   │
+│  - Game Engine  │
+│  - UI Panels    │
+└────────┬─────────┘
+         │
+         │ HTTP/JSON
+         ▼
+┌─────────────────┐      ┌──────────────────┐
+│  API Layer      │◄─────►│  External APIs   │
+│  (Vercel)       │      │  - Neynar API    │
+│  - score-sign   │      │  - CDP SQL API   │
+│  - leaderboard  │      │  - Redis Cache   │
+│  - paymaster    │      └──────────────────┘
+└────────┬─────────┘
+         │
+         │ EIP-712 v2
+         │ Signature
+         ▼
+┌─────────────────┐
+│  Smart Contract │
+│  BaseManRegistry│
+│  (Base Chain)   │
+└─────────────────┘
+         │
+         │ Events
+         ▼
+┌─────────────────┐
+│  CDP SQL API    │
+│  (Indexing)     │
+└─────────────────┘
+```
+
+---
+
+## Quickstart (Local Development)
+
+### Prerequisites
+
+- **Node.js**: Version 20.x (see `package.json` engines)
+- **npm**: Version 9.x or later
+- **Git**: For cloning the repository
+
+### Installation
+
+1. **Clone the repository**:
+```bash
+git clone https://github.com/galipgokalp/BaseMan.git
+cd BaseMan
+```
+
+2. **Install dependencies**:
+```bash
+npm install
+```
+
+3. **Build the game bundle**:
+```bash
+npm run game:build
+```
+
+This creates `pacman.js` from source files in `src/`.
+
+4. **Set up environment variables**:
+```bash
+cp .env.example .env  # If .env.example exists
+# Or create .env manually with required variables (see Environment Variables section)
+```
+
+5. **Start the development server**:
+```bash
+npm run dev
+```
+
+6. **Access the application**:
+```
+http://localhost:5173
+```
+
+### Development Workflow
+
+- **Game Development**: Edit files in `src/`, then run `npm run game:build`
+- **API Development**: Edit files in `api/`, changes hot-reload in dev server
+- **Contract Development**: Use Hardhat scripts (see `package.json` scripts)
+
+### Testing
+
+Run the test suite:
+
+```bash
+npm run test:all        # Run all tests
+npm run test:phase5     # Phase 5 tests
+npm run test:phase6     # Phase 6 tests
+npm run self:check      # Self-check validation
+```
+
+---
+
+## Environment Variables
+
+BaseMan requires comprehensive environment configuration for blockchain integration, API services, and MiniApp functionality.
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `REGISTRY_CHAIN_ID` | Default chain ID for registry | `84532` (Base Sepolia) |
+| `BASE_SEPOLIA_REGISTRY_CHAIN_ID` | Base Sepolia chain ID | `84532` |
+| `BASE_MAINNET_REGISTRY` | BaseManRegistry address on Mainnet | `0x...` |
+| `BASE_SEPOLIA_REGISTRY` | BaseManRegistry address on Sepolia | `0x...` |
+| `BASE_MAINNET_RPC_URL` | RPC endpoint for Base Mainnet | `https://mainnet.base.org` |
+| `BASE_SEPOLIA_RPC_URL` | RPC endpoint for Base Sepolia | `https://sepolia.base.org` |
+| `CDP_API_KEY_ID` | CDP API key identifier | `your-key-id` |
+| `CDP_API_KEY_SECRET` | CDP API key secret | `your-key-secret` |
+| `CDP_PAYMASTER_URL` | Paymaster service URL | `https://paymaster.cdp.coinbase.com/...` |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL | `https://...redis.upstash.io` |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token | `your-token` |
+| `MINIAPP_APP_ID` | Farcaster MiniApp app ID | `your-app-id` |
+| `MINIAPP_WEBHOOK_SECRET` | Webhook secret for verification | `your-secret` |
+| `NEXT_PUBLIC_BASE_URL` | Public base URL of deployment | `https://base-man.vercel.app` |
+| `NEXT_PUBLIC_BASEMAN_ENV` | Environment identifier | `production` or `development` |
+| `NEXT_PUBLIC_CDP_API_BASE_URL` | CDP API base URL | `https://api.cdp.coinbase.com` |
+
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CDP_SQL_API_KEY` | CDP SQL API key for leaderboard | (empty) |
+| `CDP_SQL_API_BASE_URL` | CDP SQL API base URL | `https://api.cdp.coinbase.com` |
+| `NEYNAR_API_KEY` | Neynar API key for profile enrichment | (empty) |
+| `FARCASTER_PROFILE_PROVIDER` | Profile provider (`neynar` or `none`) | (empty) |
+| `PAYMASTER_ENFORCE_ALLOWLIST` | Enforce paymaster allowlist | `true` |
+| `LEADERBOARD_DISABLE_PROFILE_ENRICHMENT` | Disable profile enrichment | `false` |
+| `LEADERBOARD_RPC_URL` | Custom RPC for leaderboard fallback | (uses chain defaults) |
+| `LEADERBOARD_FALLBACK_WINDOW_BLOCKS` | RPC fallback window size | `50000` |
+| `LEADERBOARD_FALLBACK_CHUNK_SIZE` | RPC fallback chunk size | `400` |
+| `SCORE_SIGNER_PRIVATE_KEY` | Backend signer private key | (required for score-sign) |
+| `BASE_SEPOLIA_SCORE_SIGNER_PRIVATE_KEY` | Sepolia-specific signer | (optional) |
+
+### Example `.env` File
+
+```bash
+# Chain Configuration
+REGISTRY_CHAIN_ID=84532
+BASE_SEPOLIA_REGISTRY_CHAIN_ID=84532
+BASE_MAINNET_REGISTRY=0x3c52dEd86f9E56663cA680D773B64f8f62380cBc
+BASE_SEPOLIA_REGISTRY=0x3c52dEd86f9E56663cA680D773B64f8f62380cBc
+
+# RPC Endpoints
+BASE_MAINNET_RPC_URL=https://mainnet.base.org
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+
+# CDP Configuration
+CDP_API_KEY_ID=your-cdp-key-id
+CDP_API_KEY_SECRET=your-cdp-key-secret
+CDP_PAYMASTER_URL=https://paymaster.cdp.coinbase.com/v1/...
+CDP_SQL_API_KEY=your-sql-api-key
+CDP_SQL_API_BASE_URL=https://api.cdp.coinbase.com
+NEXT_PUBLIC_CDP_API_BASE_URL=https://api.cdp.coinbase.com
+
+# Redis (Upstash)
+UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-redis-token
+
+# MiniApp Configuration
+MINIAPP_APP_ID=your-farcaster-app-id
+MINIAPP_WEBHOOK_SECRET=your-webhook-secret
+NEXT_PUBLIC_BASE_URL=https://base-man.vercel.app
+NEXT_PUBLIC_BASEMAN_ENV=production
+
+# Profile Enrichment (Optional)
+NEYNAR_API_KEY=your-neynar-api-key
+FARCASTER_PROFILE_PROVIDER=neynar
+
+# Backend Signer (Required for score-sign endpoint)
+SCORE_SIGNER_PRIVATE_KEY=0x...
+BASE_SEPOLIA_SCORE_SIGNER_PRIVATE_KEY=0x...
+
+# Paymaster Settings
+PAYMASTER_ENFORCE_ALLOWLIST=true
+```
+
+### Environment Variable Security
+
+- **Never commit `.env` files** to version control
+- **Use Vercel Environment Variables** for production deployments
+- **Rotate secrets regularly**, especially signer private keys
+- **Use separate signer keys** for Mainnet and Sepolia
+- **Restrict CDP API keys** to required permissions only
+
+---
+
+## Smart Contract Details
+
+### BaseManRegistry.sol Overview
+
+The `BaseManRegistry` contract is the on-chain storage layer for all game scores and quest completions. It uses **EIP-712 v2** typed data signing for secure, replay-protected submissions.
+
+**Contract Addresses**:
+- **Base Mainnet**: `0x3c52dEd86f9E56663cA680D773B64f8f62380cBc`
+- **Base Sepolia**: `0x3c52dEd86f9E56663cA680D773B64f8f62380cBc` (example)
+
+### Score Model
+
+Each player's score is stored as a `Score` struct:
+
+```solidity
+struct Score {
+    uint256 highScore;      // Best single-run score (personal best)
+    uint256 totalScore;     // Cumulative score (sum of all runs)
+    uint256 lastUpdatedAt;  // Unix timestamp of last update
+}
+```
+
+**Score Tracking Logic**:
+- **High Score**: Updated only when a new single-run score exceeds the previous best
+- **Total Score**: Incremented by the run score on every submission
+- **Last Updated**: Set to `block.timestamp` on each submission
+
+### EIP-712 v2 Signing Flow
+
+BaseMan uses **EIP-712 v2** (nonce-based) for all score and quest submissions. This provides:
+
+- **Replay Protection**: Each request includes a unique nonce
+- **Expiration**: Deadlines prevent stale signatures
+- **Type Safety**: Structured data signing prevents signature misuse
+
+**Type Hash**:
+```solidity
+bytes32 public constant SCORE_TYPEHASH =
+    keccak256("Score(address player,uint256 score,uint256 deadline,uint256 nonce)");
+```
+
+**Domain Separator**:
+```solidity
+EIP712("BaseManRegistry", "2")  // Version 2
+```
+
+**Signature Verification**:
+1. Client requests signature from `/api/score-sign` with score data
+2. Backend generates EIP-712 v2 signature using authorizer private key
+3. Client submits transaction with signature to contract
+4. Contract verifies signature against `authorizer` address
+5. Contract checks `usedRequests` mapping for replay protection
+6. Contract updates score and emits events
+
+### Replay Protection
+
+The contract uses a `mapping(bytes32 => bool) public usedRequests` to track all processed requests:
+
+```solidity
+bytes32 digest = _hashTypedDataV4(
+    keccak256(abi.encode(SCORE_TYPEHASH, player, score, deadline, nonce))
+);
+if (usedRequests[digest]) revert Replay();
+usedRequests[digest] = true;
+```
+
+Each unique combination of `(player, score, deadline, nonce)` creates a unique digest. Once processed, the digest is marked as used and cannot be reused.
+
+### Authorizer Pattern
+
+The contract uses an **authorizer address** (set by owner) to verify all signatures:
+
+```solidity
+address public authorizer;  // Backend signer address
+
+function _verifyAuthorizer(bytes32 digest, bytes calldata signature) internal view returns (bool) {
+    address recovered = ECDSA.recover(digest, signature);
+    if (recovered == authorizer) return true;
+    // Fallback: EIP-1271 for contract wallets
+    if (authorizer.code.length > 0) {
+        return IERC1271(authorizer).isValidSignature(digest, signature) == 0x1626ba7e;
+    }
+    return false;
+}
+```
+
+**Security Model**:
+- Only the backend signer (authorizer) can generate valid signatures
+- Clients cannot forge signatures without the private key
+- Contract wallets (multisigs) supported via EIP-1271
+
+### Contract Functions
+
+**Public Functions**:
+- `submitScore(player, score, deadline, nonce, signature)` - Submit a score
+- `completeQuest(player, questId, deadline, nonce, signature)` - Complete a quest
+- `getScore(address player)` - Query player's score data
+- `getHighScore(address player)` - Get player's best single-run score
+- `getTotalScore(address player)` - Get player's cumulative score
+- `isQuestCompleted(player, questId)` - Check quest completion status
+
+**Owner Functions**:
+- `setAuthorizer(address)` - Update backend signer
+- `setQuest(questId, active, metadataURI)` - Configure quests
+- `pause() / unpause()` - Emergency controls
+- `seedTotals(players, totals, highs, timestamps)` - Bulk migration
+
+### Contract Deployment
+
+Deploy to Base Sepolia:
+```bash
+npm run contracts:deploy:sepolia
+```
+
+Deploy to Base Mainnet:
+```bash
+npm run contracts:deploy:base
+```
+
+Verify on Etherscan:
+```bash
+npm run contracts:verify:sepolia
+npm run contracts:verify:base
+```
+
+Set authorizer:
+```bash
+npm run contracts:set-authorizer:sepolia
+npm run contracts:set-authorizer:base
+```
+
+---
+
+## Score Submission Flow
+
+The score submission process involves multiple steps from game completion to on-chain storage.
+
+### Step-by-Step Flow
+
+1. **Game Completion**
+   - Player finishes a game run with a final score
+   - Frontend calls `window.BaseManOnchain.submitScore(score)`
+
+2. **Signature Request**
+   - Frontend sends POST request to `/api/score-sign`:
+   ```json
+   {
+     "player": "0x...",
+     "score": 12345,
+     "chainId": 84532
+   }
+   ```
+
+3. **Backend Signature Generation**
+   - Backend validates request (rate limiting, score limits)
+   - Backend generates EIP-712 v2 signature:
+     - Creates typed data hash with nonce and deadline
+     - Signs with `SCORE_SIGNER_PRIVATE_KEY`
+     - Returns signature and request metadata
+
+4. **Transaction Construction**
+   - Frontend constructs contract call:
+   ```javascript
+   const callData = registry.interface.encodeFunctionData("submitScore", [
+     playerAddress,
+     score,
+     deadline,
+     nonce,
+     signature
+   ]);
+   ```
+
+5. **Transaction Submission**
+   - **MiniApp Environment**: Uses `wallet_sendCalls` (EIP-5792)
+   - **Web Environment**: Uses `eth_sendTransaction`
+   - Paymaster integration (if enabled) sponsors gas fees
+
+6. **On-Chain Execution**
+   - Contract verifies signature
+   - Contract checks replay protection
+   - Contract updates score storage
+   - Contract emits `ScoreAdded` and/or `ScoreSubmitted` events
+
+7. **Indexing**
+   - CDP SQL API indexes contract events
+   - Leaderboard updates automatically reflect new scores
+
+### Error Handling
+
+**Common Errors**:
+- `InvalidSignature` - Signature verification failed
+- `ExpiredSignature` - Deadline has passed
+- `Replay` - Request already processed
+- `PausedError` - Contract is paused
+
+**Frontend Error Recovery**:
+- Automatic retry with exponential backoff
+- User-friendly error messages
+- Fallback to manual retry option
+
+### Code Example
+
+```javascript
+// Frontend: src/onchain-client.js
+async function submitScore(score) {
+  try {
+    // 1. Request signature from backend
+    const signResponse = await fetch('/api/score-sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player: walletAddress,
+        score: score,
+        chainId: currentChainId
+      })
+    });
+    
+    const { signature, deadline, nonce } = await signResponse.json();
+    
+    // 2. Construct contract call
+    const registry = new ethers.Contract(registryAddress, ABI, provider);
+    const callData = registry.interface.encodeFunctionData("submitScore", [
+      walletAddress,
+      score,
+      deadline,
+      nonce,
+      signature
+    ]);
+    
+    // 3. Submit transaction
+    if (isMiniAppEnv()) {
+      await sendCalls([{ to: registryAddress, data: callData }], paymasterUrl);
+    } else {
+      await sendEthTransaction({ to: registryAddress, data: callData });
+    }
+    
+    // 4. Wait for confirmation
+    // 5. Update UI
+  } catch (error) {
+    // Handle errors
+  }
+}
+```
+
+---
+
+## Leaderboard System
+
+The leaderboard system provides global rankings with real-time updates and rich profile information.
+
+### Architecture
+
+**Data Sources** (priority order):
+1. **CDP SQL API** - Primary source, indexes contract events
+2. **RPC Fallback** - Reads events from recent blocks if SQL API unavailable
+3. **Redis Cache** - Profile data caching for fast lookups
+
+### Leaderboard Endpoint
+
+**GET `/api/leaderboard`**
+
+**Query Parameters**:
+- `limit` (required): Number of entries to return (default: 10, max: 100)
+- `chain` (optional): Chain ID (default: 8453 for Base Mainnet)
+- `debug` (optional): Enable debug mode (`?debug=1`)
+
+**Response Format**:
+```json
+{
+  "source": "cdp-sql-api",
+  "chainId": 8453,
+  "limit": 10,
+  "count": 10,
+  "items": [
+    {
+      "rank": 1,
+      "player": "0x...",
+      "totalScore": 1234567,
+      "highScore": 50000,
+      "lastUpdate": 1704067200,
+      "lastUpdatedAt": "2024-01-01T00:00:00.000Z",
+      "profile": {
+        "fid": "12345",
+        "username": "player1",
+        "displayName": "Player One",
+        "avatarUrl": "https://...",
+        "profileUrl": "https://warpcast.com/player1",
+        "platform": "farcaster"
+      }
+    }
+  ],
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### Profile Enrichment
+
+The leaderboard enriches player addresses with Farcaster profile data:
+
+**Enrichment Sources** (priority order):
+1. **Header Mapping** - Profile data sent in request header (`X-Profile-Mapping`)
+2. **Redis Cache** - Persistent profile storage
+3. **Neynar API** - Direct API lookup (if `NEYNAR_API_KEY` configured)
+4. **FID Mapping** - Bulk FID lookups for efficiency
+
+**Profile Data Structure**:
+```typescript
+interface Profile {
+  fid: string;              // Farcaster ID
+  username: string | null;  // Farcaster username
+  displayName: string | null; // Display name
+  avatarUrl: string | null;  // Profile picture URL
+  profileUrl: string | null; // Warpcast profile URL
+  platform: 'farcaster' | 'base-app' | null;
+  provider: string;         // Data source identifier
+}
+```
+
+### Caching & Performance
+
+**Leaderboard Caching**:
+- **In-Memory Cache**: 10-second TTL for leaderboard data
+- **Request Deduplication**: In-flight requests are shared
+- **Profile Cache**: Redis with persistent storage
+
+**Performance Optimizations**:
+- **Bulk FID Lookups**: Minimize Neynar API calls
+- **Lazy Loading**: Profiles loaded on-demand
+- **CDN Caching**: Static assets cached via Vercel
+
+### RPC Fallback
+
+If CDP SQL API is unavailable, the system falls back to reading events directly from the blockchain:
+
+**Fallback Logic**:
+1. Check last N blocks (configurable, default: 50,000)
+2. Read `ScoreAdded` and `ScoreSubmitted` events
+3. Aggregate scores by player address
+4. Return leaderboard with RPC-sourced data
+
+**Configuration**:
+- `LEADERBOARD_FALLBACK_WINDOW_BLOCKS`: Number of blocks to scan (default: 50000)
+- `LEADERBOARD_FALLBACK_CHUNK_SIZE`: Events per chunk (default: 400)
+
+### Frontend Integration
+
+The leaderboard panel (`src/leaderboard-panel.js`) provides:
+
+- **Top 10 Display**: Pinned top players
+- **Scrollable List**: Remaining players
+- **Search Functionality**: Find players by username or address
+- **My Rank Summary**: Current user's position and score
+- **Real-Time Updates**: Polling for new scores
+
+**Usage**:
+```javascript
+import { loadLeaderboard } from './leaderboard/api.js';
+
+loadLeaderboard({
+  limit: 100,
+  onSuccess: (items, debugInfo) => {
+    // Render leaderboard
+  },
+  onError: (error) => {
+    // Handle error
+  }
+});
+```
+
+---
+
+## MiniApp Authentication
+
+BaseMan supports seamless authentication through Farcaster Quick Auth and Base App wallet integration.
+
+### Quick Auth (Farcaster)
+
+**Endpoint**: `GET /api/miniapp-auth`
+
+**Flow**:
+1. MiniApp requests authentication token
+2. Backend verifies token signature
+3. Backend returns user context (FID, username, etc.)
+
+**Implementation**:
+```javascript
+// Frontend: src/miniapp-auth.js
+import { authenticate } from '@farcaster/quick-auth';
+
+const { token } = await authenticate({
+  domain: 'base-man.vercel.app',
+  siweUri: 'https://base-man.vercel.app',
+  statement: 'Sign in to BaseMan'
+});
+
+// Send token to backend for verification
+const response = await fetch('/api/miniapp-auth', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+```
+
+### Base App Wallet Integration
+
+Base App provides automatic wallet connection via SDK:
+
+```javascript
+// Frontend: src/onchain-client.js
+const sdk = await window.getBaseAppSDK();
+const provider = await sdk.wallet.getEthereumProvider();
+const accounts = await provider.request({ method: 'eth_accounts' });
+```
+
+### Authentication Verification
+
+**Backend**: `api/_lib/miniapp-auth-verify.js`
+
+- Verifies JWT tokens from Quick Auth
+- Validates domain and signature
+- Returns user context for session management
+
+---
+
+## Paymaster Integration
+
+BaseMan supports gasless transactions through CDP Paymaster integration.
+
+### Paymaster Proxy
+
+**Endpoint**: `POST /api/paymaster-proxy`
+
+**Purpose**: Proxy paymaster requests to CDP service with allowlist enforcement.
+
+**Configuration**:
+- `PAYMASTER_SERVICE_URL`: CDP Paymaster endpoint
+- `PAYMASTER_ENFORCE_ALLOWLIST`: Enable allowlist checks (default: `true`)
+- `PAYMASTER_ALLOWED_TARGETS`: Allowed contract addresses
+- `PAYMASTER_ALLOWED_SELECTORS`: Allowed function selectors
+
+### Allowlist Enforcement
+
+The paymaster proxy enforces strict allowlist rules:
+
+**Allowed Targets**:
+- BaseManRegistry contract addresses (Mainnet and Sepolia)
+
+**Allowed Selectors**:
+- `submitScore` function selector
+- `completeQuest` function selector
+
+**Request Validation**:
+```javascript
+// api/paymaster-proxy.js
+const allowedTargets = [registryAddressMainnet, registryAddressSepolia];
+const allowedSelectors = ['0x...submitScore', '0x...completeQuest'];
+
+// Validate each call in the batch
+for (const call of calls) {
+  if (!allowedTargets.includes(call.to)) {
+    throw new Error('Target not allowed');
+  }
+  if (!allowedSelectors.includes(call.data.slice(0, 10))) {
+    throw new Error('Selector not allowed');
+  }
+}
+```
+
+### Sponsorless Mode
+
+Currently, BaseMan operates in **sponsorless mode**, meaning users pay their own gas fees. Paymaster integration is configured but can be enabled by:
+
+1. Setting `PAYMASTER_SERVICE_URL` to a valid CDP Paymaster endpoint
+2. Configuring allowlist rules
+3. Updating frontend to use paymaster URL in transaction submissions
+
+**Current Behavior**:
+- Transactions sent without paymaster sponsorship
+- Users approve and pay gas fees directly
+- Works on both Base Mainnet and Base Sepolia
+
+---
+
+## Development Scripts
+
+BaseMan includes comprehensive development and testing scripts.
+
+### Game Development
+
+```bash
+npm run game:build          # Build pacman.js from src/
+npm run dev                 # Start development server
+```
+
+### Contract Development
+
+```bash
+npm run contracts:compile   # Compile Solidity contracts
+npm run contracts:test      # Run contract tests
+npm run contracts:deploy:sepolia  # Deploy to Base Sepolia
+npm run contracts:deploy:base      # Deploy to Base Mainnet
+npm run contracts:verify:sepolia   # Verify on Etherscan (Sepolia)
+npm run contracts:verify:base       # Verify on Etherscan (Mainnet)
+npm run contracts:set-authorizer:sepolia  # Set authorizer (Sepolia)
+npm run contracts:set-authorizer:base     # Set authorizer (Mainnet)
+```
+
+### Testing
+
+```bash
+npm run test:phase5:axis-a  # Phase 5 tests - Axis A
+npm run test:phase5:axis-b  # Phase 5 tests - Axis B
+npm run test:phase5:axis-c  # Phase 5 tests - Axis C
+npm run test:phase5         # All Phase 5 tests
+npm run test:phase6         # Phase 6 tests
+npm run test:all            # All tests
+npm run self:check           # Self-check validation
+npm run healthcheck          # Health check endpoint
+```
+
+### MiniApp Configuration
+
+```bash
+npm run manifest:generate   # Generate .well-known/farcaster.json
+npm run onchain:config     # Generate onchain configuration
+```
+
+### Quality Assurance
+
+```bash
+npm run lint                # Run ESLint
+npm run lint:fix            # Fix ESLint errors
+npm run docs:verify         # Verify documentation
+```
+
+### E2E Testing
+
+```bash
+npm run smoke:sepolia       # Smoke tests on Sepolia
+npm run e2e:sponsor         # E2E sponsor tests
+npm run e2e:bundler        # E2E bundler tests
+```
+
+---
+
+## Deployment Notes
+
+### Vercel Deployment
+
+BaseMan is designed for deployment on Vercel with serverless functions.
+
+**Build Configuration**:
+- **Build Command**: `npm run manifest:generate`
+- **Output Directory**: `.` (root)
+- **Framework**: None (static + serverless)
+
+**Important Notes**:
+- Run `npm run game:build` before deployment to update `pacman.js`
+- Set all environment variables in Vercel dashboard
+- Configure CORS headers in `vercel.json`
+- Enable serverless functions for `/api/*` routes
+
+### Environment Variables in Vercel
+
+All environment variables must be set in Vercel dashboard:
+
+1. Go to Project Settings → Environment Variables
+2. Add all required variables (see Environment Variables section)
+3. Set different values for Production, Preview, and Development
+4. Ensure `NEXT_PUBLIC_*` variables are available at build time
+
+### MiniApp Hosting
+
+**Farcaster MiniApp**:
+- Manifest available at `/.well-known/farcaster.json`
+- Webhook URL: `https://your-domain.com/api/miniapp-webhook`
+- Domain verification via `accountAssociation` in manifest
+
+**Base App MiniApp**:
+- Same manifest structure
+- Base Builder analytics via `baseBuilder.allowedAddresses`
+- Automatic discovery via Base App platform
+
+### Static Asset Optimization
+
+**Caching Strategy** (configured in `vercel.json`):
+- `/.well-known/*`: 5-minute cache
+- `/src/*`: No cache (development files)
+- `/vendor/*`: 1-year cache (immutable)
+- `/pacman.js`: No cache (game bundle)
+- `/index.html`: No cache (entry point)
+
+### CDN Configuration
+
+Vercel automatically provides:
+- Global CDN distribution
+- Automatic HTTPS
+- DDoS protection
+- Edge caching
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Game Not Loading
+
+**Symptoms**: Blank screen or JavaScript errors
+
+**Solutions**:
+1. Check browser console for errors
+2. Verify `pacman.js` exists: `npm run game:build`
+3. Check network tab for failed resource loads
+4. Clear browser cache
+
+#### Wallet Connection Fails
+
+**Symptoms**: Wallet panel shows "Not Connected"
+
+**Solutions**:
+1. Verify MiniApp SDK is loaded: Check `window.sdk` in console
+2. Check platform detection: `window.isFarcasterMiniApp()` or `window.isBaseApp()`
+3. Verify RPC endpoints are accessible
+4. Check chain ID configuration matches contract deployment
+
+#### Score Submission Fails
+
+**Symptoms**: Transaction fails or signature error
+
+**Solutions**:
+1. Check backend signer key is set: `SCORE_SIGNER_PRIVATE_KEY`
+2. Verify contract address matches environment
+3. Check signature endpoint: `POST /api/score-sign` returns valid signature
+4. Verify contract is not paused
+5. Check replay protection: Ensure nonce is unique
+
+#### Leaderboard Not Loading
+
+**Symptoms**: Empty leaderboard or API errors
+
+**Solutions**:
+1. Check CDP SQL API key: `CDP_SQL_API_KEY`
+2. Verify RPC fallback is configured if SQL API unavailable
+3. Check Redis connection: `UPSTASH_REDIS_REST_URL` and token
+4. Enable debug mode: `?debug=1` to see detailed errors
+
+#### Profile Enrichment Not Working
+
+**Symptoms**: Leaderboard shows addresses instead of usernames
+
+**Solutions**:
+1. Check Neynar API key: `NEYNAR_API_KEY`
+2. Verify `FARCASTER_PROFILE_PROVIDER=neynar`
+3. Check Redis connection for profile caching
+4. Verify profile mapping is sent in request headers
+
+### Debug Mode
+
+Enable debug mode for detailed logging:
+
+**Frontend**:
+- Add `?debug=1` to URL
+- Check browser console for detailed logs
+
+**Backend**:
+- Add `?debug=1` to API endpoints
+- Check server logs for detailed responses
+
+### Health Check
+
+Run health check to verify configuration:
+
+```bash
+npm run healthcheck
+```
+
+This validates:
+- Environment variables
+- Contract addresses
+- RPC connectivity
+- API endpoints
+
+### Getting Help
+
+- **Documentation**: See `docs/` directory for detailed guides
+- **Issues**: Open GitHub issue with error logs and steps to reproduce
+- **Logs**: Check Vercel function logs for API errors
+
+---
+
+## License
+
+This program is free software: you can redistribute it and/or modify it under the terms of the **GNU General Public License Version 3** as published by the Free Software Foundation.
+
+See `LICENSE` file for full license text.
+
+---
+
+## Credits
+
+### Original Game
+
+BaseMan is built upon the original Pac-Man arcade game by Namco (1980) and Ms. Pac-Man by GCC/Midway (1981). The game engine implementation is inspired by [The Pac-Man Dossier](http://home.comcast.net/~jpittman2/pacman/pacmandossier.html) by Jamey Pittman.
+
+### Reverse Engineering
+
+Thanks to **Jamey Pittman** and **Bart Grantham** for their extensive reverse engineering work that made this accurate implementation possible.
+
+### Blockchain Integration
+
+Built for the **Base** ecosystem with integration for **Farcaster MiniApps** and **Base App**.
+
+---
+
+**Built with ❤️ for the Base ecosystem**
