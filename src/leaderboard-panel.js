@@ -191,11 +191,6 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     const metaDiv = document.createElement('div');
     metaDiv.className = 'leaderboard-my-rank-meta';
     
-    const labelDiv = document.createElement('div');
-    labelDiv.className = 'leaderboard-my-rank-label';
-    labelDiv.textContent = 'Your rank';
-    metaDiv.appendChild(labelDiv);
-    
     const scoreDiv = document.createElement('div');
     scoreDiv.className = 'leaderboard-my-rank-score';
     scoreDiv.textContent = score;
@@ -205,7 +200,14 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     
     const ctaDiv = document.createElement('div');
     ctaDiv.className = 'leaderboard-my-rank-cta';
-    ctaDiv.textContent = 'Scroll to me';
+    const ctaText = document.createElement('span');
+    ctaText.className = 'leaderboard-my-rank-cta-text';
+    ctaText.textContent = 'Scroll to me';
+    ctaDiv.appendChild(ctaText);
+    const ctaIcon = document.createElement('span');
+    ctaIcon.className = 'leaderboard-my-rank-cta-icon';
+    ctaIcon.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    ctaDiv.appendChild(ctaIcon);
     button.appendChild(ctaDiv);
     
     fragment.appendChild(button);
