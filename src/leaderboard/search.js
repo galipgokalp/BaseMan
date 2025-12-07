@@ -13,32 +13,6 @@ import { abbreviateAddress, fallbackAvatar, formatScore } from './dom.js';
 
 const log = createLogger('Search');
 
-/**
- * Resolve display name for search results
- * Priority: profile.displayName > profile.username > abbreviated address
- */
-function resolveSearchDisplayName(entry) {
-  const profile = entry && entry.profile ? entry.profile : {};
-
-  if (profile.displayName && typeof profile.displayName === "string") {
-    return profile.displayName;
-  }
-
-  if (profile.username && typeof profile.username === "string") {
-    return profile.username.startsWith("@")
-      ? profile.username
-      : `@${profile.username}`;
-  }
-
-  if (entry && typeof entry.player === "string" && entry.player.length > 0) {
-    const addr = entry.player;
-    if (addr.length <= 12) return addr;
-    return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-  }
-
-  return "";
-}
-
 // Platform detection helpers
 export function isIOS() {
   return typeof navigator !== "undefined" &&
@@ -254,11 +228,11 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
       avatar.rel = 'noopener noreferrer';
     }
     
-    // Use entry.profile.avatarUrl if present, otherwise show emoji/default avatar
+    // Priority: entry.profile.avatarUrl > fallback
     if (entry?.profile?.avatarUrl) {
       const img = document.createElement('img');
       img.src = entry.profile.avatarUrl;
-      img.alt = resolveSearchDisplayName(entry) || 'avatar';
+      img.alt = entry?.profile?.displayName || entry?.profile?.username || 'avatar';
       img.loading = 'lazy';
       img.referrerPolicy = 'no-referrer';
       img.onerror = function() {
@@ -270,7 +244,7 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
       // Fallback only if profile avatar is missing but we have address
       const img = document.createElement('img');
       img.src = fallbackAvatar(entry.player);
-      img.alt = resolveSearchDisplayName(entry) || 'avatar';
+      img.alt = entry?.profile?.displayName || entry?.profile?.username || 'avatar';
       img.loading = 'lazy';
       img.referrerPolicy = 'no-referrer';
       img.onerror = function() {
@@ -289,7 +263,14 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
     // Name
     const nameEl = document.createElement('div');
     nameEl.className = 'leaderboard-search-result-name';
-    nameEl.textContent = resolveSearchDisplayName(entry);
+    
+    // Priority: displayName > username > abbreviated address
+    const profile = entry.profile || {};
+    const label =
+      profile.displayName ||
+      (profile.username ? `@${profile.username}` : null) ||
+      abbreviateAddress(entry.player);
+    nameEl.textContent = label;
     
     // Platform logo
     const platform = entry?.profile?.platform;

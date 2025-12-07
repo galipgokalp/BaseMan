@@ -39,41 +39,6 @@ export function fallbackAvatar(address) {
 }
 
 /**
- * Resolve display name for leaderboard entry
- * Priority: profile.displayName > profile.username > abbreviated address
- */
-function resolveDisplayName(entry) {
-  const profile = entry && entry.profile ? entry.profile : {};
-
-  if (profile.displayName && typeof profile.displayName === "string") {
-    return profile.displayName;
-  }
-
-  if (profile.username && typeof profile.username === "string") {
-    return profile.username.startsWith("@")
-      ? profile.username
-      : `@${profile.username}`;
-  }
-
-  if (entry && typeof entry.player === "string" && entry.player.length > 0) {
-    return abbreviateAddress(entry.player);
-  }
-
-  return "";
-}
-
-/**
- * Resolve avatar URL for leaderboard entry
- */
-function resolveAvatarUrl(entry) {
-  const profile = entry && entry.profile ? entry.profile : {};
-  if (profile.avatarUrl && typeof profile.avatarUrl === "string") {
-    return profile.avatarUrl;
-  }
-  return null; 
-}
-
-/**
  * Parse date value
  */
 export function parseDateValue(value) {
@@ -204,11 +169,11 @@ export function createListItem(entry, fallbackRank, isMe = false) {
     avatar.rel = "noopener noreferrer";
   }
   
-  const avatarUrl = resolveAvatarUrl(entry);
-  if (avatarUrl) {
+  // Priority: entry.profile.avatarUrl > fallback
+  if (entry?.profile?.avatarUrl) {
     const img = document.createElement("img");
-    img.src = avatarUrl;
-    img.alt = resolveDisplayName(entry) || "avatar";
+    img.src = entry.profile.avatarUrl;
+    img.alt = entry?.profile?.displayName || entry?.profile?.username || "avatar";
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.onerror = function() {
@@ -220,7 +185,7 @@ export function createListItem(entry, fallbackRank, isMe = false) {
     // Fallback only if profile avatar is missing but we have address
     const img = document.createElement("img");
     img.src = fallbackAvatar(entry.player);
-    img.alt = resolveDisplayName(entry) || "avatar";
+    img.alt = entry?.profile?.displayName || entry?.profile?.username || "avatar";
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.onerror = function() {
@@ -246,8 +211,15 @@ export function createListItem(entry, fallbackRank, isMe = false) {
   identityText.className = "leaderboard-text";
   const name = document.createElement("span");
   name.className = "leaderboard-name";
-  const label = resolveDisplayName(entry);
-  name.textContent = label || "";
+  
+  // Priority: displayName > username > abbreviated address
+  const profile = entry.profile || {};
+  const label =
+    profile.displayName ||
+    (profile.username ? `@${profile.username}` : null) ||
+    abbreviateAddress(entry.player);
+  name.textContent = label;
+  
   identityText.appendChild(name);
   
   // Platform logo
