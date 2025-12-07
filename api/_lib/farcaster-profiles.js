@@ -542,4 +542,142 @@ export function setManualProfile(address, { fid = null, username = null, display
   MANUAL_PROFILE_CACHE.set(key, profile);
   PROFILE_CACHE.set(key, profile);
 }
+/**
+ * Fetch Farcaster users for multiple Ethereum addresses using Neynar bulk-by-address API.
+ * @param {string[]} addresses - lowercase Ethereum addresses
+ * @returns {Promise<Object<string, Profile>>} - { [address]: normalizedProfile }
+ */
+export async function fetchFarcasterProfilesByAddresses(addresses) {
+  // Guard: if no addresses or Neynar not enabled → return {}
+  if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
+    return {};
+  }
+
+  const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
+  const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
+  const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
+  const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
+
+  if (DISABLE_ENRICHMENT || PROFILE_PROVIDER !== "neynar" || !NEYNAR_API_KEY) {
+    return {};
+  }
+
+  // Normalize all addresses to lowercase and de-duplicate
+  const normalizedAddresses = addresses
+    .map(addr => {
+      if (!addr || typeof addr !== 'string') return null;
+      try {
+        return ethers.getAddress(addr).toLowerCase();
+      } catch {
+        return addr.toLowerCase();
+      }
+    })
+    .filter(Boolean);
+
+  if (normalizedAddresses.length === 0) {
+    return {};
+  }
+
+  // Remove duplicates
+  const uniqueAddresses = [...new Set(normalizedAddresses)];
+
+  // Chunk addresses into batches of <= 350 for the API
+  const CHUNK_SIZE = 350;
+  const chunks = [];
+  for (let i = 0; i < uniqueAddresses.length; i += CHUNK_SIZE) {
+    chunks.push(uniqueAddresses.slice(i, i + CHUNK_SIZE));
+  }
+
+  const allProfiles = {};
+
+  // For each chunk, call the bulk-by-address endpoint
+  for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+    const chunk = chunks[chunkIdx];
+    try {
+      const addressesParam = chunk.join(',');
+      const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/bulk-by-address/?addresses=${encodeURIComponent(addressesParam)}&address_types=custody_address,verified_address`;
+
+      const headers = {
+        'accept': 'application/json',
+        'x-api-key': NEYNAR_API_KEY
+      };
+
+      const response = await fetch(url, { headers });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log(`[farcaster-profiles] Bulk-by-address API returned 404 for chunk ${chunkIdx + 1}/${chunks.length}`);
+          continue;
+        }
+        if (response.status === 401 || response.status === 402) {
+          console.warn(`[farcaster-profiles] Bulk-by-address API auth error: ${response.status}`);
+          break; // Don't retry other chunks if auth fails
+        }
+        const text = await response.text();
+        console.warn(`[farcaster-profiles] Bulk-by-address API error ${response.status} for chunk ${chunkIdx + 1}/${chunks.length}: ${text.substring(0, 200)}`);
+        continue; // Continue with next chunk
+      }
+
+      const payload = await response.json();
+      const users = payload?.users || payload?.result?.users || [];
+
+      // For every ETH address associated with a user (custody or verified)
+      for (let i = 0; i < users.length; i++) {
+        const user = users[i];
+        if (!user) continue;
+
+        const normalizedProfile = normalizeUser(user, null);
+
+        // Map profile to all associated addresses (custody and verified)
+        const associatedAddresses = [];
+
+        // Check custody address
+        if (user.custody_address) {
+          try {
+            const addr = ethers.getAddress(user.custody_address).toLowerCase();
+            associatedAddresses.push(addr);
+          } catch {
+            // Invalid address, skip
+          }
+        }
+
+        // Check verified addresses
+        if (user.verified_addresses?.eth_addresses && Array.isArray(user.verified_addresses.eth_addresses)) {
+          for (let j = 0; j < user.verified_addresses.eth_addresses.length; j++) {
+            try {
+              const addr = ethers.getAddress(user.verified_addresses.eth_addresses[j]).toLowerCase();
+              if (!associatedAddresses.includes(addr)) {
+                associatedAddresses.push(addr);
+              }
+            } catch {
+              // Invalid address, skip
+            }
+          }
+        }
+
+        // Map profile to each associated address
+        for (let j = 0; j < associatedAddresses.length; j++) {
+          const addr = associatedAddresses[j];
+          if (chunk.includes(addr)) {
+            allProfiles[addr] = {
+              ...normalizedProfile,
+              address: addr,
+              provider: "neynar",
+              platform: "farcaster"
+            };
+          }
+        }
+      }
+
+      console.log(`[farcaster-profiles] Bulk-by-address chunk ${chunkIdx + 1}/${chunks.length}: found ${Object.keys(allProfiles).length} profiles so far`);
+    } catch (error) {
+      console.error(`[farcaster-profiles] Bulk-by-address chunk ${chunkIdx + 1}/${chunks.length} error:`, error?.message || error);
+      // Continue with next chunk
+    }
+  }
+
+  console.log(`[farcaster-profiles] Bulk-by-address: returning ${Object.keys(allProfiles).length} profiles for ${uniqueAddresses.length} addresses`);
+  return allProfiles;
+}
+
 // Cache clear trigger: 20251206030633

@@ -194,3 +194,111 @@ export async function getFidMappings(addresses) {
   return result;
 }
 
+/**
+ * Get cached profiles for given addresses.
+ * @param {string[]} addresses - lowercase addresses
+ * @returns {Promise<Object<string, Profile | undefined>>}
+ */
+export async function getProfilesForAddresses(addresses) {
+  if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
+    return {};
+  }
+
+  if (!isRedisAvailable()) {
+    return {};
+  }
+
+  // Normalize addresses
+  const normalizedAddresses = addresses
+    .filter(addr => addr && typeof addr === 'string')
+    .map(addr => addr.toLowerCase());
+
+  if (normalizedAddresses.length === 0) {
+    return {};
+  }
+
+  // Use existing getProfileMappings function
+  try {
+    const mappings = await getProfileMappings(normalizedAddresses);
+    const result = {};
+
+    for (const [address, mapping] of mappings) {
+      if (mapping && (mapping.username || mapping.displayName || mapping.avatarUrl || mapping.fid)) {
+        result[address] = {
+          fid: mapping.fid || null,
+          username: mapping.username || null,
+          displayName: mapping.displayName || null,
+          avatarUrl: mapping.avatarUrl || null,
+          profileUrl: mapping.username
+            ? `https://warpcast.com/${mapping.username}`
+            : mapping.fid
+            ? `https://warpcast.com/~/users/${mapping.fid}`
+            : null,
+          platform: mapping.platform && (mapping.platform === 'farcaster' || mapping.platform === 'base-app') ? mapping.platform : null,
+          provider: 'redis'
+        };
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error('[redis-profiles] getProfilesForAddresses error:', error?.message || error);
+    return {};
+  }
+}
+
+/**
+ * Cache multiple profiles in Redis.
+ * @param {Object<string, Profile>} profilesByAddress
+ * @returns {Promise<void>}
+ */
+export async function setProfilesForAddresses(profilesByAddress) {
+  if (!profilesByAddress || typeof profilesByAddress !== 'object') {
+    return;
+  }
+
+  if (!isRedisAvailable()) {
+    return;
+  }
+
+  const entries = Object.entries(profilesByAddress);
+  if (entries.length === 0) {
+    return;
+  }
+
+  // Use pipelining for batch operations
+  try {
+    const pipeline = [];
+    let savedCount = 0;
+
+    for (const [address, profile] of entries) {
+      if (!address || !profile || typeof address !== 'string') {
+        continue;
+      }
+
+      const key = `${PROFILE_KEY_PREFIX}${address.toLowerCase()}`;
+      const value = {
+        fid: profile.fid || null,
+        username: profile.username || null,
+        displayName: profile.displayName || null,
+        avatarUrl: profile.avatarUrl || null,
+        platform: profile.platform && (profile.platform === 'farcaster' || profile.platform === 'base-app') ? profile.platform : null,
+        updatedAt: Date.now()
+      };
+
+      // Only save if we have at least fid or username/displayName/avatarUrl
+      if (value.fid || value.username || value.displayName || value.avatarUrl) {
+        pipeline.push(redis.set(key, JSON.stringify(value), { ex: PROFILE_TTL }));
+        savedCount++;
+      }
+    }
+
+    if (pipeline.length > 0) {
+      await Promise.allSettled(pipeline);
+      console.log(`[redis-profiles] ✅ Cached ${savedCount} profile(s) in Redis`);
+    }
+  } catch (error) {
+    console.error('[redis-profiles] setProfilesForAddresses error:', error?.message || error);
+  }
+}
+

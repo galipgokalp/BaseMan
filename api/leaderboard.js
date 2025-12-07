@@ -9,10 +9,10 @@
  */
 import { ethers } from "ethers";
 import { registryAddress, getRegistryContext, getRegistryChainIdNumber } from "./_lib/registry.js";
-import { fetchProfilesForAddresses } from "./_lib/farcaster-profiles.js";
+import { fetchProfilesForAddresses, fetchFarcasterProfilesByAddresses } from "./_lib/farcaster-profiles.js";
 
 // Redis import - static import, wrap all Redis calls in try-catch blocks
-import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFromRedis } from "./_lib/redis-profiles.js";
+import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFromRedis, getProfilesForAddresses as getProfilesFromRedis, setProfilesForAddresses as setProfilesToRedis } from "./_lib/redis-profiles.js";
 
 // ============================================
 // LEADERBOARD RESULT CACHE - Phase 4.3
@@ -360,6 +360,126 @@ function toIsoTimestamp(seconds) {
   }
 }
 
+/**
+ * Hydrate profiles for leaderboard items using Redis cache and Neynar bulk-by-address API.
+ * @param {Array} items - Leaderboard items with player addresses
+ * @returns {Promise<Array>} - Items with enriched profile data
+ */
+async function hydrateProfilesForAddresses(items) {
+  // Fast bail-out: check environment flags
+  const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
+  const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
+  
+  const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
+  const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
+  
+  if (!shouldEnrich || PROFILE_PROVIDER !== 'neynar' || !NEYNAR_API_KEY) {
+    // Return items as-is without enrichment
+    return items.map((item, index) => {
+      const totalNumeric = toNumericScore(item.totalScore ?? item.highScore);
+      const totalScore = totalNumeric ?? null;
+      const lastUpdatedAt = toIsoTimestamp(item.lastUpdate);
+      return {
+        rank: index + 1,
+        player: item.player,
+        playerAddress: item.player,
+        highScore: item.highScore ?? null,
+        totalScore,
+        lastUpdate: item.lastUpdate,
+        lastUpdatedAt,
+        profile: item.profile || null
+      };
+    });
+  }
+
+  // Collect all unique, lowercase addresses from items
+  const addresses = [
+    ...new Set(
+      items
+        .map((item) => (typeof item.player === "string" ? item.player.toLowerCase() : null))
+        .filter(Boolean)
+    )
+  ];
+
+  if (addresses.length === 0) {
+    return items.map((item, index) => {
+      const totalNumeric = toNumericScore(item.totalScore ?? item.highScore);
+      const totalScore = totalNumeric ?? null;
+      const lastUpdatedAt = toIsoTimestamp(item.lastUpdate);
+      return {
+        rank: index + 1,
+        player: item.player,
+        playerAddress: item.player,
+        highScore: item.highScore ?? null,
+        totalScore,
+        lastUpdate: item.lastUpdate,
+        lastUpdatedAt,
+        profile: item.profile || null
+      };
+    });
+  }
+
+  // Load cached profiles from Redis
+  let cachedProfiles = {};
+  try {
+    cachedProfiles = await getProfilesFromRedis(addresses);
+    console.log(`[leaderboard] Loaded ${Object.keys(cachedProfiles).length} cached profiles from Redis`);
+  } catch (error) {
+    console.warn('[leaderboard] Failed to load profiles from Redis (non-critical):', error?.message || error);
+    cachedProfiles = {};
+  }
+
+  // Compute addresses that are missing from the cache
+  const missingAddresses = addresses.filter(addr => !cachedProfiles[addr]);
+
+  // If there are missing addresses AND Neynar enrichment is enabled, fetch them
+  let fetchedProfiles = {};
+  if (missingAddresses.length > 0) {
+    try {
+      fetchedProfiles = await fetchFarcasterProfilesByAddresses(missingAddresses);
+      console.log(`[leaderboard] Fetched ${Object.keys(fetchedProfiles).length} profiles from Neynar for ${missingAddresses.length} missing addresses`);
+
+      // Cache newly fetched profiles in Redis
+      if (Object.keys(fetchedProfiles).length > 0) {
+        try {
+          await setProfilesToRedis(fetchedProfiles);
+        } catch (error) {
+          console.warn('[leaderboard] Failed to cache profiles in Redis (non-critical):', error?.message || error);
+        }
+      }
+    } catch (error) {
+      console.error('[leaderboard] Failed to fetch profiles from Neynar (non-critical):', error?.message || error);
+      // Continue with cached profiles only
+    }
+  }
+
+  // Merge cached + newly fetched profiles into a single map
+  const allProfiles = { ...cachedProfiles, ...fetchedProfiles };
+
+  // For each leaderboard item, attach profile
+  return items.map((item, index) => {
+    const key = typeof item.player === "string" ? item.player.toLowerCase() : null;
+    const profile = key ? (allProfiles[key] || null) : null;
+    const totalNumeric = toNumericScore(item.totalScore ?? item.highScore);
+    const totalScore = totalNumeric ?? null;
+    const lastUpdatedAt = toIsoTimestamp(item.lastUpdate);
+
+    // Merge with existing profile if present (header-based mapping takes precedence)
+    const finalProfile = item.profile ? { ...profile, ...item.profile } : profile;
+
+    return {
+      rank: index + 1,
+      player: item.player,
+      playerAddress: item.player,
+      highScore: item.highScore ?? null,
+      totalScore,
+      lastUpdate: item.lastUpdate,
+      lastUpdatedAt,
+      profile: finalProfile || null
+    };
+  });
+}
+
 async function enrichWithProfiles(items, req = null) {
   if (!items.length) {
     return [];
@@ -418,6 +538,16 @@ async function enrichWithProfiles(items, req = null) {
     debugInfo.error = error?.message || String(error);
   }
 
+  // First, hydrate using bulk-by-address API and Redis
+  let hydratedItems = items;
+  try {
+    hydratedItems = await hydrateProfilesForAddresses(items);
+  } catch (error) {
+    console.warn('[leaderboard] Profile hydration failed (non-critical):', error?.message || error);
+    // Continue with original items
+    hydratedItems = items;
+  }
+
   // Collect debug info if requested
   const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';
   if (isDebug) {
@@ -438,9 +568,15 @@ async function enrichWithProfiles(items, req = null) {
     };
   }
 
-  const enriched = items.map((item, index) => {
+  // Merge hydrated profiles with existing fetchProfilesForAddresses results (header-based mapping takes precedence)
+  const enriched = hydratedItems.map((item, index) => {
     const key = typeof item.player === "string" ? item.player.toLowerCase() : null;
-    const profile = key ? profileMap.get(key) ?? null : null;
+    const existingProfile = item.profile;
+    const fetchedProfile = key ? profileMap.get(key) ?? null : null;
+    
+    // Merge profiles: existing (from hydration) takes precedence, then fetched (from header/SDK)
+    const profile = existingProfile || fetchedProfile;
+    
     const totalNumeric = toNumericScore(item.totalScore ?? item.highScore);
     const totalScore = totalNumeric ?? null;
     const lastUpdatedAt = toIsoTimestamp(item.lastUpdate);
