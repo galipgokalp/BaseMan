@@ -229,6 +229,7 @@ export function createListItem(entry, fallbackRank, isMe = false) {
     platformLogo.className = `leaderboard-platform-logo leaderboard-platform-logo-${platform}`;
     platformLogo.setAttribute("title", platform === 'farcaster' ? 'Farcaster' : 'Base App');
     platformLogo.setAttribute("aria-label", platform === 'farcaster' ? 'Farcaster' : 'Base App');
+    platformLogo.innerHTML = "&nbsp;"; // Ensure element has content for background-image to render
     identityText.appendChild(platformLogo);
   }
   

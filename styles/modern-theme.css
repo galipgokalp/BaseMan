@@ -502,12 +502,16 @@ body.theme-light .leaderboard-search-input:focus {
   display: inline-block;
   width: 14px;
   height: 14px;
+  min-width: 14px;
+  min-height: 14px;
   flex-shrink: 0;
   vertical-align: middle;
   line-height: 0;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
+  overflow: hidden;
+  text-indent: -9999px; /* Hide the &nbsp; content */
 }
 
 /* Farcaster logo - optimized as CSS background-image */
@@ -769,10 +773,14 @@ body.theme-light .profile-network-logo svg rect {
   .leaderboard-platform-logo {
     width: 12px;
     height: 12px;
+    min-width: 12px;
+    min-height: 12px;
     flex-shrink: 0; /* Logo always visible */
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    overflow: hidden;
+    text-indent: -9999px; /* Hide the &nbsp; content */
   }
   
   .leaderboard-text {

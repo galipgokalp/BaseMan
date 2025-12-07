@@ -279,6 +279,7 @@ function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
       platformLogo.className = `leaderboard-platform-logo leaderboard-platform-logo-${platform}`;
       platformLogo.setAttribute('title', platform === 'farcaster' ? 'Farcaster' : 'Base App');
       platformLogo.setAttribute('aria-label', platform === 'farcaster' ? 'Farcaster' : 'Base App');
+      platformLogo.innerHTML = "&nbsp;"; // Ensure element has content for background-image to render
       nameContainer.appendChild(nameEl);
       nameContainer.appendChild(platformLogo);
     } else {
