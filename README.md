@@ -20,6 +20,7 @@
 - [Development Scripts](#development-scripts)
 - [Deployment Notes](#deployment-notes)
 - [Troubleshooting](#troubleshooting)
+- [Appendix: Full Game Engine Module Reference](#appendix-full-game-engine-module-reference)
 - [License](#license)
 
 ---
@@ -775,6 +776,56 @@ loadLeaderboard({
 });
 ```
 
+**Search Example**:
+
+The leaderboard supports client-side search functionality. After loading the leaderboard, you can filter results by username, display name, or address:
+
+```javascript
+import { loadLeaderboard } from './leaderboard/api.js';
+import { getAllEntries } from './leaderboard/state.js';
+
+// Load full leaderboard first
+loadLeaderboard({
+  limit: 100,
+  onSuccess: (items) => {
+    // Store all entries for search
+    const allEntries = getAllEntries();
+    
+    // Search function
+    function searchLeaderboard(searchTerm) {
+      if (!searchTerm || searchTerm.trim() === '') {
+        return allEntries; // Return all if search is empty
+      }
+      
+      const term = searchTerm.toLowerCase().trim();
+      
+      // Filter entries by username, displayName, or address
+      return allEntries.filter(entry => {
+        const username = entry?.profile?.username?.toLowerCase() || '';
+        const displayName = entry?.profile?.displayName?.toLowerCase() || '';
+        const address = entry?.player?.toLowerCase() || '';
+        
+        return username.includes(term) || 
+               displayName.includes(term) || 
+               address.includes(term);
+      });
+    }
+    
+    // Example: Search for a specific user
+    const searchResults = searchLeaderboard('player1');
+    console.log(`Found ${searchResults.length} matching entries`);
+    
+    // Render filtered results
+    renderLeaderboard(searchResults);
+  },
+  onError: (error) => {
+    console.error('Failed to load leaderboard:', error);
+  }
+});
+```
+
+The search is performed client-side on the loaded leaderboard data, providing instant results without additional API calls.
+
 ---
 
 ## MiniApp Authentication
@@ -809,13 +860,91 @@ const response = await fetch('/api/miniapp-auth', {
 
 ### Base App Wallet Integration
 
-Base App provides automatic wallet connection via SDK:
+Base App provides automatic wallet connection via SDK with comprehensive initialization and error handling:
 
 ```javascript
 // Frontend: src/onchain-client.js
-const sdk = await window.getBaseAppSDK();
-const provider = await sdk.wallet.getEthereumProvider();
-const accounts = await provider.request({ method: 'eth_accounts' });
+
+// Step 1: Detect Base App environment
+function isBaseAppEnvironment() {
+  if (typeof window === 'undefined') return false;
+  
+  // Use centralized SDK detection utility (preferred)
+  if (typeof window.resolveSDK === 'function') {
+    const sdk = window.resolveSDK();
+    if (sdk) {
+      // Check if SDK is from Base App
+      return typeof window.isBaseApp === 'function' && window.isBaseApp();
+    }
+  }
+  
+  // Fallback detection methods
+  return typeof window.MiniKit !== 'undefined' || 
+         typeof window.BaseAppSDK !== 'undefined';
+}
+
+// Step 2: Initialize Base App SDK
+async function initializeBaseAppWallet() {
+  try {
+    // Detect environment first
+    if (!isBaseAppEnvironment()) {
+      console.warn('Not running in Base App environment');
+      return null;
+    }
+    
+    // Resolve SDK using centralized utility
+    let sdk = null;
+    if (typeof window.resolveSDK === 'function') {
+      sdk = window.resolveSDK();
+    } else if (window.MiniKit) {
+      sdk = window.MiniKit.sdk || window.MiniKit;
+    } else if (window.sdk) {
+      sdk = window.sdk;
+    }
+    
+    if (!sdk) {
+      throw new Error('Base App SDK not available');
+    }
+    
+    // Step 3: Retrieve Ethereum provider
+    const provider = await sdk.wallet.getEthereumProvider();
+    if (!provider) {
+      throw new Error('Ethereum provider not available');
+    }
+    
+    // Step 4: Request accounts (non-interactive, no prompt)
+    const accounts = await provider.request({ method: 'eth_accounts' });
+    if (!accounts || accounts.length === 0) {
+      console.warn('No accounts available');
+      return null;
+    }
+    
+    return {
+      sdk,
+      provider,
+      accounts,
+      address: accounts[0]
+    };
+    
+  } catch (error) {
+    console.error('Base App wallet initialization failed:', error);
+    // Handle SDK unavailable case
+    if (error.message.includes('SDK not available')) {
+      // Fallback to web3 wallet connection
+      return null;
+    }
+    throw error;
+  }
+}
+
+// Usage
+const wallet = await initializeBaseAppWallet();
+if (wallet) {
+  console.log('Connected to Base App wallet:', wallet.address);
+  // Use wallet.provider for transactions
+} else {
+  console.log('Base App SDK unavailable, using fallback');
+}
 ```
 
 ### Authentication Verification
@@ -1092,6 +1221,148 @@ This validates:
 - **Documentation**: See `docs/` directory for detailed guides
 - **Issues**: Open GitHub issue with error logs and steps to reproduce
 - **Logs**: Check Vercel function logs for API errors
+
+---
+
+## Appendix: Full Game Engine Module Reference
+
+This section provides a comprehensive reference to all game engine modules in the `src/` directory, organized by functional category.
+
+### Core Game Logic
+
+- **`src/game.js`** - Core game loop, state machine, and main game orchestration. Handles game initialization, update cycles, and state transitions.
+
+- **`src/executive.js`** - Executive controller that manages game flow, level progression, and coordinates between game systems.
+
+- **`src/main.js`** - Application entry point that initializes the game, loads high scores, and sets up the initial game state.
+
+- **`src/states.js`** - Game state definitions and state management system for different game modes (home, playing, game over, etc.).
+
+### Game Entities
+
+- **`src/Actor.js`** - Base class for all game entities (Pac-Man, ghosts, fruits). Provides common functionality for movement, collision, and rendering.
+
+- **`src/Player.js`** - Player (Pac-Man) entity implementation. Handles player movement, input processing, and player-specific game logic.
+
+- **`src/Ghost.js`** - Ghost entity implementation with AI behavior patterns. Implements the classic ghost AI modes: scatter, chase, frightened, and eaten.
+
+- **`src/actors.js`** - Actor factory and management system. Creates and manages all game entities.
+
+### Artificial Intelligence
+
+- **`src/ghostCommander.js`** - Ghost AI controller that manages ghost behavior modes and coordinates ghost movements based on game state.
+
+- **`src/ghostReleaser.js`** - Ghost release system that controls when ghosts are released from the center area during gameplay.
+
+- **`src/targets.js`** - Target calculation system for ghost AI. Computes target tiles for each ghost based on their behavior mode.
+
+- **`src/elroyTimer.js`** - Elroy mode timer system. Manages the special "Elroy" behavior where ghosts become more aggressive in later levels.
+
+### Rendering & Graphics
+
+- **`src/renderers.js`** - Rendering system that handles canvas drawing operations for all game entities and UI elements.
+
+- **`src/sprites.js`** - Sprite management system. Loads and manages sprite sheets for game entities and animations.
+
+- **`src/atlas.js`** - Texture atlas system for efficient sprite rendering and texture management.
+
+- **`src/hud.js`** - Heads-up display rendering. Draws score, lives, level information, and game status overlays.
+
+- **`src/cutscenes.js`** - Cutscene rendering system for inter-level animations and game events.
+
+### Game World & Maps
+
+- **`src/Map.js`** - Map/maze system. Handles tile-based map representation, collision detection, and maze navigation.
+
+- **`src/maps.js`** - Predefined map data for classic Pac-Man and Ms. Pac-Man levels.
+
+- **`src/mapgen.js`** - Procedural map generator for Cookie-Man mode. Creates random mazes following Pac-Man design patterns.
+
+### Game Mechanics
+
+- **`src/energizer.js`** - Power pellet (energizer) system. Manages power pellet effects, ghost vulnerability, and scoring bonuses.
+
+- **`src/fruit.js`** - Fruit spawning and collection system. Handles fruit appearance, scoring, and level-specific fruit types.
+
+- **`src/direction.js`** - Direction and movement utilities. Provides direction constants and movement calculations.
+
+### Input & Controls
+
+- **`src/input.js`** - Input handling system. Processes keyboard, touch, and swipe inputs for player control.
+
+### State Management
+
+- **`src/inGameMenu.js`** - In-game menu system. Handles pause menu, settings, and game options during gameplay.
+
+- **`src/Menu.js`** - Main menu system. Manages game mode selection, high score display, and menu navigation.
+
+### Utilities & Helpers
+
+- **`src/random.js`** - Random number generator with seed support for reproducible gameplay patterns.
+
+- **`src/colors.js`** - Color palette management for different game modes and themes.
+
+- **`src/inherit.js`** - JavaScript inheritance utilities for object-oriented game entity structure.
+
+- **`src/vcr.js` - Video cassette recorder system for practice mode. Enables time manipulation features like rewind and slow-motion.
+
+### Data Structures
+
+- **`src/Button.js`** - Button UI component for menus and interfaces.
+
+### Special Features
+
+- **`src/galagaStars.js`** - Starfield background effect system inspired by Galaga.
+
+- **`src/sound.js`** - Sound effect and music system (currently under construction).
+
+### Debug & Development
+
+- **`src/debug-autosubmit.js`** - Debug utility for automatically submitting test scores during development.
+
+- **`src/console-logger.js`** - Console logging utility with log levels and formatting.
+
+### UI Components (Non-Game)
+
+- **`src/leaderboard-panel.js`** - Leaderboard UI panel with search and ranking display.
+
+- **`src/profile-panel.js`** - User profile panel showing on-chain stats and Farcaster profile information.
+
+- **`src/wallet-panel.js`** - Wallet connection status panel.
+
+- **`src/settings-panel.js`** - Game settings and configuration panel.
+
+- **`src/bottom-nav.js`** - Mobile bottom navigation bar for MiniApp interfaces.
+
+### Blockchain Integration
+
+- **`src/onchain-client.js`** - Main on-chain client that handles wallet connection, score submission, and blockchain interactions.
+
+- **`src/onchain-bootstrap.js`** - On-chain system initialization and SDK detection.
+
+- **`src/onchain-config.js`** - On-chain configuration loader and environment setup.
+
+- **`src/onchain/`** - On-chain module directory containing provider, score service, profile service, and SDK context utilities.
+
+### MiniApp Integration
+
+- **`src/miniapp-auth.js`** - MiniApp authentication handler for Farcaster Quick Auth.
+
+- **`src/miniapp-ethereum-shim.js`** - Ethereum provider shim for MiniApp environments.
+
+- **`src/mock-miniapp-provider.js`** - Mock MiniApp provider for local development and testing.
+
+### Utilities & Libraries
+
+- **`src/lib/`** - Utility library directory containing safe fetch, contract reading, and error handling utilities.
+
+- **`src/utils/`** - General utilities including logger, platform detection, and SDK detection helpers.
+
+- **`src/ui/`** - React-based UI components directory for connection menus and modern UI elements.
+
+- **`src/leaderboard/`** - Leaderboard module directory containing API client, DOM rendering, search functionality, state management, and service modules.
+
+- **`src/game/`** - Additional game-specific modules and utilities.
 
 ---
 
