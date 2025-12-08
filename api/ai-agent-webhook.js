@@ -3,6 +3,28 @@
  * Receives log entries from app-log.js and performs AI-powered analysis
  */
 
+import Rollbar from 'rollbar';
+
+// Initialize Rollbar (optional - only if ROLLBAR token is set)
+let rollbar = null;
+try {
+  // Support both Vercel Marketplace format and standard format
+  const rollbarToken = process.env.ROLLBAR_BASE_MAN_SERVER_TOKEN_1764367657 
+    || process.env.ROLLBAR_ACCESS_TOKEN 
+    || process.env.ROLLBAR_SERVER_TOKEN;
+  if (rollbarToken) {
+    rollbar = new Rollbar({
+      accessToken: rollbarToken,
+      captureUncaught: false,
+      captureUnhandledRejections: false,
+      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'production',
+      codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
+    });
+  }
+} catch (err) {
+  console.warn('[ai-agent] Rollbar initialization failed:', err?.message);
+}
+
 // AI Provider Configuration
 const AI_PROVIDER = (process.env.AI_PROVIDER || 'groq').trim().toLowerCase(); // 'groq', 'openai', 'openrouter', 'rule-based'
 const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || '').trim();
@@ -474,6 +496,65 @@ export default async function handler(req, res) {
 
     // Perform AI analysis
     const analysis = await analyzeError(logEntry);
+
+    // Send AI analysis to Rollbar if configured
+    console.log('[ai-agent] Rollbar check:', {
+      hasRollbar: !!rollbar,
+      event: logEntry.event,
+      hasAnalysis: !!analysis,
+      willSend: !!(rollbar && logEntry.event === 'error' && analysis)
+    });
+    if (rollbar && logEntry.event === 'error' && analysis) {
+      try {
+        // Extract person info from meta if available (address, fid, etc.)
+        const person = {};
+        if (logEntry.meta?.address) {
+          person.id = logEntry.meta.address;
+        }
+        if (logEntry.meta?.fid) {
+          person.id = String(logEntry.meta.fid);
+          person.username = logEntry.meta.username || undefined;
+        }
+        
+        // Build Rollbar error payload with AI analysis
+        const rollbarPayload = {
+          custom: {
+            timestamp: logEntry.ts,
+            meta: logEntry.meta,
+            filename: logEntry.meta?.filename,
+            lineno: logEntry.meta?.lineno,
+            colno: logEntry.meta?.colno,
+            // Add AI analysis results
+            aiAnalysis: {
+              rootCause: analysis.rootCause,
+              severity: analysis.severity,
+              impact: analysis.impact,
+              solution: analysis.solution,
+              prevention: analysis.prevention,
+              method: analysis.method || 'unknown'
+            }
+          },
+          fingerprint: logEntry.meta?.stack ? logEntry.meta.stack.split('\n')[0] : logEntry.message
+        };
+        
+        // Add person tracking if available
+        if (person.id) {
+          rollbarPayload.person = person;
+        }
+        
+        // Send to Rollbar with AI analysis
+        rollbar.error(logEntry.message, rollbarPayload);
+        console.log('[ai-agent] ✅ Sent error with AI analysis to Rollbar', {
+          message: logEntry.message,
+          hasAnalysis: !!analysis,
+          severity: analysis?.severity,
+          method: analysis?.method,
+          rollbarPayload: JSON.stringify(rollbarPayload).slice(0, 200) + '...'
+        });
+      } catch (err) {
+        console.warn('[ai-agent] Rollbar send failed:', err?.message);
+      }
+    }
 
     // Send notifications if analysis is available or if it's a critical error
     if (analysis || logEntry.event === 'error') {
