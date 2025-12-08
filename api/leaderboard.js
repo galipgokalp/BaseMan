@@ -381,6 +381,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
         .filter(Boolean)
     )
   ];
+  console.log("[DEBUG] Leaderboard addresses:", addresses);
 
   if (addresses.length === 0) {
     // No addresses, just return mapped items without profiles
@@ -468,11 +469,13 @@ async function hydrateProfilesForAddresses(items, req = null) {
   } else {
     cachedProfiles = {};
   }
+  console.log("[DEBUG] Redis profile keys:", Object.keys(cachedProfiles));
 
   // 3) Determine which addresses still need lookup from Neynar
   const missingForExternalFetch = externalEnrichmentEnabled
     ? addresses.filter((addr) => !cachedProfiles[addr] && !headerProfiles[addr])
     : [];
+  console.log("[DEBUG] Missing for external enrichment:", missingForExternalFetch);
 
   // 4) Fetch from Neynar bulk-by-address
   let fetchedProfiles = {};
@@ -482,6 +485,9 @@ async function hydrateProfilesForAddresses(items, req = null) {
       console.log(
         `[leaderboard] Fetched ${Object.keys(fetchedProfiles).length} profiles from Neynar for ${missingForExternalFetch.length} missing addresses`
       );
+      console.log("[DEBUG] Neynar fetched profiles:", Object.keys(fetchedProfiles));
+      console.log("[DEBUG] Neynar missing count:", missingForExternalFetch.length);
+      console.log("[DEBUG] Neynar returned count:", Object.keys(fetchedProfiles).length);
 
       if (Object.keys(fetchedProfiles).length > 0) {
         try {
@@ -508,6 +514,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
     ...fetchedProfiles,
     ...headerProfiles
   };
+  console.log("[DEBUG] Combined profile keys:", Object.keys(allProfiles));
 
   // 6) Build final enriched items
   const enriched = items.map((item, index) => {
@@ -548,7 +555,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
     const totalScore = totalNumeric ?? null;
     const lastUpdatedAt = toIsoTimestamp(item.lastUpdate);
 
-    return {
+    const entry = {
       rank: index + 1,
       player,
       playerAddress: player,
@@ -558,6 +565,11 @@ async function hydrateProfilesForAddresses(items, req = null) {
       lastUpdatedAt,
       profile: profile || null
     };
+    console.log("[DEBUG] Final entry profile:", {
+      address: entry.player,
+      profile: profile || null
+    });
+    return entry;
   });
 
   return enriched;
@@ -577,6 +589,12 @@ async function enrichWithProfiles(items, req = null) {
   let debugInfo = null;
 
   try {
+    console.log("[DEBUG] ENV CHECK:", {
+      FARCASTER_PROFILE_PROVIDER: process.env.FARCASTER_PROFILE_PROVIDER,
+      hasNeynarKey: !!process.env.NEYNAR_API_KEY,
+      REDIS_URL: process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL,
+      disableEnrichment: process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT
+    });
     enriched = await hydrateProfilesForAddresses(items, req);
   } catch (error) {
     console.error("[leaderboard] hydrateProfilesForAddresses failed", error);

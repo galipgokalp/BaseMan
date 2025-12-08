@@ -557,8 +557,16 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
   const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
   const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
   const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
+  const disableEnrichmentFlag = ["1","true","yes","on"].includes(String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase());
 
-  if (DISABLE_ENRICHMENT || PROFILE_PROVIDER !== "neynar" || !NEYNAR_API_KEY) {
+  console.log("[DEBUG] Neynar ENV:", {
+    provider: PROFILE_PROVIDER,
+    hasApiKey: !!NEYNAR_API_KEY,
+    disableEnrichment: disableEnrichmentFlag,
+    addressCount: addresses.length
+  });
+
+  if (DISABLE_ENRICHMENT || PROFILE_PROVIDER !== "neynar" || !NEYNAR_API_KEY || disableEnrichmentFlag) {
     return {};
   }
 
@@ -580,6 +588,7 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
 
   // Remove duplicates
   const uniqueAddresses = [...new Set(normalizedAddresses)];
+  console.log("[DEBUG] Unique addresses for Neynar:", uniqueAddresses);
 
   // Chunk addresses into batches of <= 350 for the API
   const CHUNK_SIZE = 350;
@@ -593,6 +602,7 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
   // For each chunk, call the bulk-by-address endpoint
   for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
     const chunk = chunks[chunkIdx];
+    console.log(`[DEBUG] Chunk ${chunkIdx + 1}/${chunks.length}: size=${chunk.length}`);
     try {
       const addressesParam = chunk.join(',');
       const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/bulk-by-address/?addresses=${encodeURIComponent(addressesParam)}&address_types=custody_address,verified_address`;
@@ -619,7 +629,9 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
       }
 
       const payload = await response.json();
+      console.log("[DEBUG] Neynar raw response keys:", Object.keys(payload || {}));
       const users = payload?.users || payload?.result?.users || [];
+      console.log("[DEBUG] Neynar response.users length:", Array.isArray(users) ? users.length : "NO USERS");
 
       // For every ETH address associated with a user (custody or verified)
       for (let i = 0; i < users.length; i++) {
@@ -677,6 +689,7 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
   }
 
   console.log(`[farcaster-profiles] Bulk-by-address: returning ${Object.keys(allProfiles).length} profiles for ${uniqueAddresses.length} addresses`);
+  console.log("[DEBUG] Total normalized profiles:", Object.keys(allProfiles).length);
   return allProfiles;
 }
 

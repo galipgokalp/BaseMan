@@ -240,6 +240,11 @@ export async function getProfilesForAddresses(addresses) {
       }
     }
 
+    console.log("[DEBUG] Redis GET:", {
+      requested: normalizedAddresses,
+      found: Object.keys(result)
+    });
+
     return result;
   } catch (error) {
     console.error('[redis-profiles] getProfilesForAddresses error:', error?.message || error);
@@ -265,6 +270,8 @@ export async function setProfilesForAddresses(profilesByAddress) {
   if (entries.length === 0) {
     return;
   }
+
+  console.log("[DEBUG] Redis SET keys:", Object.keys(profilesByAddress));
 
   // Use pipelining for batch operations
   try {
