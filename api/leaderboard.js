@@ -437,6 +437,16 @@ async function hydrateProfilesForAddresses(items, req = null) {
               ...profile,
               updatedAt: Date.now()
             });
+            // Save to Redis for persistent storage (so other users can see Base App profiles)
+            saveToRedis(key, {
+              fid: String(mapping.fid),
+              username: mapping.username || null,
+              displayName: mapping.displayName || null,
+              avatarUrl: mapping.avatarUrl || null,
+              platform: mapping.platform || null
+            }).catch(err => {
+              console.warn('[leaderboard] Failed to save header profile to Redis (non-critical):', err?.message || err);
+            });
             mappingCount++;
           }
         }
