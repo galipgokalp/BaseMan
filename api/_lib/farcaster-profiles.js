@@ -401,6 +401,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
   }
 
   // Update addresses needing fetch (exclude ones we just found from direct mapping)
+  // Defined outside try block so it's accessible in catch block
   const addressesStillNeedingFetch = addressesForDirectMapping.filter(
     addr => !results.has(addr.toLowerCase())
   );
@@ -506,7 +507,9 @@ export async function fetchProfilesForAddresses(addresses = []) {
   } catch (error) {
     console.error('[farcaster-profiles] fetchProfilesForAddresses error:', error);
     // Set remaining addresses to null
-    for (const address of addressesStillNeedingFetch || addressesNeedingFetch || []) {
+    // Use addressesStillNeedingFetch (now accessible) or fallback to addressesNeedingFetch
+    const addressesToMark = addressesStillNeedingFetch || addressesNeedingFetch || [];
+    for (const address of addressesToMark) {
       const cacheKey = address.toLowerCase();
       if (!results.has(cacheKey)) {
         results.set(cacheKey, null);

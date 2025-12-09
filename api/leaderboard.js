@@ -119,7 +119,6 @@ export async function getAllFidMappings(addresses) {
 const DEFAULT_SQL_BASE = "https://api.cdp.coinbase.com";
 const ALT_SQL_BASE = "https://api.developer.coinbase.com";
 // Event topics (computed at runtime for safety)
-const SCORE_SUBMITTED_TOPIC = ethers.id("ScoreSubmitted(address,uint256,uint256)");
 const SCORE_ADDED_TOPIC = ethers.id("ScoreAdded(address,uint256,uint256,uint256)");
 const SQL_API_KEY = process.env.CDP_SQL_API_KEY || "";
 const DISABLE_FLAG = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
@@ -1074,7 +1073,6 @@ export default async function handler(req, res) {
         (now - leaderboardResultCache.timestamp) < LEADERBOARD_RESULT_CACHE_TTL_MS) {
       console.log(`[leaderboard] Returning cached results (age: ${now - leaderboardResultCache.timestamp}ms)`);
       const cachedItems = leaderboardResultCache.data.slice(0, limit);
-      const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';
       const result = await enrichWithProfiles(cachedItems, req);
       const enriched = Array.isArray(result) ? result : result.enriched;
       const debugInfo = Array.isArray(result) ? null : result.debugInfo;
