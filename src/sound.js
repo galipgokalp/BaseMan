@@ -46,10 +46,28 @@ function audioTrack(url, volume) {
         try{
             var playPromise = audio.play();
             if(playPromise) {
-                playPromise.then(function(){}).catch(function(err){});
+                playPromise.then(function(){}).catch(function(err){
+                    // Log audio play errors (non-critical)
+                    try {
+                        if (typeof window !== 'undefined' && window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+                            window.BaseManLogger.createLogger('Sound').warn('Audio play failed:', err);
+                        } else {
+                            console.error('[Sound] Audio play failed:', err);
+                        }
+                    } catch (_) {}
+                });
             }
         } 
-        catch(err){ console.error(err) }
+        catch(err) {
+            // Log audio play errors (non-critical)
+            try {
+                if (typeof window !== 'undefined' && window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+                    window.BaseManLogger.createLogger('Sound').warn('Audio play error:', err);
+                } else {
+                    console.error('[Sound] Audio play error:', err);
+                }
+            } catch (_) {}
+        }
     }
 }
 

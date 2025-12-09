@@ -3,8 +3,9 @@
  * Displays app settings and preferences
  */
 
-import { createElement } from './utils/panel-base.js';
+import { createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
+import { escapeHtml } from './utils/escape-html.js';
 
 const log = createLogger('Settings');
 const PANEL_ID = 'baseman-settings-panel';
@@ -130,8 +131,7 @@ function setVisible(visible) {
 
     isOpen = !!visible;
     // Show panel immediately (synchronous)
-    panel.classList.toggle('open', isOpen);
-    panel.setAttribute('aria-hidden', String(!isOpen));
+    setPanelVisible(panel, isOpen);
 
     if (isOpen) {
       // Load settings immediately (synchronous)
@@ -145,7 +145,7 @@ function setVisible(visible) {
         refresh();
       });
     }
-}
+  }
 
 function loadSettings() {
     const panel = ensurePanel();
@@ -414,32 +414,11 @@ function ensureProfileButton(show) {
 const wiredElements = new WeakSet();
 
 function wire(panel) {
-    const closeBtn = panel.querySelector('[data-close]');
-    if (closeBtn && !wiredElements.has(closeBtn)) {
-      wiredElements.add(closeBtn);
-      const handleClose = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setVisible(false);
-        // Also update bottom nav state
-        if (window.BottomNav) {
-          window.BottomNav.setActive(null);
-        }
-      };
-      closeBtn.addEventListener('click', handleClose, { passive: false });
-      // Touch event for mobile
-      closeBtn.addEventListener('touchend', handleClose, { passive: false });
-    }
-
-    // Close on overlay click
-    if (!wiredElements.has(panel)) {
-      wiredElements.add(panel);
-      panel.addEventListener('click', (e) => {
-        if (e.target === panel) {
-          setVisible(false);
-        }
-      }, { passive: true });
-    }
+    // Wire close button using shared helper
+    wirePanelCloseButton(panel, () => setVisible(false), wiredElements);
+    
+    // Wire overlay click using shared helper
+    wirePanelOverlay(panel, () => setVisible(false), wiredElements);
 
     // Theme toggle - use both click and change for mobile compatibility
     const themeToggle = panel.querySelector('[data-setting="theme"]');
@@ -1251,11 +1230,7 @@ function exportDebugLogs() {
       });
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// escapeHtml is now imported from utils/escape-html.js
 
 function init() {
     try {

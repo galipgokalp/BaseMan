@@ -329,6 +329,27 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
 
         if (rendered && statusEl) {
           statusEl.textContent = "";
+          
+          // Show diagnostic message in dev mode if profiles might be limited
+          const isDev = (window.__ENV?.NODE_ENV || window.__ENV?.NEXT_PUBLIC_NODE_ENV || '').toLowerCase() !== 'production';
+          if (isDev && debugInfo) {
+            const hasLimitedProfiles = debugInfo.enrichmentDisabled || debugInfo.missingNeynarKey || debugInfo.missingRedis;
+            if (hasLimitedProfiles) {
+              const diagnosticMsg = document.createElement('div');
+              diagnosticMsg.className = 'leaderboard-diagnostic';
+              diagnosticMsg.style.cssText = 'font-size: 0.75rem; color: #999; padding: 4px 8px; margin-top: 8px; text-align: center;';
+              let msg = '(Dev) ';
+              if (debugInfo.enrichmentDisabled) {
+                msg += 'Profiles disabled';
+              } else if (debugInfo.missingNeynarKey) {
+                msg += 'Profiles limited: missing Neynar API key';
+              } else if (debugInfo.missingRedis) {
+                msg += 'Profiles limited: missing Redis config';
+              }
+              diagnosticMsg.textContent = msg;
+              statusEl.appendChild(diagnosticMsg);
+            }
+          }
         }
         setLoading(false);
       },

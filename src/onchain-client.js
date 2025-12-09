@@ -12,6 +12,7 @@ import {
   sendCalls as sendCallsUtil,
   sendEthTransaction as sendEthTransactionUtil
 } from './onchain/index.js';
+import { createLogger } from './utils/logger.js';
 
 // CRITICAL: Export window.BaseManOnchain immediately (before async initialization)
 // Base App Mini-App SDK requires this to be available synchronously
@@ -59,31 +60,9 @@ if (typeof window !== "undefined") {
 
   const debug = createDebugOverlay();
   
-  // Use BaseManLogger if available (from utils/logger.js), else fallback to console
-  const _getLog = () => {
-    if (typeof window !== 'undefined' && window.BaseManCreateLogger) {
-      return window.BaseManCreateLogger('Onchain');
-    }
-    if (typeof window !== 'undefined' && window.BaseManLogger) {
-      return window.BaseManLogger;
-    }
-    // Fallback to console wrapper
-    return {
-      debug: (...args) => console.debug('[Onchain]', ...args),
-      log: (...args) => console.log('[Onchain]', ...args),
-      info: (...args) => console.info('[Onchain]', ...args),
-      warn: (...args) => console.warn('[Onchain]', ...args),
-      error: (...args) => console.error('[Onchain]', ...args),
-      warnOnce: (key, ...args) => console.warn('[Onchain]', ...args),
-      errorOnce: (key, ...args) => console.error('[Onchain]', ...args)
-    };
-  };
-  let _log = null;
-  const log = () => {
-    if (!_log) _log = _getLog();
-    return _log;
-  };
-  log().debug("onchain-client bootstrap");
+  // Use logger from utils/logger.js
+  const log = createLogger('OnchainClient');
+  log.debug("onchain-client bootstrap");
 
   // Best-effort: prefetch mini app auth token once at startup to minimize delays during score submit
   (async () => {

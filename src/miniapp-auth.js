@@ -3,6 +3,9 @@
 // - Waits for SDK readiness if available
 // - Retrieves a short‑lived Quick Auth token and forwards it to backend for verification
 
+import { createLogger } from './utils/logger.js';
+const log = createLogger('MiniAppAuth');
+
 (function () {
   // Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)
   function isMiniAppEnv() {
@@ -78,8 +81,7 @@
       
       if (isRequestError) {
         // Log but don't throw - ready() failures are often non-critical
-        const log = (typeof window !== 'undefined' && window.logger) ? window.logger.log : console.log;
-        log(`[miniapp-auth] SDK ready failed (non-critical): ${errorMsg}`);
+        log.debug(`SDK ready failed (non-critical): ${errorMsg}`);
       }
       // Silently catch other errors - ready() is best-effort
     }
@@ -112,7 +114,7 @@
       return null;
     } catch (err) { 
       // Prevent unhandled promise rejection by catching and logging
-      console.warn('[miniapp-auth] getToken failed:', err?.message || err);
+      log.warn('getToken failed:', err?.message || err);
       // Re-throw as handled error to prevent unhandled rejection
       return null; 
     }
@@ -153,14 +155,14 @@
       await sendToken(token);
     } catch (err) {
       // Prevent unhandled promise rejection
-      console.warn('[miniapp-auth] main() failed:', err?.message || err);
+      log.warn('main() failed:', err?.message || err);
     }
   }
 
   // Wrap in try-catch and handle promise rejection
   try { 
     main().catch(err => {
-      console.warn('[miniapp-auth] main() promise rejection:', err?.message || err);
+      log.warn('main() promise rejection:', err?.message || err);
     });
   } catch (_) {}
 })();

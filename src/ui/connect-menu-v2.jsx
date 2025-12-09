@@ -4,6 +4,9 @@ import { WagmiProvider, useAccount, useConnect, useSendTransaction, useSendCalls
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { parseEther } from 'viem';
 import { config as wagmiConfig, makeWagmiConfig, getConfig } from './wagmi-config.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('ConnectMenu');
 
 // Config will be initialized lazily when needed (especially important for mobile apps)
 let config = wagmiConfig || null;
@@ -126,13 +129,13 @@ function App() {
       if (initializedConfig) {
         setCurrentConfig(initializedConfig);
         config = initializedConfig; // Update module-level config
-        console.log('[ConnectMenu] Config initialized successfully');
+        log.debug('Config initialized successfully');
       } else {
-        console.warn('[ConnectMenu] Config initialization returned null');
+        log.warn('Config initialization returned null');
       }
       setIsLoading(false);
     }).catch((error) => {
-      console.error('[ConnectMenu] Failed to initialize config:', error);
+      log.error('Failed to initialize config:', error);
       setIsLoading(false);
     });
   }, []);
@@ -147,7 +150,7 @@ function App() {
     // In mini app environments, don't show error - wallet works via SDK
     // Just return empty/nothing instead of showing error
     if (isMiniApp) {
-      console.warn('[ConnectMenu] Config unavailable in mini app, hiding menu');
+      log.warn('Config unavailable in mini app, hiding menu');
       return null;
     }
     
@@ -226,7 +229,7 @@ function mountConnectMenu() {
   // Wallet functionality is handled via Wallet panel in bottom navigation
   const isMiniApp = isMiniAppEnvironment();
   if (isMiniApp) {
-    console.log('[ConnectMenu] Mini app detected, skipping mount');
+    log.debug('Mini app detected, skipping mount');
     // Remove container if it exists
     const existing = document.getElementById('connect-root');
     if (existing) {
@@ -237,7 +240,7 @@ function mountConnectMenu() {
   }
   
   if (mountAttempted) {
-    console.log('[ConnectMenu] Mount already attempted, skipping...');
+    log.debug('Mount already attempted, skipping...');
     return;
   }
   mountAttempted = true;
@@ -245,7 +248,7 @@ function mountConnectMenu() {
   try {
     const container = ensureMountEl();
     if (!container) {
-      console.warn('[ConnectMenu] Container not created');
+      log.warn('Container not created');
       mountAttempted = false; // Retry
       return;
     }
@@ -255,7 +258,7 @@ function mountConnectMenu() {
     root.render(appElement);
     mountComplete = true;
     
-    console.log('[ConnectMenu] Mounted successfully');
+    log.debug('Mounted successfully');
     
     // Listen for wallet open events from bottom nav
     window.addEventListener('baseman-open-wallet', () => {
@@ -264,7 +267,7 @@ function mountConnectMenu() {
       }
     });
   } catch (err) {
-    console.error('[ConnectMenu] mount failed', err);
+    log.error('mount failed', err);
     mountAttempted = false; // Allow retry
   }
 }
@@ -273,7 +276,7 @@ function initConnectMenu() {
   // In mini app environments, DO NOT initialize connect menu
   const isMiniApp = isMiniAppEnvironment();
   if (isMiniApp) {
-    console.log('[ConnectMenu] Mini app detected, skipping initialization');
+    log.debug('Mini app detected, skipping initialization');
     // Remove container if it exists
     const existing = document.getElementById('connect-root');
     if (existing) {
@@ -284,13 +287,13 @@ function initConnectMenu() {
   }
   
   if (mountComplete) {
-    console.log('[ConnectMenu] Already mounted');
+    log.debug('Already mounted');
     return;
   }
   
   // Wait for React to be available
   if (typeof React === 'undefined' || typeof createRoot === 'undefined') {
-    console.log('[ConnectMenu] React not available yet, waiting...');
+    log.debug('React not available yet, waiting...');
     setTimeout(initConnectMenu, 200);
     return;
   }
@@ -317,7 +320,7 @@ function initConnectMenu() {
     ));
     
   if (isMiniAppEarly) {
-    console.log('[ConnectMenu] Mini app detected early, skipping all initialization');
+    log.debug('Mini app detected early, skipping all initialization');
     
     // Add CSS to hide connect menu immediately
     if (typeof document !== 'undefined') {

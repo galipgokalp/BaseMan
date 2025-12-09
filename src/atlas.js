@@ -274,7 +274,14 @@ var atlas = (function(){
         var dh = size;
 
         if (display) {
-            console.log(sx,sy,sw,sh,dw,dy,dw,dh);
+            // Debug logging for atlas drawing
+            try {
+                if (typeof window !== 'undefined' && window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+                    window.BaseManLogger.createLogger('Atlas').debug('drawImage:', { sx, sy, sw, sh, dw, dy, dw, dh });
+                } else {
+                    console.log('[Atlas]', sx, sy, sw, sh, dw, dy, dw, dh);
+                }
+            } catch (_) {}
         }
 
         destCtx.drawImage(canvas,sx,sy,sw,sh,dx,dy,dw,dh);

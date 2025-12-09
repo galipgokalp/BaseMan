@@ -11,6 +11,10 @@ import { ethers } from "ethers";
 import { getAllFidMappings, getProfileMapping } from "../leaderboard.js";
 import { getProfileMappings as getFromRedis } from "./redis-profiles.js";
 
+// Logger import for server-side logging
+import { createLogger } from "../../src/utils/logger.js";
+const log = createLogger('FarcasterProfiles');
+
 const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
 const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
@@ -19,6 +23,10 @@ const MANUAL_PROFILE_CACHE = new Map();
 const FALLBACK_PROVIDER = "neynar";
 const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
 let ENRICHMENT_DISABLED_REASON = null;
+
+// Warn once flags for missing configuration
+let hasLoggedMissingNeynarKey = false;
+let hasLoggedMissingRedis = false;
 
 // ============================================
 // IN-FLIGHT REQUEST DEDUPLICATION - Phase 4.3
@@ -116,7 +124,7 @@ async function fetchNeynarProfile(address) {
   
   // Phase 4.3: Check for in-flight request for this address
   if (inflightNeynarRequests.has(cacheKey)) {
-    console.log(`[farcaster-profiles] Reusing in-flight request for ${cacheKey.substring(0, 10)}...`);
+    log.debug(`Reusing in-flight request for ${cacheKey.substring(0, 10)}...`);
     return inflightNeynarRequests.get(cacheKey);
   }
   
@@ -180,7 +188,7 @@ async function fetchProfilesByFids(fids) {
   // Phase 4.3: Check for in-flight bulk request with same FIDs
   const sortedFidsKey = validFids.slice().sort().join(',');
   if (inflightBulkFidRequest && inflightBulkFidRequestFids === sortedFidsKey) {
-    console.log(`[farcaster-profiles] Reusing in-flight bulk FID request for ${validFids.length} FIDs`);
+    log.debug(`Reusing in-flight bulk FID request for ${validFids.length} FIDs`);
     return inflightBulkFidRequest;
   }
 
@@ -201,7 +209,7 @@ async function fetchProfilesByFids(fids) {
         }
         // Don't set ENRICHMENT_DISABLED_REASON for bulk endpoint failures
         // It's optional and shouldn't disable the whole enrichment
-        console.warn(`[farcaster-profiles] Bulk API error: ${response.status}`);
+        log.warn(`Bulk API error: ${response.status}`);
         return new Map();
       }
 
@@ -245,7 +253,7 @@ async function fetchProfilesByFids(fids) {
 
       return addressToProfileMap;
     } catch (error) {
-      console.error('[farcaster-profiles] Bulk fetch error:', error);
+      log.error('Bulk fetch error:', error);
       return new Map();
     } finally {
       // Phase 4.3: Clear in-flight request
@@ -279,7 +287,7 @@ async function resolveProfile(address) {
       profile = await fetchNeynarProfile(address);
     }
   } catch (error) {
-    console.error("[farcaster-profiles] resolve error", error);
+    log.error("resolve error", error);
   }
 
   PROFILE_CACHE.set(cacheKey, profile ?? null);
@@ -315,9 +323,9 @@ export async function fetchProfilesForAddresses(addresses = []) {
   // Try Redis first (persistent storage for all users)
   if (addressesNeedingFetch.length > 0) {
     try {
-      console.log(`[farcaster-profiles] Checking Redis for ${addressesNeedingFetch.length} addresses:`, addressesNeedingFetch.map(a => a.substring(0, 10) + '...'));
+      log.debug(`Checking Redis for ${addressesNeedingFetch.length} addresses:`, addressesNeedingFetch.map(a => a.substring(0, 10) + '...'));
       const redisMappings = await getFromRedis(addressesNeedingFetch);
-      console.log(`[farcaster-profiles] Redis returned ${redisMappings.size} mappings for ${addressesNeedingFetch.length} requested addresses`);
+      log.debug(`Redis returned ${redisMappings.size} mappings for ${addressesNeedingFetch.length} requested addresses`);
       
       let redisProfileCount = 0;
       for (const [address, mapping] of redisMappings) {
@@ -340,20 +348,20 @@ export async function fetchProfilesForAddresses(addresses = []) {
           results.set(key, profile);
           PROFILE_CACHE.set(key, profile);
           redisProfileCount++;
-          console.log(`[farcaster-profiles] ✅ Using Redis mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
+          log.debug(`✅ Using Redis mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
         } else {
           const key = address.toLowerCase();
-          console.log(`[farcaster-profiles] ⚠️ Redis mapping for ${key} exists but incomplete:`, { hasUsername: !!mapping?.username, hasDisplayName: !!mapping?.displayName, hasAvatarUrl: !!mapping?.avatarUrl });
+          log.debug(`⚠️ Redis mapping for ${key} exists but incomplete:`, { hasUsername: !!mapping?.username, hasDisplayName: !!mapping?.displayName, hasAvatarUrl: !!mapping?.avatarUrl });
         }
       }
       
       if (redisProfileCount > 0) {
-        console.log(`[farcaster-profiles] ✅ Successfully loaded ${redisProfileCount} profile(s) from Redis out of ${addressesNeedingFetch.length} requested`);
+        log.debug(`✅ Successfully loaded ${redisProfileCount} profile(s) from Redis out of ${addressesNeedingFetch.length} requested`);
       } else if (addressesNeedingFetch.length > 0) {
-        console.log(`[farcaster-profiles] ℹ️ No profiles found in Redis for ${addressesNeedingFetch.length} addresses - profiles will appear as users play and submit scores`);
+        log.debug(`ℹ️ No profiles found in Redis for ${addressesNeedingFetch.length} addresses - profiles will appear as users play and submit scores`);
       }
     } catch (error) {
-      console.warn('[farcaster-profiles] Failed to get profiles from Redis (non-critical):', error?.message || error);
+      log.warn('Failed to get profiles from Redis (non-critical):', error?.message || error);
     }
   }
 
@@ -370,7 +378,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
   for (const address of addressesForDirectMapping) {
     const key = address.toLowerCase();
     const directMapping = getProfileMapping(address);
-    console.log(`[farcaster-profiles] Checking direct mapping for ${key}:`, { 
+    log.debug(`Checking direct mapping for ${key}:`, { 
       found: !!directMapping, 
       hasUsername: !!directMapping?.username,
       hasDisplayName: !!directMapping?.displayName,
@@ -394,9 +402,9 @@ export async function fetchProfilesForAddresses(addresses = []) {
       };
       results.set(key, profile);
       PROFILE_CACHE.set(key, profile);
-      console.log(`[farcaster-profiles] ✅ Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
+      log.debug(`✅ Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
     } else {
-      console.log(`[farcaster-profiles] ❌ No direct mapping for ${key} (mapping exists: ${!!directMapping})`);
+      log.debug(`❌ No direct mapping for ${key} (mapping exists: ${!!directMapping})`);
     }
   }
 
@@ -413,14 +421,14 @@ export async function fetchProfilesForAddresses(addresses = []) {
   try {
     // Step 4: Get FID mappings for remaining addresses
     const addressToFidMap = await getAllFidMappings(addressesStillNeedingFetch);
-    console.log(`[farcaster-profiles] Found ${addressToFidMap.size} FID mappings for ${addressesStillNeedingFetch.length} addresses`);
+    log.debug(`Found ${addressToFidMap.size} FID mappings for ${addressesStillNeedingFetch.length} addresses`);
     
     // Step 4: If we have FIDs, use bulk endpoint (free)
     if (addressToFidMap.size > 0) {
       const fids = Array.from(new Set(Array.from(addressToFidMap.values()).filter(Boolean)));
-      console.log(`[farcaster-profiles] Fetching ${fids.length} profiles via bulk endpoint:`, fids);
+      log.debug(`Fetching ${fids.length} profiles via bulk endpoint:`, fids);
       const bulkProfiles = await fetchProfilesByFids(fids);
-      console.log(`[farcaster-profiles] Bulk endpoint returned ${bulkProfiles.size} profiles`);
+      log.debug(`Bulk endpoint returned ${bulkProfiles.size} profiles`);
 
       // Map bulk results back to addresses
       for (const address of addressesStillNeedingFetch) {
@@ -431,12 +439,12 @@ export async function fetchProfilesForAddresses(addresses = []) {
           const profile = bulkProfiles.get(key);
           results.set(key, profile);
           PROFILE_CACHE.set(key, profile);
-          console.log(`[farcaster-profiles] Found bulk profile for ${key}:`, profile.username || profile.displayName || 'unnamed');
+          log.debug(`Found bulk profile for ${key}:`, profile.username || profile.displayName || 'unnamed');
         } else {
           // Bulk didn't return profile for this address
           results.set(key, null);
           if (fid) {
-            console.log(`[farcaster-profiles] No bulk profile found for ${key} (FID: ${fid}) - verified_addresses may not match`);
+            log.debug(`No bulk profile found for ${key} (FID: ${fid}) - verified_addresses may not match`);
           }
         }
       }
@@ -498,14 +506,24 @@ export async function fetchProfilesForAddresses(addresses = []) {
         }
         // Log enrichment disabled only if we couldn't find profiles via direct mapping
         if (remainingAddresses.length > 0 && ENRICHMENT_DISABLED_REASON) {
-          console.warn(
-            `[farcaster-profiles] enrichment disabled (${ENRICHMENT_DISABLED_REASON}); set FARCASTER_PROFILE_PROVIDER=none to silence`
+          log.warnOnce(
+            'enrichment-disabled',
+            `enrichment disabled (${ENRICHMENT_DISABLED_REASON}); set FARCASTER_PROFILE_PROVIDER=none to silence`
+          );
+        }
+        
+        // Check for missing Neynar API key (warn once)
+        if (!hasLoggedMissingNeynarKey && !NEYNAR_API_KEY && !DISABLE_ENRICHMENT && PROFILE_PROVIDER !== 'none') {
+          hasLoggedMissingNeynarKey = true;
+          log.warnOnce(
+            'missing-neynar-key',
+            'Neynar API key (NEYNAR_API_KEY) not configured. Profile enrichment will be limited. Set FARCASTER_PROFILE_PROVIDER=none to silence this warning.'
           );
         }
       }
     }
   } catch (error) {
-    console.error('[farcaster-profiles] fetchProfilesForAddresses error:', error);
+    log.error('fetchProfilesForAddresses error:', error);
     // Set remaining addresses to null
     // Use addressesStillNeedingFetch (now accessible) or fallback to addressesNeedingFetch
     const addressesToMark = addressesStillNeedingFetch || addressesNeedingFetch || [];
@@ -520,7 +538,7 @@ export async function fetchProfilesForAddresses(addresses = []) {
   // Log summary
   const foundCount = Array.from(results.values()).filter(p => p !== null).length;
   if (foundCount > 0) {
-    console.log(`[farcaster-profiles] Returning ${foundCount} profile(s) out of ${normalizedAddresses.length} requested addresses`);
+    log.debug(`Returning ${foundCount} profile(s) out of ${normalizedAddresses.length} requested addresses`);
   }
 
   return results;
@@ -562,7 +580,7 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
   const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
   const disableEnrichmentFlag = ["1","true","yes","on"].includes(String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase());
 
-  console.log("[DEBUG] Neynar ENV:", {
+  log.debug("Neynar ENV:", {
     provider: PROFILE_PROVIDER,
     hasApiKey: !!NEYNAR_API_KEY,
     disableEnrichment: disableEnrichmentFlag,
@@ -591,7 +609,7 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
 
   // Remove duplicates
   const uniqueAddresses = [...new Set(normalizedAddresses)];
-  console.log("[DEBUG] Unique addresses for Neynar:", uniqueAddresses);
+  log.debug("Unique addresses for Neynar:", uniqueAddresses);
 
   // Chunk addresses into batches of <= 350 for the API
   const CHUNK_SIZE = 350;
@@ -605,7 +623,7 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
   // For each chunk, call the bulk-by-address endpoint
   for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
     const chunk = chunks[chunkIdx];
-    console.log(`[DEBUG] Chunk ${chunkIdx + 1}/${chunks.length}: size=${chunk.length}`);
+    log.debug(`Chunk ${chunkIdx + 1}/${chunks.length}: size=${chunk.length}`);
     try {
       const addressesParam = chunk.join(',');
       const url = `${NEYNAR_API_BASE_URL}/v2/farcaster/user/bulk-by-address/?addresses=${encodeURIComponent(addressesParam)}&address_types=custody_address,verified_address`;
@@ -619,22 +637,22 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`[farcaster-profiles] Bulk-by-address API returned 404 for chunk ${chunkIdx + 1}/${chunks.length}`);
+          log.debug(`Bulk-by-address API returned 404 for chunk ${chunkIdx + 1}/${chunks.length}`);
           continue;
         }
         if (response.status === 401 || response.status === 402) {
-          console.warn(`[farcaster-profiles] Bulk-by-address API auth error: ${response.status}`);
+          log.warn(`Bulk-by-address API auth error: ${response.status}`);
           break; // Don't retry other chunks if auth fails
         }
         const text = await response.text();
-        console.warn(`[farcaster-profiles] Bulk-by-address API error ${response.status} for chunk ${chunkIdx + 1}/${chunks.length}: ${text.substring(0, 200)}`);
+        log.warn(`Bulk-by-address API error ${response.status} for chunk ${chunkIdx + 1}/${chunks.length}: ${text.substring(0, 200)}`);
         continue; // Continue with next chunk
       }
 
       const payload = await response.json();
-      console.log("[DEBUG] Neynar raw response keys:", Object.keys(payload || {}));
+      log.debug("Neynar raw response keys:", Object.keys(payload || {}));
       const users = payload?.users || payload?.result?.users || [];
-      console.log("[DEBUG] Neynar response.users length:", Array.isArray(users) ? users.length : "NO USERS");
+      log.debug("Neynar response.users length:", Array.isArray(users) ? users.length : "NO USERS");
 
       // For every ETH address associated with a user (custody or verified)
       for (let i = 0; i < users.length; i++) {
@@ -684,15 +702,15 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
         }
       }
 
-      console.log(`[farcaster-profiles] Bulk-by-address chunk ${chunkIdx + 1}/${chunks.length}: found ${Object.keys(allProfiles).length} profiles so far`);
+      log.debug(`Bulk-by-address chunk ${chunkIdx + 1}/${chunks.length}: found ${Object.keys(allProfiles).length} profiles so far`);
     } catch (error) {
-      console.error(`[farcaster-profiles] Bulk-by-address chunk ${chunkIdx + 1}/${chunks.length} error:`, error?.message || error);
+      log.error(`Bulk-by-address chunk ${chunkIdx + 1}/${chunks.length} error:`, error?.message || error);
       // Continue with next chunk
     }
   }
 
-  console.log(`[farcaster-profiles] Bulk-by-address: returning ${Object.keys(allProfiles).length} profiles for ${uniqueAddresses.length} addresses`);
-  console.log("[DEBUG] Total normalized profiles:", Object.keys(allProfiles).length);
+  log.debug(`Bulk-by-address: returning ${Object.keys(allProfiles).length} profiles for ${uniqueAddresses.length} addresses`);
+  log.debug("Total normalized profiles:", Object.keys(allProfiles).length);
   return allProfiles;
 }
 

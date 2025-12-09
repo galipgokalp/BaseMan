@@ -12,6 +12,9 @@
  * - Script will automatically suppress connect menu in mini-app environments
  */
 
+import { createLogger } from './logger.js';
+const log = createLogger('ConnectMenuSuppressor');
+
 (function() {
   'use strict';
 
@@ -60,11 +63,7 @@
     }
 
     // Log suppression (only in development)
-    if (typeof window !== 'undefined' && window.logger) {
-      window.logger.log('[ConnectMenuSuppressor] Suppressing connect menu in mini-app environment');
-    } else {
-      console.log('[BaseMan] Connect UI disabled - wallet functionality via Wallet panel');
-    }
+    log.debug('Suppressing connect menu in mini-app environment - wallet functionality via Wallet panel');
     
     // Add CSS to hide any connect menu elements that might appear
     const style = document.createElement('style');

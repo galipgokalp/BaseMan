@@ -3,31 +3,11 @@
  * Manages navigation between PAC-BOARD, Profile, Wallet, and Settings
  */
 
+import { createLogger } from './utils/logger.js';
+const log = createLogger('BottomNav');
+
 (function() {
   'use strict';
-
-  // Use BaseManLogger if available (from utils/logger.js), else fallback
-  const getLog = () => {
-    if (typeof window !== 'undefined' && window.BaseManCreateLogger) {
-      return window.BaseManCreateLogger('Nav');
-    }
-    if (typeof window !== 'undefined' && window.BaseManLogger) {
-      return window.BaseManLogger;
-    }
-    // Fallback to console wrapper
-    return {
-      debug: (...args) => console.debug('[Nav]', ...args),
-      log: (...args) => console.log('[Nav]', ...args),
-      info: (...args) => console.info('[Nav]', ...args),
-      warn: (...args) => console.warn('[Nav]', ...args),
-      error: (...args) => console.error('[Nav]', ...args),
-      warnOnce: (key, ...args) => console.warn('[Nav]', ...args)
-    };
-  };
-  
-  // Lazy-init logger (after window.BaseManLogger is ready)
-  let _log = null;
-  const log = () => {
     if (!_log) _log = getLog();
     return _log;
   };
@@ -100,7 +80,7 @@
         if (label) label.style.display = '';
       }
     } catch (err) {
-      log().warn('Failed to load profile picture:', err);
+      log.warn('Failed to load profile picture:', err);
       // Fallback: show emoji
       const profileImg = profileButton.querySelector('.nav-profile-img');
       if (profileImg) profileImg.style.display = 'none';
@@ -113,7 +93,7 @@
   function init() {
     // Guard: prevent multiple initializations
     if (_initialized) {
-      log().debug('Already initialized, skipping');
+      log.debug('Already initialized, skipping');
       return;
     }
 
@@ -145,9 +125,9 @@
       
       // Use both click and touchstart for faster response on mobile
       const handleClick = (e) => {
-        log().debug('Button clicked:', navType, e.type);
+        log.debug('Button clicked:', navType, e.type);
         if (item.disabled) {
-          log().debug('Button disabled, ignoring');
+          log.debug('Button disabled, ignoring');
           return;
         }
         e.preventDefault();
@@ -241,18 +221,18 @@
   const CLICK_DEBOUNCE_MS = 100; // Minimum time between clicks
 
   function handleNavClick(navType, element) {
-    log().debug('handleNavClick called:', navType);
+    log.debug('handleNavClick called:', navType);
     // Debounce rapid clicks
     const now = Date.now();
     if (now - lastClickTime < CLICK_DEBOUNCE_MS) {
-      log().debug('Click debounced');
+      log.debug('Click debounced');
       return;
     }
     lastClickTime = now;
     
     // If clicking the same button, toggle (close panel)
     if (currentOpenPanel === navType) {
-      log().debug('Toggling panel closed');
+      log.debug('Toggling panel closed');
       closeAllPanels();
       setActive(null);
       return;
@@ -264,7 +244,7 @@
     // Open the selected panel immediately (synchronous)
     switch(navType) {
       case BOTTOM_NAV.LEADERBOARD:
-        log().debug('Opening leaderboard');
+        log.debug('Opening leaderboard');
         openLeaderboard();
         setActive(BOTTOM_NAV.LEADERBOARD);
         currentOpenPanel = BOTTOM_NAV.LEADERBOARD;
@@ -307,14 +287,14 @@
   }
 
   function openLeaderboard() {
-    log().debug('openLeaderboard called');
+    log.debug('openLeaderboard called');
     // Immediate panel opening - no async delays
     const panel = document.getElementById('leaderboard-panel');
     if (!panel) {
-      log().error('leaderboard-panel not found in DOM');
+      log.error('leaderboard-panel not found in DOM');
       return;
     }
-    log().debug('Panel found, removing hidden attribute');
+    log.debug('Panel found, removing hidden attribute');
     
     // Always remove hidden attribute first (synchronous, immediate)
     panel.removeAttribute('hidden');
@@ -330,7 +310,7 @@
       for (let i = 0; i < maxRetries; i++) {
         if (typeof window.BaseManLeaderboard !== 'undefined' && 
             typeof window.BaseManLeaderboard.setVisible === 'function') {
-          log().debug('BaseManLeaderboard API available, calling setVisible()');
+          log.debug('BaseManLeaderboard API available, calling setVisible()');
           window.BaseManLeaderboard.setVisible(true, { force: true });
           
           // Refresh data in background (async, non-blocking)
@@ -349,7 +329,7 @@
       }
       
       // API still not available after retries - log once
-      log().warnOnce('lb-api-unavailable', 'BaseManLeaderboard API not available after retries - panel opened without API');
+      log.warnOnce('lb-api-unavailable', 'BaseManLeaderboard API not available after retries - panel opened without API');
     })();
   }
 
@@ -385,11 +365,11 @@
   }
 
   function openWallet() {
-    log().debug('openWallet called');
+    log.debug('openWallet called');
     
     // Try API first (preferred method)
     if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
-      log().debug('Using WalletPanel API');
+      log.debug('Using WalletPanel API');
       window.WalletPanel.show();
       // Refresh in background
       requestAnimationFrame(() => {
@@ -401,14 +381,14 @@
     }
 
     // Fallback: Wait for wallet-panel.js to initialize
-    log().debug('WalletPanel API not ready, waiting for initialization...');
+    log.debug('WalletPanel API not ready, waiting for initialization...');
     let attempts = 0;
     const maxAttempts = 20; // 4 seconds max wait
     const checkInterval = setInterval(() => {
       attempts++;
       if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.show === 'function') {
         clearInterval(checkInterval);
-        log().debug('WalletPanel API now available, using it');
+        log.debug('WalletPanel API now available, using it');
         window.WalletPanel.show();
         requestAnimationFrame(() => {
           if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
@@ -417,11 +397,11 @@
         });
       } else if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
-        log().warn('WalletPanel API not available after waiting');
+        log.warn('WalletPanel API not available after waiting');
         // Last resort: try to open panel directly if it exists
         const panel = document.getElementById('baseman-wallet-panel');
         if (panel) {
-          log().debug('Panel exists, opening directly as fallback');
+          log.debug('Panel exists, opening directly as fallback');
           panel.classList.add('open');
           panel.setAttribute('aria-hidden', 'false');
         }

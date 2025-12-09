@@ -3,17 +3,42 @@ var hud = (function(){
 
     var on = false;
 
-    // Helper function to log to both console and ConsoleLogger
-    // ConsoleLogger automatically captures console.log, so we just use console.log
-    // But we format it clearly with [HUD] prefix so it's easy to find
+    // Import logger (use dynamic import to avoid circular dependencies)
+    var log = null;
+    try {
+        // Try to get logger from window if available
+        if (typeof window !== 'undefined' && window.BaseManLogger) {
+            log = window.BaseManLogger.createLogger('HUD');
+        } else {
+            // Fallback: create a simple logger
+            log = {
+                debug: function(msg, data) {
+                    if (data) {
+                        console.log('[HUD] ' + msg, data);
+                    } else {
+                        console.log('[HUD] ' + msg);
+                    }
+                }
+            };
+        }
+    } catch (e) {
+        // Ultimate fallback
+        log = {
+            debug: function(msg, data) {
+                if (data) {
+                    console.log('[HUD] ' + msg, data);
+                } else {
+                    console.log('[HUD] ' + msg);
+                }
+            }
+        };
+    }
+
+    // Helper function to log to logger
     var logHUD = function(message, data) {
         // Remove duplicate [HUD] prefix if present
         var cleanMessage = message.startsWith('[HUD] ') ? message.substring(6) : message;
-        if (data) {
-            console.log('[HUD] ' + cleanMessage, data);
-        } else {
-            console.log('[HUD] ' + cleanMessage);
-        }
+        log.debug(cleanMessage, data);
     };
 
     return {

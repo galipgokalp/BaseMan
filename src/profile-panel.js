@@ -1,4 +1,4 @@
-import { abbreviateAddress, networkLabel, networkName, getEnv, createElement } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, setPanelVisible, wirePanelCloseButton } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('Profile');
@@ -629,8 +629,7 @@ function setVisible(visible) {
 
     isOpen = !!visible;
     // Show panel immediately (synchronous)
-    shell.panel.classList.toggle('open', isOpen);
-    shell.panel.setAttribute('aria-hidden', String(!isOpen));
+    setPanelVisible(shell.panel, isOpen);
 
     if (isOpen) {
       // Refresh panel in background (non-blocking)
@@ -641,7 +640,7 @@ function setVisible(visible) {
         refresh(shell.panel);
       });
     }
-}
+  }
 
 function wire(panel, btn) {
     if (!panel) {
@@ -657,22 +656,8 @@ function wire(panel, btn) {
       });
     }
 
-    const closeBtn = panel.querySelector('[data-close]');
-    if (closeBtn && !wiredElements.has(closeBtn)) {
-      wiredElements.add(closeBtn);
-      const handleClose = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setVisible(false);
-        // Also update bottom nav state
-        if (window.BottomNav) {
-          window.BottomNav.setActive(null);
-        }
-      };
-      closeBtn.addEventListener('click', handleClose, { passive: false });
-      // Touch event for mobile
-      closeBtn.addEventListener('touchend', handleClose, { passive: false });
-    }
+    // Wire close button using shared helper
+    wirePanelCloseButton(panel, () => setVisible(false), wiredElements);
           // Setup network logos
           setupNetworkLogos(panel);
           

@@ -4,6 +4,9 @@
  */
 
 import { getGameMode, getPracticeMode, getTurboMode } from './game-mode.js';
+import { createLogger } from '../../utils/logger.js';
+
+const log = createLogger('ScoreManager');
 
 // Score arrays: [pacman-normal, pacman-turbo, mspac-normal, mspac-turbo, cookie-normal, cookie-turbo, otto-normal, otto-turbo, practice]
 let scores = [0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -99,7 +102,7 @@ export function loadHighScores() {
       }
     }
   } catch (err) {
-    console.warn('Failed to load high scores:', err);
+    log.warn('Failed to load high scores:', err);
   }
 }
 
@@ -114,7 +117,7 @@ export function saveHighScores() {
   try {
     localStorage.highScores = JSON.stringify(highScores);
   } catch (err) {
-    console.warn('Failed to save high scores:', err);
+    log.warn('Failed to save high scores:', err);
   }
 }
 

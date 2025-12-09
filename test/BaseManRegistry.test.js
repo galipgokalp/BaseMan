@@ -230,4 +230,137 @@ describe("BaseManRegistry", function () {
       contract.connect(player).submitScore(player.address, 777, deadline, nonce, signature)
     ).to.be.revertedWithCustomError(contract, "Replay");
   });
+
+  it("rejects score submission with invalid signature", async function () {
+    const { authorizer, player, contract, chainId } = await deployFixture();
+    const deadline = getDeadline();
+    const nonce = BigInt(100);
+    
+    // Create a signature with wrong authorizer (use player instead of authorizer)
+    const wrongSignature = await signScore(player, contract, chainId, player, 1000, deadline, nonce);
+    
+    await expect(
+      contract.connect(player).submitScore(player.address, 1000, deadline, nonce, wrongSignature)
+    ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+  });
+
+  it("rejects score submission with wrong chainId in signature", async function () {
+    const { authorizer, player, contract, chainId } = await deployFixture();
+    const deadline = getDeadline();
+    const nonce = BigInt(200);
+    
+    // Sign with wrong chainId (use a different chainId)
+    const wrongChainId = chainId === BigInt(31337) ? BigInt(1) : BigInt(31337);
+    const wrongSignature = await signScore(authorizer, contract, wrongChainId, player, 2000, deadline, nonce);
+    
+    await expect(
+      contract.connect(player).submitScore(player.address, 2000, deadline, nonce, wrongSignature)
+    ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+  });
+
+  it("rejects score submission with wrong nonce in signature", async function () {
+    const { authorizer, player, contract, chainId } = await deployFixture();
+    const deadline = getDeadline();
+    const nonce1 = BigInt(300);
+    const nonce2 = BigInt(301);
+    
+    // Sign with nonce1 but try to submit with nonce2
+    const signature = await signScore(authorizer, contract, chainId, player, 3000, deadline, nonce1);
+    
+    await expect(
+      contract.connect(player).submitScore(player.address, 3000, deadline, nonce2, signature)
+    ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+  });
+
+  it("rejects score submission with wrong player address in signature", async function () {
+    const { authorizer, player, contract, chainId } = await deployFixture();
+    const [otherPlayer] = await ethers.getSigners();
+    const deadline = getDeadline();
+    const nonce = BigInt(400);
+    
+    // Sign for otherPlayer but try to submit for player
+    const signature = await signScore(authorizer, contract, chainId, otherPlayer, 4000, deadline, nonce);
+    
+    await expect(
+      contract.connect(player).submitScore(player.address, 4000, deadline, nonce, signature)
+    ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+  });
+
+  it("rejects score submission with wrong score value in signature", async function () {
+    const { authorizer, player, contract, chainId } = await deployFixture();
+    const deadline = getDeadline();
+    const nonce = BigInt(500);
+    
+    // Sign for score 5000 but try to submit score 6000
+    const signature = await signScore(authorizer, contract, chainId, player, 5000, deadline, nonce);
+    
+    await expect(
+      contract.connect(player).submitScore(player.address, 6000, deadline, nonce, signature)
+    ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+  });
+
+  it("prevents replay with different nonce but same other parameters", async function () {
+    const { authorizer, player, contract, chainId } = await deployFixture();
+    const deadline = getDeadline();
+    const nonce1 = BigInt(600);
+    const nonce2 = BigInt(601);
+    
+    // Submit with nonce1
+    const signature1 = await signScore(authorizer, contract, chainId, player, 7000, deadline, nonce1);
+    await expect(
+      contract.connect(player).submitScore(player.address, 7000, deadline, nonce1, signature1)
+    ).to.emit(contract, "ScoreSubmitted");
+    
+    // Try to replay with same signature but different nonce (should fail due to invalid signature)
+    await expect(
+      contract.connect(player).submitScore(player.address, 7000, deadline, nonce2, signature1)
+    ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+  });
+
+  it("rejects quest completion with invalid signature", async function () {
+    const { owner, authorizer, player, contract, chainId } = await deployFixture();
+    await contract.connect(owner).setQuest(2, true, "ipfs://quest-2");
+    
+    const deadline = getDeadline();
+    const nonce = BigInt(700);
+    
+    // Create signature with wrong authorizer
+    const wrongSignature = await signQuest(player, contract, chainId, player, 2, deadline, nonce);
+    
+    await expect(
+      contract.connect(player).completeQuest(player.address, 2, deadline, nonce, wrongSignature)
+    ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+  });
+
+  it("rejects quest completion with expired signature", async function () {
+    const { owner, authorizer, player, contract, chainId } = await deployFixture();
+    await contract.connect(owner).setQuest(3, true, "ipfs://quest-3");
+    
+    const deadline = Math.floor(Date.now() / 1000) - 1; // Expired
+    const nonce = BigInt(800);
+    const signature = await signQuest(authorizer, contract, chainId, player, 3, deadline, nonce);
+    
+    await expect(
+      contract.connect(player).completeQuest(player.address, 3, deadline, nonce, signature)
+    ).to.be.revertedWithCustomError(contract, "ExpiredSignature");
+  });
+
+  it("prevents quest replay with same signature", async function () {
+    const { owner, authorizer, player, contract, chainId } = await deployFixture();
+    await contract.connect(owner).setQuest(4, true, "ipfs://quest-4");
+    
+    const deadline = getDeadline();
+    const nonce = BigInt(900);
+    const signature = await signQuest(authorizer, contract, chainId, player, 4, deadline, nonce);
+    
+    // First completion should succeed
+    await expect(
+      contract.connect(player).completeQuest(player.address, 4, deadline, nonce, signature)
+    ).to.emit(contract, "QuestCompleted");
+    
+    // Replay should fail - contract checks QuestAlreadyCompleted before Replay
+    await expect(
+      contract.connect(player).completeQuest(player.address, 4, deadline, nonce, signature)
+    ).to.be.revertedWithCustomError(contract, "QuestAlreadyCompleted");
+  });
 });

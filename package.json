@@ -29,6 +29,7 @@
     "game:build": "node scripts/build-pacman.mjs",
     "healthcheck": "node scripts/healthcheck.mjs",
     "self:check": "node scripts/self-check.mjs",
+    "self:check:config": "node scripts/self-check-config.mjs",
     "manifest:generate": "node scripts/generate-manifest.mjs",
     "contracts:compile": "npx hardhat compile",
     "contracts:test": "npx hardhat test",

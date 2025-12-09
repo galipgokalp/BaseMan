@@ -3,6 +3,9 @@ import { base, baseSepolia } from 'wagmi/chains';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { injected, walletConnect, metaMask, safe, baseAccount } from 'wagmi/connectors';
 import { isFarcasterMiniApp, isBaseApp, isMiniAppHost } from '../utils/platform-detection.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('WagmiConfig');
 
 function readEnv(key) {
   if (typeof window !== 'undefined') {
@@ -67,12 +70,12 @@ export function makeWagmiConfig() {
       baseSepoliaChain = baseSepolia;
     } else {
       // Fallback to manual definitions if imports failed
-      console.warn('[wagmi-config] Chain imports unavailable, using fallback definitions');
+      log.warn('Chain imports unavailable, using fallback definitions');
       baseChain = getFallbackBaseChain();
       baseSepoliaChain = getFallbackBaseSepoliaChain();
     }
   } catch (e) {
-    console.error('[wagmi-config] Error checking chain objects:', e);
+    log.error('Error checking chain objects:', e);
     // Use fallback chains
     baseChain = getFallbackBaseChain();
     baseSepoliaChain = getFallbackBaseSepoliaChain();
@@ -80,7 +83,7 @@ export function makeWagmiConfig() {
 
   // Validate chain objects have required properties
   if (!baseChain || !baseChain.id || !baseSepoliaChain || !baseSepoliaChain.id) {
-    console.error('[wagmi-config] Invalid chain objects:', { baseChain, baseSepoliaChain });
+    log.error('Invalid chain objects:', { baseChain, baseSepoliaChain });
     throw new Error('Failed to create valid chain objects');
   }
 
@@ -94,7 +97,7 @@ export function makeWagmiConfig() {
     transports[baseChain.id] = mainnetUrl ? http(mainnetUrl) : http();
     transports[baseSepoliaChain.id] = sepoliaUrl ? http(sepoliaUrl) : http();
   } catch (transportError) {
-    console.error('[wagmi-config] Error creating transports:', transportError);
+    log.error('Error creating transports:', transportError);
     // Fallback to default http() for both
     transports[baseChain.id] = http();
     transports[baseSepoliaChain.id] = http();
@@ -121,7 +124,7 @@ export function makeWagmiConfig() {
             connectors: [connector]
           });
         } catch (connectorError) {
-          console.warn('[wagmi-config] Farcaster connector failed, using injected() fallback:', connectorError?.message || connectorError);
+          log.warn('Farcaster connector failed, using injected() fallback:', connectorError?.message || connectorError);
           // Fallback: use injected() connector
           // This works because miniapp-ethereum-shim.js exposes window.ethereum from SDK
           try {
@@ -130,7 +133,7 @@ export function makeWagmiConfig() {
               connectors: [injected()]
             });
           } catch (fallbackError) {
-            console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
+            log.error('Fallback config creation failed:', fallbackError);
             // Last resort: create config with empty connectors
             try {
               return createConfig({
@@ -138,7 +141,7 @@ export function makeWagmiConfig() {
                 connectors: []
               });
             } catch (emptyConnectorError) {
-              console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
+              log.error('Empty connector config also failed:', emptyConnectorError);
               throw fallbackError;
             }
           }
@@ -156,7 +159,7 @@ export function makeWagmiConfig() {
           const farcasterConnector = miniAppConnector();
           connectors.push(farcasterConnector);
         } catch (farcasterError) {
-          console.warn('[wagmi-config] Farcaster connector failed in Base App:', farcasterError?.message || farcasterError);
+          log.warn('Farcaster connector failed in Base App:', farcasterError?.message || farcasterError);
         }
         
         try {
@@ -167,7 +170,7 @@ export function makeWagmiConfig() {
           });
           connectors.push(baseAccountConnector);
         } catch (baseAccountError) {
-          console.warn('[wagmi-config] Base Account connector failed:', baseAccountError?.message || baseAccountError);
+          log.warn('Base Account connector failed:', baseAccountError?.message || baseAccountError);
         }
         
         if (connectors.length > 0) {
@@ -185,7 +188,7 @@ export function makeWagmiConfig() {
             connectors: [injected()]
           });
         } catch (fallbackError) {
-          console.error('[wagmi-config] Fallback config creation failed:', fallbackError);
+          log.error('Fallback config creation failed:', fallbackError);
           // Last resort: create config with empty connectors
           try {
             return createConfig({
@@ -193,7 +196,7 @@ export function makeWagmiConfig() {
               connectors: []
             });
           } catch (emptyConnectorError) {
-            console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
+            log.error('Empty connector config also failed:', emptyConnectorError);
             throw fallbackError;
           }
         }
@@ -205,14 +208,14 @@ export function makeWagmiConfig() {
             connectors: [injected()]
           });
         } catch (fallbackError) {
-          console.error('[wagmi-config] Generic mini app config creation failed:', fallbackError);
+          log.error('Generic mini app config creation failed:', fallbackError);
           try {
             return createConfig({
               ...baseConfig,
               connectors: []
             });
           } catch (emptyConnectorError) {
-            console.error('[wagmi-config] Empty connector config also failed:', emptyConnectorError);
+            log.error('Empty connector config also failed:', emptyConnectorError);
             throw fallbackError;
           }
         }
@@ -228,7 +231,7 @@ export function makeWagmiConfig() {
         webConnectors.push(walletConnect({ projectId: wcProjectId }));
       }
     } catch (connectorError) {
-      console.warn('[wagmi-config] Some connectors failed to initialize:', connectorError);
+      log.warn('Some connectors failed to initialize:', connectorError);
       // Continue with whatever connectors we have
       if (webConnectors.length === 0) {
         webConnectors.push(injected());
@@ -240,8 +243,8 @@ export function makeWagmiConfig() {
       connectors: webConnectors
     });
   } catch (createError) {
-    console.error('[wagmi-config] createConfig failed:', createError);
-    console.error('[wagmi-config] Config params:', {
+    log.error('createConfig failed:', createError);
+    log.error('Config params:', {
       chains: baseConfig.chains.map(c => ({ id: c.id, name: c.name })),
       transports: Object.keys(baseConfig.transports),
       isMiniApp: isMiniAppHost()
@@ -262,7 +265,7 @@ export function pickChainById(chainId) {
       return Number(chainId) === baseChain.id ? baseChain : baseSepoliaChain;
     }
   } catch (e) {
-    console.warn('[wagmi-config] pickChainById error:', e);
+    log.warn('pickChainById error:', e);
     const baseChain = getFallbackBaseChain();
     const baseSepoliaChain = getFallbackBaseSepoliaChain();
     return Number(chainId) === baseChain.id ? baseChain : baseSepoliaChain;
@@ -300,7 +303,7 @@ async function waitForSDK(maxWait = 10000) {
             ]);
           } catch (e) {
             // If ready() fails or times out, continue anyway
-            console.warn('[wagmi-config] SDK ready() failed or timed out, continuing...');
+            log.warn('SDK ready() failed or timed out, continuing...');
           }
         }
         return true;
@@ -337,12 +340,12 @@ async function initializeConfig() {
     // In mini app environments, wait for SDK
     const isMiniApp = isMiniAppHost();
     if (isMiniApp) {
-      console.log('[wagmi-config] Mini app detected, waiting for SDK...');
+      log.debug('Mini app detected, waiting for SDK...');
       const sdkReady = await waitForSDK(10000);
       if (!sdkReady) {
-        console.warn('[wagmi-config] SDK not ready after timeout, proceeding anyway...');
+        log.warn('SDK not ready after timeout, proceeding anyway...');
       } else {
-        console.log('[wagmi-config] SDK ready, creating config...');
+        log.debug('SDK ready, creating config...');
       }
       
       // Also wait for window.ethereum if shim is setting it
@@ -355,13 +358,13 @@ async function initializeConfig() {
     
     config = makeWagmiConfig();
     if (!config) {
-      console.warn('[wagmi-config] Config is null - chain objects may not be available.');
+      log.warn('Config is null - chain objects may not be available.');
     } else {
-      console.log('[wagmi-config] Config created successfully');
+      log.debug('Config created successfully');
     }
   } catch (error) {
-    console.error('[wagmi-config] Failed to create config:', error);
-    console.error('[wagmi-config] Error details:', {
+    log.error('Failed to create config:', error);
+    log.error('Error details:', {
       message: error?.message,
       stack: error?.stack,
       name: error?.name
@@ -369,7 +372,7 @@ async function initializeConfig() {
     
     // Try minimal config as fallback
     try {
-      console.warn('[wagmi-config] Attempting minimal config as fallback...');
+      log.warn('Attempting minimal config as fallback...');
       const minimalBase = getFallbackBaseChain();
       const minimalSepolia = getFallbackBaseSepoliaChain();
       config = createConfig({
@@ -380,9 +383,9 @@ async function initializeConfig() {
         },
         connectors: []
       });
-      console.log('[wagmi-config] Minimal config created successfully');
+      log.debug('Minimal config created successfully');
     } catch (fallbackError) {
-      console.error('[wagmi-config] Fallback config also failed:', fallbackError);
+      log.error('Fallback config also failed:', fallbackError);
       config = null;
     }
   } finally {

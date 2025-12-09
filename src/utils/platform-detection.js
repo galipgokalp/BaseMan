@@ -10,6 +10,9 @@
  * - Farcaster Docs: https://miniapps.farcaster.xyz/docs/sdk/context
  */
 
+import { createLogger } from './logger.js';
+const log = createLogger('PlatformDetection');
+
 /**
  * Gets the current platform identifier using OFFICIAL method (clientFid)
  * This is the recommended method per Base App documentation
@@ -32,20 +35,20 @@ export async function getPlatform() {
         // Debug: Log what we got
         const hasClient = !!(context && context.client);
         const clientFid = context?.client?.clientFid;
-        console.log('[platform-detection] Context received - hasClient:', hasClient, 'clientFid:', clientFid);
+        log.debug('Context received - hasClient:', hasClient, 'clientFid:', clientFid);
         
         if (context && context.client && typeof context.client.clientFid === 'number') {
           const fid = context.client.clientFid;
           
           // OFFICIAL METHOD: Base App clientFid is 309857 (per Base App docs)
           if (fid === 309857) {
-            console.log('[platform-detection] Base App detected via clientFid (309857) - OFFICIAL METHOD');
+            log.debug('Base App detected via clientFid (309857) - OFFICIAL METHOD');
             return 'base';
           }
           
           // If clientFid exists but is not 309857, it's Farcaster
           // Warpcast clientFid is 9152 (per Farcaster docs example)
-          console.log('[platform-detection] Farcaster detected via clientFid (' + fid + ') - OFFICIAL METHOD');
+          log.debug('Farcaster detected via clientFid (' + fid + ') - OFFICIAL METHOD');
           return 'farcaster';
         }
         
@@ -53,45 +56,45 @@ export async function getPlatform() {
         if (context && context.user && context.user.fid) {
           // We have a user with FID, so we're in a mini app
           // Try to detect platform from other signals
-          console.log('[platform-detection] Context has user but no clientFid, checking other signals...');
+          log.debug('Context has user but no clientFid, checking other signals...');
           
           // Check if MiniKit is available (Base App indicator)
           if (window.MiniKit) {
-            console.log('[platform-detection] MiniKit detected, assuming Base App');
+            log.debug('MiniKit detected, assuming Base App');
             return 'base';
           }
           
           // Check for Farcaster indicators
           if (window.fc?.miniapp || window.farcaster?.miniapp) {
-            console.log('[platform-detection] Farcaster SDK detected, assuming Farcaster');
+            log.debug('Farcaster SDK detected, assuming Farcaster');
             return 'farcaster';
           }
           
           // Default to farcaster if we have user FID but can't determine platform
-          console.log('[platform-detection] Has user FID but unknown platform, defaulting to farcaster');
+          log.debug('Has user FID but unknown platform, defaulting to farcaster');
           return 'farcaster';
         }
       } catch (err) {
-        console.warn('[platform-detection] Failed to get SDK context:', err?.message || err);
+        log.warn('Failed to get SDK context:', err?.message || err);
       }
     }
     
     // Additional fallback checks even if SDK not available
     if (window.MiniKit) {
-      console.log('[platform-detection] MiniKit detected (no SDK), assuming Base App');
+      log.debug('MiniKit detected (no SDK), assuming Base App');
       return 'base';
     }
     
     if (window.fc?.miniapp || window.farcaster?.miniapp) {
-      console.log('[platform-detection] Farcaster SDK detected (no window.sdk), assuming Farcaster');
+      log.debug('Farcaster SDK detected (no window.sdk), assuming Farcaster');
       return 'farcaster';
     }
     
     // If SDK context is not available, assume web
-    console.log('[platform-detection] SDK context not available, assuming web');
+    log.debug('SDK context not available, assuming web');
     return 'web';
   } catch (err) {
-    console.error('[platform-detection] getPlatform() error:', err);
+    log.error('getPlatform() error:', err);
     return 'web';
   }
 }

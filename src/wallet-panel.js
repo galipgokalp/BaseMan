@@ -3,7 +3,7 @@
  * Displays wallet information, network, and balances
  */
 
-import { abbreviateAddress, networkLabel, getEnv, createElement } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('Wallet');
@@ -81,8 +81,7 @@ function setVisible(visible) {
 
   isOpen = !!visible;
   // Show panel immediately (synchronous)
-  panel.classList.toggle('open', isOpen);
-  panel.setAttribute('aria-hidden', String(!isOpen));
+  setPanelVisible(panel, isOpen);
 
   if (isOpen) {
     // Refresh in background (non-blocking)
@@ -321,32 +320,11 @@ function updateStatus(status, className) {
 }
 
 function wire(panel) {
-  const closeBtn = panel.querySelector('[data-close]');
-  if (closeBtn && !wiredElements.has(closeBtn)) {
-    wiredElements.add(closeBtn);
-    const handleClose = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setVisible(false);
-      // Also update bottom nav state
-      if (window.BottomNav) {
-        window.BottomNav.setActive(null);
-      }
-    };
-    closeBtn.addEventListener('click', handleClose, { passive: false });
-    // Touch event for mobile
-    closeBtn.addEventListener('touchend', handleClose, { passive: false });
-  }
-
-  // Close on overlay click
-  if (!wiredElements.has(panel)) {
-    wiredElements.add(panel);
-    panel.addEventListener('click', (e) => {
-      if (e.target === panel) {
-        setVisible(false);
-      }
-    }, { passive: true });
-  }
+  // Wire close button using shared helper
+  wirePanelCloseButton(panel, () => setVisible(false), wiredElements);
+  
+  // Wire overlay click using shared helper
+  wirePanelOverlay(panel, () => setVisible(false), wiredElements);
 }
 
 function init() {

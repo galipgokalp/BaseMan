@@ -16,7 +16,14 @@
   const ENTRY_POINT = '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789';
 
   function debug(msg) {
-    try { console.log('[mock-miniapp]', msg); } catch (_) {}
+    try {
+      // Use centralized logger if available
+      if (typeof window !== 'undefined' && window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+        window.BaseManLogger.createLogger('MockMiniApp').debug(msg);
+      } else {
+        console.log('[mock-miniapp]', msg);
+      }
+    } catch (_) {}
     try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'mock-miniapp', meta: { msg: String(msg) } }) }).catch(()=>{});} catch(_) {}
   }
 

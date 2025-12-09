@@ -14,6 +14,10 @@ import { fetchFarcasterProfilesByAddresses } from "./_lib/farcaster-profiles.js"
 // Redis import - static import, wrap all Redis calls in try-catch blocks
 import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFromRedis, getProfilesForAddresses as getProfilesFromRedis, setProfilesForAddresses as setProfilesToRedis } from "./_lib/redis-profiles.js";
 
+// Logger import for server-side logging
+import { createLogger } from "../src/utils/logger.js";
+const log = createLogger('ApiLeaderboard');
+
 // ============================================
 // LEADERBOARD RESULT CACHE - Phase 4.3
 // ============================================
@@ -46,7 +50,7 @@ function cleanupOldEntries() {
   }
   keysToDelete.forEach(key => ADDRESS_TO_PROFILE_MAP.delete(key));
   if (keysToDelete.length > 0) {
-    console.log(`[leaderboard-profile-mapping] Cleaned up ${keysToDelete.length} old entries`);
+    log.debug(`Cleaned up ${keysToDelete.length} old entries`);
   }
 }
 
@@ -59,21 +63,21 @@ if (typeof setInterval !== 'undefined') {
 // For Redis support, use getProfileMappingFromRedis from redis-profiles.js
 export function getProfileMapping(address) {
   if (!address || typeof address !== 'string') {
-    console.log(`[leaderboard] getProfileMapping: invalid address input:`, address);
+    log.debug('getProfileMapping: invalid address input:', address);
     return null;
   }
   const key = address.toLowerCase();
   const mapping = ADDRESS_TO_PROFILE_MAP.get(key);
-  console.log(`[leaderboard] getProfileMapping(${address}): key=${key}, found=${!!mapping}, mapSize=${ADDRESS_TO_PROFILE_MAP.size}, mapKeys=${Array.from(ADDRESS_TO_PROFILE_MAP.keys()).join(',')}`);
+  log.debug(`getProfileMapping(${address}): key=${key}, found=${!!mapping}, mapSize=${ADDRESS_TO_PROFILE_MAP.size}, mapKeys=${Array.from(ADDRESS_TO_PROFILE_MAP.keys()).join(',')}`);
   if (!mapping) {
     return null;
   }
   if (mapping.updatedAt && (Date.now() - mapping.updatedAt) > MAX_AGE_MS) {
-    console.log(`[leaderboard] getProfileMapping: mapping expired for ${key}`);
+    log.debug(`getProfileMapping: mapping expired for ${key}`);
     ADDRESS_TO_PROFILE_MAP.delete(key);
     return null;
   }
-  console.log(`[leaderboard] getProfileMapping: returning mapping for ${key}:`, { fid: mapping.fid, username: mapping.username, displayName: mapping.displayName });
+  log.debug(`getProfileMapping: returning mapping for ${key}:`, { fid: mapping.fid, username: mapping.username, displayName: mapping.displayName });
   return mapping;
 }
 
@@ -96,10 +100,10 @@ export async function getAllFidMappings(addresses) {
       result.set(address, fid);
     }
     if (redisMappings.size > 0) {
-      console.log(`[leaderboard] ✅ Retrieved ${redisMappings.size} FID mapping(s) from Redis`);
+      log.debug(`✅ Retrieved ${redisMappings.size} FID mapping(s) from Redis`);
     }
   } catch (error) {
-    console.warn('[leaderboard] Failed to get FID mappings from Redis (non-critical):', error?.message || error);
+    log.warn('Failed to get FID mappings from Redis (non-critical):', error?.message || error);
   }
   
   // Step 2: In-memory Map'i fallback olarak kullan (header'dan gelenler için)
@@ -199,7 +203,7 @@ function buildQuery(limit, chainId = null) {
       registry = registryAddress ? ethers.getAddress(registryAddress).toLowerCase() : null;
     }
   } catch (error) {
-    console.warn(`[leaderboard] Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
+    log.warn(`Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
     registry = registryAddress ? ethers.getAddress(registryAddress).toLowerCase() : null;
   }
   
@@ -380,7 +384,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
         .filter(Boolean)
     )
   ];
-  console.log("[DEBUG] Leaderboard addresses:", addresses);
+  log.debug("Leaderboard addresses:", addresses);
 
   if (addresses.length === 0) {
     // No addresses, just return mapped items without profiles
@@ -444,18 +448,18 @@ async function hydrateProfilesForAddresses(items, req = null) {
               avatarUrl: mapping.avatarUrl || null,
               platform: mapping.platform || null
             }).catch(err => {
-              console.warn('[leaderboard] Failed to save header profile to Redis (non-critical):', err?.message || err);
+              log.warn('Failed to save header profile to Redis (non-critical):', err?.message || err);
             });
             mappingCount++;
           }
         }
         if (mappingCount > 0) {
-          console.log(
-            `[leaderboard] Extracted ${mappingCount} profile mapping(s) from header, total in map: ${ADDRESS_TO_PROFILE_MAP.size}`
+          log.debug(
+            `Extracted ${mappingCount} profile mapping(s) from header, total in map: ${ADDRESS_TO_PROFILE_MAP.size}`
           );
         }
       } catch (err) {
-        console.warn("[leaderboard] Failed to parse header mapping:", err?.message, err?.stack);
+        log.warn("Failed to parse header mapping:", err?.message, err?.stack);
       }
     }
   }
@@ -465,12 +469,12 @@ async function hydrateProfilesForAddresses(items, req = null) {
   if (externalEnrichmentEnabled) {
     try {
       cachedProfiles = await getProfilesFromRedis(addresses);
-      console.log(
-        `[leaderboard] Loaded ${Object.keys(cachedProfiles).length} cached profiles from Redis`
+      log.debug(
+        `Loaded ${Object.keys(cachedProfiles).length} cached profiles from Redis`
       );
     } catch (error) {
-      console.warn(
-        "[leaderboard] Failed to load profiles from Redis (non-critical):",
+      log.warn(
+        "Failed to load profiles from Redis (non-critical):",
         error?.message || error
       );
       cachedProfiles = {};
@@ -478,39 +482,39 @@ async function hydrateProfilesForAddresses(items, req = null) {
   } else {
     cachedProfiles = {};
   }
-  console.log("[DEBUG] Redis profile keys:", Object.keys(cachedProfiles));
+  log.debug("Redis profile keys:", Object.keys(cachedProfiles));
 
   // 3) Determine which addresses still need lookup from Neynar
   const missingForExternalFetch = externalEnrichmentEnabled
     ? addresses.filter((addr) => !cachedProfiles[addr] && !headerProfiles[addr])
     : [];
-  console.log("[DEBUG] Missing for external enrichment:", missingForExternalFetch);
+  log.debug("Missing for external enrichment:", missingForExternalFetch);
 
   // 4) Fetch from Neynar bulk-by-address
   let fetchedProfiles = {};
   if (externalEnrichmentEnabled && missingForExternalFetch.length > 0) {
     try {
       fetchedProfiles = await fetchFarcasterProfilesByAddresses(missingForExternalFetch);
-      console.log(
-        `[leaderboard] Fetched ${Object.keys(fetchedProfiles).length} profiles from Neynar for ${missingForExternalFetch.length} missing addresses`
+      log.debug(
+        `Fetched ${Object.keys(fetchedProfiles).length} profiles from Neynar for ${missingForExternalFetch.length} missing addresses`
       );
-      console.log("[DEBUG] Neynar fetched profiles:", Object.keys(fetchedProfiles));
-      console.log("[DEBUG] Neynar missing count:", missingForExternalFetch.length);
-      console.log("[DEBUG] Neynar returned count:", Object.keys(fetchedProfiles).length);
+      log.debug("Neynar fetched profiles:", Object.keys(fetchedProfiles));
+      log.debug("Neynar missing count:", missingForExternalFetch.length);
+      log.debug("Neynar returned count:", Object.keys(fetchedProfiles).length);
 
       if (Object.keys(fetchedProfiles).length > 0) {
         try {
           await setProfilesToRedis(fetchedProfiles);
         } catch (error) {
-          console.warn(
-            "[leaderboard] Failed to cache profiles in Redis (non-critical):",
+          log.warn(
+            "Failed to cache profiles in Redis (non-critical):",
             error?.message || error
           );
         }
       }
     } catch (error) {
-      console.error(
-        "[leaderboard] Failed to fetch profiles from Neynar (non-critical):",
+      log.error(
+        "Failed to fetch profiles from Neynar (non-critical):",
         error?.message || error
       );
       fetchedProfiles = {};
@@ -523,7 +527,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
     ...fetchedProfiles,
     ...headerProfiles
   };
-  console.log("[DEBUG] Combined profile keys:", Object.keys(allProfiles));
+  log.debug("Combined profile keys:", Object.keys(allProfiles));
 
   // 6) Build final enriched items
   const enriched = items.map((item, index) => {
@@ -574,7 +578,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
       lastUpdatedAt,
       profile: profile || null
     };
-    console.log("[DEBUG] Final entry profile:", {
+    log.debug("Final entry profile:", {
       address: entry.player,
       profile: profile || null
     });
@@ -598,15 +602,21 @@ async function enrichWithProfiles(items, req = null) {
   let debugInfo = null;
 
   try {
-    console.log("[DEBUG] ENV CHECK:", {
+    log.debug("ENV CHECK:", {
       FARCASTER_PROFILE_PROVIDER: process.env.FARCASTER_PROFILE_PROVIDER,
       hasNeynarKey: !!process.env.NEYNAR_API_KEY,
       REDIS_URL: process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL,
       disableEnrichment: process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT
     });
+    
+    // Check for missing configuration (for debug info)
+    const hasNeynarKey = !!process.env.NEYNAR_API_KEY;
+    const hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
+    const enrichmentDisabled = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || '').trim().toLowerCase() === 'true';
+    
     enriched = await hydrateProfilesForAddresses(items, req);
   } catch (error) {
-    console.error("[leaderboard] hydrateProfilesForAddresses failed", error);
+    log.error("hydrateProfilesForAddresses failed", error);
     // Fall back to basic mapping without profiles
     enriched = items.map((item, index) => {
       const totalNumeric = toNumericScore(item.totalScore ?? item.highScore);
@@ -666,7 +676,7 @@ async function runQueryV1(base, statement) {
         rows = extractRows(current?.result ?? current);
       } catch (err) {
         // If fetchQuery fails, log and continue polling (will timeout eventually)
-        console.warn('[leaderboard] fetchQuery failed during polling:', err?.message || err);
+        log.warn('fetchQuery failed during polling:', err?.message || err);
         // Set current to null to break on next iteration if deadline passed
         if (Date.now() >= deadline) {
           break;
@@ -724,12 +734,12 @@ async function runQuery(statement) {
       return await runQueryV1(base, statement);
     } catch (e1) {
       lastError = e1;
-      console.warn("[leaderboard] v1 SQL failed, trying platform run on", base, ":", e1?.message || e1);
+      log.warn("v1 SQL failed, trying platform run on", base, ":", e1?.message || e1);
       try {
         return await runQueryPlatform(base, statement);
       } catch (e2) {
         lastError = e2;
-        console.warn("[leaderboard] platform run failed on", base, ":", e2?.message || e2);
+        log.warn("platform run failed on", base, ":", e2?.message || e2);
       }
     }
   }
@@ -769,39 +779,39 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       ? Number(chainId) 
       : (getRegistryChainIdNumber() || 8453); // Default to Base Mainnet (8453) if not specified
     
-    console.log(`[leaderboard] RPC fallback starting: chainId=${chainId}, targetChainId=${targetChainId}, limit=${limit}`);
+    log.debug(`RPC fallback starting: chainId=${chainId}, targetChainId=${targetChainId}, limit=${limit}`);
     
     // Get registry address for the target chain
     let address;
     try {
       if (targetChainId === 8453) {
         // Base Mainnet
-        console.log(`[leaderboard] Getting registry context for base (mainnet)...`);
+        log.debug(`Getting registry context for base (mainnet)...`);
         const ctx = getRegistryContext('base');
         address = ctx.address ? ethers.getAddress(ctx.address) : null;
-        console.log(`[leaderboard] Base Mainnet registry address: ${address || 'NOT FOUND'}`);
+        log.debug(`Base Mainnet registry address: ${address || 'NOT FOUND'}`);
       } else if (targetChainId === 84532) {
         // Base Sepolia
-        console.log(`[leaderboard] Getting registry context for base-sepolia...`);
+        log.debug(`Getting registry context for base-sepolia...`);
         const ctx = getRegistryContext('base-sepolia');
         address = ctx.address ? ethers.getAddress(ctx.address) : null;
-        console.log(`[leaderboard] Base Sepolia registry address: ${address || 'NOT FOUND'}`);
+        log.debug(`Base Sepolia registry address: ${address || 'NOT FOUND'}`);
       } else {
         // Fallback to default registry address
-        console.log(`[leaderboard] Using default registry address...`);
+        log.debug(`Using default registry address...`);
         address = registryAddress ? ethers.getAddress(registryAddress) : null;
-        console.log(`[leaderboard] Default registry address: ${address || 'NOT FOUND'}`);
+        log.debug(`Default registry address: ${address || 'NOT FOUND'}`);
       }
     } catch (error) {
-      console.warn(`[leaderboard] Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
+      log.warn(`Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
       address = registryAddress ? ethers.getAddress(registryAddress) : null;
-      console.log(`[leaderboard] Fallback registry address after error: ${address || 'NOT FOUND'}`);
+      log.debug(`Fallback registry address after error: ${address || 'NOT FOUND'}`);
     }
     
     // Handle missing registry address gracefully
     if (!address) {
-      console.warn(`[leaderboard] RPC fallback skipped: registry address not configured for chain ${targetChainId}`);
-      console.warn(`[leaderboard] Available env vars check:`, {
+      log.warn(`RPC fallback skipped: registry address not configured for chain ${targetChainId}`);
+      log.warn(`Available env vars check:`, {
         hasRegistryAddress: !!registryAddress,
         targetChainId,
         hasBaseMainnetReg: !!process.env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS,
@@ -813,8 +823,8 @@ async function fetchFromRpcFallback(limit, chainId = null) {
     
     const rpcUrl = pickRpcUrl(targetChainId);
     if (!rpcUrl) {
-      console.error(`[leaderboard] RPC fallback failed: No RPC URL configured for chain ${targetChainId}`);
-      console.error(`[leaderboard] Available RPC env vars:`, {
+      log.error(`RPC fallback failed: No RPC URL configured for chain ${targetChainId}`);
+      log.error(`Available RPC env vars:`, {
         hasLeaderboardRpc: !!process.env.LEADERBOARD_RPC_URL,
         hasBaseMainnetRpc: !!process.env.BASE_MAINNET_RPC_URL,
         hasBaseSepoliaRpc: !!process.env.BASE_SEPOLIA_RPC_URL,
@@ -825,18 +835,18 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       throw new Error(`No RPC URL configured for fallback (chain ${targetChainId})`);
     }
 
-    console.log(`[leaderboard] RPC fallback: Using RPC URL: ${rpcUrl.substring(0, 50)}...`);
+    log.debug(`RPC fallback: Using RPC URL: ${rpcUrl.substring(0, 50)}...`);
     const provider = new ethers.JsonRpcProvider(rpcUrl);
-    console.log(`[leaderboard] RPC fallback: Getting latest block number...`);
+    log.debug(`RPC fallback: Getting latest block number...`);
     const latest = await provider.getBlockNumber();
     const windowBlocks = Number.parseInt(process.env.LEADERBOARD_FALLBACK_WINDOW_BLOCKS || "50000", 10);
     const fromBlock = Math.max(0, latest - windowBlocks);
     
-    console.log(`[leaderboard] RPC fallback: chain=${targetChainId}, address=${address}, fromBlock=${fromBlock}, toBlock=${latest}, latestBlock=${latest}`);
+    log.debug(`RPC fallback: chain=${targetChainId}, address=${address}, fromBlock=${fromBlock}, toBlock=${latest}, latestBlock=${latest}`);
 
     // Fetch logs in chunks to avoid provider limits
     const chunkMax = Number.parseInt(process.env.LEADERBOARD_FALLBACK_CHUNK_SIZE || "400", 10);
-    console.log(`[leaderboard] RPC fallback: Fetching logs with chunk size ${chunkMax}...`);
+    log.debug(`RPC fallback: Fetching logs with chunk size ${chunkMax}...`);
     let logs = [];
     let start = fromBlock;
     let chunkCount = 0;
@@ -856,7 +866,7 @@ async function fetchFromRpcFallback(limit, chainId = null) {
           logs.push(...part);
           chunkCount++;
           if (chunkCount % 10 === 0 || part.length > 0) {
-            console.log(`[leaderboard] RPC fallback: Fetched chunk ${chunkCount} (blocks ${start}-${end}), ${part.length} logs, total: ${logs.length}`);
+            log.debug(`RPC fallback: Fetched chunk ${chunkCount} (blocks ${start}-${end}), ${part.length} logs, total: ${logs.length}`);
           }
           start = end + 1;
           break;
@@ -876,10 +886,10 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       }
     }
 
-    console.log(`[leaderboard] RPC fallback: Fetched ${logs.length} total logs from ${chunkCount} chunks`);
+    log.debug(`RPC fallback: Fetched ${logs.length} total logs from ${chunkCount} chunks`);
     
     if (!logs.length) {
-      console.warn(`[leaderboard] RPC fallback: No logs found for address ${address} in blocks ${fromBlock}-${latest}`);
+      log.warn(`RPC fallback: No logs found for address ${address} in blocks ${fromBlock}-${latest}`);
       return [];
     }
 
@@ -887,7 +897,7 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       "event ScoreAdded(address indexed player,uint256 added,uint256 newTotal,uint256 timestamp)"
     ]);
 
-    console.log(`[leaderboard] RPC fallback: Parsing ${logs.length} logs...`);
+    log.debug(`RPC fallback: Parsing ${logs.length} logs...`);
     const items = logs
       .map((log) => {
         try {
@@ -902,13 +912,13 @@ async function fetchFromRpcFallback(limit, chainId = null) {
             blockNumber: log.blockNumber
           };
         } catch (err) {
-          console.warn(`[leaderboard] RPC fallback: Failed to parse log:`, err?.message);
+          log.warn(`RPC fallback: Failed to parse log:`, err?.message);
           return null;
         }
       })
       .filter(Boolean);
 
-    console.log(`[leaderboard] RPC fallback: Parsed ${items.length} valid items from ${logs.length} logs`);
+    log.debug(`RPC fallback: Parsed ${items.length} valid items from ${logs.length} logs`);
 
     // Reduce to max score per player, and latest update
     const map = new Map();
@@ -927,7 +937,7 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       .slice(0, limit);
     return list;
   } catch (error) {
-    console.warn("[leaderboard] RPC fallback failed:", error?.message || error);
+    log.warn("RPC fallback failed:", error?.message || error);
     return [];
   }
 }
@@ -958,12 +968,12 @@ export default async function handler(req, res) {
       
       // Redis'e kaydet (persistent storage) - async, hata olsa bile devam et
       saveToRedis(address, mapping).catch(err => {
-        console.warn('[leaderboard] Failed to save to Redis (non-critical):', err?.message || err);
+        log.warn('Failed to save to Redis (non-critical):', err?.message || err);
       });
       
       return res.status(200).json({ success: true });
     } catch (error) {
-      console.error('[leaderboard-profile-mapping] POST error:', error);
+      log.error('POST error:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -978,7 +988,7 @@ export default async function handler(req, res) {
       const mapping = getProfileMapping(address);
       return res.status(200).json(mapping);
     } catch (error) {
-      console.error('[leaderboard-profile-mapping] GET error:', error);
+      log.error('GET error:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -1071,7 +1081,7 @@ export default async function handler(req, res) {
         leaderboardResultCache.chainId === chainId &&
         leaderboardResultCache.limit >= limit &&
         (now - leaderboardResultCache.timestamp) < LEADERBOARD_RESULT_CACHE_TTL_MS) {
-      console.log(`[leaderboard] Returning cached results (age: ${now - leaderboardResultCache.timestamp}ms)`);
+      log.debug(`Returning cached results (age: ${now - leaderboardResultCache.timestamp}ms)`);
       const cachedItems = leaderboardResultCache.data.slice(0, limit);
       const result = await enrichWithProfiles(cachedItems, req);
       const enriched = Array.isArray(result) ? result : result.enriched;
@@ -1092,7 +1102,7 @@ export default async function handler(req, res) {
     
     // Phase 4.3: Check for in-flight query with same parameters
     if (inflightLeaderboardQuery && inflightLeaderboardQueryKey === cacheKey) {
-      console.log(`[leaderboard] Waiting for in-flight query: ${cacheKey}`);
+      log.debug(`Waiting for in-flight query: ${cacheKey}`);
       try {
         const cachedItems = await inflightLeaderboardQuery;
         const result = await enrichWithProfiles(cachedItems.slice(0, limit), req);
@@ -1111,7 +1121,7 @@ export default async function handler(req, res) {
         }
         return res.status(200).json(response);
       } catch (inflightError) {
-        console.warn(`[leaderboard] In-flight query failed:`, inflightError?.message);
+        log.warn(`In-flight query failed:`, inflightError?.message);
         // Fall through to make a new query
       }
     }
@@ -1126,11 +1136,11 @@ export default async function handler(req, res) {
         try {
           rows = await runQuery(statement);
         } catch (sqlError) {
-          console.warn(`[leaderboard] SQL query failed for chain ${chainId}:`, sqlError?.message || sqlError);
+          log.warn(`SQL query failed for chain ${chainId}:`, sqlError?.message || sqlError);
           rows = [];
         }
       } else {
-        console.warn(`[leaderboard] SQL query skipped: registry address not configured for chain ${chainId}`);
+        log.warn(`SQL query skipped: registry address not configured for chain ${chainId}`);
         rows = [];
       }
 
@@ -1138,15 +1148,15 @@ export default async function handler(req, res) {
       
       if (!items.length) {
         // Try RPC fallback for quick freshness
-        console.log(`[leaderboard] SQL returned no items, trying RPC fallback...`);
+        log.debug(`SQL returned no items, trying RPC fallback...`);
         try {
           const fallback = await fetchFromRpcFallback(limit, chainId);
-          console.log(`[leaderboard] RPC fallback returned ${fallback.length} items`);
+          log.debug(`RPC fallback returned ${fallback.length} items`);
           if (fallback.length) {
             items = fallback;
           }
         } catch (fallbackError) {
-          console.error(`[leaderboard] RPC fallback failed:`, fallbackError?.message || fallbackError);
+          log.error(`RPC fallback failed:`, fallbackError?.message || fallbackError);
         }
       }
       
@@ -1172,7 +1182,7 @@ export default async function handler(req, res) {
       inflightLeaderboardQueryKey = null;
     }
     
-    console.log(`[leaderboard] Query returned ${items.length} items`);
+    log.debug(`Query returned ${items.length} items`);
     const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
     const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
     const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';
@@ -1197,7 +1207,7 @@ export default async function handler(req, res) {
     }
 
     const enriched = Array.isArray(result) ? result : result.enriched;
-    const debugInfo = Array.isArray(result) ? null : result.debugInfo;
+    const resultDebugInfo = Array.isArray(result) ? null : result.debugInfo;
 
     const response = {
       source: "cdp-sql-api",
@@ -1208,13 +1218,28 @@ export default async function handler(req, res) {
       updatedAt: new Date().toISOString()
     };
     
-    if (debugInfo) {
-      response._debug = debugInfo;
+    // Merge debug info
+    const isDebugMode = req?.query?.debug === '1' || req?.query?.debug === 'true';
+    const isDevEnv = (process.env.NODE_ENV || process.env.VERCEL_ENV || '').toLowerCase() !== 'production';
+    if (resultDebugInfo || isDebugMode || isDevEnv) {
+      response._debug = resultDebugInfo || {};
+      // Add diagnostic info for dev/debug mode
+      if (isDebugMode || isDevEnv) {
+        if (!hasNeynarKey && !enrichmentDisabled) {
+          response._debug.missingNeynarKey = true;
+        }
+        if (!hasRedis) {
+          response._debug.missingRedis = true;
+        }
+        if (enrichmentDisabled) {
+          response._debug.enrichmentDisabled = true;
+        }
+      }
     }
 
     return res.status(200).json(response);
   } catch (error) {
-    console.error("[leaderboard] error", error);
+    log.error("error", error);
     return res.status(500).json({
       error: "Failed to fetch leaderboard",
       details: error instanceof Error ? error.message : String(error)

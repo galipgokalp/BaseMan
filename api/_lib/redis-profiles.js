@@ -1,4 +1,7 @@
 import { Redis } from '@upstash/redis';
+import { createLogger } from '../../src/utils/logger.js';
+
+const log = createLogger('RedisProfiles');
 
 // Redis client (environment variables'dan otomatik alır)
 // Vercel Marketplace'ten Upstash Redis eklendiğinde otomatik olarak eklenir:
@@ -6,6 +9,7 @@ import { Redis } from '@upstash/redis';
 // - UPSTASH_REDIS_REST_TOKEN (standard)
 // - REDIS_URL (Vercel integration format, Redis.fromEnv() handles both)
 let redis = null;
+let hasLoggedMissingRedis = false;
 
 try {
   // Check if environment variables exist before initializing
@@ -14,17 +18,29 @@ try {
   
   if (hasStandardVars || hasRedisUrl) {
     redis = Redis.fromEnv();
-    console.log('[redis-profiles] Redis client initialized', {
+    log.debug('Redis client initialized', {
       hasStandardVars,
       hasRedisUrl,
       method: hasStandardVars ? 'standard' : (hasRedisUrl ? 'REDIS_URL' : 'unknown')
     });
   } else {
-    console.log('[redis-profiles] Redis environment variables not found, will use in-memory fallback');
+    if (!hasLoggedMissingRedis) {
+      hasLoggedMissingRedis = true;
+      log.warnOnce(
+        'missing-redis-config',
+        'Redis environment variables not found (UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or REDIS_URL). Profile caching will use in-memory fallback only.'
+      );
+    }
     redis = null;
   }
 } catch (error) {
-  console.warn('[redis-profiles] Redis client initialization failed (will fallback to in-memory):', error?.message || error);
+  if (!hasLoggedMissingRedis) {
+    hasLoggedMissingRedis = true;
+    log.warnOnce(
+      'redis-init-failed',
+      `Redis client initialization failed (will fallback to in-memory): ${error?.message || error}`
+    );
+  }
   redis = null;
 }
 
