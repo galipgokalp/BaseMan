@@ -8,9 +8,6 @@ const log = createLogger('BottomNav');
 
 (function() {
   'use strict';
-    if (!_log) _log = getLog();
-    return _log;
-  };
 
   const BOTTOM_NAV = {
     LEADERBOARD: 'leaderboard',
