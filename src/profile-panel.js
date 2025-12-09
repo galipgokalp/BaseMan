@@ -1,4 +1,4 @@
-import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, setPanelVisible, wirePanelCloseButton } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('Profile');
@@ -658,10 +658,14 @@ function wire(panel, btn) {
 
     // Wire close button using shared helper
     wirePanelCloseButton(panel, () => setVisible(false), wiredElements);
-          // Setup network logos
-          setupNetworkLogos(panel);
-          
-          // Track if event listeners are already attached
+    
+    // Wire overlay click using shared helper
+    wirePanelOverlay(panel, () => setVisible(false), wiredElements);
+    
+    // Setup network logos
+    setupNetworkLogos(panel);
+    
+    // Track if event listeners are already attached
           const switchElements = panel.querySelectorAll('[data-switch]');
           switchElements.forEach((el) => {
             // Check if event listeners are already attached (using a data attribute)
