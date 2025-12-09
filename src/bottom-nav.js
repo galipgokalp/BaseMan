@@ -418,6 +418,21 @@ const log = createLogger('BottomNav');
       });
       return;
     }
+
+    // Fallback: Directly toggle panel immediately
+    const panel = document.getElementById('baseman-settings-panel');
+    if (panel) {
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      panel.style.display = 'block';
+
+      // Refresh panel in background (non-blocking)
+      requestAnimationFrame(() => {
+        if (typeof window.SettingsPanel !== 'undefined' && typeof window.SettingsPanel.refresh === 'function') {
+          window.SettingsPanel.refresh();
+        }
+      });
+    }
   }
 
   // Public API
