@@ -72,6 +72,9 @@ function ensurePanel() {
 
 let isOpen = false;
 
+// Track if elements are already wired to prevent duplicate listeners
+const wiredElements = new WeakSet();
+
 function setVisible(visible) {
   const panel = ensurePanel();
   if (!panel) return;
@@ -319,7 +322,8 @@ function updateStatus(status, className) {
 
 function wire(panel) {
   const closeBtn = panel.querySelector('[data-close]');
-  if (closeBtn) {
+  if (closeBtn && !wiredElements.has(closeBtn)) {
+    wiredElements.add(closeBtn);
     const handleClose = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -335,11 +339,14 @@ function wire(panel) {
   }
 
   // Close on overlay click
-  panel.addEventListener('click', (e) => {
-    if (e.target === panel) {
-      setVisible(false);
-    }
-  }, { passive: true });
+  if (!wiredElements.has(panel)) {
+    wiredElements.add(panel);
+    panel.addEventListener('click', (e) => {
+      if (e.target === panel) {
+        setVisible(false);
+      }
+    }, { passive: true });
+  }
 }
 
 function init() {

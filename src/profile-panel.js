@@ -620,6 +620,9 @@ async function handleSwitch(chainId) {
 
 let isOpen = false;
 
+// Track if elements are already wired to prevent duplicate listeners
+const wiredElements = new WeakSet();
+
 function setVisible(visible) {
     const shell = ensureShell();
     if (!shell || !shell.panel) return;
@@ -647,15 +650,17 @@ function wire(panel, btn) {
     }
 
     // If button exists, wire it (for backward compatibility)
-    if (btn) {
+    if (btn && !wiredElements.has(btn)) {
+      wiredElements.add(btn);
       btn.addEventListener('click', async () => {
         setVisible(!isOpen);
       });
     }
 
     const closeBtn = panel.querySelector('[data-close]');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
+    if (closeBtn && !wiredElements.has(closeBtn)) {
+      wiredElements.add(closeBtn);
+      const handleClose = (e) => {
         e.preventDefault();
         e.stopPropagation();
         setVisible(false);
@@ -663,16 +668,10 @@ function wire(panel, btn) {
         if (window.BottomNav) {
           window.BottomNav.setActive(null);
         }
-      });
+      };
+      closeBtn.addEventListener('click', handleClose, { passive: false });
       // Touch event for mobile
-      closeBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setVisible(false);
-        if (window.BottomNav) {
-          window.BottomNav.setActive(null);
-        }
-      }, { passive: false });
+      closeBtn.addEventListener('touchend', handleClose, { passive: false });
     }
           // Setup network logos
           setupNetworkLogos(panel);
