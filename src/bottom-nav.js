@@ -18,6 +18,7 @@ const log = createLogger('BottomNav');
 
   let currentActive = null;
   let currentOpenPanel = null;
+  let walletConnectRequested = false; // avoid spamming wallet connection prompts
 
   // Guard flag to prevent multiple initializations
   let _initialized = false;
@@ -373,6 +374,21 @@ const log = createLogger('BottomNav');
         if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
           window.WalletPanel.refresh();
         }
+        // Trigger wallet connect once if not ready
+        try {
+          if (!walletConnectRequested &&
+              typeof window.BaseManOnchain !== 'undefined' &&
+              typeof window.BaseManOnchain.isWalletReady === 'function' &&
+              typeof window.BaseManOnchain.ensureWallet === 'function' &&
+              !window.BaseManOnchain.isWalletReady()) {
+            walletConnectRequested = true;
+            window.BaseManOnchain.ensureWallet(true).catch((err) => {
+              log.warn('Wallet connect attempt failed:', err);
+            });
+          }
+        } catch (err) {
+          log.warn('Wallet connect attempt error:', err);
+        }
       });
       return;
     }
@@ -390,6 +406,20 @@ const log = createLogger('BottomNav');
         requestAnimationFrame(() => {
           if (typeof window.WalletPanel !== 'undefined' && typeof window.WalletPanel.refresh === 'function') {
             window.WalletPanel.refresh();
+          }
+          try {
+            if (!walletConnectRequested &&
+                typeof window.BaseManOnchain !== 'undefined' &&
+                typeof window.BaseManOnchain.isWalletReady === 'function' &&
+                typeof window.BaseManOnchain.ensureWallet === 'function' &&
+                !window.BaseManOnchain.isWalletReady()) {
+              walletConnectRequested = true;
+              window.BaseManOnchain.ensureWallet(true).catch((err) => {
+                log.warn('Wallet connect attempt failed:', err);
+              });
+            }
+          } catch (err) {
+            log.warn('Wallet connect attempt error:', err);
           }
         });
       } else if (attempts >= maxAttempts) {
