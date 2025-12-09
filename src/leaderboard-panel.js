@@ -13,7 +13,7 @@ import { loadLeaderboard } from './leaderboard/api.js';
 import { getCachedUserInfo, isMyEntry as isMyEntryService } from './leaderboard/services/user-detection.js';
 import { calculateMyRank } from './leaderboard/services/rank-calculation.js';
 
-const log = createLogger('Leaderboard');
+const log = createLogger('UiLeaderboard');
 import { 
   getLoading, 
   setLoading, 

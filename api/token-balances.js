@@ -1,6 +1,9 @@
 import { ethers } from "ethers";
 import { z } from "zod";
 import { getCdpClient, assertNetwork } from "./_lib/cdp.js";
+import { createLogger } from "../src/utils/logger.js";
+
+const log = createLogger("ApiTokenBalances");
 
 const QuerySchema = z.object({
   address: z
@@ -72,7 +75,7 @@ export default async function handler(req, res) {
       ...serializeBalances(result)
     });
   } catch (error) {
-    console.error("[token-balances] error", error);
+    log.error("Handler error", error);
     return res.status(500).json({
       error: "Failed to fetch balances",
       details: error instanceof Error ? error.message : String(error)

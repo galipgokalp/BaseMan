@@ -2,6 +2,9 @@ import { ethers } from "ethers";
 import { Buffer } from "buffer";
 import { z } from "zod";
 import { registryAddress, registryChainId } from "./_lib/registry.js";
+import { createLogger } from "../src/utils/logger.js";
+
+const log = createLogger("ApiPaymasterProxy");
 
 function env(key, fallback = "") {
   const v = process?.env?.[key];
@@ -458,10 +461,10 @@ export default async function handler(req, res) {
       try { if (Array.isArray(upstream.debug)) res.setHeader('X-Auth-Debug', upstream.debug.join(',')); } catch (_) {}
       try { const u = new URL(env('PAYMASTER_SERVICE_URL') || env('PAYMASTER_URL')); res.setHeader('X-Target-Host', u.host); res.setHeader('X-Target-Path', u.pathname); } catch (_) {}
     }
-    try { console.log(`[PaymasterProxy] method=${method} status=${upstream.status}`); } catch (_) {}
+    try { log.debug(`method=${method} status=${upstream.status}`); } catch (_) {}
     return res.send(upstream.body);
   } catch (error) {
-    console.error("[PaymasterProxy] upstream error:", error);
+    log.error("upstream error:", error);
     return res
       .status(502)
       .json({ error: "Unable to reach paymaster service", details: error?.message || String(error) });

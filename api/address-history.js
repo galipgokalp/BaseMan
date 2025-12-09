@@ -2,6 +2,9 @@ import { ethers } from "ethers";
 import { z } from "zod";
 import { getRegistryContext } from "./_lib/registry.js";
 import { assertNetwork } from "./_lib/cdp.js";
+import { createLogger } from "../src/utils/logger.js";
+
+const log = createLogger("ApiAddressHistory");
 
 const ScoreEvent = "event ScoreSubmitted(address indexed player,uint256 score,uint256 timestamp)";
 const ScoreAddedEvent = "event ScoreAdded(address indexed player,uint256 added,uint256 newTotal,uint256 timestamp)";
@@ -397,7 +400,7 @@ async function fetchFromLogs({
         const parsedLog = iface.parseLog({ topics: log.topics, data: log.data });
         return mapLogEvent(log, parsedLog);
       } catch (error) {
-        console.warn("[address-history] Failed to parse log", error);
+        log.warn("Failed to parse log", error);
         return null;
       }
     })
@@ -448,7 +451,7 @@ export default async function handler(req, res) {
           toBlock: resolvedToBlock ?? undefined
         });
       } catch (error) {
-        console.warn("[address-history] Address History API failed, falling back to registry logs:", error);
+        log.warn("Address History API failed, falling back to registry logs:", error);
       }
     }
 
@@ -494,7 +497,7 @@ export default async function handler(req, res) {
       items: limited
     });
   } catch (error) {
-    console.error("[address-history] error", error);
+    log.error("Handler error", error);
     return res.status(500).json({
       error: "Failed to fetch address history",
       details: error instanceof Error ? error.message : String(error)

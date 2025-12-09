@@ -1,7 +1,22 @@
 import { Redis } from '@upstash/redis';
 import { createLogger } from '../../src/utils/logger.js';
 
-const log = createLogger('RedisProfiles');
+const log = createLogger('ApiRedisProfiles');
+
+function formatAddress(address) {
+  if (!address || typeof address !== "string") {
+    return address;
+  }
+  const normalized = address.toLowerCase();
+  const env = (process?.env?.NODE_ENV || process?.env?.VERCEL_ENV || "").toLowerCase();
+  if (normalized.length <= 10) {
+    return normalized;
+  }
+  if (env === "production") {
+    return `${normalized.slice(0, 6)}…${normalized.slice(-4)}`;
+  }
+  return normalized;
+}
 
 // Redis client (environment variables'dan otomatik alır)
 // Vercel Marketplace'ten Upstash Redis eklendiğinde otomatik olarak eklenir:
@@ -63,12 +78,12 @@ export function isRedisAvailable() {
  */
 export async function saveProfileMapping(address, mapping) {
   if (!address || !mapping || !mapping.fid) {
-    console.log('[redis-profiles] saveProfileMapping: Invalid input');
+    log.debug("saveProfileMapping: Invalid input");
     return false;
   }
   
   if (!isRedisAvailable()) {
-    console.log('[redis-profiles] saveProfileMapping: Redis not available, skipping');
+    log.warnOnce("redis-not-available", "Redis not available, skipping saveProfileMapping");
     return false;
   }
   
@@ -84,10 +99,16 @@ export async function saveProfileMapping(address, mapping) {
   
   try {
     await redis.set(key, JSON.stringify(value), { ex: PROFILE_TTL });
-    console.log(`[redis-profiles] ✅ Saved profile mapping for ${address.toLowerCase()} (FID: ${value.fid})`);
+    log.debug("Saved profile mapping", {
+      address: formatAddress(address),
+      fid: value.fid
+    });
     return true;
   } catch (error) {
-    console.error(`[redis-profiles] ❌ Failed to save profile mapping for ${address.toLowerCase()}:`, error?.message || error);
+    log.error("Failed to save profile mapping", {
+      address: formatAddress(address),
+      error: error?.message || error
+    });
     return false;
   }
 }
@@ -124,7 +145,10 @@ export async function getProfileMapping(address) {
     
     return mapping;
   } catch (error) {
-    console.error(`[redis-profiles] ❌ Failed to get profile mapping for ${address.toLowerCase()}:`, error?.message || error);
+    log.error("Failed to get profile mapping", {
+      address: formatAddress(address),
+      error: error?.message || error
+    });
     return null;
   }
 }
@@ -176,18 +200,21 @@ export async function getProfileMappings(addresses) {
             redis.del(keys[i]).catch(() => {});
           }
         } catch (parseError) {
-          console.warn(`[redis-profiles] Failed to parse mapping for ${address}:`, parseError?.message || parseError);
+          log.warn("Failed to parse mapping", {
+            address: formatAddress(address),
+            error: parseError?.message || parseError
+          });
         }
       }
     }
     
     if (results.size > 0) {
-      console.log(`[redis-profiles] ✅ Retrieved ${results.size} profile mapping(s) from Redis`);
+      log.debug(`Retrieved ${results.size} profile mapping(s) from Redis`);
     }
     
     return results;
   } catch (error) {
-    console.error(`[redis-profiles] ❌ Failed to get profile mappings:`, error?.message || error);
+    log.error("Failed to get profile mappings", error?.message || error);
     return new Map();
   }
 }
@@ -256,14 +283,14 @@ export async function getProfilesForAddresses(addresses) {
       }
     }
 
-    console.log("[DEBUG] Redis GET:", {
-      requested: normalizedAddresses,
-      found: Object.keys(result)
+    log.debug("Redis GET", {
+      requested: normalizedAddresses.map((addr) => formatAddress(addr)),
+      found: Object.keys(result).map((addr) => formatAddress(addr))
     });
 
     return result;
   } catch (error) {
-    console.error('[redis-profiles] getProfilesForAddresses error:', error?.message || error);
+    log.error('getProfilesForAddresses error:', error?.message || error);
     return {};
   }
 }
@@ -287,7 +314,7 @@ export async function setProfilesForAddresses(profilesByAddress) {
     return;
   }
 
-  console.log("[DEBUG] Redis SET keys:", Object.keys(profilesByAddress));
+  log.debug("Redis SET keys", Object.keys(profilesByAddress).map((addr) => formatAddress(addr)));
 
   // Use pipelining for batch operations
   try {
@@ -318,10 +345,9 @@ export async function setProfilesForAddresses(profilesByAddress) {
 
     if (pipeline.length > 0) {
       await Promise.allSettled(pipeline);
-      console.log(`[redis-profiles] ✅ Cached ${savedCount} profile(s) in Redis`);
+      log.debug(`Cached ${savedCount} profile(s) in Redis`);
     }
   } catch (error) {
-    console.error('[redis-profiles] setProfilesForAddresses error:', error?.message || error);
+    log.error('setProfilesForAddresses error:', error?.message || error);
   }
 }
-

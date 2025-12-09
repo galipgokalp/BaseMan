@@ -4,7 +4,7 @@
 // - Retrieves a short‑lived Quick Auth token and forwards it to backend for verification
 
 import { createLogger } from './utils/logger.js';
-const log = createLogger('MiniAppAuth');
+const log = createLogger('UtilMiniappAuth');
 
 (function () {
   // Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)

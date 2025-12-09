@@ -61,7 +61,7 @@ if (typeof window !== "undefined") {
   const debug = createDebugOverlay();
   
   // Use logger from utils/logger.js
-  const log = createLogger('OnchainClient');
+  const log = createLogger('UtilOnchainClient');
   log.debug("onchain-client bootstrap");
 
   // Best-effort: prefetch mini app auth token once at startup to minimize delays during score submit

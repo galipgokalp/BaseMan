@@ -4,6 +4,9 @@
  */
 
 import Rollbar from 'rollbar';
+import { createLogger } from "../src/utils/logger.js";
+
+const log = createLogger("ApiAiAgentWebhook");
 
 // Initialize Rollbar (optional - only if ROLLBAR token is set)
 let rollbar = null;
@@ -22,7 +25,7 @@ try {
     });
   }
 } catch (err) {
-  console.warn('[ai-agent] Rollbar initialization failed:', err?.message);
+  log.warnOnce('rollbar-init', 'Rollbar initialization failed:', err?.message);
 }
 
 // AI Provider Configuration
@@ -241,7 +244,7 @@ Provide your analysis in JSON format:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.warn(`[ai-agent] ${provider.toUpperCase()} API error:`, response.status, errorText);
+      log.warn(`${provider.toUpperCase()} API error:`, response.status, errorText);
       return null;
     }
 
@@ -296,7 +299,7 @@ Provide your analysis in JSON format:
 
     return analysis;
   } catch (error) {
-    console.warn(`[ai-agent] ${provider} analysis failed:`, error?.message || error);
+    log.warn(`${provider} analysis failed:`, error?.message || error);
     return null;
   }
 }
@@ -442,7 +445,7 @@ async function notifySlack(logEntry, analysis) {
       body: JSON.stringify({ blocks })
     });
   } catch (error) {
-    console.warn('[ai-agent] Slack notification failed:', error?.message || error);
+    log.warn('Slack notification failed:', error?.message || error);
   }
 }
 
@@ -454,7 +457,7 @@ async function notifyEmail(logEntry, analysis) {
 
   // This is a placeholder - you can integrate with SendGrid, Resend, etc.
   // For now, we'll just log it
-  console.log('[ai-agent] Email notification (not implemented):', {
+  log.debug('Email notification (not implemented):', {
     to: EMAIL_TO,
     subject: `BaseMan Error: ${logEntry.message?.slice(0, 50)}`,
     analysis: analysis?.severity || 'Unknown'
@@ -498,7 +501,7 @@ export default async function handler(req, res) {
     const analysis = await analyzeError(logEntry);
 
     // Send AI analysis to Rollbar if configured
-    console.log('[ai-agent] Rollbar check:', {
+    log.debug('Rollbar check:', {
       hasRollbar: !!rollbar,
       event: logEntry.event,
       hasAnalysis: !!analysis,
@@ -544,7 +547,7 @@ export default async function handler(req, res) {
         
         // Send to Rollbar with AI analysis
         rollbar.error(logEntry.message, rollbarPayload);
-        console.log('[ai-agent] ✅ Sent error with AI analysis to Rollbar', {
+        log.debug('Sent error with AI analysis to Rollbar', {
           message: logEntry.message,
           hasAnalysis: !!analysis,
           severity: analysis?.severity,
@@ -552,7 +555,7 @@ export default async function handler(req, res) {
           rollbarPayload: JSON.stringify(rollbarPayload).slice(0, 200) + '...'
         });
       } catch (err) {
-        console.warn('[ai-agent] Rollbar send failed:', err?.message);
+        log.warn('Rollbar send failed:', err?.message);
       }
     }
 
@@ -570,11 +573,10 @@ export default async function handler(req, res) {
       analysis: analysis || null
     });
   } catch (error) {
-    console.error('[ai-agent] Handler error:', error?.message || error);
+    log.error('Handler error:', error?.message || error);
     return res.status(500).json({
       error: 'AI Agent processing failed',
       details: error?.message || String(error)
     });
   }
 }
-

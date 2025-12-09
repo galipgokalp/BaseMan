@@ -1,4 +1,7 @@
 import crypto from "crypto";
+import { createLogger } from "../src/utils/logger.js";
+
+const log = createLogger("ApiMiniappWebhook");
 
 function timingSafeEqual(expectedHex, providedHex) {
   if (!expectedHex || !providedHex) return false;
@@ -158,7 +161,7 @@ async function forwardLog(details) {
       body: JSON.stringify(details)
     });
   } catch (error) {
-    console.error("[miniapp-webhook] log forward failed", error);
+    log.warn("log forward failed", error?.message || error);
   }
 }
 
@@ -177,7 +180,7 @@ export default async function handler(req, res) {
     const verification = verifySignature(req, rawBody, secret);
 
     if (!verification.valid) {
-      console.warn("[miniapp-webhook] signature verification failed", verification.reason);
+      log.warnOnce(`signature-${verification.reason || "unknown"}`, "signature verification failed", verification.reason);
       await forwardLog({
         type: "webhook.invalid_signature",
         reason: verification.reason,
@@ -194,13 +197,12 @@ export default async function handler(req, res) {
       req.headers["X-Hook0-Id"] ||
       req.headers["X-Cdp-Event-Id"];
     if (isDuplicate(eventId, cacheTtl)) {
-      console.info("[miniapp-webhook] duplicate event ignored", eventId);
+      log.debug("duplicate event ignored", eventId);
       return res.status(200).json({ received: true, duplicate: true });
     }
 
-    console.log("[miniapp-webhook] event received", {
-      headers: req.headers,
-      payload: parsedBody,
+    log.debug("event received", {
+      eventId: eventId || null,
       verification: verification.reason || "ok"
     });
     await forwardLog({

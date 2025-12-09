@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from './logger.js';
-const log = createLogger('PlatformDetection');
+const log = createLogger('UtilPlatformDetect');
 
 /**
  * Gets the current platform identifier using OFFICIAL method (clientFid)

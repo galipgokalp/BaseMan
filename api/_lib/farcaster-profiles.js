@@ -13,7 +13,7 @@ import { getProfileMappings as getFromRedis } from "./redis-profiles.js";
 
 // Logger import for server-side logging
 import { createLogger } from "../../src/utils/logger.js";
-const log = createLogger('FarcasterProfiles');
+const log = createLogger('ApiFarcasterProfiles');
 
 const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();

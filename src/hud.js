@@ -6,32 +6,18 @@ var hud = (function(){
     // Import logger (use dynamic import to avoid circular dependencies)
     var log = null;
     try {
-        // Try to get logger from window if available
-        if (typeof window !== 'undefined' && window.BaseManLogger) {
-            log = window.BaseManLogger.createLogger('HUD');
-        } else {
-            // Fallback: create a simple logger
-            log = {
-                debug: function(msg, data) {
-                    if (data) {
-                        console.log('[HUD] ' + msg, data);
-                    } else {
-                        console.log('[HUD] ' + msg);
-                    }
-                }
-            };
+        if (typeof window !== 'undefined') {
+            if (typeof window.BaseManCreateLogger === 'function') {
+                log = window.BaseManCreateLogger('UiGameRenderer');
+            } else if (window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+                log = window.BaseManLogger.createLogger('UiGameRenderer');
+            }
         }
     } catch (e) {
-        // Ultimate fallback
-        log = {
-            debug: function(msg, data) {
-                if (data) {
-                    console.log('[HUD] ' + msg, data);
-                } else {
-                    console.log('[HUD] ' + msg);
-                }
-            }
-        };
+        log = null;
+    }
+    if (!log) {
+        log = { debug: function() {} };
     }
 
     // Helper function to log to logger

@@ -7,7 +7,7 @@ import { createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay 
 import { createLogger } from './utils/logger.js';
 import { escapeHtml } from './utils/escape-html.js';
 
-const log = createLogger('Settings');
+const log = createLogger('UiSettingsPanel');
 const PANEL_ID = 'baseman-settings-panel';
 
 // Use helpers from panel-base
@@ -1320,4 +1320,3 @@ if (typeof window !== 'undefined') {
 }
 
 initWhenReady();
-

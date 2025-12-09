@@ -6,6 +6,20 @@ if (typeof window !== 'undefined') {
   window.audio = audio;
 }
 
+var soundLog = (function() {
+  try {
+    if (typeof window !== 'undefined') {
+      if (typeof window.BaseManCreateLogger === 'function') {
+        return window.BaseManCreateLogger('UiSound');
+      }
+      if (window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+        return window.BaseManLogger.createLogger('UiSound');
+      }
+    }
+  } catch (_) {}
+  return { warn: function() {} };
+})();
+
 function audioTrack(url, volume) {
     var audio = new Audio(url);
     if (volume) audio.volume = volume;
@@ -48,25 +62,13 @@ function audioTrack(url, volume) {
             if(playPromise) {
                 playPromise.then(function(){}).catch(function(err){
                     // Log audio play errors (non-critical)
-                    try {
-                        if (typeof window !== 'undefined' && window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
-                            window.BaseManLogger.createLogger('Sound').warn('Audio play failed:', err);
-                        } else {
-                            console.error('[Sound] Audio play failed:', err);
-                        }
-                    } catch (_) {}
+                    try { soundLog.warn('Audio play failed:', err); } catch (_) {}
                 });
             }
         } 
         catch(err) {
             // Log audio play errors (non-critical)
-            try {
-                if (typeof window !== 'undefined' && window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
-                    window.BaseManLogger.createLogger('Sound').warn('Audio play error:', err);
-                } else {
-                    console.error('[Sound] Audio play error:', err);
-                }
-            } catch (_) {}
+            try { soundLog.warn('Audio play error:', err); } catch (_) {}
         }
     }
 }

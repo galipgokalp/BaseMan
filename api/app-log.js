@@ -1,4 +1,7 @@
 import Rollbar from 'rollbar';
+import { createLogger } from "../src/utils/logger.js";
+
+const log = createLogger("ApiAppLog");
 
 const RING_SIZE = 200;
 const FORWARD_URL = process.env.CDP_WEBHOOK_LOG_ENDPOINT || process.env.LOG_FORWARD_URL || '';
@@ -29,7 +32,7 @@ try {
     });
   }
 } catch (err) {
-  console.warn('[app-log] Rollbar initialization failed:', err?.message);
+  log.warnOnce('rollbar-init', 'Rollbar initialization failed:', err?.message);
 }
 
 export default async function handler(req, res) {
@@ -130,7 +133,7 @@ export default async function handler(req, res) {
       }
     } catch (_) {}
     // Avoid logging secrets
-    try { console.log('[app-log]', JSON.stringify({ event: entry.event, message: entry.message })); } catch (_) {}
+    try { log.debug('App log received', { event: entry.event, message: entry.message }); } catch (_) {}
     
     // Send to Rollbar if configured
     if (rollbar && entry.event === 'error') {
@@ -164,7 +167,7 @@ export default async function handler(req, res) {
         
         rollbar.error(entry.message, rollbarPayload);
       } catch (err) {
-        console.warn('[app-log] Rollbar send failed:', err?.message);
+        log.warn('Rollbar send failed:', err?.message);
       }
     }
     
@@ -191,7 +194,7 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ ok: true });
   } catch (error) {
-    try { console.error('[app-log] error', error?.message || error); } catch (_) {}
+    try { log.error('handler error', error?.message || error); } catch (_) {}
     return res.status(500).json({ error: 'log failed' });
   }
 }

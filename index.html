@@ -156,6 +156,15 @@
     <script type="module" src="src/utils/logger.js"></script>
     <!-- Application bootstrap (network status, error handler, Rollbar) -->
     <script type="module" src="src/bootstrap/app-bootstrap.js"></script>
+    <!-- Initialize lightweight observability hooks early -->
+    <script type="module">
+      import { createLogger } from "./src/utils/logger.js";
+      import { initNetworkStatus } from "./src/lib/network-status.js";
+      import { initGlobalErrorHandler } from "./src/lib/global-error-handler.js";
+      const log = createLogger("UiBootstrap");
+      try { initNetworkStatus(); } catch (err) { log.warn("initNetworkStatus failed:", err); }
+      try { initGlobalErrorHandler(); } catch (err) { log.warn("initGlobalErrorHandler failed:", err); }
+    </script>
     <!-- Unified SDK detection utility (depends on platform-detection) -->
     <script type="module" src="src/utils/sdk-detection.js"></script>
     <!-- Connect menu suppressor (depends on platform-detection, loads after it) -->

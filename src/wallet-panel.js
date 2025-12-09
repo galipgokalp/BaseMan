@@ -6,7 +6,7 @@
 import { abbreviateAddress, networkLabel, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
-const log = createLogger('Wallet');
+const log = createLogger('UiWalletPanel');
 const PANEL_ID = 'baseman-wallet-panel';
 
 // Use helpers from panel-base
@@ -369,4 +369,3 @@ function initWhenReady() {
 }
 
 initWhenReady();
-

@@ -7,7 +7,7 @@
 
 import { createLogger } from '../utils/logger.js';
 
-const log = createLogger('NetworkStatus');
+const log = createLogger('UiNetworkStatus');
 
 let networkStatusListeners = new Set();
 let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
@@ -79,4 +79,3 @@ export function useNetworkStatus() {
     subscribe: subscribeNetworkStatus
   };
 }
-

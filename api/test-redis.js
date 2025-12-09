@@ -5,6 +5,9 @@
  */
 
 import { saveProfileMapping, getProfileMapping, isRedisAvailable } from './_lib/redis-profiles.js';
+import { createLogger } from "../src/utils/logger.js";
+
+const log = createLogger("ApiTestRedis");
 
 export default async function handler(req, res) {
   // Only allow GET and POST
@@ -102,7 +105,7 @@ export default async function handler(req, res) {
       });
     }
   } catch (error) {
-    console.error('[test-redis] Error:', error);
+    log.error('handler error:', error);
     return res.status(500).json({
       success: false,
       error: error?.message || 'Internal server error',
@@ -111,4 +114,3 @@ export default async function handler(req, res) {
     });
   }
 }
-

@@ -17,7 +17,7 @@ import { safeFetchJson, requireOnline } from '../lib/safe-fetch.js';
 import { getCachedUserInfo } from './services/user-detection.js';
 import { sendProfileMappingIfNeeded, buildProfileMappingHeader } from './services/profile-mapping.js';
 
-const log = createLogger('LeaderboardAPI');
+const log = createLogger('UiLeaderboard');
 
 // ============================================
 // CACHING & DEDUPLICATION - Phase 4.3
@@ -187,4 +187,3 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
     }
   }
 }
-

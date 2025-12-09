@@ -1,7 +1,7 @@
 import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
-const log = createLogger('Profile');
+const log = createLogger('UiProfilePanel');
 const PANEL_ID = 'baseman-profile-panel';
 const BTN_ID = 'baseman-profile-btn';
 

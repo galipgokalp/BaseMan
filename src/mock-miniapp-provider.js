@@ -12,17 +12,26 @@
 
   if (!isEnabled()) return;
 
+  const log = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (typeof window.BaseManCreateLogger === 'function') {
+          return window.BaseManCreateLogger('UtilMockMiniappProvider');
+        }
+        if (window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+          return window.BaseManLogger.createLogger('UtilMockMiniappProvider');
+        }
+      }
+    } catch (_) {}
+    return { debug: () => {} };
+  })();
+
   const MOCK_ADDRESS = '0x8132C74c2774935e4CCa5c9B709E381c143b98f7';
   const ENTRY_POINT = '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789';
 
   function debug(msg) {
     try {
-      // Use centralized logger if available
-      if (typeof window !== 'undefined' && window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
-        window.BaseManLogger.createLogger('MockMiniApp').debug(msg);
-      } else {
-        console.log('[mock-miniapp]', msg);
-      }
+      log.debug(msg);
     } catch (_) {}
     try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'mock-miniapp', meta: { msg: String(msg) } }) }).catch(()=>{});} catch(_) {}
   }
@@ -127,4 +136,3 @@
   try { window.sdk = sdk; } catch (_) {}
   debug('Mock Mini App SDK injected');
 })();
-

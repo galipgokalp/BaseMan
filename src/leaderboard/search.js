@@ -11,7 +11,7 @@
 import { createLogger } from '../utils/logger.js';
 import { abbreviateAddress, fallbackAvatar, formatScore } from './dom.js';
 
-const log = createLogger('Search');
+const log = createLogger('UiSearchModal');
 
 // Platform detection helpers
 export function isIOS() {
