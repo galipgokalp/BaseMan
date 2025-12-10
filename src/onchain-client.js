@@ -2109,11 +2109,11 @@ if (typeof window !== "undefined") {
       const failedStates = Object.entries(results).filter(([_, patched]) => !patched).map(([name]) => name);
 
       debug(`patchStateHooks: Results - Patched: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
-      log().debug(`patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
+      log.debug(`patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
 
       if (allPatched) {
         debug('patchStateHooks: All states patched successfully (including overState and finishState for score submission)');
-        log().debug('patchStateHooks: ✅ All states patched successfully - score submission hooks active');
+        log.debug('patchStateHooks: ✅ All states patched successfully - score submission hooks active');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:success', meta: { attempt: attempt + 1, patchedStates } }) }).catch(()=>{});} catch(_) {}
       } else {
         const missing = Object.entries(results).filter(([_, patched]) => !patched).map(([name, _]) => name);
@@ -2124,7 +2124,7 @@ if (typeof window !== "undefined") {
           setTimeout(() => patchStateHooks(attempt + 1), 500); // Increased from 250ms to 500ms
         } else {
           debug('patchStateHooks: Max attempts reached, some states may not be patched');
-          log().warn(' patchStateHooks: Max attempts reached. Missing states:', missing);
+          log.warn(' patchStateHooks: Max attempts reached. Missing states:', missing);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:max-attempts', meta: { missing } }) }).catch(()=>{});} catch(_) {}
         }
       }
