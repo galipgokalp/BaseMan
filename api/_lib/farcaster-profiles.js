@@ -15,6 +15,28 @@ import { getProfileMappings as getFromRedis } from "./redis-profiles.js";
 import { createLogger } from "../../src/utils/logger.js";
 const log = createLogger('ApiFarcasterProfiles');
 
+function maskAddress(address) {
+  if (!address || typeof address !== "string") return "";
+  const normalized = address.toLowerCase();
+  return normalized.length > 10 ? `${normalized.slice(0, 6)}…${normalized.slice(-4)}` : normalized;
+}
+
+function maskAddresses(addresses = []) {
+  return addresses.map((addr) => maskAddress(addr));
+}
+
+function profileMeta(profile) {
+  if (!profile) {
+    return { hasProfile: false };
+  }
+  return {
+    fid: profile.fid || null,
+    hasUsername: Boolean(profile.username),
+    provider: profile.provider || null,
+    platform: profile.platform || null
+  };
+}
+
 const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
 const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
@@ -124,7 +146,7 @@ async function fetchNeynarProfile(address) {
   
   // Phase 4.3: Check for in-flight request for this address
   if (inflightNeynarRequests.has(cacheKey)) {
-    log.debug(`Reusing in-flight request for ${cacheKey.substring(0, 10)}...`);
+    log.debug("Reusing in-flight request", { address: maskAddress(address) });
     return inflightNeynarRequests.get(cacheKey);
   }
   
@@ -323,7 +345,9 @@ export async function fetchProfilesForAddresses(addresses = []) {
   // Try Redis first (persistent storage for all users)
   if (addressesNeedingFetch.length > 0) {
     try {
-      log.debug(`Checking Redis for ${addressesNeedingFetch.length} addresses:`, addressesNeedingFetch.map(a => a.substring(0, 10) + '...'));
+      log.debug(`Checking Redis for ${addressesNeedingFetch.length} addresses`, {
+        addresses: maskAddresses(addressesNeedingFetch)
+      });
       const redisMappings = await getFromRedis(addressesNeedingFetch);
       log.debug(`Redis returned ${redisMappings.size} mappings for ${addressesNeedingFetch.length} requested addresses`);
       
@@ -348,10 +372,18 @@ export async function fetchProfilesForAddresses(addresses = []) {
           results.set(key, profile);
           PROFILE_CACHE.set(key, profile);
           redisProfileCount++;
-          log.debug(`✅ Using Redis mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
+          log.debug("Using Redis mapping", {
+            address: maskAddress(key),
+            profile: profileMeta(profile)
+          });
         } else {
           const key = address.toLowerCase();
-          log.debug(`⚠️ Redis mapping for ${key} exists but incomplete:`, { hasUsername: !!mapping?.username, hasDisplayName: !!mapping?.displayName, hasAvatarUrl: !!mapping?.avatarUrl });
+          log.debug("Redis mapping incomplete", {
+            address: maskAddress(key),
+            hasUsername: !!mapping?.username,
+            hasDisplayName: !!mapping?.displayName,
+            hasAvatarUrl: !!mapping?.avatarUrl
+          });
         }
       }
       
@@ -378,12 +410,13 @@ export async function fetchProfilesForAddresses(addresses = []) {
   for (const address of addressesForDirectMapping) {
     const key = address.toLowerCase();
     const directMapping = getProfileMapping(address);
-    log.debug(`Checking direct mapping for ${key}:`, { 
+    log.debug("Checking direct mapping", { 
+      address: maskAddress(key),
       found: !!directMapping, 
       hasUsername: !!directMapping?.username,
       hasDisplayName: !!directMapping?.displayName,
       hasAvatarUrl: !!directMapping?.avatarUrl,
-      fid: directMapping?.fid 
+      fid: directMapping?.fid || null
     });
     if (directMapping && (directMapping.username || directMapping.displayName || directMapping.avatarUrl)) {
       const profile = {
@@ -402,9 +435,12 @@ export async function fetchProfilesForAddresses(addresses = []) {
       };
       results.set(key, profile);
       PROFILE_CACHE.set(key, profile);
-      log.debug(`✅ Using direct SDK context mapping for ${key}:`, profile.username || profile.displayName || 'unnamed', `platform=${profile.platform || 'null'}`);
+      log.debug("Using direct SDK context mapping", {
+        address: maskAddress(key),
+        profile: profileMeta(profile)
+      });
     } else {
-      log.debug(`❌ No direct mapping for ${key} (mapping exists: ${!!directMapping})`);
+      log.debug("No direct mapping", { address: maskAddress(key), hasMappingObject: !!directMapping });
     }
   }
 
@@ -439,12 +475,15 @@ export async function fetchProfilesForAddresses(addresses = []) {
           const profile = bulkProfiles.get(key);
           results.set(key, profile);
           PROFILE_CACHE.set(key, profile);
-          log.debug(`Found bulk profile for ${key}:`, profile.username || profile.displayName || 'unnamed');
+          log.debug("Found bulk profile", {
+            address: maskAddress(key),
+            profile: profileMeta(profile)
+          });
         } else {
           // Bulk didn't return profile for this address
           results.set(key, null);
           if (fid) {
-            log.debug(`No bulk profile found for ${key} (FID: ${fid}) - verified_addresses may not match`);
+            log.debug("No bulk profile found", { address: maskAddress(key), fid: fid || null });
           }
         }
       }
@@ -609,7 +648,7 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
 
   // Remove duplicates
   const uniqueAddresses = [...new Set(normalizedAddresses)];
-  log.debug("Unique addresses for Neynar:", uniqueAddresses);
+  log.debug("Unique addresses for Neynar:", maskAddresses(uniqueAddresses));
 
   // Chunk addresses into batches of <= 350 for the API
   const CHUNK_SIZE = 350;

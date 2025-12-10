@@ -18,6 +18,26 @@ import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFrom
 import { createLogger } from "../src/utils/logger.js";
 const log = createLogger('ApiLeaderboard');
 
+function maskAddress(address) {
+  if (!address || typeof address !== "string") return "";
+  const normalized = address.toLowerCase();
+  return normalized.length > 10 ? `${normalized.slice(0, 6)}…${normalized.slice(-4)}` : normalized;
+}
+
+function maskAddresses(addresses = []) {
+  return addresses.map((addr) => maskAddress(addr));
+}
+
+function profileSummary(profile) {
+  if (!profile) return { hasProfile: false };
+  return {
+    fid: profile.fid || null,
+    hasUsername: Boolean(profile.username),
+    platform: profile.platform || null,
+    provider: profile.provider || null
+  };
+}
+
 // ============================================
 // LEADERBOARD RESULT CACHE - Phase 4.3
 // ============================================
@@ -63,21 +83,25 @@ if (typeof setInterval !== 'undefined') {
 // For Redis support, use getProfileMappingFromRedis from redis-profiles.js
 export function getProfileMapping(address) {
   if (!address || typeof address !== 'string') {
-    log.debug('getProfileMapping: invalid address input:', address);
+    log.debug('getProfileMapping: invalid address input');
     return null;
   }
   const key = address.toLowerCase();
   const mapping = ADDRESS_TO_PROFILE_MAP.get(key);
-  log.debug(`getProfileMapping(${address}): key=${key}, found=${!!mapping}, mapSize=${ADDRESS_TO_PROFILE_MAP.size}, mapKeys=${Array.from(ADDRESS_TO_PROFILE_MAP.keys()).join(',')}`);
+  log.debug('getProfileMapping lookup', {
+    address: maskAddress(address),
+    found: !!mapping,
+    mapSize: ADDRESS_TO_PROFILE_MAP.size
+  });
   if (!mapping) {
     return null;
   }
   if (mapping.updatedAt && (Date.now() - mapping.updatedAt) > MAX_AGE_MS) {
-    log.debug(`getProfileMapping: mapping expired for ${key}`);
+    log.debug('getProfileMapping: mapping expired', { address: maskAddress(key) });
     ADDRESS_TO_PROFILE_MAP.delete(key);
     return null;
   }
-  log.debug(`getProfileMapping: returning mapping for ${key}:`, { fid: mapping.fid, username: mapping.username, displayName: mapping.displayName });
+  log.debug('getProfileMapping: returning mapping', profileSummary(mapping));
   return mapping;
 }
 
@@ -384,7 +408,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
         .filter(Boolean)
     )
   ];
-  log.debug("Leaderboard addresses:", addresses);
+  log.debug("Leaderboard addresses:", maskAddresses(addresses));
 
   if (addresses.length === 0) {
     // No addresses, just return mapped items without profiles
@@ -482,13 +506,13 @@ async function hydrateProfilesForAddresses(items, req = null) {
   } else {
     cachedProfiles = {};
   }
-  log.debug("Redis profile keys:", Object.keys(cachedProfiles));
+  log.debug("Redis profile keys:", maskAddresses(Object.keys(cachedProfiles || {})));
 
   // 3) Determine which addresses still need lookup from Neynar
   const missingForExternalFetch = externalEnrichmentEnabled
     ? addresses.filter((addr) => !cachedProfiles[addr] && !headerProfiles[addr])
     : [];
-  log.debug("Missing for external enrichment:", missingForExternalFetch);
+  log.debug("Missing for external enrichment:", maskAddresses(missingForExternalFetch));
 
   // 4) Fetch from Neynar bulk-by-address
   let fetchedProfiles = {};
@@ -498,7 +522,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
       log.debug(
         `Fetched ${Object.keys(fetchedProfiles).length} profiles from Neynar for ${missingForExternalFetch.length} missing addresses`
       );
-      log.debug("Neynar fetched profiles:", Object.keys(fetchedProfiles));
+      log.debug("Neynar fetched profiles:", maskAddresses(Object.keys(fetchedProfiles)));
       log.debug("Neynar missing count:", missingForExternalFetch.length);
       log.debug("Neynar returned count:", Object.keys(fetchedProfiles).length);
 
@@ -527,7 +551,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
     ...fetchedProfiles,
     ...headerProfiles
   };
-  log.debug("Combined profile keys:", Object.keys(allProfiles));
+  log.debug("Combined profile keys:", maskAddresses(Object.keys(allProfiles)));
 
   // 6) Build final enriched items
   const enriched = items.map((item, index) => {
@@ -579,8 +603,8 @@ async function hydrateProfilesForAddresses(items, req = null) {
       profile: profile || null
     };
     log.debug("Final entry profile:", {
-      address: entry.player,
-      profile: profile || null
+      address: maskAddress(entry.player),
+      profile: profileSummary(profile)
     });
     return entry;
   });
@@ -603,10 +627,10 @@ async function enrichWithProfiles(items, req = null) {
 
   try {
     log.debug("ENV CHECK:", {
-      FARCASTER_PROFILE_PROVIDER: process.env.FARCASTER_PROFILE_PROVIDER,
+      farcasterProfileProvider: process.env.FARCASTER_PROFILE_PROVIDER || null,
       hasNeynarKey: !!process.env.NEYNAR_API_KEY,
-      REDIS_URL: process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL,
-      disableEnrichment: process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT
+      hasRedis: !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL),
+      disableEnrichment: process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || null
     });
     
     // Check for missing configuration (for debug info)
@@ -835,14 +859,25 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       throw new Error(`No RPC URL configured for fallback (chain ${targetChainId})`);
     }
 
-    log.debug(`RPC fallback: Using RPC URL: ${rpcUrl.substring(0, 50)}...`);
+    try {
+      const urlObj = new URL(rpcUrl);
+      log.debug("RPC fallback: Using RPC host", { host: urlObj.host, protocol: urlObj.protocol });
+    } catch {
+      log.debug("RPC fallback: Using RPC host", { host: "unknown" });
+    }
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     log.debug(`RPC fallback: Getting latest block number...`);
     const latest = await provider.getBlockNumber();
     const windowBlocks = Number.parseInt(process.env.LEADERBOARD_FALLBACK_WINDOW_BLOCKS || "50000", 10);
     const fromBlock = Math.max(0, latest - windowBlocks);
     
-    log.debug(`RPC fallback: chain=${targetChainId}, address=${address}, fromBlock=${fromBlock}, toBlock=${latest}, latestBlock=${latest}`);
+    log.debug("RPC fallback window", {
+      chain: targetChainId,
+      address: maskAddress(address),
+      fromBlock,
+      toBlock: latest,
+      latestBlock: latest
+    });
 
     // Fetch logs in chunks to avoid provider limits
     const chunkMax = Number.parseInt(process.env.LEADERBOARD_FALLBACK_CHUNK_SIZE || "400", 10);
