@@ -39,7 +39,7 @@ const loadIgnore = () => {
   if (existsSync(p)) {
     try {
       const cfg = JSON.parse(readFileSync(p, 'utf8'));
-      if (Array.isArray(cfg.patterns) && cfg.patterns.length) patterns = cfg.patterns;
+      if (Array.isArray(cfg.patterns) && cfg.patterns.length) patterns = [...defaults, ...cfg.patterns];
     } catch {}
   }
   return patterns.map((s) => new RegExp(s));

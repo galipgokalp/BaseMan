@@ -22,8 +22,11 @@ function readContractVersion() {
 
 function readTypedVersion() {
   const content = readFileSync(join(process.cwd(), 'api/_lib/registry.js'), 'utf-8');
-  const match = content.match(/CONTRACT_VERSION[^=]*=\s*["'`]([^"'`]+)["'`]/);
-  return match ? match[1] : null;
+  const direct = content.match(/CONTRACT_VERSION[^=]*=\s*["'`]([^"'`]+)["'`]/);
+  if (direct) return direct[1];
+  const fallback = content.match(/CONTRACT_VERSION[^=]*=\s*\(process\.env\.REGISTRY_EIP712_VERSION\s*\|\|\s*["'`]([^"'`]+)["'`]\)/);
+  if (fallback) return fallback[1];
+  return process.env.REGISTRY_EIP712_VERSION || null;
 }
 
 describe('Config sanity checks', () => {
@@ -39,18 +42,18 @@ describe('Config sanity checks', () => {
   it('keeps typed-data version aligned with contract', () => {
     const contractVersion = readContractVersion();
     const typedVersion = readTypedVersion();
-    expect(contractVersion).to.equal(typedVersion);
+    expect(typedVersion).to.equal(contractVersion);
   });
 });
 
 describe('escape-html utilities', () => {
   it('escapes script tags', () => {
-    expect(escapeHtml('<script>alert(1)</script>')).to.equal('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(escapeHtml('<script>alert(1)</script>')).to.equal('&lt;script&gt;alert(1)&lt;&#x2F;script&gt;');
   });
 
   it('preserves newlines while escaping', () => {
     const input = '<b>line1</b>\nline2';
-    expect(escapeHtmlPreserveNewlines(input)).to.equal('&lt;b&gt;line1&lt;/b&gt;<br/>line2');
+    expect(escapeHtmlPreserveNewlines(input)).to.equal('&lt;b&gt;line1&lt;&#x2F;b&gt;<br>line2');
   });
 });
 

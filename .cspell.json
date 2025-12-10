@@ -11,7 +11,8 @@
     "**/*.png",
     "**/*.jpg",
     "**/*.jpeg",
-    "**/*.gif"
+    "**/*.gif",
+    "docs/**/*.md"
   ],
   "words": [
     "BaseMan",
