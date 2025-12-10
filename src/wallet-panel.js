@@ -134,6 +134,15 @@ async function refresh() {
       return;
     }
 
+    // Best-effort: sync wallet state without prompting (read-only)
+    try {
+      if (typeof onchain.ensureWallet === 'function') {
+        await onchain.ensureWallet(false);
+      }
+    } catch (_) {
+      // Ignore silent failures; UI will reflect actual readiness below
+    }
+
     const isReady = onchain.isWalletReady && onchain.isWalletReady();
     if (!isReady) {
       updateStatus('Not connected', 'disconnected');
