@@ -35,20 +35,20 @@ export async function getPlatform() {
         // Debug: Log what we got
         const hasClient = !!(context && context.client);
         const clientFid = context?.client?.clientFid;
-        log.debug('Context received - hasClient:', hasClient, 'clientFid:', clientFid);
+        log.debug('platform-context', { hasClient, clientFid });
         
         if (context && context.client && typeof context.client.clientFid === 'number') {
           const fid = context.client.clientFid;
           
           // OFFICIAL METHOD: Base App clientFid is 309857 (per Base App docs)
           if (fid === 309857) {
-            log.debug('Base App detected via clientFid (309857) - OFFICIAL METHOD');
+            log.debug('platform-detected', { platform: 'base', method: 'clientFid' });
             return 'base';
           }
           
           // If clientFid exists but is not 309857, it's Farcaster
           // Warpcast clientFid is 9152 (per Farcaster docs example)
-          log.debug('Farcaster detected via clientFid (' + fid + ') - OFFICIAL METHOD');
+          log.debug('platform-detected', { platform: 'farcaster', method: 'clientFid', clientFid: fid });
           return 'farcaster';
         }
         
@@ -56,45 +56,45 @@ export async function getPlatform() {
         if (context && context.user && context.user.fid) {
           // We have a user with FID, so we're in a mini app
           // Try to detect platform from other signals
-          log.debug('Context has user but no clientFid, checking other signals...');
+          log.debug('platform-context-missing-clientFid', { hasUser: true });
           
           // Check if MiniKit is available (Base App indicator)
           if (window.MiniKit) {
-            log.debug('MiniKit detected, assuming Base App');
+            log.debug('platform-detected', { platform: 'base', method: 'minikit' });
             return 'base';
           }
           
           // Check for Farcaster indicators
           if (window.fc?.miniapp || window.farcaster?.miniapp) {
-            log.debug('Farcaster SDK detected, assuming Farcaster');
+            log.debug('platform-detected', { platform: 'farcaster', method: 'sdk-indicator' });
             return 'farcaster';
           }
           
           // Default to farcaster if we have user FID but can't determine platform
-          log.debug('Has user FID but unknown platform, defaulting to farcaster');
+          log.debug('platform-default', { reason: 'hasUserNoClientFid' });
           return 'farcaster';
         }
       } catch (err) {
-        log.warn('Failed to get SDK context:', err?.message || err);
+        log.warnOnce('platform-detect-failed', { reason: err?.message || err });
       }
     }
     
     // Additional fallback checks even if SDK not available
     if (window.MiniKit) {
-      log.debug('MiniKit detected (no SDK), assuming Base App');
+      log.debug('platform-detected', { platform: 'base', method: 'minikit' });
       return 'base';
     }
     
     if (window.fc?.miniapp || window.farcaster?.miniapp) {
-      log.debug('Farcaster SDK detected (no window.sdk), assuming Farcaster');
+      log.debug('platform-detected', { platform: 'farcaster', method: 'sdk-indicator' });
       return 'farcaster';
     }
     
     // If SDK context is not available, assume web
-    log.debug('SDK context not available, assuming web');
+    log.debug('platform-default', { reason: 'no-sdk' });
     return 'web';
   } catch (err) {
-    log.error('getPlatform() error:', err);
+    log.warnOnce('platform-detect-failed', { reason: err?.message || err });
     return 'web';
   }
 }

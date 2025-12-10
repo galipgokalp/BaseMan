@@ -10,6 +10,20 @@ import { createAppError } from './errors.js';
 
 const log = createLogger('GlobalErrorHandler');
 
+const noisyPatterns = ['ResizeObserver loop', 'Script error'];
+
+function shouldDowngrade(message = '') {
+  return noisyPatterns.some((p) => message && String(message).includes(p));
+}
+
+function logGlobal(topic, payload) {
+  if (shouldDowngrade(payload?.message || payload?.technicalMessage)) {
+    log.debug(topic, payload);
+  } else {
+    log.error(topic, payload);
+  }
+}
+
 /**
  * Initialize global error handlers
  * Should be called once at app startup
@@ -17,20 +31,20 @@ const log = createLogger('GlobalErrorHandler');
 export function initGlobalErrorHandler() {
   if (typeof window === 'undefined') return;
 
-  // Handle unhandled errors
-  window.addEventListener('error', (event) => {
-    const error = event.error || new Error(event.message || 'Unknown error');
+  const handleError = (event) => {
+    const error = event?.error || event?.reason || new Error(event?.message || 'Unknown error');
     const appError = createAppError(error, {
       context: 'global',
       meta: {
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        stack: error.stack
+        filename: event?.filename,
+        lineno: event?.lineno,
+        colno: event?.colno,
+        stack: error?.stack,
+        promise: Boolean(event?.reason)
       }
     });
 
-    log.error('Unhandled error:', {
+    logGlobal(event?.reason ? 'unhandled-promise' : 'unhandled-error', {
       kind: appError.kind,
       message: appError.technicalMessage,
       context: appError.context,
@@ -43,53 +57,33 @@ export function initGlobalErrorHandler() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          event: 'global:unhandled-error',
+          event: event?.reason ? 'global:unhandled-rejection' : 'global:unhandled-error',
           meta: appError.toJSON()
         }),
         keepalive: true
       }).catch(() => {});
     } catch (_) {}
+  };
 
+  // Handle unhandled errors
+  window.addEventListener('error', (event) => {
+    handleError(event);
     // Don't prevent default - let browser handle it normally
-    // But we've logged it for debugging
   });
 
   // Handle unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
-    const error = event.reason || new Error('Unhandled promise rejection');
-    const appError = createAppError(error, {
-      context: 'global',
-      meta: {
-        promise: true,
-        stack: error?.stack
-      }
-    });
-
-    log.error('Unhandled promise rejection:', {
-      kind: appError.kind,
-      message: appError.technicalMessage,
-      context: appError.context,
-      meta: appError.meta
-    });
-
-    // Log to backend if available
-    try {
-      fetch('/api/app-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'global:unhandled-rejection',
-          meta: appError.toJSON()
-        }),
-        keepalive: true
-      }).catch(() => {});
-    } catch (_) {}
-
-    // Prevent default browser behavior (console error)
-    // We've handled it, so mark as handled
+    handleError(event);
     event.preventDefault();
   });
 
+  window.onerror = function (message, source, lineno, colno, error) {
+    handleError({ message, filename: source, lineno, colno, error });
+  };
+
+  window.onunhandledrejection = function (event) {
+    handleError(event);
+  };
+
   log.debug('Global error handler initialized');
 }
-

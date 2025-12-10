@@ -23,7 +23,7 @@
         }
       }
     } catch (_) {}
-    return { debug: () => {} };
+    return { debug: () => {}, error: () => {}, warn: () => {} };
   })();
 
   const MOCK_ADDRESS = '0x8132C74c2774935e4CCa5c9B709E381c143b98f7';
@@ -64,12 +64,17 @@
           case 'wallet_addEthereumChain':
             return null;
           case 'wallet_getCapabilities': {
-            const caip = `eip155:${currentChain}`;
-            return {
-              paymasterService: { supported: true },
-              capabilities: { paymasterService: { supported: true }, 'org.cdp.paymaster': { supported: true } },
-              chains: { [caip]: { paymasterService: { supported: true } } }
-            };
+            try {
+              const caip = `eip155:${currentChain}`;
+              return {
+                paymasterService: { supported: true },
+                capabilities: { paymasterService: { supported: true }, 'org.cdp.paymaster': { supported: true } },
+                chains: { [caip]: { paymasterService: { supported: true } } }
+              };
+            } catch (err) {
+              log.error('mock-provider-failed', { method: 'wallet_getCapabilities', reason: err?.message || err });
+              return { error: true };
+            }
           }
           case 'wallet_sendCalls': {
             try {
@@ -102,13 +107,15 @@
               // Return a mock id to simulate async flow
               return { id: `mock-${Date.now()}` };
             } catch (e) {
-              throw e;
+              log.error('mock-provider-failed', { method: 'wallet_sendCalls', reason: e?.message || e });
+              return { error: true };
             }
           }
           case 'wallet_getCallsStatus':
             return { status: 'pending' };
           default:
-            throw new Error(`Unsupported method in mock provider: ${method}`);
+            log.error('mock-provider-failed', { method: String(method || 'unknown'), reason: 'unsupported-method' });
+            return { error: true };
         }
       }
     };

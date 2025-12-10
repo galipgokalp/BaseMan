@@ -114,8 +114,7 @@ const log = createLogger('UtilMiniappAuth');
       return null;
     } catch (err) { 
       // Prevent unhandled promise rejection by catching and logging
-      log.warn('getToken failed:', err?.message || err);
-      // Re-throw as handled error to prevent unhandled rejection
+      log.error('miniapp-auth-failed', { step: 'getToken', reason: err?.message || err });
       return null; 
     }
   }
@@ -142,6 +141,7 @@ const log = createLogger('UtilMiniappAuth');
         };
       }
     } catch (e) {
+      log.error('miniapp-auth-failed', { step: 'sendToken', reason: e?.message || e });
       window.__MINIAPP_AUTH__ = { error: String(e?.message || e) };
     }
   }
@@ -155,14 +155,14 @@ const log = createLogger('UtilMiniappAuth');
       await sendToken(token);
     } catch (err) {
       // Prevent unhandled promise rejection
-      log.warn('main() failed:', err?.message || err);
+      log.error('miniapp-auth-failed', { step: 'main', reason: err?.message || err });
     }
   }
 
   // Wrap in try-catch and handle promise rejection
   try { 
     main().catch(err => {
-      log.warn('main() promise rejection:', err?.message || err);
+      log.error('miniapp-auth-failed', { step: 'main:promise', reason: err?.message || err });
     });
   } catch (_) {}
 })();

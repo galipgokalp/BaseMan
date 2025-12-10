@@ -64,6 +64,16 @@ if (typeof window !== "undefined") {
   const log = createLogger('UtilOnchainClient');
   log.debug("onchain-client bootstrap");
 
+  async function safeProviderRequest(provider, params, fallback = null) {
+    if (!provider || typeof provider.request !== 'function') return fallback;
+    try {
+      return await provider.request(params);
+    } catch (error) {
+      log.error('rpc-failed', { method: params?.method || 'unknown', reason: error?.message || error });
+      return fallback;
+    }
+  }
+
   // Best-effort: prefetch mini app auth token once at startup to minimize delays during score submit
   (async () => {
     try {
@@ -561,7 +571,7 @@ if (typeof window !== "undefined") {
             if (isRequestError) {
               debug(`SDK getEthereumProvider request failed: ${errorMsg}`);
               // Log error but try to continue with fallback
-              log.error(`SDK getEthereumProvider request failed: ${errorMsg}`, providerError);
+              log.error('rpc-failed', { step: 'getEthereumProvider', reason: errorMsg });
               throw new Error(`Failed to get Ethereum provider: ${errorMsg}`);
             } else {
               throw providerError; // Re-throw non-request errors
@@ -583,16 +593,12 @@ if (typeof window !== "undefined") {
           })();
 
           let address = null;
-          try {
-            // First try to get existing accounts (read-only, no passkey prompt)
-            // In Base App mini apps, accounts should be available automatically without requesting.
-            const accounts = await provider.request({ method: 'eth_accounts' });
-            if (Array.isArray(accounts) && accounts.length) {
-              address = accounts[0];
-              debug(`Found existing account: ${address}`);
-            }
-          } catch (eaErr) {
-            debug(`eth_accounts error: ${eaErr?.message || eaErr}`);
+          // First try to get existing accounts (read-only, no passkey prompt)
+          // In Base App mini apps, accounts should be available automatically without requesting.
+          const accounts = await safeProviderRequest(provider, { method: 'eth_accounts' }, []);
+          if (Array.isArray(accounts) && accounts.length) {
+            address = accounts[0];
+            debug(`Found existing account: ${address}`);
           }
           
           // In mini app environments, only call eth_requestAccounts when explicitly requested (tx initiation).
@@ -988,26 +994,18 @@ if (typeof window !== "undefined") {
       let caps = null;
       
       // Try without address first (current account capabilities)
-      try {
-        caps = await provider.request({ method: 'wallet_getCapabilities' });
-        if (caps && typeof caps === 'object') {
-          debug(`getCapabilities: Retrieved capabilities (without address): ${Object.keys(caps).join(', ')}`);
-          return caps;
-        }
-      } catch (error) {
-        debug(`getCapabilities: Failed to get capabilities (without address): ${error?.message || error}`);
+      caps = await safeProviderRequest(provider, { method: 'wallet_getCapabilities' }, null);
+      if (caps && typeof caps === 'object') {
+        debug(`getCapabilities: Retrieved capabilities (without address): ${Object.keys(caps).join(', ')}`);
+        return caps;
       }
       
       // Try with address if provided
       if (!caps && address && typeof address === 'string' && address.startsWith('0x')) {
-        try {
-          caps = await provider.request({ method: 'wallet_getCapabilities', params: [address] });
-          if (caps && typeof caps === 'object') {
-            debug(`getCapabilities: Retrieved capabilities (with address): ${Object.keys(caps).join(', ')}`);
-            return caps;
-      }
-        } catch (error) {
-          debug(`getCapabilities: Failed to get capabilities (with address): ${error?.message || error}`);
+        caps = await safeProviderRequest(provider, { method: 'wallet_getCapabilities', params: [address] }, null);
+        if (caps && typeof caps === 'object') {
+          debug(`getCapabilities: Retrieved capabilities (with address): ${Object.keys(caps).join(', ')}`);
+          return caps;
         }
       }
       
@@ -2237,16 +2235,12 @@ if (typeof window !== "undefined") {
               }
             }
             if (provider) {
-              try {
-                const accounts = await provider.request({ method: "eth_accounts" });
-                if (Array.isArray(accounts) && accounts.length > 0) {
-                  debug("Background wallet: accounts already available, connecting without request");
-                  await ensureWallet(false);
-                } else {
-                  debug("Background wallet: no accounts yet, will connect on first on-chain action");
-                }
-              } catch (err) {
-                debug(`Background wallet eth_accounts failed: ${err?.message || err}`);
+              const accounts = await safeProviderRequest(provider, { method: "eth_accounts" }, []);
+              if (Array.isArray(accounts) && accounts.length > 0) {
+                debug("Background wallet: accounts already available, connecting without request");
+                await ensureWallet(false);
+              } else {
+                debug("Background wallet: no accounts yet, will connect on first on-chain action");
               }
             }
           }
