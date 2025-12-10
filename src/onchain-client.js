@@ -79,7 +79,7 @@ if (typeof window !== "undefined") {
     if (typeof window.__showModuleFailure === "function") {
       window.__showModuleFailure(message);
     } else {
-      log().error(message);
+      log.error(message);
     }
   }
 
@@ -332,7 +332,7 @@ if (typeof window !== "undefined") {
               if (isRequestError) {
                 debug(`SDK ready request failed (non-critical): ${errorMsg}`);
                 // Log but don't block - allow game to continue
-                log().error(`SDK ready request failed: ${errorMsg}`, readyError);
+                log.error(`SDK ready request failed: ${errorMsg}`, readyError);
               } else {
                 debug(`Error calling sdk.actions.ready: ${errorMsg}`);
                 throw readyError; // Re-throw non-request errors
@@ -561,7 +561,7 @@ if (typeof window !== "undefined") {
             if (isRequestError) {
               debug(`SDK getEthereumProvider request failed: ${errorMsg}`);
               // Log error but try to continue with fallback
-              log().error(`SDK getEthereumProvider request failed: ${errorMsg}`, providerError);
+              log.error(`SDK getEthereumProvider request failed: ${errorMsg}`, providerError);
               throw new Error(`Failed to get Ethereum provider: ${errorMsg}`);
             } else {
               throw providerError; // Re-throw non-request errors
@@ -603,7 +603,7 @@ if (typeof window !== "undefined") {
             if (requestAccounts) {
               try {
                 debug("Transaction initiated - requesting account access (may prompt passkey)...");
-                log().debug('Requesting wallet connection for transaction...');
+                log.debug('Requesting wallet connection for transaction...');
                 // Add timeout to prevent hanging
                 const requestPromise = provider.request({ method: 'eth_requestAccounts' });
                 const timeoutPromise = new Promise((_, reject) => 
@@ -613,7 +613,7 @@ if (typeof window !== "undefined") {
                 if (Array.isArray(req) && req.length) {
                   address = req[0];
                   debug(`Account access granted for transaction: ${address}`);
-                  log().debug(`Wallet connected: ${address}`);
+                  log.debug(`Wallet connected: ${address}`);
                 } else {
                   throw new Error('No accounts returned from eth_requestAccounts');
                 }
@@ -652,7 +652,7 @@ if (typeof window !== "undefined") {
                 }
                 
                 debug(`eth_requestAccounts error during transaction: ${errMsg}`);
-                log().error(`Wallet connection failed: ${errMsg}`, reqErr);
+                log.error(`Wallet connection failed: ${errMsg}`, reqErr);
                 
                 // User might have rejected the request - this is OK, don't throw error
                 if (errMsg && (errMsg.includes('reject') || errMsg.includes('denied') || errMsg.includes('User rejected') || errMsg.includes('User cancelled'))) {
@@ -1283,7 +1283,7 @@ if (typeof window !== "undefined") {
         const errorMsg = error?.message || String(error);
         const errorCode = error?.code || error?.error?.code || null;
         debug(`wallet_sendCalls error: ${errorMsg} (code: ${errorCode})`);
-        log().error('wallet_sendCalls failed:', error);
+        log.error('wallet_sendCalls failed:', error);
         
         // Log error with details
         try { 
@@ -1324,7 +1324,7 @@ if (typeof window !== "undefined") {
 
     async function submitScore() {
       debug('submitScore: Function called');
-      log().debug('submitScore: Function called - START');
+      log.debug('submitScore: Function called - START');
       try { 
         fetch('/api/app-log', { 
           method: 'POST', 
@@ -1348,7 +1348,7 @@ if (typeof window !== "undefined") {
       // Check if already submitting
       if (state.submitting) {
         debug('submitScore: Already submitting, skipping');
-        log().debug('submitScore: Already submitting, skipping');
+        log.debug('submitScore: Already submitting, skipping');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:already-submitting', meta: { timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
@@ -1356,7 +1356,7 @@ if (typeof window !== "undefined") {
       // Check if getScore function is available
       if (typeof window.getScore !== "function") {
         debug('submitScore: getScore function not available');
-        log().warn(' submitScore: getScore function not available');
+        log.warn(' submitScore: getScore function not available');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-unavailable', meta: { timestamp: new Date().toISOString(), windowGetScore: typeof window.getScore } }) }).catch(()=>{});} catch(_) {}
         return;
       }
@@ -1369,14 +1369,14 @@ if (typeof window !== "undefined") {
         score = BigInt(scoreValue);
       } catch (scoreError) {
         debug(`submitScore: Error getting score: ${scoreError?.message || scoreError}`);
-        log().error(' submitScore: Error getting score:', scoreError);
+        log.error(' submitScore: Error getting score:', scoreError);
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:getScore-error', meta: { error: scoreError?.message || String(scoreError) } }) }).catch(()=>{});} catch(_) {}
         return;
       }
       
       if (score <= 0n) {
         debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
-        log().debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
+        log.debug(`submitScore: Score is 0 or negative (${score.toString()}), skipping`);
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:score-zero', meta: { score: score.toString(), timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
         return;
       }
@@ -1387,7 +1387,7 @@ if (typeof window !== "undefined") {
           : 0;
 
       debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
-      log().debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
+      log.debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
       try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:starting', meta: { score: score.toString(), durationMs } }) }).catch(()=>{});} catch(_) {}
 
       try {
@@ -1396,13 +1396,13 @@ if (typeof window !== "undefined") {
         // Request accounts if needed (may prompt passkey, but user initiated transaction)
         // For Base App users, always request accounts to ensure wallet connection
         debug('submitScore: Ensuring wallet connection...');
-        log().debug(' submitScore: Ensuring wallet connection for score submission...');
+        log.debug(' submitScore: Ensuring wallet connection for score submission...');
         try {
           await ensureWallet(true); // Always request accounts for transaction
         } catch (walletError) {
           const walletErrorMsg = walletError?.message || String(walletError);
           debug(`submitScore: Wallet connection failed: ${walletErrorMsg}`);
-          log().error(`submitScore: Wallet connection failed: ${walletErrorMsg}`);
+          log.error(`submitScore: Wallet connection failed: ${walletErrorMsg}`);
           
           // If wallet connection fails, provide helpful error message
           if (walletErrorMsg.includes('reject') || walletErrorMsg.includes('denied') || walletErrorMsg.includes('User rejected')) {
@@ -1414,11 +1414,11 @@ if (typeof window !== "undefined") {
         if (!state.address) {
           const errorMsg = "Wallet connection required - no address available";
           debug(`submitScore: ${errorMsg}`);
-          log().error(`submitScore: ${errorMsg}`);
+          log.error(`submitScore: ${errorMsg}`);
           throw new Error(errorMsg);
         }
         debug(`submitScore: Wallet connected - address=${state.address}`);
-        log().debug(`submitScore: Wallet connected successfully - address=${state.address}`);
+        log.debug(`submitScore: Wallet connected successfully - address=${state.address}`);
 
         // Send profile mapping to backend for leaderboard enrichment
         // This ensures user profile data is available for other users viewing the leaderboard
@@ -1433,7 +1433,7 @@ if (typeof window !== "undefined") {
         } catch (profileErr) {
           // Silently fail - profile mapping is not critical for score submission
           debug(`submitScore: Profile mapping error (non-critical): ${profileErr?.message || profileErr}`);
-          log().warn(' submitScore: Profile mapping error (non-critical):', profileErr?.message || profileErr);
+          log.warn(' submitScore: Profile mapping error (non-critical):', profileErr?.message || profileErr);
         }
 
         debug('submitScore: Requesting signature from backend...');
@@ -1587,7 +1587,7 @@ if (typeof window !== "undefined") {
               // Check if error is "unsupported method" - Base App may not support wallet_sendCalls
               if (sendCallsErrorCode === 4200 || sendCallsErrorMsg.includes('UnsupportedMethodError') || sendCallsErrorMsg.includes('does not support the requested method')) {
                 debug(`submitScore: wallet_sendCalls not supported (code: ${sendCallsErrorCode}), falling back to eth_sendTransaction`);
-                log().warn(`submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
+                log.warn(`submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
                 
                 // Fallback to eth_sendTransaction for Base App
                 if (isBaseAppSpecific || !isFarcasterSpecific) {
@@ -1596,7 +1596,7 @@ if (typeof window !== "undefined") {
                     result = await sendEthTransaction(callData);
                     if (result) {
                       debug(`submitScore: eth_sendTransaction success: ${JSON.stringify(result)}`);
-                      log().debug(`Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
+                      log.debug(`Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
                     }
                   } catch (ethTxError) {
                     const ethTxErrorMsg = ethTxError?.message || String(ethTxError);
@@ -1650,7 +1650,7 @@ if (typeof window !== "undefined") {
               }
             if (identifier) {
                 debug(`submitScore: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                log().debug(`Score submission transaction started: ${identifier}`);
+                log.debug(`Score submission transaction started: ${identifier}`);
                 try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
                 
                 // Optionally check transaction status after a delay
@@ -1690,7 +1690,7 @@ if (typeof window !== "undefined") {
               isBaseApp: isBaseAppSpecific,
               isFarcaster: isFarcasterSpecific
             });
-            log().error(' Score submission failed:', sendCallsError);
+            log.error(' Score submission failed:', sendCallsError);
             try { 
               fetch('/api/app-log', { 
                 method: 'POST', 
@@ -1723,7 +1723,7 @@ if (typeof window !== "undefined") {
         const errorMsg = error?.message || String(error);
         const errorKind = error?.kind || 'UNKNOWN';
         debug(`submitScore ERROR: ${errorMsg}`);
-        log().error(' submitScore failed:', error);
+        log.error(' submitScore failed:', error);
         
         // Log detailed error information
         try { 
@@ -1760,7 +1760,7 @@ if (typeof window !== "undefined") {
           }
           
           // Log user-friendly message
-          log().error(`Score submission failed: ${userMessage}`);
+          log.error(`Score submission failed: ${userMessage}`);
           // In the future, we could show a toast notification here
           // For now, errors are logged to console and debug overlay
         }
@@ -1841,7 +1841,7 @@ if (typeof window !== "undefined") {
                 }
                 if (identifier) {
                   debug(`completeQuest: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                  log().debug(`Quest completion transaction started: ${identifier}`);
+                  log.debug(`Quest completion transaction started: ${identifier}`);
                   return;
                 }
               }
@@ -1909,8 +1909,8 @@ if (typeof window !== "undefined") {
         if (!target) {
           const errorMsg = `${label}: State not available yet (target is ${typeof target})`;
           debug(errorMsg);
-          log().warn(`${errorMsg}`);
-          log().warn(`Available window states:`, {
+          log.warn(`${errorMsg}`);
+          log.warn(`Available window states:`, {
             overState: typeof window.overState,
             finishState: typeof window.finishState,
             newGameState: typeof window.newGameState,
@@ -1922,7 +1922,7 @@ if (typeof window !== "undefined") {
         if (!target.init) {
           const errorMsg = `${label}: init method not available (target type: ${typeof target})`;
           debug(errorMsg);
-          log().warn(`${errorMsg}`);
+          log.warn(`${errorMsg}`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-init', meta: { label, targetType: typeof target } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
@@ -1935,14 +1935,14 @@ if (typeof window !== "undefined") {
         if (!hook || typeof hook !== 'function') {
           const errorMsg = `${label}: Hook function is not available (hook type: ${typeof hook})`;
           debug(errorMsg);
-          log().error(`${errorMsg}`);
+          log.error(`${errorMsg}`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-hook', meta: { label, hookType: typeof hook } }) }).catch(()=>{});} catch(_) {}
           return false;
         }
         const original = target.init.bind(target);
         target.init = function patchedInit(...args) {
           debug(`${label}: init called (patched)`);
-          log().debug(`${label}: init called (patched)`);
+          log.debug(`${label}: init called (patched)`);
           try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
           
           // Execute hook BEFORE original init (important for submitScore)
@@ -1951,7 +1951,7 @@ if (typeof window !== "undefined") {
             // For async hooks, execute asynchronously and don't block original init
             // BUT: Log immediately that we're starting the async hook
             debug(`${label}: Starting async hook BEFORE original init...`);
-            log().debug(`${label}: Starting async hook (submitScore)...`);
+            log.debug(`${label}: Starting async hook (submitScore)...`);
             try { 
               fetch('/api/app-log', { 
                 method: 'POST', 
@@ -1967,13 +1967,13 @@ if (typeof window !== "undefined") {
             (async () => {
               try {
                 debug(`${label}: Executing async hook (awaiting)...`);
-                log().debug(`${label}: Executing async hook (awaiting)...`);
+                log.debug(`${label}: Executing async hook (awaiting)...`);
                 
                 // IMPORTANT: Actually call the hook function and await it
                 const hookResult = await hook?.apply(this, args);
                 
                 debug(`${label}: async hook completed successfully, result:`, hookResult);
-                log().debug(`${label}: async hook completed successfully`);
+                log.debug(`${label}: async hook completed successfully`);
                 try { 
                   fetch('/api/app-log', { 
                     method: 'POST', 
@@ -1988,8 +1988,8 @@ if (typeof window !== "undefined") {
                 const errorMsg = error?.message || String(error);
                 const errorStack = error?.stack || new Error().stack;
                 debug(`${label} async hook ERROR: ${errorMsg}`);
-                log().error(`${label} async hook ERROR:`, error);
-                log().error(`${label} async hook ERROR stack:`, errorStack);
+                log.error(`${label} async hook ERROR:`, error);
+                log.error(`${label} async hook ERROR stack:`, errorStack);
                 try { 
                   fetch('/api/app-log', { 
                     method: 'POST', 
@@ -2014,7 +2014,7 @@ if (typeof window !== "undefined") {
                     try {
                       // Try to show error in a non-blocking way
                       setTimeout(() => {
-                        log().error(`Score submission failed: ${errorMsg}`);
+                        log.error(`Score submission failed: ${errorMsg}`);
                         // Could show a toast notification here in the future
                       }, 100);
                     } catch (_) {}
@@ -2026,15 +2026,15 @@ if (typeof window !== "undefined") {
             // For sync hooks, execute synchronously
             try {
               debug(`${label}: Executing hook BEFORE original init...`);
-              log().debug(`${label}: Executing hook...`);
+              log.debug(`${label}: Executing hook...`);
               const hookResult = hook?.apply(this, args);
               debug(`${label}: hook executed successfully, result:`, hookResult);
-              log().debug(`${label}: hook executed successfully`);
+              log.debug(`${label}: hook executed successfully`);
               try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
             } catch (error) {
               const errorMsg = error?.message || String(error);
               debug(`${label} hook error: ${errorMsg}`);
-              log().error(`${label} hook error:`, error);
+              log.error(`${label} hook error:`, error);
               try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
               // Don't throw - continue with original init even if hook fails
             }
@@ -2048,7 +2048,7 @@ if (typeof window !== "undefined") {
             return originalResult;
           } catch (originalError) {
             debug(`${label}: original init error: ${originalError?.message || originalError}`);
-            log().error(`${label}: original init error:`, originalError);
+            log.error(`${label}: original init error:`, originalError);
             throw originalError;
           }
         };
@@ -2069,13 +2069,13 @@ if (typeof window !== "undefined") {
       };
       
       debug(`patchStateHooks: State availability check:`, stateCheck);
-      log().debug(' patchStateHooks: State availability:', stateCheck);
+      log.debug(' patchStateHooks: State availability:', stateCheck);
       
       if (!stateCheck.overState || !stateCheck.finishState) {
         const missing = Object.entries(stateCheck).filter(([_, available]) => !available).map(([name]) => name);
         debug(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        log().warn(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        log().warn(`window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
+        log.warn(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
+        log.warn(`window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
         try { 
           fetch('/api/app-log', { 
             method: 'POST', 

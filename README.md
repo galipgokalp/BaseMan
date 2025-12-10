@@ -305,7 +305,7 @@ http://localhost:5173
 Run the test suite:
 
 ```bash
-npm run test:all        # Run all tests
+npm run test:all        # self-check + config check + healthcheck + docs verify + smoke/e2e checks
 npm run test:phase5     # Phase 5 tests
 npm run test:phase6     # Phase 6 tests
 npm run self:check      # Self-check validation
@@ -1048,7 +1048,7 @@ npm run test:phase5:axis-b  # Phase 5 tests - Axis B
 npm run test:phase5:axis-c  # Phase 5 tests - Axis C
 npm run test:phase5         # All Phase 5 tests
 npm run test:phase6         # Phase 6 tests
-npm run test:all            # All tests
+npm run test:all            # self-check + config check + healthcheck + docs verify + smoke/e2e checks
 npm run self:check           # Self-check validation
 npm run healthcheck          # Health check endpoint
 ```
