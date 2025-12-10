@@ -3,11 +3,12 @@
  * Displays app settings and preferences
  */
 
-import { createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
+import { createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 import { escapeHtml } from './utils/escape-html.js';
 
 const log = createLogger('UiSettingsPanel');
+const PANEL_TITLE_ID = 'settings-panel-title';
 const PANEL_ID = 'baseman-settings-panel';
 
 // Use helpers from panel-base
@@ -24,9 +25,11 @@ function ensurePanel() {
       panel = el('section', 'settings-panel');
       panel.id = PANEL_ID;
       panel.setAttribute('aria-hidden', 'true');
+      panel.setAttribute('role', 'region');
+      panel.setAttribute('aria-labelledby', PANEL_TITLE_ID);
       panel.innerHTML = `
         <header class="settings-header">
-          <h2 class="settings-title">Settings</h2>
+          <h2 class="settings-title" id="${PANEL_TITLE_ID}">Settings</h2>
           <button type="button" class="settings-close" data-close>×</button>
         </header>
         <div class="settings-body">
@@ -124,6 +127,26 @@ function ensurePanel() {
 }
 
 let isOpen = false;
+let triggerEl = null;
+let keydownHandler = null;
+
+function attachEscHandler() {
+    if (keydownHandler) return;
+    keydownHandler = (e) => {
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setVisible(false);
+      }
+    };
+    document.addEventListener('keydown', keydownHandler);
+}
+
+function detachEscHandler() {
+    if (!keydownHandler) return;
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+}
 
 function setVisible(visible) {
     const panel = ensurePanel();
@@ -132,6 +155,15 @@ function setVisible(visible) {
     isOpen = !!visible;
     // Show panel immediately (synchronous)
     setPanelVisible(panel, isOpen);
+    if (isOpen) {
+      requestAnimationFrame(() => focusFirstFocusable(panel));
+      attachEscHandler();
+    } else {
+      detachEscHandler();
+      if (triggerEl && typeof triggerEl.focus === 'function') {
+        requestAnimationFrame(() => triggerEl.focus());
+      }
+    }
 
     if (isOpen) {
       // Load settings immediately (synchronous)
@@ -1253,6 +1285,7 @@ window.SettingsPanel = {
     show: () => setVisible(true),
     hide: () => setVisible(false),
     toggle: () => setVisible(!isOpen),
+    setTriggerElement: (el) => { if (el instanceof HTMLElement) triggerEl = el; },
     refresh: () => refresh(),
     isOpen: () => isOpen,
     getSetting: getSetting,

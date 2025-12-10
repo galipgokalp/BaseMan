@@ -10,6 +10,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { abbreviateAddress, fallbackAvatar, formatScore } from './dom.js';
+import { getFocusableElements } from '../utils/panel-base.js';
 
 const log = createLogger('UiSearchModal');
 
@@ -49,6 +50,8 @@ let bodyScrollLocked = false;
 let originalBodyOverflow = '';
 let originalBodyPaddingRight = '';
 let searchInputWired = false; // Flag to prevent duplicate event listener registrations
+let restoreFocusEl = null;
+let keydownHandler = null;
 
 // Phase 4.1: Query and result caching
 let lastNormalizedQuery = ''; // Track last search query to skip redundant work
@@ -67,6 +70,17 @@ function ensureSearchDOM() {
   searchClose = document.querySelector('[data-search-close]');
   searchClear = document.querySelector('[data-search-clear]');
   searchBackdrop = document.querySelector('[data-search-backdrop]');
+  const modalTitle = searchModal?.querySelector('[id="search-modal-title"]') || searchModal?.querySelector('[data-search-title]');
+  if (searchModal) {
+    searchModal.setAttribute('role', 'dialog');
+    searchModal.setAttribute('aria-modal', 'true');
+    if (modalTitle && !modalTitle.id) {
+      modalTitle.id = 'search-modal-title';
+    }
+    if (!searchModal.getAttribute('aria-labelledby') && modalTitle?.id) {
+      searchModal.setAttribute('aria-labelledby', modalTitle.id);
+    }
+  }
   
   const loadingEl = document.querySelector('[data-search-loading]');
   if (loadingEl) {
@@ -430,6 +444,45 @@ function wireLiveSearch(getAllEntries, { topListEl, restListEl, onItemClick, onC
   });
 }
 
+function setupKeydownHandlers(onClose) {
+  if (!searchModal) return;
+  const handleKeydown = (e) => {
+    if (searchModal.hasAttribute('hidden')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose?.();
+      return;
+    }
+    if (e.key === 'Tab') {
+      const focusables = getFocusableElements(searchModal);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !searchModal.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  };
+  document.addEventListener('keydown', handleKeydown);
+  keydownHandler = handleKeydown;
+}
+
+function teardownKeydownHandlers() {
+  if (keydownHandler) {
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  }
+}
+
 /**
  * Open search modal
  * Phase 4.1: Reset cache state on open for fresh search
@@ -437,6 +490,7 @@ function wireLiveSearch(getAllEntries, { topListEl, restListEl, onItemClick, onC
 export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemClick, onClose }) {
   const allEntries = typeof getAllEntries === 'function' ? getAllEntries() : getAllEntries;
   if (!ensureSearchDOM()) return;
+  restoreFocusEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   
   // Phase 4.1: Reset query and result cache on open
   lastNormalizedQuery = '';
@@ -511,6 +565,7 @@ export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemCl
   
   wireLiveSearch(getAllEntries, { topListEl, restListEl, onItemClick, onClose });
   renderResults([], { topListEl, restListEl, onItemClick });
+  setupKeydownHandlers(() => closeSearchModal(onClose));
 }
 
 /**
@@ -519,6 +574,7 @@ export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemCl
  */
 export function closeSearchModal(onRestore) {
   if (!searchModal) return;
+  teardownKeydownHandlers();
   
   if (searchAbortController) {
     searchAbortController.abort();
@@ -558,7 +614,10 @@ export function closeSearchModal(onRestore) {
     searchModal.setAttribute('hidden', '');
     if (onRestore) {
       onRestore();
+    } else if (restoreFocusEl && typeof restoreFocusEl.focus === 'function') {
+      restoreFocusEl.focus();
     }
+    restoreFocusEl = null;
   }, 300);
 }
 
@@ -572,12 +631,18 @@ export function initSearch(panel, getAllEntries, { topListEl, restListEl, onItem
     searchBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      openSearchModal(getAllEntries, { topListEl, restListEl, onItemClick, onClose });
+      openSearchModal(getAllEntries, { topListEl, restListEl, onItemClick, onClose: () => {
+        if (typeof onClose === 'function') onClose();
+        searchBtn.focus();
+      } });
     });
     searchBtn.addEventListener('touchend', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      openSearchModal(getAllEntries, { topListEl, restListEl, onItemClick, onClose });
+      openSearchModal(getAllEntries, { topListEl, restListEl, onItemClick, onClose: () => {
+        if (typeof onClose === 'function') onClose();
+        searchBtn.focus();
+      } });
     }, { passive: false });
   }
   
@@ -633,11 +698,4 @@ export function initSearch(panel, getAllEntries, { topListEl, restListEl, onItem
   if (ensureSearchDOM()) {
     wireLiveSearch(getAllEntries, { topListEl, restListEl, onItemClick, onClose });
   }
-  
-  // Global Escape key handler
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && searchModal && !searchModal.hasAttribute('hidden')) {
-      closeSearchModal(onClose);
-    }
-  });
 }

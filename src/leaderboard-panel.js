@@ -9,11 +9,13 @@
  */
 
 import { createLogger } from './utils/logger.js';
+import { focusFirstFocusable } from './utils/panel-base.js';
 import { loadLeaderboard } from './leaderboard/api.js';
 import { getCachedUserInfo, isMyEntry as isMyEntryService } from './leaderboard/services/user-detection.js';
 import { calculateMyRank } from './leaderboard/services/rank-calculation.js';
 
 const log = createLogger('UiLeaderboard');
+const PANEL_TITLE_ID = 'leaderboard-panel-title';
 import { 
   getLoading, 
   setLoading, 
@@ -39,6 +41,16 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
 (() => {
   const panel = document.getElementById("leaderboard-panel");
   if (!panel) return;
+  panel.setAttribute('role', 'region');
+  const titleEl = panel.querySelector('.leaderboard-title');
+  if (titleEl && !titleEl.id) {
+    titleEl.id = PANEL_TITLE_ID;
+  }
+  if (titleEl) {
+    panel.setAttribute('aria-labelledby', titleEl.id);
+  }
+  let triggerEl = null;
+  let escHandler = null;
 
   // ============================================
   // VIEW CACHE - Phase 4.1 optimization
@@ -457,14 +469,39 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     });
   };
 
+  const attachEscHandler = () => {
+    if (escHandler) return;
+    escHandler = (e) => {
+      if (!getVisible()) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setVisible(false, { onChange: updatePanelVisibility });
+        if (window.BottomNav) window.BottomNav.setActive(null);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  };
+
+  const detachEscHandler = () => {
+    if (!escHandler) return;
+    document.removeEventListener('keydown', escHandler);
+    escHandler = null;
+  };
+
   // Helper to update DOM visibility
   const updatePanelVisibility = (visible) => {
     if (visible) {
       panel.removeAttribute('hidden');
       panel.classList.add('open');
+      requestAnimationFrame(() => focusFirstFocusable(panel, { fallback: panel }));
+      attachEscHandler();
     } else {
       panel.setAttribute('hidden', '');
       panel.classList.remove('open');
+      detachEscHandler();
+      if (triggerEl && typeof triggerEl.focus === 'function') {
+        requestAnimationFrame(() => triggerEl.focus());
+      }
     }
   };
 
@@ -570,6 +607,11 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
         onShow: loadLeaderboardData,
         ...options
       });
+    },
+    setTriggerElement(el) {
+      if (el instanceof HTMLElement) {
+        triggerEl = el;
+      }
     },
     refresh() {
       if (getVisible()) {

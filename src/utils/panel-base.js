@@ -55,6 +55,48 @@ export function createElement(tag, className, text) {
 }
 
 /**
+ * Find focusable elements within a container
+ * @param {HTMLElement} root
+ * @returns {HTMLElement[]} focusable elements
+ */
+export function getFocusableElements(root) {
+  if (!root) return [];
+  const selector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
+  return Array.from(root.querySelectorAll(selector)).filter((el) => {
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  });
+}
+
+/**
+ * Focus the first meaningful interactive element inside a container
+ * Falls back to the container itself if nothing focusable exists.
+ * @param {HTMLElement} root
+ * @param {Object} options
+ * @param {HTMLElement|null} options.fallback - optional fallback element
+ */
+export function focusFirstFocusable(root, { fallback = null } = {}) {
+  if (!root) return;
+  const focusables = getFocusableElements(root);
+  const target = focusables[0] || fallback || root;
+  // Defer to ensure element is visible and rendered
+  requestAnimationFrame(() => {
+    try {
+      target.focus({ preventScroll: true });
+    } catch (_) {
+      try { target.focus(); } catch (_) {}
+    }
+  });
+}
+
+/**
  * Set panel visibility
  * @param {HTMLElement} panel - Panel element
  * @param {boolean} visible - Whether panel should be visible
@@ -149,7 +191,9 @@ export const PanelBase = {
   createElement,
   setPanelVisible,
   wirePanelCloseButton,
-  wirePanelOverlay
+  wirePanelOverlay,
+  getFocusableElements,
+  focusFirstFocusable
 };
 
 // Attach to window for non-module scripts

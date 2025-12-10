@@ -243,24 +243,36 @@ const log = createLogger('BottomNav');
     switch(navType) {
       case BOTTOM_NAV.LEADERBOARD:
         log.debug('Opening leaderboard');
+        if (window.BaseManLeaderboard && typeof window.BaseManLeaderboard.setTriggerElement === 'function') {
+          window.BaseManLeaderboard.setTriggerElement(element);
+        }
         openLeaderboard();
         setActive(BOTTOM_NAV.LEADERBOARD);
         currentOpenPanel = BOTTOM_NAV.LEADERBOARD;
         break;
       
       case BOTTOM_NAV.PROFILE:
+        if (window.ProfilePanel && typeof window.ProfilePanel.setTriggerElement === 'function') {
+          window.ProfilePanel.setTriggerElement(element);
+        }
         openProfile();
         setActive(BOTTOM_NAV.PROFILE);
         currentOpenPanel = BOTTOM_NAV.PROFILE;
         break;
       
       case BOTTOM_NAV.WALLET:
+        if (window.WalletPanel && typeof window.WalletPanel.setTriggerElement === 'function') {
+          window.WalletPanel.setTriggerElement(element);
+        }
         openWallet();
         setActive(BOTTOM_NAV.WALLET);
         currentOpenPanel = BOTTOM_NAV.WALLET;
         break;
       
       case BOTTOM_NAV.SETTINGS:
+        if (window.SettingsPanel && typeof window.SettingsPanel.setTriggerElement === 'function') {
+          window.SettingsPanel.setTriggerElement(element);
+        }
         openSettings();
         setActive(BOTTOM_NAV.SETTINGS);
         currentOpenPanel = BOTTOM_NAV.SETTINGS;

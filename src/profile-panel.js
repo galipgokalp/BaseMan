@@ -1,9 +1,10 @@
-import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('UiProfilePanel');
 const PANEL_ID = 'baseman-profile-panel';
 const BTN_ID = 'baseman-profile-btn';
+const PANEL_TITLE_ID = 'profile-panel-title';
 
 // Use helpers from panel-base
 const abbreviate = abbreviateAddress;
@@ -54,6 +55,8 @@ function setupNetworkLogos(panel) {
 let currentDialog = null;
 let isDialogHandling = false;
 let dialogCloseTimeout = null;
+let triggerEl = null;
+let keydownHandler = null;
 
 function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
     // If a dialog is already open, close it first
@@ -211,12 +214,14 @@ function ensureShell() {
       panel = el('section', 'profile-panel');
       panel.id = PANEL_ID;
       panel.setAttribute('aria-hidden', 'true');
+      panel.setAttribute('role', 'region');
+      panel.setAttribute('aria-labelledby', PANEL_TITLE_ID);
       panel.innerHTML = `
         <header class="profile-header">
           <div class="profile-user-info">
             <img class="profile-avatar" data-avatar src="" alt="Profile" style="display: none;" />
             <div class="profile-user-details">
-              <h2 class="profile-username" data-username>-</h2>
+              <h2 class="profile-username" data-username id="${PANEL_TITLE_ID}">-</h2>
             </div>
           </div>
           <button type="button" class="profile-close" data-close>×</button>
@@ -623,6 +628,24 @@ let isOpen = false;
 // Track if elements are already wired to prevent duplicate listeners
 const wiredElements = new WeakSet();
 
+function attachEscListener() {
+    if (keydownHandler) return;
+    keydownHandler = (e) => {
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setVisible(false);
+      }
+    };
+    document.addEventListener('keydown', keydownHandler);
+}
+
+function detachEscListener() {
+    if (!keydownHandler) return;
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+}
+
 function setVisible(visible) {
     const shell = ensureShell();
     if (!shell || !shell.panel) return;
@@ -630,6 +653,16 @@ function setVisible(visible) {
     isOpen = !!visible;
     // Show panel immediately (synchronous)
     setPanelVisible(shell.panel, isOpen);
+    if (isOpen) {
+      // Focus first interactive element after open for accessibility
+      requestAnimationFrame(() => focusFirstFocusable(shell.panel));
+      attachEscListener();
+    } else {
+      detachEscListener();
+      if (triggerEl && typeof triggerEl.focus === 'function') {
+        requestAnimationFrame(() => triggerEl.focus());
+      }
+    }
 
     if (isOpen) {
       // Refresh panel in background (non-blocking)
@@ -795,6 +828,7 @@ window.ProfilePanel = {
     show: () => setVisible(true),
     hide: () => setVisible(false),
     toggle: () => setVisible(!isOpen),
+    setTriggerElement: (el) => { if (el instanceof HTMLElement) triggerEl = el; },
     refresh: () => {
       const shell = ensureShell();
       if (shell && shell.panel) refresh(shell.panel);

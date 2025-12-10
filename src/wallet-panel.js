@@ -3,11 +3,12 @@
  * Displays wallet information, network, and balances
  */
 
-import { abbreviateAddress, networkLabel, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('UiWalletPanel');
 const PANEL_ID = 'baseman-wallet-panel';
+const PANEL_TITLE_ID = 'wallet-panel-title';
 
 // Use helpers from panel-base
 const abbreviate = abbreviateAddress;
@@ -24,9 +25,11 @@ function ensurePanel() {
     panel = el('section', 'wallet-panel');
     panel.id = PANEL_ID;
     panel.setAttribute('aria-hidden', 'true');
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-labelledby', PANEL_TITLE_ID);
     panel.innerHTML = `
     <header class="wallet-header">
-      <h2 class="wallet-title">Wallet</h2>
+      <h2 class="wallet-title" id="${PANEL_TITLE_ID}">Wallet</h2>
       <button type="button" class="wallet-close" data-close>×</button>
     </header>
     <div class="wallet-body">
@@ -74,6 +77,26 @@ let isOpen = false;
 
 // Track if elements are already wired to prevent duplicate listeners
 const wiredElements = new WeakSet();
+let triggerEl = null;
+let keydownHandler = null;
+
+function attachEscHandler() {
+  if (keydownHandler) return;
+  keydownHandler = (e) => {
+    if (!isOpen) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setVisible(false);
+    }
+  };
+  document.addEventListener('keydown', keydownHandler);
+}
+
+function detachEscHandler() {
+  if (!keydownHandler) return;
+  document.removeEventListener('keydown', keydownHandler);
+  keydownHandler = null;
+}
 
 function setVisible(visible) {
   const panel = ensurePanel();
@@ -82,6 +105,15 @@ function setVisible(visible) {
   isOpen = !!visible;
   // Show panel immediately (synchronous)
   setPanelVisible(panel, isOpen);
+  if (isOpen) {
+    requestAnimationFrame(() => focusFirstFocusable(panel));
+    attachEscHandler();
+  } else {
+    detachEscHandler();
+    if (triggerEl && typeof triggerEl.focus === 'function') {
+      requestAnimationFrame(() => triggerEl.focus());
+    }
+  }
 
   if (isOpen) {
     // Refresh in background (non-blocking)
@@ -348,6 +380,7 @@ window.WalletPanel = {
   show: () => setVisible(true),
   hide: () => setVisible(false),
   toggle: () => setVisible(!isOpen),
+  setTriggerElement: (el) => { if (el instanceof HTMLElement) triggerEl = el; },
   refresh: () => refresh(),
   isOpen: () => isOpen
 };
