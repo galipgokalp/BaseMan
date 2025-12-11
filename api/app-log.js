@@ -13,8 +13,9 @@ async function sendTelegramAlert(entry) {
   try {
     const emoji = entry.event === 'error' ? '🔴' : '⚠️';
     const time = new Date(entry.ts).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+    const env = (process.env.VERCEL_ENV || 'development').toUpperCase();
 
-    let text = `${emoji} <b>${entry.event.toUpperCase()}</b>\n`;
+    let text = `${emoji} <b>${entry.event.toUpperCase()}</b> [${env}]\n`;
     text += `<code>${entry.message}</code>\n\n`;
     text += `🕐 ${time}`;
 
