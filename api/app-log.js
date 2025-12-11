@@ -3,6 +3,44 @@ import { createLogger } from "../src/utils/logger.js";
 
 const log = createLogger("ApiAppLog");
 
+// Telegram Bot Configuration
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
+
+async function sendTelegramAlert(entry) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+
+  try {
+    const emoji = entry.event === 'error' ? '🔴' : '⚠️';
+    const time = new Date(entry.ts).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+
+    let text = `${emoji} <b>${entry.event.toUpperCase()}</b>\n`;
+    text += `<code>${entry.message}</code>\n\n`;
+    text += `🕐 ${time}`;
+
+    if (entry.meta?.address) {
+      text += `\n👤 ${entry.meta.address.slice(0, 6)}...${entry.meta.address.slice(-4)}`;
+    }
+    if (entry.meta?.stack) {
+      const shortStack = entry.meta.stack.split('\n').slice(0, 3).join('\n');
+      text += `\n\n<pre>${shortStack}</pre>`;
+    }
+
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text.slice(0, 4000),
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    });
+  } catch (err) {
+    log.warn('Telegram send failed:', err?.message);
+  }
+}
+
 const RING_SIZE = 200;
 const FORWARD_URL = process.env.CDP_WEBHOOK_LOG_ENDPOINT || process.env.LOG_FORWARD_URL || '';
 let FORWARD_HEADERS = {};
@@ -192,6 +230,12 @@ export default async function handler(req, res) {
         }).catch(() => {});
       } catch (_) {}
     }
+
+    // Send to Telegram (only for errors and warnings)
+    if ((entry.event === 'error' || entry.event === 'warn') && TELEGRAM_BOT_TOKEN) {
+      sendTelegramAlert(entry).catch(() => {});
+    }
+
     return res.status(200).json({ ok: true });
   } catch (error) {
     try { log.error('handler error', error?.message || error); } catch (_) {}
