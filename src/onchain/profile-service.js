@@ -149,20 +149,20 @@ export async function sendProfileMapping({ sdk, address, debug = () => {} }) {
     }).then((response) => {
       if (response.ok) {
         debug('sendProfileMapping: Profile mapping sent successfully');
-        log().debug('sendProfileMapping: ✅ Profile mapping sent successfully for leaderboard enrichment');
+        log.debug('sendProfileMapping: ✅ Profile mapping sent successfully for leaderboard enrichment');
       } else {
         debug(`sendProfileMapping: Profile mapping failed with status ${response.status}`);
-        log().warn('sendProfileMapping: Profile mapping failed with status:', response.status);
+        log.warn('sendProfileMapping: Profile mapping failed with status:', response.status);
       }
     }).catch((err) => {
       // Silently fail - profile mapping is not critical for score submission
       debug(`sendProfileMapping: Profile mapping failed (non-critical): ${err?.message || err}`);
-      log().warn('sendProfileMapping: Profile mapping failed (non-critical):', err?.message || err);
+      log.warn('sendProfileMapping: Profile mapping failed (non-critical):', err?.message || err);
     });
   } catch (profileErr) {
     // Silently fail - profile mapping is not critical for score submission
     debug(`sendProfileMapping: Profile mapping error (non-critical): ${profileErr?.message || profileErr}`);
-    log().warn('sendProfileMapping: Profile mapping error (non-critical):', profileErr?.message || profileErr);
+    log.warn('sendProfileMapping: Profile mapping error (non-critical):', profileErr?.message || profileErr);
   }
 }
 
