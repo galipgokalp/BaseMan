@@ -60,7 +60,4 @@ test-*.html
 
 # (docs/ is tracked for the canonical guide)
 
-# Claude documentation files
-CLAUDE.md
-CLAUDE.tr.md
 .env*.local
