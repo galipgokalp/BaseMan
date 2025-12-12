@@ -92,6 +92,7 @@ This file is the **single source of truth** for any AI agent entering the BaseMa
 **Contents**: Vercel serverless functions handling signatures, leaderboard, and paymaster
 
 **Key Files**:
+
 | File | Purpose | Modification Risk |
 |------|---------|-------------------|
 | `score-sign.js` | EIP-712 score signature generation | HIGH - crypto logic |
@@ -143,6 +144,7 @@ src/
 **Contents**: npm scripts for building, deploying, and testing
 
 **Key Scripts**:
+
 | Script | Purpose | Safety |
 |--------|---------|--------|
 | `build-pacman.mjs` | Concatenate game JS files | SAFE |
