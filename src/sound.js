@@ -35,7 +35,7 @@ function audioTrack(url, volume) {
         looping = true;
     };
     this.stopLoop = function(noResetTime) {
-        try{ audio.removeEventListener('ended', audioLoop) } catch (e) {};
+        try{ audio.removeEventListener('ended', audioLoop) } catch (e) {}
         audio.pause();
         if (!noResetTime) audio.currentTime = 0;
         looping = false;

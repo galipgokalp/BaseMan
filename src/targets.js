@@ -259,7 +259,7 @@ pacman.drawTarget = function(ctx) {
     }
     else {
         renderer.drawCenterPixelSq(ctx, pinky.pixel.x, pinky.pixel.y, targetSize);
-    };
+    }
 
 };
 pacman.getPathDistLeft = function(fromPixel, dirEnum) {

@@ -622,21 +622,21 @@ async function enrichWithProfiles(items, req = null) {
 
   const isDebug = req?.query?.debug === "1" || req?.query?.debug === "true";
 
+  // Check for missing configuration (for debug info) - moved to function scope
+  const hasNeynarKey = !!process.env.NEYNAR_API_KEY;
+  const hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
+  const enrichmentDisabled = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || '').trim().toLowerCase() === 'true';
+
   let enriched = [];
   let debugInfo = null;
 
   try {
     log.debug("ENV CHECK:", {
       farcasterProfileProvider: process.env.FARCASTER_PROFILE_PROVIDER || null,
-      hasNeynarKey: !!process.env.NEYNAR_API_KEY,
-      hasRedis: !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL),
+      hasNeynarKey,
+      hasRedis,
       disableEnrichment: process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || null
     });
-    
-    // Check for missing configuration (for debug info)
-    const hasNeynarKey = !!process.env.NEYNAR_API_KEY;
-    const hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
-    const enrichmentDisabled = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || '').trim().toLowerCase() === 'true';
     
     enriched = await hydrateProfilesForAddresses(items, req);
   } catch (error) {
@@ -668,13 +668,18 @@ async function enrichWithProfiles(items, req = null) {
   if (isDebug && !debugInfo) {
     debugInfo = {
       enrichmentEnabled: true,
-      items: enriched.length
+      items: enriched.length,
+      hasNeynarKey,
+      hasRedis,
+      enrichmentDisabled
     };
   }
 
   return {
     enriched,
-    debugInfo
+    debugInfo,
+    // Expose config flags for use in handler
+    _config: { hasNeynarKey, hasRedis, enrichmentDisabled }
   };
 }
 
@@ -1243,6 +1248,7 @@ export default async function handler(req, res) {
 
     const enriched = Array.isArray(result) ? result : result.enriched;
     const resultDebugInfo = Array.isArray(result) ? null : result.debugInfo;
+    const config = Array.isArray(result) ? null : result._config;
 
     const response = {
       source: "cdp-sql-api",
@@ -1259,7 +1265,8 @@ export default async function handler(req, res) {
     if (resultDebugInfo || isDebugMode || isDevEnv) {
       response._debug = resultDebugInfo || {};
       // Add diagnostic info for dev/debug mode
-      if (isDebugMode || isDevEnv) {
+      if ((isDebugMode || isDevEnv) && config) {
+        const { hasNeynarKey, hasRedis, enrichmentDisabled } = config;
         if (!hasNeynarKey && !enrichmentDisabled) {
           response._debug.missingNeynarKey = true;
         }

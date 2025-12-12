@@ -31,7 +31,7 @@ const leaderboardCache = {
   chainId: null,
   limit: null
 };
-const LEADERBOARD_CACHE_TTL_MS = 10000; // 10 seconds
+const LEADERBOARD_CACHE_TTL_MS = 30000; // 30 seconds - increased for better performance
 
 // In-flight request deduplication
 let inflightLeaderboardRequest = null;

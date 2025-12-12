@@ -53,10 +53,14 @@ if (typeof window !== "undefined") {
 }
 
 (function () {
-  // Increase attempts for mobile environments where SDK may load slower
-  const MAX_ATTEMPTS = 500; // ~100s at 200ms (increased for mobile)
-  const POLL_DELAY_MS = 200;
+  // SDK polling with optimized backoff for better mobile performance
+  // Fast initial attempts (50ms) for quick SDK detection, then exponential backoff
+  const MAX_ATTEMPTS = 50; // Reduced - faster detection with optimized delays
+  const INITIAL_DELAY_MS = 50; // Faster initial delay for quick SDK detection
+  const FAST_ATTEMPTS = 5; // First 5 attempts are fast (50ms each)
+  const MAX_DELAY_MS = 2000;
   let attempts = 0;
+  let currentDelay = INITIAL_DELAY_MS;
 
   const debug = createDebugOverlay();
   
@@ -160,6 +164,15 @@ if (typeof window !== "undefined") {
   }
 
   function tryInitialize() {
+    if (attempts === 0) {
+      // Mark SDK detection start on first attempt
+      if (typeof window !== 'undefined' && window.performance && window.performance.mark) {
+        try {
+          window.performance.mark('sdk-detection-start');
+        } catch (e) {}
+      }
+    }
+    
     const sdk = resolveSdk();
     const ethers = resolveEthers();
     const onchainConfig = window.BaseManOnchainConfig;
@@ -189,10 +202,29 @@ if (typeof window !== "undefined") {
       return;
     }
 
-    setTimeout(tryInitialize, POLL_DELAY_MS);
+    // Optimized backoff: fast initial attempts, then exponential backoff
+    // Pattern: 50, 50, 50, 50, 50, 75, 112, 168, 252, 378, 567, 850, 1275, 2000, 2000...
+    setTimeout(tryInitialize, currentDelay);
+    if (attempts < FAST_ATTEMPTS) {
+      // Keep fast delay for first few attempts
+      currentDelay = INITIAL_DELAY_MS;
+    } else {
+      // Exponential backoff after fast attempts
+      currentDelay = Math.min(currentDelay * 1.5, MAX_DELAY_MS);
+    }
   }
 
   function initialize(sdk, ethers, config) {
+    // Mark SDK detection complete
+    if (typeof window !== 'undefined' && window.performance && window.performance.mark) {
+      try {
+        window.performance.mark('sdk-detection-complete');
+        if (window.performance.measure) {
+          window.performance.measure('sdk-detection-time', 'sdk-detection-start', 'sdk-detection-complete');
+        }
+      } catch (e) {}
+    }
+    
     window.sdk = sdk;
     window.BaseManModuleLoaded = true;
     debug("SDK and ethers found, initializing on-chain integration.");
