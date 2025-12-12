@@ -2,7 +2,15 @@ import { createConfig, http } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { injected, walletConnect, metaMask, safe, baseAccount } from 'wagmi/connectors';
-import { isFarcasterMiniApp, isBaseApp, isMiniAppHost } from '../utils/platform-detection.js';
+import {
+  isFarcasterMiniApp,
+  isBaseApp,
+  isMiniAppHost,
+  isFarcasterMiniAppSync,
+  isBaseAppSync,
+  isMiniAppHostSync,
+  initPlatformDetection
+} from '../utils/platform-detection.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('WagmiConfig');
@@ -57,7 +65,15 @@ function getFallbackBaseSepoliaChain() {
 
 // Re-export platform detection functions for backward compatibility
 // All platform detection now uses centralized utility from utils/platform-detection.js
-export { isFarcasterMiniApp, isBaseApp, isMiniAppHost } from '../utils/platform-detection.js';
+export {
+  isFarcasterMiniApp,
+  isBaseApp,
+  isMiniAppHost,
+  isFarcasterMiniAppSync,
+  isBaseAppSync,
+  isMiniAppHostSync,
+  initPlatformDetection
+} from '../utils/platform-detection.js';
 
 export function makeWagmiConfig() {
   // Get chain objects, with fallback if imports failed
@@ -109,13 +125,15 @@ export function makeWagmiConfig() {
   };
 
   // Try to create config with proper error handling
+  // IMPORTANT: Use sync versions of platform detection functions here
+  // because makeWagmiConfig is synchronous and cannot await promises
   try {
-    if (isMiniAppHost()) {
+    if (isMiniAppHostSync()) {
       // Platform-specific connector selection based on official docs:
       // - Farcaster: @farcaster/miniapp-wagmi-connector
       // - Base App: baseAccount connector (wagmi/connectors) - recommended by docs.base.org
-      
-      if (isFarcasterMiniApp()) {
+
+      if (isFarcasterMiniAppSync()) {
         // Farcaster Mini App - use Farcaster connector
         try {
           const connector = miniAppConnector();
@@ -146,7 +164,7 @@ export function makeWagmiConfig() {
             }
           }
         }
-      } else if (isBaseApp()) {
+      } else if (isBaseAppSync()) {
         // Base App - use both farcasterMiniApp() and baseAccount() connectors
         // Per docs.base.org/mini-apps/core-concepts/base-account:
         // "The farcasterMiniApp() connector automatically connects to the user's Base Account
@@ -247,7 +265,7 @@ export function makeWagmiConfig() {
     log.error('Config params:', {
       chains: baseConfig.chains.map(c => ({ id: c.id, name: c.name })),
       transports: Object.keys(baseConfig.transports),
-      isMiniApp: isMiniAppHost()
+      isMiniApp: isMiniAppHostSync()
     });
     throw createError;
   }
@@ -282,17 +300,20 @@ let configInitializing = false;
 // Wait for SDK to be ready (especially important for Farcaster)
 async function waitForSDK(maxWait = 10000) {
   const start = Date.now();
-  
+
+  // First, ensure platform detection is complete
+  await initPlatformDetection();
+
   while (Date.now() - start < maxWait) {
-    // Platform-specific SDK readiness check
-    if (isFarcasterMiniApp()) {
+    // Platform-specific SDK readiness check (use sync versions since detection is complete)
+    if (isFarcasterMiniAppSync()) {
       // Check for Farcaster SDK
-      const sdk = 
+      const sdk =
         (window.fc && window.fc.miniapp) ||
         (window.farcaster && window.farcaster.miniapp) ||
         window.MiniAppSDK ||
         window.sdk;
-      
+
       if (sdk) {
         // For Farcaster, wait for ready() if available
         if (sdk.actions && typeof sdk.actions.ready === 'function') {
@@ -308,23 +329,23 @@ async function waitForSDK(maxWait = 10000) {
         }
         return true;
       }
-    } else if (isBaseApp()) {
+    } else if (isBaseAppSync()) {
       // For Base App, check for window.ethereum (shim may have set it)
       // Base App SDK typically exposes provider immediately
       if (window.ethereum) {
         return true;
       }
     }
-    
+
     // Generic check for window.ethereum (shim may have set it for any platform)
     if (window.ethereum) {
       return true;
     }
-    
+
     // Wait a bit before checking again
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  
+
   return false;
 }
 
@@ -337,8 +358,11 @@ async function initializeConfig() {
   configInitializing = true;
   
   try {
+    // First, ensure platform detection is complete
+    await initPlatformDetection();
+
     // In mini app environments, wait for SDK
-    const isMiniApp = isMiniAppHost();
+    const isMiniApp = isMiniAppHostSync();
     if (isMiniApp) {
       log.debug('Mini app detected, waiting for SDK...');
       const sdkReady = await waitForSDK(10000);

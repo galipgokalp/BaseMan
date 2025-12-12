@@ -72,6 +72,20 @@ if (typeof window !== 'undefined') {
   window.audio = audio;
 }
 
+var soundLog = (function() {
+  try {
+    if (typeof window !== 'undefined') {
+      if (typeof window.BaseManCreateLogger === 'function') {
+        return window.BaseManCreateLogger('UiSound');
+      }
+      if (window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+        return window.BaseManLogger.createLogger('UiSound');
+      }
+    }
+  } catch (_) {}
+  return { warn: function() {} };
+})();
+
 function audioTrack(url, volume) {
     var audio = new Audio(url);
     if (volume) audio.volume = volume;
@@ -112,10 +126,16 @@ function audioTrack(url, volume) {
         try{
             var playPromise = audio.play();
             if(playPromise) {
-                playPromise.then(function(){}).catch(function(err){});
+                playPromise.then(function(){}).catch(function(err){
+                    // Log audio play errors (non-critical)
+                    try { soundLog.warn('Audio play failed:', err); } catch (_) {}
+                });
             }
         } 
-        catch(err){ console.error(err) }
+        catch(err) {
+            // Log audio play errors (non-critical)
+            try { soundLog.warn('Audio play error:', err); } catch (_) {}
+        }
     }
 }
 
@@ -167,6 +187,10 @@ var getRandomInt = function(min,max) {
 //@line 1 "src/game.js"
 //////////////////////////////////////////////////////////////////////////////////////
 // Game
+
+// Game mode and score management are now handled by game/core modules
+// Note: This file is bundled into pacman.js, so we use dynamic import at runtime
+// For now, we keep the original implementation but mark it for future refactoring
 
 // game modes
 var GAME_PACMAN = 0;
@@ -366,6 +390,8 @@ var loadGame = function(t) {
 
 /// SCORING
 // (manages scores and high scores for each game type)
+// Note: Score management logic extracted to game/core/score-manager.js
+// This file maintains backward compatibility with existing code
 
 var scores = [
     0,0, // pacman
@@ -2820,10 +2846,6 @@ var atlas = (function(){
         var dw = size;
         var dh = size;
 
-        if (display) {
-            console.log(sx,sy,sw,sh,dw,dy,dw,dh);
-        }
-
         destCtx.drawImage(canvas,sx,sy,sw,sh,dx,dy,dw,dh);
     };
 
@@ -4174,17 +4196,28 @@ var hud = (function(){
 
     var on = false;
 
-    // Helper function to log to both console and ConsoleLogger
-    // ConsoleLogger automatically captures console.log, so we just use console.log
-    // But we format it clearly with [HUD] prefix so it's easy to find
+    // Import logger (use dynamic import to avoid circular dependencies)
+    var log = null;
+    try {
+        if (typeof window !== 'undefined') {
+            if (typeof window.BaseManCreateLogger === 'function') {
+                log = window.BaseManCreateLogger('UiGameRenderer');
+            } else if (window.BaseManLogger && typeof window.BaseManLogger.createLogger === 'function') {
+                log = window.BaseManLogger.createLogger('UiGameRenderer');
+            }
+        }
+    } catch (e) {
+        log = null;
+    }
+    if (!log) {
+        log = { debug: function() {} };
+    }
+
+    // Helper function to log to logger
     var logHUD = function(message, data) {
         // Remove duplicate [HUD] prefix if present
         var cleanMessage = message.startsWith('[HUD] ') ? message.substring(6) : message;
-        if (data) {
-            console.log('[HUD] ' + cleanMessage, data);
-        } else {
-            console.log('[HUD] ' + cleanMessage);
-        }
+        log.debug(cleanMessage, data);
     };
 
     return {

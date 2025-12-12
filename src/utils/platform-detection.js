@@ -13,6 +13,10 @@
 import { createLogger } from './logger.js';
 const log = createLogger('UtilPlatformDetect');
 
+// Platform detection cache
+let cachedPlatform = null;
+let platformDetectionPromise = null;
+
 /**
  * Gets the current platform identifier using OFFICIAL method (clientFid)
  * This is the recommended method per Base App documentation
@@ -24,6 +28,32 @@ const log = createLogger('UtilPlatformDetect');
  * - Farcaster: context.client.clientFid !== 309857 (e.g., 9152 for Warpcast)
  */
 export async function getPlatform() {
+  // Return cached result if available
+  if (cachedPlatform !== null) {
+    return cachedPlatform;
+  }
+
+  // If detection is already in progress, wait for it
+  if (platformDetectionPromise !== null) {
+    return platformDetectionPromise;
+  }
+
+  // Start detection and cache the promise
+  platformDetectionPromise = detectPlatformInternal();
+
+  try {
+    cachedPlatform = await platformDetectionPromise;
+    return cachedPlatform;
+  } finally {
+    platformDetectionPromise = null;
+  }
+}
+
+/**
+ * Internal platform detection logic
+ * @returns {Promise<'farcaster' | 'base' | 'web'>}
+ */
+async function detectPlatformInternal() {
   try {
     if (typeof window === 'undefined') return 'web';
     
@@ -141,11 +171,83 @@ export async function isMiniAppEnv() {
   return platform !== 'web';
 }
 
+// ============================================================================
+// SYNCHRONOUS VERSIONS (use cached value, return false if not yet detected)
+// These are safe to call in synchronous contexts like wagmi config
+// ============================================================================
+
+/**
+ * Synchronously get cached platform (returns 'web' if not yet detected)
+ * @returns {'farcaster' | 'base' | 'web'}
+ */
+export function getPlatformSync() {
+  return cachedPlatform ?? 'web';
+}
+
+/**
+ * Synchronously check if Base App (returns false if not yet detected)
+ * @returns {boolean}
+ */
+export function isBaseAppSync() {
+  return cachedPlatform === 'base';
+}
+
+/**
+ * Synchronously check if Farcaster Mini App (returns false if not yet detected)
+ * @returns {boolean}
+ */
+export function isFarcasterMiniAppSync() {
+  return cachedPlatform === 'farcaster';
+}
+
+/**
+ * Synchronously check if any Mini App host (returns false if not yet detected)
+ * @returns {boolean}
+ */
+export function isMiniAppHostSync() {
+  return cachedPlatform === 'base' || cachedPlatform === 'farcaster';
+}
+
+/**
+ * Synchronously check if Mini App environment (returns false if not yet detected)
+ * @returns {boolean}
+ */
+export function isMiniAppEnvSync() {
+  return cachedPlatform !== null && cachedPlatform !== 'web';
+}
+
+/**
+ * Check if platform detection has completed
+ * @returns {boolean}
+ */
+export function isPlatformDetected() {
+  return cachedPlatform !== null;
+}
+
+/**
+ * Initialize platform detection early (call this at app startup)
+ * Returns a promise that resolves when detection is complete
+ * @returns {Promise<'farcaster' | 'base' | 'web'>}
+ */
+export async function initPlatformDetection() {
+  return getPlatform();
+}
+
 // Expose globally for backward compatibility
 if (typeof window !== 'undefined') {
+  // Async versions
   window.getPlatform = getPlatform;
   window.isBaseApp = isBaseApp;
   window.isFarcasterMiniApp = isFarcasterMiniApp;
   window.isMiniAppHost = isMiniAppHost;
   window.isMiniAppEnv = isMiniAppEnv;
+
+  // Sync versions (use these in synchronous contexts)
+  window.getPlatformSync = getPlatformSync;
+  window.isBaseAppSync = isBaseAppSync;
+  window.isFarcasterMiniAppSync = isFarcasterMiniAppSync;
+  window.isMiniAppHostSync = isMiniAppHostSync;
+  window.isMiniAppEnvSync = isMiniAppEnvSync;
+  window.isPlatformDetected = isPlatformDetected;
+  window.initPlatformDetection = initPlatformDetection;
 }

@@ -4,6 +4,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { getPlatformSync, isPlatformDetected } from '../../utils/platform-detection.js';
 
 const log = createLogger('LeaderboardProfileMapping');
 
@@ -27,13 +28,15 @@ export async function sendProfileMappingIfNeeded(address, user, platform) {
     return;
   }
   
-  // Detect platform if not provided
+  // Detect platform if not provided (use sync cached version)
   let detectedPlatform = platform;
-  if (!detectedPlatform && typeof window.getPlatform === 'function') {
-    try {
-      detectedPlatform = await window.getPlatform();
-      if (detectedPlatform === 'base') detectedPlatform = 'base-app';
-    } catch (_) {}
+  if (!detectedPlatform && isPlatformDetected()) {
+    const cachedPlatform = getPlatformSync();
+    if (cachedPlatform === 'base') {
+      detectedPlatform = 'base-app';
+    } else if (cachedPlatform === 'farcaster') {
+      detectedPlatform = 'farcaster';
+    }
   }
   
   const mappingData = {

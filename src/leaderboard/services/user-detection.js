@@ -4,6 +4,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { getPlatformSync, isPlatformDetected } from '../../utils/platform-detection.js';
 
 const log = createLogger('LeaderboardUserDetection');
 
@@ -12,62 +13,75 @@ let cachedUserInfo = null;
 let cachedUserInfoTimestamp = 0;
 const USER_INFO_CACHE_TTL_MS = 30000; // 30 seconds
 
+// Cached SDK user to avoid repeated context awaits
+let cachedSdkUser = null;
+let sdkUserFetched = false;
+
+/**
+ * Get SDK user once and cache it
+ * @returns {Promise<Object|null>} SDK user object or null
+ */
+async function getSdkUserOnce() {
+  if (sdkUserFetched) {
+    return cachedSdkUser;
+  }
+
+  try {
+    if (window.sdk?.context) {
+      const context = await Promise.race([
+        window.sdk.context,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SDK context timeout')), 2000))
+      ]);
+      cachedSdkUser = context?.user || null;
+    }
+  } catch (err) {
+    // SDK context not available or timed out
+    log.debug('SDK user fetch failed or timed out');
+  }
+
+  sdkUserFetched = true;
+  return cachedSdkUser;
+}
+
 /**
  * Get cached user info or fetch fresh
+ * Optimized: No blocking retries, uses cached platform detection
  * @returns {Promise<Object>} User info with { address, user, platform }
  */
 export async function getCachedUserInfo() {
   const now = Date.now();
-  
+
   // Return cached if fresh
   if (cachedUserInfo && (now - cachedUserInfoTimestamp) < USER_INFO_CACHE_TTL_MS) {
     return cachedUserInfo;
   }
-  
+
   let address = null;
   let user = null;
   let platform = null;
-  
+
   try {
-    // Get wallet address (fast check first)
+    // Get wallet address (single check, no blocking retries)
     if (window.BaseManOnchain?.isWalletReady?.()) {
       address = window.BaseManOnchain?.getWalletAddress?.() || null;
     }
-    
-    // If not ready, do a few quick retries
-    if (!address) {
-      const maxRetries = 5;
-      const delayMs = 100;
-      for (let i = 0; i < maxRetries && !address; i++) {
-        if (window.BaseManOnchain?.isWalletReady?.()) {
-          address = window.BaseManOnchain?.getWalletAddress?.() || null;
-        }
-        if (!address && i < maxRetries - 1) {
-          await new Promise(r => setTimeout(r, delayMs));
-        }
+
+    // Use cached platform detection (sync, no await needed)
+    if (isPlatformDetected()) {
+      const detectedPlatform = getPlatformSync();
+      if (detectedPlatform === 'base') {
+        platform = 'base-app';
+      } else if (detectedPlatform === 'farcaster') {
+        platform = 'farcaster';
       }
     }
-    
-    // Get SDK context
-    if (window.sdk?.context) {
-      try {
-        const context = await window.sdk.context;
-        user = context?.user;
-        
-        // Platform detection via clientFid
-        if (context?.client?.clientFid === 309857) {
-          platform = 'base-app';
-        } else if (context?.client?.clientFid) {
-          platform = 'farcaster';
-        }
-      } catch (ctxErr) {
-        // SDK context not available
-      }
-    }
+
+    // Get SDK user (cached after first fetch)
+    user = await getSdkUserOnce();
   } catch (err) {
     log.warn('Error getting user info:', err);
   }
-  
+
   cachedUserInfo = { address, user, platform };
   cachedUserInfoTimestamp = now;
   return cachedUserInfo;
@@ -79,6 +93,9 @@ export async function getCachedUserInfo() {
 export function clearUserInfoCache() {
   cachedUserInfo = null;
   cachedUserInfoTimestamp = 0;
+  // Also reset SDK user cache to allow re-fetch
+  cachedSdkUser = null;
+  sdkUserFetched = false;
 }
 
 /**
