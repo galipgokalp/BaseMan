@@ -96,24 +96,39 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
   // Create the actual fetch promise
   inflightLeaderboardRequest = (async () => {
     try {
+      // Ensure platform detection is complete before getting user info
+      // This ensures profile mappings include the correct platform
+      try {
+        const { initPlatformDetection } = await import('../utils/platform-detection.js');
+        await Promise.race([
+          initPlatformDetection(),
+          new Promise(resolve => setTimeout(resolve, 1500)) // Max 1.5s wait
+        ]);
+      } catch (platformErr) {
+        log.debug('Platform detection init failed (non-critical):', platformErr?.message);
+      }
+
       // Phase 4.3: Get cached user info (fast, no redundant SDK calls)
       const { address, user, platform } = await getCachedUserInfo();
-      
+
       log.debug('Profile mapping check:', {
         hasAddress: !!address,
         hasUser: !!user,
         hasFid: !!user?.fid,
+        platform,
         address: address ? address.substring(0, 10) + '...' : null
       });
-      
+
       // Phase 4.3: Send profile mapping only if not already sent this session
       let profileMappingHeader = null;
       if (address && user?.fid) {
         // Send mapping async (deduplicated)
         sendProfileMappingIfNeeded(address, user, platform);
-        
+
         // Include in header for same request
         profileMappingHeader = buildProfileMappingHeader(address, user, platform);
+
+        log.debug('Profile mapping header:', profileMappingHeader ? 'set' : 'null');
       }
       
       const headers = { Accept: "application/json" };

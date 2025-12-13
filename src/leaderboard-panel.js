@@ -11,7 +11,7 @@
 import { createLogger } from './utils/logger.js';
 import { focusFirstFocusable } from './utils/panel-base.js';
 import { loadLeaderboard } from './leaderboard/api.js';
-import { getCachedUserInfo, isMyEntry as isMyEntryService } from './leaderboard/services/user-detection.js';
+import { getCachedUserInfo, isMyEntry as isMyEntryService, clearUserInfoCache } from './leaderboard/services/user-detection.js';
 import { calculateMyRank } from './leaderboard/services/rank-calculation.js';
 
 const log = createLogger('UiLeaderboard');
@@ -288,14 +288,25 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     if (getLoading()) return;
     if (!getVisible()) return;
     setLoading(true);
-    
+
     // Phase 6: Show loading state
     renderLoading({ topListEl, restListEl, scrollWrapper, statusEl });
+
+    // Clear user info cache to get fresh data on each load
+    // This ensures we pick up wallet connections that happened after panel was first shown
+    clearUserInfoCache();
 
     // Update current user info
     const userInfo = await getCurrentUserInfo();
     currentUser = userInfo.user;
     currentAddress = userInfo.address;
+
+    log.debug('loadLeaderboardData user info:', {
+      hasUser: !!currentUser,
+      hasAddress: !!currentAddress,
+      hasFid: !!currentUser?.fid,
+      addressPrefix: currentAddress ? currentAddress.substring(0, 10) + '...' : null
+    });
 
     await loadLeaderboard({
       limit,
@@ -506,7 +517,18 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   };
 
   // Initialize panel
-  const init = () => {
+  const init = async () => {
+    // Ensure platform detection is initialized early
+    try {
+      const { initPlatformDetection } = await import('./utils/platform-detection.js');
+      // Don't block on this, just start it
+      initPlatformDetection().catch(err => {
+        log.debug('Platform detection init failed (non-critical):', err?.message);
+      });
+    } catch (err) {
+      log.debug('Failed to import platform detection:', err?.message);
+    }
+
     // Determine initial visibility
     let initialVisible = getVisible();
     if (typeof window.__BaseManLeaderboardDesiredVisible === "boolean") {
@@ -515,7 +537,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       const hash = window.location.hash.substring(1);
       initialVisible = hash === 'leaderboard' || hash === 'pac';
     }
-    
+
     // Set visibility
     setVisible(initialVisible, {
       onChange: updatePanelVisibility,

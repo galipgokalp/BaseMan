@@ -61,12 +61,46 @@ export async function getCachedUserInfo() {
   let platform = null;
 
   try {
-    // Get wallet address (single check, no blocking retries)
-    if (window.BaseManOnchain?.isWalletReady?.()) {
-      address = window.BaseManOnchain?.getWalletAddress?.() || null;
+    // Get wallet address - try multiple sources
+    // 1. First try BaseManOnchain (preferred)
+    if (window.BaseManOnchain?.getWalletAddress) {
+      address = window.BaseManOnchain.getWalletAddress() || null;
+    }
+
+    // 2. If still null, try SDK wallet provider
+    if (!address && window.sdk?.wallet) {
+      try {
+        const provider = await window.sdk.wallet.getEthereumProvider?.();
+        if (provider) {
+          const accounts = await provider.request?.({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            address = accounts[0];
+          }
+        }
+      } catch (walletErr) {
+        log.debug('SDK wallet provider failed:', walletErr?.message);
+      }
+    }
+
+    // 3. If still null, try window.ethereum
+    if (!address && window.ethereum?.selectedAddress) {
+      address = window.ethereum.selectedAddress;
+    }
+
+    // Get SDK user (cached after first fetch)
+    user = await getSdkUserOnce();
+
+    // If we got user from SDK but no address, try to get address from user
+    if (!address && user?.custody_address) {
+      address = user.custody_address;
+    }
+    if (!address && user?.verifications?.length > 0) {
+      // Use first verified address
+      address = user.verifications[0];
     }
 
     // Use cached platform detection (sync, no await needed)
+    // If not detected yet, try to detect now
     if (isPlatformDetected()) {
       const detectedPlatform = getPlatformSync();
       if (detectedPlatform === 'base') {
@@ -74,16 +108,35 @@ export async function getCachedUserInfo() {
       } else if (detectedPlatform === 'farcaster') {
         platform = 'farcaster';
       }
+    } else {
+      // Try async detection if not cached yet
+      try {
+        const { getPlatform } = await import('../../utils/platform-detection.js');
+        const detectedPlatform = await getPlatform();
+        if (detectedPlatform === 'base') {
+          platform = 'base-app';
+        } else if (detectedPlatform === 'farcaster') {
+          platform = 'farcaster';
+        }
+      } catch (platformErr) {
+        log.debug('Platform detection failed:', platformErr?.message);
+      }
     }
-
-    // Get SDK user (cached after first fetch)
-    user = await getSdkUserOnce();
   } catch (err) {
     log.warn('Error getting user info:', err);
   }
 
   cachedUserInfo = { address, user, platform };
   cachedUserInfoTimestamp = now;
+
+  log.debug('getCachedUserInfo result:', {
+    hasAddress: !!address,
+    addressPrefix: address ? address.substring(0, 10) + '...' : null,
+    hasUser: !!user,
+    hasFid: !!user?.fid,
+    platform
+  });
+
   return cachedUserInfo;
 }
 

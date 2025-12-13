@@ -19,26 +19,42 @@ const sentProfileMappings = new Set(); // Track sent address mappings
  */
 export async function sendProfileMappingIfNeeded(address, user, platform) {
   if (!address || !user?.fid) return;
-  
+
   const key = address.toLowerCase();
-  
+
   // Skip if already sent this session (reduce log noise)
   if (sentProfileMappings.has(key)) {
     // Only log at trace level to reduce noise - this is expected behavior
     return;
   }
-  
-  // Detect platform if not provided (use sync cached version)
+
+  // Detect platform if not provided
   let detectedPlatform = platform;
-  if (!detectedPlatform && isPlatformDetected()) {
-    const cachedPlatform = getPlatformSync();
-    if (cachedPlatform === 'base') {
-      detectedPlatform = 'base-app';
-    } else if (cachedPlatform === 'farcaster') {
-      detectedPlatform = 'farcaster';
+  if (!detectedPlatform) {
+    // First try sync cached version
+    if (isPlatformDetected()) {
+      const cachedPlatform = getPlatformSync();
+      if (cachedPlatform === 'base') {
+        detectedPlatform = 'base-app';
+      } else if (cachedPlatform === 'farcaster') {
+        detectedPlatform = 'farcaster';
+      }
+    } else {
+      // If not cached, try async detection
+      try {
+        const { getPlatform } = await import('../../utils/platform-detection.js');
+        const asyncPlatform = await getPlatform();
+        if (asyncPlatform === 'base') {
+          detectedPlatform = 'base-app';
+        } else if (asyncPlatform === 'farcaster') {
+          detectedPlatform = 'farcaster';
+        }
+      } catch (err) {
+        log.debug('Async platform detection failed:', err?.message);
+      }
     }
   }
-  
+
   const mappingData = {
     address: key,
     fid: user.fid,
@@ -47,12 +63,12 @@ export async function sendProfileMappingIfNeeded(address, user, platform) {
     avatarUrl: user.pfpUrl || null,
     platform: detectedPlatform || null
   };
-  
+
   log.debug('Sending profile mapping:', mappingData);
-  
+
   // Mark as sent immediately to prevent duplicate sends
   sentProfileMappings.add(key);
-  
+
   // Send async, don't block
   fetch('/api/leaderboard?action=profile-mapping', {
     method: 'POST',
@@ -74,14 +90,25 @@ export async function sendProfileMappingIfNeeded(address, user, platform) {
  */
 export function buildProfileMappingHeader(address, user, platform) {
   if (!address || !user?.fid) return null;
-  
+
+  // Ensure platform is set if available from sync cache
+  let effectivePlatform = platform;
+  if (!effectivePlatform && isPlatformDetected()) {
+    const cachedPlatform = getPlatformSync();
+    if (cachedPlatform === 'base') {
+      effectivePlatform = 'base-app';
+    } else if (cachedPlatform === 'farcaster') {
+      effectivePlatform = 'farcaster';
+    }
+  }
+
   return JSON.stringify({
     [address.toLowerCase()]: {
       fid: user.fid,
       username: user.username || null,
       displayName: user.displayName || null,
       avatarUrl: user.pfpUrl || null,
-      platform: platform || null
+      platform: effectivePlatform || null
     }
   });
 }
