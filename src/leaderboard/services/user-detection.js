@@ -84,8 +84,10 @@ export async function getCachedUserInfo() {
       address = user.verifications[0];
     }
 
-    // 4. Last resort: try SDK wallet provider (only if SDK context is ready)
-    if (!address && window.sdk?.wallet && user) {
+    // 4. Last resort: try SDK wallet provider (only if in MiniApp context)
+    const inMiniApp = (typeof window !== 'undefined' && window !== window.parent) || 
+                      (typeof window.ReactNativeWebView !== 'undefined');
+    if (!address && inMiniApp && window.sdk?.wallet && user) {
       try {
         const getProvider = window.sdk.wallet.getEthereumProvider;
         if (typeof getProvider === 'function') {

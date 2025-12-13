@@ -418,18 +418,23 @@ async function refresh(panel) {
         if (window.ethers && window.BaseManOnchain && window.BaseManOnchain.ensureWallet) {
           // Use onchain-client's state if exposed; otherwise, call via RPC if needed.
           const reg = (window.BaseManOnchainConfig && window.BaseManOnchainConfig.registryAddress) || null;
-          if (reg && window.ethers && window.sdk) {
+          // Check if we're in MiniApp context before calling SDK methods
+          const inMiniApp = (typeof window !== 'undefined' && window !== window.parent) || 
+                            (typeof window.ReactNativeWebView !== 'undefined');
+          if (reg && window.ethers && window.sdk && inMiniApp) {
             let provider;
             try {
               provider = await window.sdk.wallet.getEthereumProvider();
             } catch (providerError) {
               const errorMsg = providerError?.message || String(providerError);
-              const isRequestError = errorMsg.includes('Request failed') || 
+              const isNonCritical = errorMsg.includes('Request failed') || 
+                                    errorMsg.includes('result') ||
                                     providerError?.name === 'RequestFailedError' ||
+                                    providerError?.name === 'TypeError' ||
                                     providerError?.status === 400;
               
-              if (isRequestError) {
-                log.warn('SDK getEthereumProvider request failed:', errorMsg);
+              if (isNonCritical) {
+                log.warn('SDK getEthereumProvider failed (non-critical):', errorMsg);
                 throw new Error(`Failed to get provider: ${errorMsg}`);
               } else {
                 throw providerError; // Re-throw non-request errors

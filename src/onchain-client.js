@@ -411,27 +411,15 @@ if (typeof window !== "undefined") {
           } catch (eventError) {}
         }
       } catch (error) {
-        debug(`Error calling sdk.actions.ready: ${error?.message || error}`);
-        // Try to call ready anyway if it's a timeout or minor error
-        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          try {
-            await sdk.actions.ready({ disableNativeGestures: true });
-            debug("sdk.actions.ready() called after error recovery");
-            try {
-              window.__basemanSDKReadyFired = true;
-              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk } }));
-            } catch (eventError) {}
-          } catch (retryError) {
-            debug(`Retry ready() failed: ${retryError?.message || retryError}`);
-            // Even on error, allow game to start after a delay
-            setTimeout(() => {
-              try {
-                window.__basemanSDKReadyFired = true;
-                window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
-              } catch (eventError) {}
-            }, 500);
-          }
-        } else {
+        debug(`Error in SDK initialization: ${error?.message || error}`);
+        // Don't retry sdk.actions.ready() - if we got here, context check already failed
+        // Just allow game to start
+        try {
+          window.__basemanSDKReadyFired = true;
+          window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null, error: error?.message } }));
+        } catch (eventError) {}
+        
+        if (!(sdk && sdk.actions && typeof sdk.actions.ready === 'function')) {
           // No SDK available, allow game to start
           setTimeout(() => {
             try {

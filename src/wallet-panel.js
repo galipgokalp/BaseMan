@@ -227,11 +227,15 @@ async function refresh() {
           provider = onchain._provider;
         } else if (window.ethereum) {
           provider = window.ethereum;
-        } else if (window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') {
-          try {
-            provider = await window.sdk.wallet.getEthereumProvider();
-          } catch (e) {
-            log.warn('Failed to get provider from SDK:', e);
+        } else {
+          // Only try SDK provider if we're in MiniApp context
+          const inMiniApp = (window !== window.parent) || (typeof window.ReactNativeWebView !== 'undefined');
+          if (inMiniApp && window.sdk && window.sdk.wallet && typeof window.sdk.wallet.getEthereumProvider === 'function') {
+            try {
+              provider = await window.sdk.wallet.getEthereumProvider();
+            } catch (e) {
+              log.warn('Failed to get provider from SDK:', e?.message || e);
+            }
           }
         }
         

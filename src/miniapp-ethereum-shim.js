@@ -7,26 +7,39 @@
   const DELAY = 100;
   let tries = 0;
 
+  // Check if we're in a valid MiniApp context
+  function isInMiniAppContext() {
+    // Check for iframe (Farcaster web) or ReactNativeWebView (Farcaster mobile)
+    return (typeof window !== 'undefined' && window !== window.parent) || 
+           (typeof window.ReactNativeWebView !== 'undefined');
+  }
+
   // Use unified SDK detection utility (100% compliance with Unified Wallet Integration Model)
   function getMiniAppProvider() {
     try {
+      // First check if we're in a MiniApp context - if not, don't call SDK methods
+      if (!isInMiniAppContext()) {
+        return null;
+      }
+      
       // Priority 1: Use centralized SDK detection utility
       let sdk = null;
       if (typeof window !== 'undefined' && typeof window.resolveSDK === 'function') {
         sdk = window.resolveSDK();
-      if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
-        try {
-          return sdk.wallet.getEthereumProvider();
-        } catch (error) {
-          // Silently fail for shim - this is a background operation
-          const errorMsg = error?.message || String(error);
-          if (errorMsg.includes('Request failed') || error?.name === 'RequestFailedError' || error?.status === 400) {
-            // Non-critical error - return null to continue polling
+        if (sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function') {
+          try {
+            return sdk.wallet.getEthereumProvider();
+          } catch (error) {
+            // Silently fail for shim - this is a background operation
+            const errorMsg = error?.message || String(error);
+            if (errorMsg.includes('Request failed') || error?.name === 'RequestFailedError' || error?.status === 400 || errorMsg.includes('result')) {
+              // Non-critical error - return null to continue polling
+              return null;
+            }
+            // Don't re-throw - just return null for shim
             return null;
           }
-          throw error; // Re-throw other errors
         }
-      }
       }
       
       // Priority 2: Emergency fallback (should never reach here in normal operation)
@@ -46,12 +59,7 @@
         return sdk.wallet.getEthereumProvider();
       } catch (error) {
         // Silently fail for shim - this is a background operation
-        const errorMsg = error?.message || String(error);
-        if (errorMsg.includes('Request failed') || error?.name === 'RequestFailedError' || error?.status === 400) {
-          // Non-critical error - return null to continue polling
-          return null;
-        }
-        throw error; // Re-throw other errors
+        return null;
       }
     } catch (_) {
       return null;
