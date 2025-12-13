@@ -546,11 +546,37 @@ async function hydrateProfilesForAddresses(items, req = null) {
   }
 
   // 5) Combine all sources into a single map
-  const allProfiles = {
-    ...cachedProfiles,
-    ...fetchedProfiles,
-    ...headerProfiles
-  };
+  // Priority: Header (current user) > Redis (has platform info) > Neynar (fallback)
+  // But merge intelligently - keep Redis platform info if Neynar overwrites
+  const allProfiles = {};
+  
+  // Start with Neynar profiles (lowest priority for platform)
+  for (const [addr, profile] of Object.entries(fetchedProfiles)) {
+    allProfiles[addr] = profile;
+  }
+  
+  // Merge Redis profiles (higher priority - has real platform info from SDK)
+  for (const [addr, profile] of Object.entries(cachedProfiles)) {
+    if (allProfiles[addr]) {
+      // Merge: keep Neynar's rich data but use Redis's platform if available
+      allProfiles[addr] = {
+        ...allProfiles[addr],  // Neynar base (has followerCount, bio, etc.)
+        ...profile,            // Redis overwrites (has platform from SDK)
+        // Keep Neynar's richer fields if Redis doesn't have them
+        avatarUrl: profile.avatarUrl || allProfiles[addr].avatarUrl,
+        displayName: profile.displayName || allProfiles[addr].displayName,
+        username: profile.username || allProfiles[addr].username,
+      };
+    } else {
+      allProfiles[addr] = profile;
+    }
+  }
+  
+  // Header profiles have highest priority (current user's fresh data)
+  for (const [addr, profile] of Object.entries(headerProfiles)) {
+    allProfiles[addr] = profile;
+  }
+  
   log.debug("Combined profile keys:", maskAddresses(Object.keys(allProfiles)));
 
   // 6) Build final enriched items
