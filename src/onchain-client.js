@@ -367,17 +367,22 @@ if (typeof window !== "undefined") {
             } catch (readyError) {
               // Handle SDK ready errors gracefully
               const errorMsg = readyError?.message || String(readyError);
-              const isRequestError = errorMsg.includes('Request failed') || 
-                                    readyError?.name === 'RequestFailedError' ||
-                                    readyError?.status === 400;
+              const isNonCriticalError = 
+                errorMsg.includes('Request failed') || 
+                errorMsg.includes('result') ||           // SDK internal "result" property errors
+                errorMsg.includes('undefined') ||        // Property access errors
+                readyError?.name === 'RequestFailedError' ||
+                readyError?.name === 'TypeError' ||      // Catch TypeError (undefined property access)
+                readyError?.status === 400;
               
-              if (isRequestError) {
-                debug(`SDK ready request failed (non-critical): ${errorMsg}`);
+              if (isNonCriticalError) {
+                debug(`SDK ready error (non-critical): ${errorMsg}`);
                 // Log but don't block - allow game to continue
-                log.error(`SDK ready request failed: ${errorMsg}`, readyError);
+                log.warn(`SDK ready error: ${errorMsg}`, readyError);
               } else {
                 debug(`Error calling sdk.actions.ready: ${errorMsg}`);
-                throw readyError; // Re-throw non-request errors
+                // Don't re-throw - allow game to continue even on unexpected errors
+                log.error(`SDK ready unexpected error: ${errorMsg}`, readyError);
               }
               
               // Still dispatch event even if ready failed (for non-critical errors)

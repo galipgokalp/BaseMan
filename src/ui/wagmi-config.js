@@ -324,7 +324,9 @@ async function waitForSDK(maxWait = 10000) {
             ]);
           } catch (e) {
             // If ready() fails or times out, continue anyway
-            log.warn('SDK ready() failed or timed out, continuing...');
+            // Common errors: TypeError for undefined 'result', RequestFailedError, timeouts
+            const errorMsg = e?.message || String(e);
+            log.warn(`SDK ready() failed (non-critical): ${errorMsg}`);
           }
         }
         return true;
