@@ -10,14 +10,23 @@ import { createAppError } from './errors.js';
 
 const log = createLogger('GlobalErrorHandler');
 
-const noisyPatterns = ['ResizeObserver loop', 'Script error'];
+const noisyPatterns = [
+  'ResizeObserver loop', 
+  'Script error',
+  "Cannot read properties of undefined (reading 'result')",  // SDK internal error
+  'miniapp-sdk',  // Any SDK internal errors
+  'vendor/miniapp-sdk'  // SDK file path errors
+];
 
-function shouldDowngrade(message = '') {
-  return noisyPatterns.some((p) => message && String(message).includes(p));
+function shouldDowngrade(message = '', stack = '') {
+  const text = `${String(message || '')} ${String(stack || '')}`;
+  return noisyPatterns.some((p) => text.includes(p));
 }
 
 function logGlobal(topic, payload) {
-  if (shouldDowngrade(payload?.message || payload?.technicalMessage)) {
+  const message = payload?.message || payload?.technicalMessage || '';
+  const stack = payload?.meta?.stack || payload?.stack || '';
+  if (shouldDowngrade(message, stack)) {
     log.debug(topic, payload);
   } else {
     log.error(topic, payload);
