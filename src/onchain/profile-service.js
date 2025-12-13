@@ -115,11 +115,11 @@ export async function sendProfileMapping({ sdk, address, debug = () => {} }) {
     const platform = await detectPlatform(context, debug);
     
     if (!platform) {
-      log().warn('sendProfileMapping: ⚠️ Platform detection failed - profile mapping will be saved without platform info');
+      log.warn('sendProfileMapping: ⚠️ Platform detection failed - profile mapping will be saved without platform info');
     } else {
-      log().debug('sendProfileMapping: ✅ Platform detected successfully:', platform);
+      log.debug('sendProfileMapping: ✅ Platform detected successfully:', platform);
     }
-    
+
     const profileMapping = {
       address: address.toLowerCase(),
       fid: user.fid,
@@ -128,9 +128,9 @@ export async function sendProfileMapping({ sdk, address, debug = () => {} }) {
       avatarUrl: user.pfpUrl || null,
       platform: platform || null // CRITICAL: Include platform for correct logo display
     };
-    
+
     debug(`sendProfileMapping: Sending profile mapping for leaderboard: ${profileMapping.username || profileMapping.displayName || 'unnamed'} (platform: ${platform || 'unknown'})`);
-    log().debug('sendProfileMapping: Sending profile mapping for leaderboard enrichment:', {
+    log.debug('sendProfileMapping: Sending profile mapping for leaderboard enrichment:', {
       address: profileMapping.address.substring(0, 10) + '...',
       fid: profileMapping.fid,
       username: profileMapping.username,
