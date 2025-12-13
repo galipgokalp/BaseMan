@@ -20,18 +20,27 @@ function formatAddress(address) {
 
 // Redis client (environment variables'dan otomatik alır)
 // Vercel Marketplace'ten Upstash Redis eklendiğinde otomatik olarak eklenir:
-// - UPSTASH_REDIS_REST_URL (standard)
-// - UPSTASH_REDIS_REST_TOKEN (standard)
-// - REDIS_URL (Vercel integration format, Redis.fromEnv() handles both)
+// - UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN (standard)
+// - KV_REST_API_URL / KV_REST_API_TOKEN (Vercel KV format)
+// - REDIS_URL (Vercel integration format)
 let redis = null;
 let hasLoggedMissingRedis = false;
 
 try {
   // Check if environment variables exist before initializing
+  // Priority: KV_REST_API (Vercel KV) > UPSTASH_REDIS_REST > REDIS_URL
+  const hasKVVars = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
   const hasStandardVars = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
   const hasRedisUrl = !!process.env.REDIS_URL;
   
-  if (hasStandardVars || hasRedisUrl) {
+  if (hasKVVars) {
+    // Use Vercel KV (same API as Upstash, just different env var names)
+    redis = new Redis({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN
+    });
+    log.debug('Redis client initialized with KV_REST_API');
+  } else if (hasStandardVars || hasRedisUrl) {
     redis = Redis.fromEnv();
     log.debug('Redis client initialized', {
       hasStandardVars,
@@ -43,7 +52,7 @@ try {
       hasLoggedMissingRedis = true;
       log.warnOnce(
         'missing-redis-config',
-        'Redis environment variables not found (UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or REDIS_URL). Profile caching will use in-memory fallback only.'
+        'Redis environment variables not found. Profile caching will use in-memory fallback only.'
       );
     }
     redis = null;

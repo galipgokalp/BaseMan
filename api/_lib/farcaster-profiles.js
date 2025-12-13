@@ -101,8 +101,8 @@ function normalizeUser(user, address) {
     null;
 
   const avatarUrl =
-    user.pfp_url ??              // Neynar API direct field
-    user.pfp?.url ??             // Nested format
+    user.pfp_url ??           // Neynar API returns pfp_url directly
+    user.pfp?.url ??
     user.profile?.pfp_url ??
     user.profile?.pfp?.url ??
     user.profile?.avatar_url ??
