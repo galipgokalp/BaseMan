@@ -360,7 +360,7 @@ BaseMan requires comprehensive environment configuration for blockchain integrat
 # Chain Configuration
 REGISTRY_CHAIN_ID=84532
 BASE_SEPOLIA_REGISTRY_CHAIN_ID=84532
-BASE_MAINNET_REGISTRY=0x3c52dEd86f9E56663cA680D773B64f8f62380cBc
+BASE_MAINNET_REGISTRY=0x2fd9492E5f0F9559152bB5d4d23843072bCF17E2
 BASE_SEPOLIA_REGISTRY=0x3c52dEd86f9E56663cA680D773B64f8f62380cBc
 
 # RPC Endpoints
@@ -414,7 +414,7 @@ PAYMASTER_ENFORCE_ALLOWLIST=true
 The `BaseManRegistry` contract is the on-chain storage layer for all game scores and quest completions. It uses **EIP-712 v2** typed data signing for secure, replay-protected submissions.
 
 **Contract Addresses**:
-- **Base Mainnet**: `0x3c52dEd86f9E56663cA680D773B64f8f62380cBc`
+- **Base Mainnet**: `0x2fd9492E5f0F9559152bB5d4d23843072bCF17E2`
 - **Base Sepolia**: `0x3c52dEd86f9E56663cA680D773B64f8f62380cBc` (example)
 
 ### Score Model

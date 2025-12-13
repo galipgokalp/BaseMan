@@ -386,7 +386,7 @@ The game engine is a faithful Pac-Man arcade implementation using vanilla JavaSc
 
 **Addresses**:
 
-- **Base Mainnet (8453)**: `0x3c52dEd86f9E56663cA680D773B64f8f62380cBc`
+- **Base Mainnet (8453)**: `0x2fd9492E5f0F9559152bB5d4d23843072bCF17E2`
 - **Base Sepolia (84532)**: `0x3c52dEd86f9E56663cA680D773B64f8f62380cBc`
 
 ### Score Model
