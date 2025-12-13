@@ -62,41 +62,48 @@ export async function getCachedUserInfo() {
 
   try {
     // Get wallet address - try multiple sources
-    // 1. First try BaseManOnchain (preferred)
+    // 1. First try BaseManOnchain (preferred, most reliable)
     if (window.BaseManOnchain?.getWalletAddress) {
       address = window.BaseManOnchain.getWalletAddress() || null;
     }
 
-    // 2. If still null, try SDK wallet provider
-    if (!address && window.sdk?.wallet) {
-      try {
-        const provider = await window.sdk.wallet.getEthereumProvider?.();
-        if (provider) {
-          const accounts = await provider.request?.({ method: 'eth_accounts' });
-          if (accounts && accounts.length > 0) {
-            address = accounts[0];
-          }
-        }
-      } catch (walletErr) {
-        log.debug('SDK wallet provider failed:', walletErr?.message);
-      }
-    }
-
-    // 3. If still null, try window.ethereum
+    // 2. If still null, try window.ethereum (standard EIP-1193)
     if (!address && window.ethereum?.selectedAddress) {
       address = window.ethereum.selectedAddress;
     }
 
-    // Get SDK user (cached after first fetch)
+    // Get SDK user first (needed for address fallbacks)
     user = await getSdkUserOnce();
 
-    // If we got user from SDK but no address, try to get address from user
+    // 3. If still null, try to get address from SDK user object
     if (!address && user?.custody_address) {
       address = user.custody_address;
     }
     if (!address && user?.verifications?.length > 0) {
       // Use first verified address
       address = user.verifications[0];
+    }
+
+    // 4. Last resort: try SDK wallet provider (only if SDK context is ready)
+    if (!address && window.sdk?.wallet && user) {
+      try {
+        const getProvider = window.sdk.wallet.getEthereumProvider;
+        if (typeof getProvider === 'function') {
+          const provider = await Promise.race([
+            getProvider.call(window.sdk.wallet),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1000))
+          ]);
+          if (provider && typeof provider.request === 'function') {
+            const accounts = await provider.request({ method: 'eth_accounts' });
+            if (Array.isArray(accounts) && accounts.length > 0) {
+              address = accounts[0];
+            }
+          }
+        }
+      } catch (walletErr) {
+        // Silent fail - this is a fallback
+        log.debug('SDK wallet provider fallback failed:', walletErr?.message);
+      }
     }
 
     // Use cached platform detection (sync, no await needed)
