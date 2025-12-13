@@ -873,10 +873,21 @@ if (typeof window !== "undefined") {
     async function requestScoreSignature(score, durationMs) {
       // Determine platform for profile tracking
       let platform = null;
-      if (typeof window.isFarcasterMiniApp === 'function' && window.isFarcasterMiniApp()) {
-        platform = 'farcaster';
-      } else if (typeof window.isBaseApp === 'function' && window.isBaseApp()) {
-        platform = 'base-app';
+      try {
+        if (typeof window.isFarcasterMiniApp === 'function') {
+          const isFarcaster = await window.isFarcasterMiniApp();
+          if (isFarcaster) {
+            platform = 'farcaster';
+          }
+        }
+        if (!platform && typeof window.isBaseApp === 'function') {
+          const isBase = await window.isBaseApp();
+          if (isBase) {
+            platform = 'base-app';
+          }
+        }
+      } catch (e) {
+        debug(`Platform detection failed: ${e?.message || e}`);
       }
       
       return await requestScoreSignatureUtil({
