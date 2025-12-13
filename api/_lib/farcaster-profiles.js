@@ -101,7 +101,6 @@ function normalizeUser(user, address) {
     null;
 
   const avatarUrl =
-    user.pfp_url ??           // Neynar API returns pfp_url directly on user object
     user.pfp?.url ??
     user.profile?.pfp_url ??
     user.profile?.pfp?.url ??
@@ -738,10 +737,18 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
         }
 
         // Map profile to each associated address (including the queried address)
-        // First, add the queried address itself
-        const queriedAddr = addressKey.toLowerCase();
-        if (!associatedAddresses.includes(queriedAddr)) {
-          associatedAddresses.push(queriedAddr);
+        // First, add the queried address itself (normalize through ethers.getAddress for consistency)
+        try {
+          const queriedAddr = ethers.getAddress(addressKey).toLowerCase();
+          if (!associatedAddresses.includes(queriedAddr)) {
+            associatedAddresses.push(queriedAddr);
+          }
+        } catch {
+          // If addressKey is invalid, still try lowercase as fallback
+          const queriedAddr = addressKey.toLowerCase();
+          if (!associatedAddresses.includes(queriedAddr)) {
+            associatedAddresses.push(queriedAddr);
+          }
         }
         
         for (let j = 0; j < associatedAddresses.length; j++) {
