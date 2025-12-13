@@ -101,7 +101,8 @@ function normalizeUser(user, address) {
     null;
 
   const avatarUrl =
-    user.pfp?.url ??
+    user.pfp_url ??           // Neynar bulk-by-address format
+    user.pfp?.url ??          // Alternative format
     user.profile?.pfp_url ??
     user.profile?.pfp?.url ??
     user.profile?.avatar_url ??
