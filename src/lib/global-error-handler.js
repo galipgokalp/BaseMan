@@ -15,7 +15,10 @@ const noisyPatterns = [
   'Script error',
   "Cannot read properties of undefined (reading 'result')",  // SDK internal error
   'miniapp-sdk',  // Any SDK internal errors
-  'vendor/miniapp-sdk'  // SDK file path errors
+  'vendor/miniapp-sdk',  // SDK file path errors
+  'Request failed with status 400',  // SDK request errors (non-critical)
+  'RequestFailedError',  // SDK request error class
+  'status 400'  // Generic 400 errors from SDK
 ];
 
 function shouldDowngrade(message = '', stack = '') {
