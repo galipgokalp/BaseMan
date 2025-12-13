@@ -316,17 +316,32 @@ async function waitForSDK(maxWait = 10000) {
 
       if (sdk) {
         // For Farcaster, wait for ready() if available
+        // But first verify we're actually in a MiniApp context
         if (sdk.actions && typeof sdk.actions.ready === 'function') {
-          try {
-            await Promise.race([
-              sdk.actions.ready(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('ready timeout')), 2000))
-            ]);
-          } catch (e) {
-            // If ready() fails or times out, continue anyway
-            // Common errors: TypeError for undefined 'result', RequestFailedError, timeouts
-            const errorMsg = e?.message || String(e);
-            log.warn(`SDK ready() failed (non-critical): ${errorMsg}`);
+          // Check if we're in a valid MiniApp context before calling SDK methods
+          let inMiniApp = false;
+          if (typeof sdk.isInMiniApp === 'function') {
+            try {
+              inMiniApp = await sdk.isInMiniApp(1000);
+            } catch (_) {
+              inMiniApp = false;
+            }
+          } else {
+            // Fallback: check for iframe or webview
+            inMiniApp = (window !== window.parent) || (typeof window.ReactNativeWebView !== 'undefined');
+          }
+          
+          if (inMiniApp) {
+            try {
+              await Promise.race([
+                sdk.actions.ready(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('ready timeout')), 2000))
+              ]);
+            } catch (e) {
+              // If ready() fails or times out, continue anyway
+              const errorMsg = e?.message || String(e);
+              log.warn(`SDK ready() failed (non-critical): ${errorMsg}`);
+            }
           }
         }
         return true;

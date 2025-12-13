@@ -68,6 +68,26 @@ const log = createLogger('UtilMiniappAuth');
   async function waitReady(sdk, ms = 6000) {
     const ready = sdk && sdk.actions && typeof sdk.actions.ready === 'function';
     if (!ready) return;
+    
+    // First verify we're in a MiniApp context before calling SDK methods
+    let inMiniApp = false;
+    if (typeof sdk.isInMiniApp === 'function') {
+      try {
+        inMiniApp = await sdk.isInMiniApp(1000);
+      } catch (_) {
+        inMiniApp = false;
+      }
+    } else {
+      // Fallback: check for iframe or webview
+      inMiniApp = (typeof window !== 'undefined' && window !== window.parent) || 
+                  (typeof window.ReactNativeWebView !== 'undefined');
+    }
+    
+    if (!inMiniApp) {
+      log.debug('Not in MiniApp context, skipping sdk.actions.ready()');
+      return;
+    }
+    
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('miniapp sdk.ready timeout')), ms));
     try {
       await Promise.race([sdk.actions.ready(), timeout]);

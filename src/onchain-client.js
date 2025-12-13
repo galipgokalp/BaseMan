@@ -329,14 +329,17 @@ if (typeof window !== "undefined") {
           if (typeof sdk.isInMiniApp === 'function') {
             try {
               // Increased timeout for mobile environments
-              isReady = await sdk.isInMiniApp({ timeoutMs: 1000 });
-            } catch (_) {
-              // If isInMiniApp fails, assume we're in mini app if SDK exists
-              isReady = true;
+              isReady = await sdk.isInMiniApp(1000);
+            } catch (e) {
+              // If isInMiniApp fails, we're NOT in a mini app - don't call SDK methods
+              debug(`isInMiniApp check failed: ${e?.message || e}`);
+              isReady = false;
             }
           } else {
-            // If isInMiniApp not available, assume ready if SDK exists
-            isReady = true;
+            // If isInMiniApp not available, check for iframe or webview context
+            // Don't assume ready - only proceed if we have clear signals
+            isReady = (typeof window !== 'undefined' && window !== window.parent) ||
+                      (typeof window.ReactNativeWebView !== 'undefined');
           }
           
           // Additional check: if we're in a mobile webview, assume ready
