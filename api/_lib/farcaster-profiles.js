@@ -583,10 +583,14 @@ export async function fetchProfilesForAddresses(addresses = []) {
   return results;
 }
 
-export function setManualProfile(address, { fid = null, username = null, displayName = null, avatarUrl = null } = {}) {
+export function setManualProfile(address, { fid = null, username = null, displayName = null, avatarUrl = null, platform = null } = {}) {
   const normalized = normalizeAddress(address);
   if (!normalized) return;
   const key = normalized.toLowerCase();
+  
+  // Validate platform value
+  const validPlatform = (platform === 'farcaster' || platform === 'base-app') ? platform : null;
+  
   const profile = {
     fid: fid ? String(fid) : null,
     username: typeof username === "string" && username.trim() ? username.trim() : null,
@@ -597,10 +601,22 @@ export function setManualProfile(address, { fid = null, username = null, display
     bio: null,
     profileUrl: null,
     address: normalized,
-    provider: "inline"
+    provider: "inline",
+    platform: validPlatform
   };
   MANUAL_PROFILE_CACHE.set(key, profile);
   PROFILE_CACHE.set(key, profile);
+  
+  // Also save to Redis for persistence
+  if (validPlatform) {
+    try {
+      import('./redis-profiles.js').then(({ saveProfileToRedis }) => {
+        if (typeof saveProfileToRedis === 'function') {
+          saveProfileToRedis(normalized, profile).catch(() => {});
+        }
+      }).catch(() => {});
+    } catch (_) {}
+  }
 }
 /**
  * Fetch Farcaster users for multiple Ethereum addresses using Neynar bulk-by-address API.

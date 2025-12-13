@@ -72,7 +72,8 @@ const ScorePayloadSchema = z.object({
   fid: z.union([z.string(), z.number()]).optional(),
   username: z.string().max(64).optional(),
   signatureSeed: z.string().max(128).optional(),
-  chain: z.string().trim().optional()
+  chain: z.string().trim().optional(),
+  platform: z.enum(['farcaster', 'base-app']).optional()
 });
 
 function parseBody(req) {
@@ -216,12 +217,16 @@ export default async function handler(req, res) {
         : null);
     const inlineUsername =
       data.username ?? decodedIdentity?.username ?? decodedIdentity?.user?.username ?? null;
+    
+    // Platform from request body ('farcaster' or 'base-app')
+    const inlinePlatform = data.platform || null;
 
-    if (inlineFid || inlineUsername) {
+    if (inlineFid || inlineUsername || inlinePlatform) {
       setManualProfile(player, {
         fid: inlineFid,
         username: inlineUsername,
-        displayName: inlineUsername
+        displayName: inlineUsername,
+        platform: inlinePlatform
       });
     }
   } catch (_) {}

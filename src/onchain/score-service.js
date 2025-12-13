@@ -27,6 +27,7 @@ const log = createLogger('OnchainScoreService');
  * @param {string} params.scoreEndpoint - Backend score endpoint URL
  * @param {Function} params.isMiniAppEnv - Function to check if in mini app environment
  * @param {Function} params.getMiniAppAuthToken - Function to get mini app auth token
+ * @param {string} params.platform - Platform identifier ('farcaster' or 'base-app')
  * @param {Function} params.debug - Debug logging function
  * @returns {Promise<Object>} Signature payload with signature, deadline, score, nonce
  */
@@ -38,6 +39,7 @@ export async function requestScoreSignature({
   scoreEndpoint,
   isMiniAppEnv,
   getMiniAppAuthToken,
+  platform,
   debug = () => {}
 }) {
   let playerAddress = address;
@@ -87,7 +89,8 @@ export async function requestScoreSignature({
       score: score.toString(),
       durationMs,
       level: window.level ?? 1,
-      chain: chainKey
+      chain: chainKey,
+      platform: platform || null // 'farcaster' or 'base-app'
     })
   }, {
     context: 'submitScore',

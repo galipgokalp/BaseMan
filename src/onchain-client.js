@@ -871,6 +871,14 @@ if (typeof window !== "undefined") {
 
     // requestScoreSignature is now imported from onchain/score-service module
     async function requestScoreSignature(score, durationMs) {
+      // Determine platform for profile tracking
+      let platform = null;
+      if (typeof window.isFarcasterMiniApp === 'function' && window.isFarcasterMiniApp()) {
+        platform = 'farcaster';
+      } else if (typeof window.isBaseApp === 'function' && window.isBaseApp()) {
+        platform = 'base-app';
+      }
+      
       return await requestScoreSignatureUtil({
         address: state.address,
         score,
@@ -879,6 +887,7 @@ if (typeof window !== "undefined") {
         scoreEndpoint: config.scoreEndpoint,
         isMiniAppEnv,
         getMiniAppAuthToken,
+        platform,
         debug
       });
     }
