@@ -101,7 +101,7 @@ function normalizeUser(user, address) {
     null;
 
   const avatarUrl =
-    user.pfp_url ??           // Neynar bulk-by-address returns pfp_url directly
+    user.pfp_url ??           // Neynar API returns pfp_url directly on user object
     user.pfp?.url ??
     user.profile?.pfp_url ??
     user.profile?.pfp?.url ??
