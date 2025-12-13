@@ -149,7 +149,18 @@
       </button>
     </nav>
     <canvas id='atlas' class="atlas-hidden"></canvas>
-    <script defer src="vendor/miniapp-sdk/index.min.js"></script>
+    <!-- MiniApp SDK: Only load if we're in a MiniApp context (iframe or ReactNativeWebView) -->
+    <script>
+      (function() {
+        var inMiniApp = (window !== window.parent) || (typeof window.ReactNativeWebView !== 'undefined');
+        if (inMiniApp) {
+          var script = document.createElement('script');
+          script.src = 'vendor/miniapp-sdk/index.min.js';
+          script.defer = true;
+          document.head.appendChild(script);
+        }
+      })();
+    </script>
     <!-- Centralized platform detection utility (must load early) -->
     <script type="module" src="src/utils/platform-detection.js"></script>
     <!-- Logger utility (should load early, before other scripts) -->
