@@ -690,12 +690,21 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
 
       const payload = await response.json();
       log.debug("Neynar raw response keys:", Object.keys(payload || {}));
-      const users = payload?.users || payload?.result?.users || [];
-      log.debug("Neynar response.users length:", Array.isArray(users) ? users.length : "NO USERS");
+      
+      // Neynar bulk-by-address returns { "0xaddress": [user, ...], ... }
+      // NOT { users: [...] } - so we need to iterate over address keys
+      const addressKeys = Object.keys(payload || {}).filter(key => 
+        typeof key === 'string' && key.startsWith('0x')
+      );
+      log.debug("Neynar response address keys count:", addressKeys.length);
 
-      // For every ETH address associated with a user (custody or verified)
-      for (let i = 0; i < users.length; i++) {
-        const user = users[i];
+      // Process each address's users
+      for (const addressKey of addressKeys) {
+        const usersArray = payload[addressKey];
+        if (!Array.isArray(usersArray) || usersArray.length === 0) continue;
+        
+        // Take the first user for this address
+        const user = usersArray[0];
         if (!user) continue;
 
         const normalizedProfile = normalizeUser(user, null);
@@ -727,7 +736,13 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
           }
         }
 
-        // Map profile to each associated address
+        // Map profile to each associated address (including the queried address)
+        // First, add the queried address itself
+        const queriedAddr = addressKey.toLowerCase();
+        if (!associatedAddresses.includes(queriedAddr)) {
+          associatedAddresses.push(queriedAddr);
+        }
+        
         for (let j = 0; j < associatedAddresses.length; j++) {
           const addr = associatedAddresses[j];
           if (chunk.includes(addr)) {
