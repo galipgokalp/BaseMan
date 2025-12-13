@@ -255,7 +255,7 @@ export async function sendCalls({
     const errorMsg = error?.message || String(error);
     const errorCode = error?.code || error?.error?.code || null;
     debug(`sendCalls: wallet_sendCalls error: ${errorMsg} (code: ${errorCode})`);
-    log().error('sendCalls: wallet_sendCalls failed:', error);
+    log.error('sendCalls: wallet_sendCalls failed:', error);
     
     // Log error with details
     try { 

@@ -1683,6 +1683,13 @@ if (typeof window !== "undefined") {
                 log.debug(`Score submission transaction started: ${identifier}`);
                 try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
                 
+                // Invalidate leaderboard cache immediately so next load gets fresh data
+                try {
+                  import('./leaderboard/api.js').then(({ invalidateLeaderboardCache }) => {
+                    if (invalidateLeaderboardCache) invalidateLeaderboardCache();
+                  }).catch(() => {});
+                } catch (_) {}
+
                 // Optionally check transaction status after a delay
                 if (typeof result === "object" && typeof result.id === "string") {
                 setTimeout(() => {

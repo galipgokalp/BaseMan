@@ -31,7 +31,17 @@ const leaderboardCache = {
   chainId: null,
   limit: null
 };
-const LEADERBOARD_CACHE_TTL_MS = 30000; // 30 seconds - increased for better performance
+const LEADERBOARD_CACHE_TTL_MS = 10000; // 10 seconds - reduced for faster updates after score submission
+
+/**
+ * Invalidate leaderboard cache
+ * Call this after score submission to force fresh data on next load
+ */
+export function invalidateLeaderboardCache() {
+  leaderboardCache.data = null;
+  leaderboardCache.timestamp = 0;
+  log.debug('Leaderboard cache invalidated');
+}
 
 // In-flight request deduplication
 let inflightLeaderboardRequest = null;
