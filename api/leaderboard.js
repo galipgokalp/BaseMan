@@ -49,7 +49,7 @@ const leaderboardResultCache = {
   chainId: null,
   limit: null
 };
-const LEADERBOARD_RESULT_CACHE_TTL_MS = 15000; // 15 seconds
+const LEADERBOARD_RESULT_CACHE_TTL_MS = 5000; // 5 seconds - fast updates after score submission
 
 // In-flight leaderboard query deduplication
 let inflightLeaderboardQuery = null;

@@ -31,7 +31,7 @@ const leaderboardCache = {
   chainId: null,
   limit: null
 };
-const LEADERBOARD_CACHE_TTL_MS = 10000; // 10 seconds - reduced for faster updates after score submission
+const LEADERBOARD_CACHE_TTL_MS = 5000; // 5 seconds - fast updates after score submission
 
 /**
  * Invalidate leaderboard cache
