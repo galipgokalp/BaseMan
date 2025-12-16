@@ -74,7 +74,7 @@ const ScorePayloadSchema = z.object({
   username: z.string().max(64).optional(),
   signatureSeed: z.string().max(128).optional(),
   chain: z.string().trim().optional(),
-  platform: z.enum(['farcaster', 'base-app']).optional()
+  platform: z.enum(['farcaster', 'base-app']).nullable().optional()
 });
 
 function parseBody(req) {
