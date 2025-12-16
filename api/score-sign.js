@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { ethers } from "ethers";
 import { z } from "zod";
 import {
@@ -181,8 +182,8 @@ export default async function handler(req, res) {
   const isV2 = (process.env.REGISTRY_EIP712_VERSION || "2").toString() === "2";
   let nonce = undefined;
   if (isV2) {
-    // Stateless nonce example (timestamp). In production, prefer per-address monotonic nonces server-side.
-    nonce = BigInt(Date.now());
+    // Cryptographically strong random nonce to prevent collisions
+    nonce = BigInt("0x" + crypto.randomBytes(16).toString("hex"));
   }
 
   const value = isV2
