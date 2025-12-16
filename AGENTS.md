@@ -1194,4 +1194,4 @@ curl -X POST http://localhost:5173/api/score-sign \
 
 ---
 
-*This document is the master specification for AI agents operating on the BaseMan codebase. Last synchronized with README.md on December 2024.*
+*This document is the master specification for AI agents operating on the BaseMan codebase. Last synchronized with README.md on December 2025.*

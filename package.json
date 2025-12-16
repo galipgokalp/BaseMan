@@ -1,25 +1,25 @@
 {
   "type": "module",
-  "name": "pacman",
+  "name": "baseman",
   "version": "1.0.0",
-  "description": "Everyone's favorite arcade game",
+  "description": "BaseMan - Farcaster/Base mini app Pac-Man style on-chain arcade game",
   "main": "pacman.js",
   "directories": {
     "doc": "doc"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/masonicGIT/pacman.git"
+    "url": "git+https://github.com/galipgokalp/BaseMan.git"
   },
   "keywords": [
     "pacman"
   ],
-  "author": "Shaun Williams, Mason Borda",
+  "author": "Galip Gökalp",
   "license": "SEE LICENSE IN LICENSE",
   "bugs": {
-    "url": "https://github.com/masonicGIT/pacman/issues"
+    "url": "https://github.com/galipgokalp/BaseMan/issues"
   },
-  "homepage": "https://github.com/masonicGIT/pacman#readme",
+  "homepage": "https://github.com/galipgokalp/BaseMan#readme",
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
     "prebuild": "node scripts/self-check-config.mjs",
