@@ -418,8 +418,18 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
     return null;
   }
 
-  const effectiveItems = items.slice(0, limit);
+  // Use all items (API already limits to requested limit)
+  // Only apply limit if items.length exceeds limit (safety check)
+  const effectiveItems = items.length > limit ? items.slice(0, limit) : items;
   const topCount = Math.min(10, effectiveItems.length);
+  
+  log.debug('renderRows: item counts', {
+    totalItems: items.length,
+    effectiveItems: effectiveItems.length,
+    limit,
+    topCount,
+    restCount: effectiveItems.length - topCount
+  });
   
   log.debug('renderRows: rendering', {
     effectiveItemsCount: effectiveItems.length,
