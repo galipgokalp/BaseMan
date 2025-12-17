@@ -486,6 +486,9 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
       hasRestListEl: !!restListEl,
       hasScrollWrapper: !!scrollWrapper
     });
+  } else if (restCount === 0 && scrollWrapper) {
+    // Hide scroll wrapper when there are no rest items
+    scrollWrapper.hidden = true;
   }
   
   if (topCount === 0 && restCount === 0 && effectiveItems.length > 0) {
@@ -590,9 +593,9 @@ export function renderEmpty({ topListEl, restListEl, scrollWrapper, statusEl }) 
  * the <ol> list structure and scroll functionality.
  */
 export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }) {
-  // Show loading text in status
+  // Don't show loading text - keep status empty
   if (statusEl) {
-    statusEl.textContent = "Loading leaderboard...";
+    statusEl.textContent = "";
   }
   
   // Don't clear existing content - let renderRows handle that
