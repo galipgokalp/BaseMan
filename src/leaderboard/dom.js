@@ -424,19 +424,20 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   // Only apply limit if items.length exceeds limit (safety check)
   const effectiveItems = items.length > limit ? items.slice(0, limit) : items;
   const topCount = Math.min(10, effectiveItems.length);
+  const restCount = effectiveItems.length - topCount;
   
-  log.debug('renderRows: item counts', {
+  // Use info level for critical rendering data (visible in production)
+  log.info('renderRows: item counts', {
     totalItems: items.length,
     effectiveItems: effectiveItems.length,
     limit,
     topCount,
-    restCount: effectiveItems.length - topCount
-  });
-  
-  log.debug('renderRows: rendering', {
-    effectiveItemsCount: effectiveItems.length,
-    topCount,
-    restCount: effectiveItems.length - topCount
+    restCount,
+    willRenderTop: topCount > 0,
+    willRenderRest: restCount > 0,
+    hasTopListEl: !!topListEl,
+    hasRestListEl: !!restListEl,
+    hasScrollWrapper: !!scrollWrapper
   });
   
   // Build top items using DocumentFragment
@@ -459,9 +460,16 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
     }
     if (fragmentTop.childNodes.length > 0) {
       topListEl.appendChild(fragmentTop);
-      log.debug(`renderRows: appended ${fragmentTop.childNodes.length} top items`);
+      log.info('renderRows: top items rendered', {
+        expected: topCount,
+        actual: fragmentTop.childNodes.length,
+        element: 'topListEl'
+      });
     } else {
-      log.warn('renderRows: no top items were created');
+      log.warn('renderRows: no top items were created', {
+        expected: topCount,
+        effectiveItemsLength: effectiveItems.length
+      });
     }
   } else if (topCount > 0 && !topListEl) {
     log.error('renderRows: topCount > 0 but topListEl is missing!');
@@ -489,9 +497,18 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
     if (fragmentRest.childNodes.length > 0) {
       restListEl.appendChild(fragmentRest);
       scrollWrapper.hidden = false;
-      log.debug(`renderRows: appended ${fragmentRest.childNodes.length} rest items`);
+      log.info('renderRows: rest items rendered', {
+        expected: restCount,
+        actual: fragmentRest.childNodes.length,
+        element: 'restListEl',
+        scrollWrapperVisible: !scrollWrapper.hidden
+      });
     } else {
-      log.warn('renderRows: no rest items were created');
+      log.warn('renderRows: no rest items were created', {
+        expected: restCount,
+        effectiveItemsLength: effectiveItems.length,
+        topCount
+      });
     }
   } else if (restCount > 0 && (!restListEl || !scrollWrapper)) {
     log.error('renderRows: restCount > 0 but restListEl or scrollWrapper is missing!', {
