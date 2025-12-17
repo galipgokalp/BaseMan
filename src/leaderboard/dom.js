@@ -585,41 +585,19 @@ export function renderEmpty({ topListEl, restListEl, scrollWrapper, statusEl }) 
 /**
  * Render loading state with skeleton UI
  * Phase 6: Enhanced loading state with skeleton loaders
+ * 
+ * Note: Skeleton is shown in a dedicated container to avoid breaking
+ * the <ol> list structure and scroll functionality.
  */
 export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }) {
+  // Show loading text in status
   if (statusEl) {
-    // Hide status text when showing skeleton
-    statusEl.textContent = "";
+    statusEl.textContent = "Loading leaderboard...";
   }
   
-  // Show skeleton loading UI
-  // Only show skeleton if we don't already have content (avoid flicker on refresh)
-  const hasContent = topListEl && topListEl.children.length > 0;
-  
-  if (!hasContent) {
-    // Generate skeleton items
-    const skeletonCount = 10;
-    const skeletonItems = Array.from({ length: skeletonCount }, () => `
-      <div class="leaderboard-skeleton-item" aria-hidden="true">
-        <div class="skeleton skeleton-rank"></div>
-        <div class="skeleton skeleton-avatar"></div>
-        <div class="skeleton skeleton-name"></div>
-        <div class="skeleton-score">
-          <div class="skeleton skeleton-score-value"></div>
-          <div class="skeleton skeleton-score-label"></div>
-        </div>
-      </div>
-    `).join('');
-    
-    const skeletonHTML = `<div class="leaderboard-skeleton" role="progressbar" aria-label="Loading leaderboard...">${skeletonItems}</div>`;
-    
-    // Show skeleton in the appropriate container
-    if (restListEl) {
-      restListEl.innerHTML = skeletonHTML;
-    } else if (topListEl) {
-      topListEl.innerHTML = skeletonHTML;
-    }
-  }
+  // Don't clear existing content - let renderRows handle that
+  // This prevents scroll position from jumping and maintains
+  // the existing data while loading new data
   
   if (scrollWrapper) {
     scrollWrapper.hidden = false;
