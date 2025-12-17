@@ -1,0 +1,286 @@
+/* ===== Skeleton Loading Styles ===== */
+/* Elegant skeleton loading animations for BaseMan panels */
+
+/* ===== Skeleton Base ===== */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.03) 0%, 
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 100%);
+  border-radius: 8px;
+  animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.08) 50%, 
+    transparent 100%);
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ===== Leaderboard Skeleton ===== */
+.leaderboard-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.leaderboard-skeleton-item {
+  display: grid;
+  grid-template-columns: 36px 40px 1fr 80px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Rank skeleton */
+.skeleton-rank {
+  width: 28px;
+  height: 20px;
+}
+
+/* Avatar skeleton */
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+/* Name skeleton */
+.skeleton-name {
+  height: 16px;
+  width: 100%;
+  max-width: 120px;
+}
+
+/* Score skeleton */
+.skeleton-score {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.skeleton-score-value {
+  width: 60px;
+  height: 18px;
+}
+
+.skeleton-score-label {
+  width: 40px;
+  height: 12px;
+}
+
+/* ===== Profile Skeleton ===== */
+.profile-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-profile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.skeleton-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.skeleton-profile-name {
+  width: 100px;
+  height: 16px;
+}
+
+.skeleton-profile-address {
+  width: 140px;
+  height: 12px;
+}
+
+.profile-skeleton-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-section-title {
+  width: 80px;
+  height: 12px;
+  margin-bottom: 4px;
+}
+
+.skeleton-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.skeleton-label {
+  width: 60px;
+  height: 14px;
+}
+
+.skeleton-value {
+  width: 80px;
+  height: 14px;
+}
+
+/* ===== Wallet Skeleton ===== */
+.wallet-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skeleton-balance {
+  height: 32px;
+  width: 120px;
+}
+
+.skeleton-network {
+  height: 24px;
+  width: 100px;
+}
+
+.skeleton-button {
+  height: 44px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* ===== Search Results Skeleton ===== */
+.search-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.search-skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.skeleton-search-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.skeleton-search-name {
+  height: 14px;
+  width: 100px;
+}
+
+.skeleton-search-score {
+  height: 14px;
+  width: 50px;
+  margin-left: auto;
+}
+
+/* ===== Light Theme Support ===== */
+body.theme-light .skeleton {
+  background: linear-gradient(135deg, 
+    rgba(0, 0, 0, 0.03) 0%, 
+    rgba(0, 0, 0, 0.06) 50%,
+    rgba(0, 0, 0, 0.03) 100%);
+}
+
+body.theme-light .skeleton::after {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(0, 0, 0, 0.05) 50%, 
+    transparent 100%);
+}
+
+body.theme-light .leaderboard-skeleton-item,
+body.theme-light .search-skeleton-item {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 480px) {
+  .leaderboard-skeleton-item {
+    grid-template-columns: 28px 32px 1fr 60px;
+    gap: 6px;
+    padding: 6px;
+  }
+  
+  .skeleton-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .skeleton-name {
+    height: 14px;
+    max-width: 80px;
+  }
+  
+  .skeleton-score-value {
+    width: 50px;
+    height: 14px;
+  }
+  
+  .skeleton-score-label {
+    width: 30px;
+    height: 10px;
+  }
+  
+  .skeleton-profile-avatar {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  
+  .skeleton::after {
+    animation: none;
+    transform: none;
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+

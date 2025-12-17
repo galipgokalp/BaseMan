@@ -272,9 +272,29 @@ if (typeof window !== "undefined") {
     // SDK context caching and profile mapping are now handled by onchain modules
     // These functions are imported and used directly - no local implementation needed
 
+    // Helper to emit toast-related events for UI feedback
+    function emitToastEvent(eventType, detail = {}) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent(`baseman:${eventType}`, { detail })
+        );
+        debug(`Toast event emitted: baseman:${eventType}`);
+      } catch (e) {
+        debug(`Toast event emit error: ${e?.message || e}`);
+      }
+    }
+
     function emitWalletStatus(ready, error) {
       state.walletReady = !!ready;
       state.walletError = ready ? null : error ? String(error) : null;
+      
+      // Emit toast events for wallet status changes
+      if (ready && state.address) {
+        emitToastEvent('wallet:connected', { address: state.address });
+      } else if (error) {
+        emitToastEvent('wallet:error', { message: String(error) });
+      }
+      
       try {
         window.dispatchEvent(
           new CustomEvent("baseman-wallet-status", {
@@ -1435,6 +1455,9 @@ if (typeof window !== "undefined") {
       debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
       log.debug(`submitScore: Starting submission - score=${score.toString()}, duration=${durationMs}ms`);
       try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'submitScore:starting', meta: { score: score.toString(), durationMs } }) }).catch(()=>{});} catch(_) {}
+      
+      // Emit toast event for UI feedback
+      emitToastEvent('score:submitting', { score: score.toString(), durationMs });
 
       try {
         state.submitting = true;
@@ -1699,6 +1722,14 @@ if (typeof window !== "undefined") {
                 log.debug(`Score submission transaction started: ${identifier}`);
                 try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
                 
+                // Emit toast event for UI feedback - score submitted
+                emitToastEvent('score:submitted', { 
+                  score: scoreValue.toString(), 
+                  identifier, 
+                  txHash: identifier,
+                  address: state.address 
+                });
+                
                 // Invalidate leaderboard cache immediately so next load gets fresh data
                 try {
                   import('./leaderboard/api.js').then(({ invalidateLeaderboardCache }) => {
@@ -1763,6 +1794,14 @@ if (typeof window !== "undefined") {
                 }) 
               }).catch(()=>{});
             } catch(_) {}
+            
+            // Emit toast event for error
+            emitToastEvent('score:error', { 
+              message: errorMsg, 
+              code: errorCode,
+              score: scoreValue.toString()
+            });
+            
             throw new Error(`Failed to submit score: ${errorMsg}${errorCode ? ` (code: ${errorCode})` : ''}`);
           }
         }
@@ -1814,8 +1853,14 @@ if (typeof window !== "undefined") {
           
           // Log user-friendly message
           log.error(`Score submission failed: ${userMessage}`);
-          // In the future, we could show a toast notification here
-          // For now, errors are logged to console and debug overlay
+          
+          // Emit toast event for error
+          emitToastEvent('score:error', { 
+            message: userMessage, 
+            originalError: errorMsg,
+            errorKind,
+            score: score?.toString() || null
+          });
         }
       } finally {
         // Phase 6: Always return to idle state
