@@ -345,7 +345,9 @@ export function resetRenderCache() {
  */
 function computeRenderHash(items, limit) {
   if (!items || items.length === 0) return 'empty';
-  const effectiveItems = items.slice(0, limit);
+  // Use same logic as renderRows to ensure hash consistency
+  // Only apply limit if items.length exceeds limit (safety check)
+  const effectiveItems = items.length > limit ? items.slice(0, limit) : items;
   // Create a lightweight hash from player addresses and scores
   let hash = effectiveItems.length.toString();
   for (let i = 0, len = effectiveItems.length; i < len; i++) {
