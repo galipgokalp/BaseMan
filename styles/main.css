@@ -77,6 +77,8 @@ body {
   /* Scroll is now handled by .leaderboard-body */
   overflow: visible;
   padding-right: 4px;
+  /* Ensure content is fully visible and scrollable */
+  min-height: 0;
 }
 
 .leaderboard-scroll[hidden] {

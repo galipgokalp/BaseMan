@@ -1203,11 +1203,15 @@
 .leaderboard-panel > .leaderboard-body > .leaderboard-scroll {
   flex-shrink: 0;
   margin-top: var(--spacing-sm);
+  /* Ensure content is fully visible */
+  min-height: 0;
 }
 
 .leaderboard-panel > .leaderboard-body > .leaderboard-scroll[data-scroll-wrapper] {
   overflow: visible;
   max-height: none;
+  /* Allow content to expand fully */
+  min-height: 0;
 }
 
 /* Panel Sections */
