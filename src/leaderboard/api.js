@@ -203,8 +203,7 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
   try {
     const { items, debugInfo } = await inflightLeaderboardRequest;
     if (onSuccess) {
-      // Apply limit consistently (API already limits, but ensure client-side limit is respected)
-      onSuccess(items.slice(0, limit), debugInfo, isDebugMode);
+      onSuccess(items, debugInfo, isDebugMode);
     }
   } catch (error) {
     log.error("load failed", error);
