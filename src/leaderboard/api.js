@@ -92,7 +92,8 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
     try {
       const { items, debugInfo } = await inflightLeaderboardRequest;
       if (onSuccess) {
-        onSuccess(items.slice(0, limit), debugInfo, isDebugMode);
+        // API already applies limit, no need to slice again
+        onSuccess(items, debugInfo, isDebugMode);
       }
     } catch (error) {
       log.error("load failed (shared request)", error);
