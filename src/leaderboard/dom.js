@@ -661,9 +661,15 @@ export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }
     statusEl.textContent = "";
   }
   
-  // Don't clear existing content - let renderRows handle that
-  // This prevents scroll position from jumping and maintains
-  // the existing data while loading new data
+  // Clear containers to ensure clean state before renderRows
+  // This fixes issues where skeleton injection or invalid HTML might have left
+  // DOM in an inconsistent state (e.g., <div> elements inside <ol>)
+  if (topListEl) {
+    topListEl.textContent = ""; // Clear safely - removes any invalid children
+  }
+  if (restListEl) {
+    restListEl.textContent = ""; // Clear safely - removes any invalid children
+  }
   
   if (scrollWrapper) {
     scrollWrapper.hidden = false;
