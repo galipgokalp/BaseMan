@@ -443,21 +443,39 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   // Build top items using DocumentFragment
   if (topListEl && topCount > 0) {
     const fragmentTop = document.createDocumentFragment();
+    let itemsCreated = 0;
+    let itemsSkipped = 0;
+    let itemsErrored = 0;
     // Use simple for-loop for better performance in hot path
     for (let i = 0; i < topCount; i++) {
       const entry = effectiveItems[i];
       if (!entry) {
         log.warn(`renderRows: entry at index ${i} is null/undefined`);
+        itemsSkipped++;
         continue;
       }
       try {
         const isMe = isMyEntry ? isMyEntry(entry) : false;
         const listItem = createListItem(entry, i + 1, isMe);
+        if (!listItem) {
+          log.warn(`renderRows: createListItem returned null for entry at index ${i}`);
+          itemsSkipped++;
+          continue;
+        }
         fragmentTop.appendChild(listItem);
+        itemsCreated++;
       } catch (error) {
         log.error(`renderRows: failed to create list item for entry at index ${i}:`, error);
+        itemsErrored++;
       }
     }
+    log.info('renderRows: top items loop completed', {
+      loopIterations: topCount,
+      itemsCreated,
+      itemsSkipped,
+      itemsErrored,
+      fragmentChildNodes: fragmentTop.childNodes.length
+    });
     if (fragmentTop.childNodes.length > 0) {
       topListEl.appendChild(fragmentTop);
       log.info('renderRows: top items rendered', {
