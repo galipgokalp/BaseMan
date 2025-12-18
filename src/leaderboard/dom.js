@@ -671,6 +671,10 @@ export function renderLoading({ topListEl, restListEl, scrollWrapper, statusEl }
     restListEl.textContent = ""; // Clear safely - removes any invalid children
   }
   
+  // Reset render cache to force renderRows to render even if data hash is the same
+  // This is necessary because we just cleared the DOM, so we need to re-render
+  resetRenderCache();
+  
   if (scrollWrapper) {
     scrollWrapper.hidden = false;
   }
