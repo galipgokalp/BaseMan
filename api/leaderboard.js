@@ -237,6 +237,9 @@ function buildQuery(limit, chainId = null) {
   
   // Use normalized events table and parameters JSON.
   // On CDP SQL (ClickHouse), use JSONExtract* functions and 1-based array index for topics.
+  // FIX: The old filter was using topics[1] IN ('ScoreAdded') which was incorrect because
+  // topics[1] is the first indexed parameter value, not the event signature. Using event_name
+  // column is the correct and most reliable way to filter by event type in CDP SQL API.
   return `
 WITH events AS (
   SELECT
@@ -245,7 +248,7 @@ WITH events AS (
     toInt64(toUnixTimestamp(block_timestamp)) AS block_ts
   FROM ${eventsTable}
   WHERE lower(address) = lower('${registry}')
-    AND topics[1] IN ('${SCORE_ADDED_TOPIC}')
+    AND event_name = 'ScoreAdded'
     ${timeFilter}
 )
 SELECT LOWER(player) AS player_address,
