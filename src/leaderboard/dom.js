@@ -494,7 +494,7 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   }
 
   // Build rest items using DocumentFragment
-  const restCount = effectiveItems.length - topCount;
+  // restCount already calculated above
   if (restCount > 0 && restListEl && scrollWrapper) {
     const fragmentRest = document.createDocumentFragment();
     for (let i = 0; i < restCount; i++) {
