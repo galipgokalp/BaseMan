@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getRegistryContext } from "./_lib/registry.js";
 import { assertNetwork } from "./_lib/cdp.js";
 import { createLogger } from "../src/utils/logger.js";
+import { getEnv } from "./_lib/env.js";
 
 const log = createLogger("ApiAddressHistory");
 
@@ -93,7 +94,8 @@ function writeCache(key, value) {
 }
 
 function getProvider(network) {
-  const rpcEnv = network === "base" ? process.env.BASE_MAINNET_RPC_URL : process.env.BASE_SEPOLIA_RPC_URL;
+  const env = getEnv();
+  const rpcEnv = network === "base" ? env.rpc.baseMainnet : env.rpc.baseSepolia;
   const fallback = process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL;
   const rpcUrl = rpcEnv || fallback;
   if (!rpcUrl) {

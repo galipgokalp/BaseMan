@@ -1,29 +1,25 @@
 import { CdpClient } from "@coinbase/cdp-sdk";
+import { getEnv } from "./env.js";
 
 let cachedClient;
 
 export function getCdpClient() {
   if (cachedClient) return cachedClient;
 
-  const apiKeyName = process.env.CDP_API_KEY_ID;
-  const privateKey = process.env.CDP_API_KEY_SECRET;
-
-  if (!apiKeyName || !privateKey) {
-    throw new Error(
-      "[CDP] Missing CDP_API_KEY_ID or CDP_API_KEY_SECRET environment variables. Generate a Secret API key in the CDP dashboard and set both values."
-    );
-  }
+  const env = getEnv();
+  const { apiKeyId, apiKeySecret } = env.cdp;
 
   cachedClient = new CdpClient({
-    apiKeyName,
-    privateKey
+    apiKeyName: apiKeyId,
+    privateKey: apiKeySecret
   });
 
   return cachedClient;
 }
 
 export function getDefaultNetwork() {
-  return process.env.CDP_DEFAULT_NETWORK || "base-sepolia";
+  const env = getEnv();
+  return env.cdp.defaultNetwork;
 }
 
 export function assertNetwork(network) {

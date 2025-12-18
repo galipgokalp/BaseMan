@@ -11,10 +11,15 @@ import {
 import { extractQuickAuthToken, isMiniAppAuthRequired, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
 import { setManualProfile } from "./_lib/farcaster-profiles.js";
 
+import { getEnv } from "./_lib/env.js";
+
+// Load env once at module level
+const env = getEnv();
+
 const SIGNATURE_TTL_SECONDS = Number(process.env.SCORE_SIGNATURE_TTL_SECONDS ?? "300");
 const MIN_DURATION_MS = Number(process.env.SCORE_MIN_DURATION_MS ?? "3000");
 const MAX_SCORE = BigInt(process.env.SCORE_MAX_VALUE ?? "100000000");
-const DEFAULT_CHAIN = process.env.REGISTRY_DEFAULT_TARGET || "base-sepolia";
+const DEFAULT_CHAIN = env.registry.defaultTarget;
 
 // In-memory, best-effort rate limiting for score signature requests
 const RATE_WINDOW_MS = Number(process.env.SCORE_SIGNER_RATE_WINDOW_MS ?? "15000");
@@ -179,7 +184,7 @@ export default async function handler(req, res) {
   const deadline = BigInt(deadlineSeconds);
 
   // Support EIP-712 v1 (deadline) and v2 (deadline + nonce)
-  const isV2 = (process.env.REGISTRY_EIP712_VERSION || "2").toString() === "2";
+  const isV2 = env.registry.eip712Version === "2";
   let nonce = undefined;
   if (isV2) {
     // Cryptographically strong random nonce to prevent collisions

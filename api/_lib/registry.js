@@ -1,15 +1,26 @@
 import { ethers } from "ethers";
+import { getEnv } from "./env.js";
 
 const CONTRACT_NAME = "BaseManRegistry";
 // EIP-712 domain version (matches on-chain EIP712 constructor). Default: 1
 // Default to V2 for latest contract; can be forced via REGISTRY_EIP712_VERSION
-const CONTRACT_VERSION = (process.env.REGISTRY_EIP712_VERSION || "2").toString();
+function getContractVersion() {
+  const env = getEnv();
+  return env.registry.eip712Version;
+}
+
+const CONTRACT_VERSION = getContractVersion();
 
 function normalizeTarget(raw) {
   return (raw || "").trim().toLowerCase().replace(/_/g, "-");
 }
 
-const DEFAULT_TARGET = normalizeTarget(process.env.REGISTRY_DEFAULT_TARGET || "base-sepolia");
+function getDefaultTarget() {
+  const env = getEnv();
+  return normalizeTarget(env.registry.defaultTarget);
+}
+
+const DEFAULT_TARGET = getDefaultTarget();
 
 const CHAIN_SOURCES = {
   base: {
@@ -53,6 +64,27 @@ function resolveChainKey(target) {
 }
 
 function readFirstEnv(keys = []) {
+  // Try to use env module first, fallback to direct process.env for backward compatibility
+  try {
+    const env = getEnv();
+    for (const key of keys) {
+      if (key === 'BASE_MAINNET_REGISTRY_ADDRESS' || key === 'NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS' || key === 'NEXT_PUBLIC_REGISTRY_ADDRESS') {
+        if (env.registry.baseMainnetAddress) return env.registry.baseMainnetAddress;
+      }
+      if (key === 'BASE_SEPOLIA_REGISTRY_ADDRESS') {
+        if (env.registry.baseSepoliaAddress) return env.registry.baseSepoliaAddress;
+      }
+      if (key === 'REGISTRY_CHAIN_ID') {
+        if (env.registry.chainId) return env.registry.chainId;
+      }
+      if (key === 'BASE_SEPOLIA_REGISTRY_CHAIN_ID') {
+        if (env.registry.baseSepoliaChainId) return env.registry.baseSepoliaChainId;
+      }
+    }
+  } catch {
+    // Fallback to direct process.env if env module fails
+  }
+  
   for (const key of keys) {
     if (key && typeof process.env[key] === 'string') {
       const v = process.env[key];
@@ -211,11 +243,19 @@ export const scoreTypes = CONTRACT_VERSION === "2" ? V2_scoreTypes : V1_scoreTyp
 export const questTypes = CONTRACT_VERSION === "2" ? V2_questTypes : V1_questTypes;
 
 export function getSigner(envKey = "SCORE_SIGNER_PRIVATE_KEY") {
-  const fallback = process.env.SCORE_SIGNER_PRIVATE_KEY;
-  let privateKey = process.env[envKey] || fallback;
-  if (typeof privateKey === 'string') {
-    try { privateKey = privateKey.trim(); } catch (_) {}
-  }
+  const env = getEnv();
+  let privateKey;
+  
+  // Map env key names to config paths
+  const keyMap = {
+    "SCORE_SIGNER_PRIVATE_KEY": env.signing.scoreSignerPrivateKey,
+    "QUEST_SIGNER_PRIVATE_KEY": env.signing.questSignerPrivateKey,
+    "BASE_SEPOLIA_SCORE_SIGNER_PRIVATE_KEY": env.signing.baseSepoliaScoreSignerPrivateKey,
+    "BASE_SEPOLIA_QUEST_SIGNER_PRIVATE_KEY": env.signing.baseSepoliaQuestSignerPrivateKey,
+  };
+  
+  privateKey = keyMap[envKey] || env.signing.scoreSignerPrivateKey;
+  
   assert(privateKey, `Missing ${envKey} env variable`);
   return new ethers.Wallet(privateKey);
 }

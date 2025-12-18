@@ -8,9 +8,13 @@ import {
   questTypes
 } from "./_lib/registry.js";
 import { extractQuickAuthToken, isMiniAppAuthRequired, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
+import { getEnv } from "./_lib/env.js";
+
+// Load env once at module level
+const env = getEnv();
 
 const SIGNATURE_TTL_SECONDS = Number(process.env.QUEST_SIGNATURE_TTL_SECONDS ?? "300");
-const DEFAULT_CHAIN = process.env.REGISTRY_DEFAULT_TARGET || "base-sepolia";
+const DEFAULT_CHAIN = env.registry.defaultTarget;
 
 const allowedQuestIds = (process.env.ALLOWED_QUEST_IDS || "")
   .split(",")

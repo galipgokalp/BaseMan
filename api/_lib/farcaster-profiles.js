@@ -37,9 +37,14 @@ function profileMeta(profile) {
   };
 }
 
-const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
-const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
-const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
+import { getEnv } from "./env.js";
+
+// Load env once at module level
+const env = getEnv();
+
+const PROFILE_PROVIDER = env.profiles.provider?.toLowerCase() || "";
+const NEYNAR_API_KEY = env.profiles.neynarApiKey || null;
+const NEYNAR_API_BASE_URL = env.profiles.neynarApiBaseUrl || "https://api.neynar.com";
 const PROFILE_CACHE = new Map();
 const MANUAL_PROFILE_CACHE = new Map();
 const FALLBACK_PROVIDER = "neynar";
@@ -629,9 +634,9 @@ export async function fetchFarcasterProfilesByAddresses(addresses) {
     return {};
   }
 
-  const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
-  const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
-  const NEYNAR_API_BASE_URL = (process.env.NEYNAR_API_BASE_URL || "https://api.neynar.com").replace(/\/$/, "");
+  const PROFILE_PROVIDER = env.profiles.provider?.toLowerCase() || "";
+  const NEYNAR_API_KEY = env.profiles.neynarApiKey || null;
+  const NEYNAR_API_BASE_URL = env.profiles.neynarApiBaseUrl || "https://api.neynar.com";
   const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
   const disableEnrichmentFlag = ["1","true","yes","on"].includes(String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase());
 

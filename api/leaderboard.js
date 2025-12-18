@@ -10,6 +10,7 @@
 import { ethers } from "ethers";
 import { registryAddress, getRegistryContext, getRegistryChainIdNumber } from "./_lib/registry.js";
 import { fetchFarcasterProfilesByAddresses } from "./_lib/farcaster-profiles.js";
+import { getEnv } from "./_lib/env.js";
 
 // Redis import - static import, wrap all Redis calls in try-catch blocks
 import { saveProfileMapping as saveToRedis, getFidMappings as getFidMappingsFromRedis, getProfilesForAddresses as getProfilesFromRedis, setProfilesForAddresses as setProfilesToRedis } from "./_lib/redis-profiles.js";
@@ -148,7 +149,11 @@ const DEFAULT_SQL_BASE = "https://api.cdp.coinbase.com";
 const ALT_SQL_BASE = "https://api.developer.coinbase.com";
 // Event topics (computed at runtime for safety)
 const SCORE_ADDED_TOPIC = ethers.id("ScoreAdded(address,uint256,uint256,uint256)");
-const SQL_API_KEY = process.env.CDP_SQL_API_KEY || "";
+
+// Load env once at module level
+const env = getEnv();
+
+const SQL_API_KEY = env.cdp.sqlApiKey || "";
 const DISABLE_FLAG = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
 const LEADERBOARD_DISABLED = ["1","true","yes","on"].includes(DISABLE_FLAG);
 const SQL_BASE_URL = (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, "");
@@ -433,11 +438,9 @@ async function hydrateProfilesForAddresses(items, req = null) {
   }
 
   // ENV flags: only control EXTERNAL enrichment (Redis + Neynar), not header mapping
-  const disableProfilesRaw = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
-  const disableExternalEnrichment = ["1", "true", "yes", "on"].includes(disableProfilesRaw);
-
-  const PROFILE_PROVIDER = (process.env.FARCASTER_PROFILE_PROVIDER || "").trim().toLowerCase();
-  const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY?.trim();
+  const disableExternalEnrichment = env.profiles.disableEnrichment;
+  const PROFILE_PROVIDER = env.profiles.provider?.toLowerCase() || "";
+  const NEYNAR_API_KEY = env.profiles.neynarApiKey;
   const externalEnrichmentEnabled = !disableExternalEnrichment && PROFILE_PROVIDER === "neynar" && !!NEYNAR_API_KEY;
 
   // 1) Header mapping (highest priority for current request)
@@ -652,19 +655,19 @@ async function enrichWithProfiles(items, req = null) {
   const isDebug = req?.query?.debug === "1" || req?.query?.debug === "true";
 
   // Check for missing configuration (for debug info) - moved to function scope
-  const hasNeynarKey = !!process.env.NEYNAR_API_KEY;
-  const hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
-  const enrichmentDisabled = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || '').trim().toLowerCase() === 'true';
+  const hasNeynarKey = !!env.profiles.neynarApiKey;
+  const hasRedis = !!(env.redis.url || env.redis.upstashRestUrl);
+  const enrichmentDisabled = env.profiles.disableEnrichment;
 
   let enriched = [];
   let debugInfo = null;
 
   try {
     log.debug("ENV CHECK:", {
-      farcasterProfileProvider: process.env.FARCASTER_PROFILE_PROVIDER || null,
+      farcasterProfileProvider: env.profiles.provider || null,
       hasNeynarKey,
       hasRedis,
-      disableEnrichment: process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || null
+      disableEnrichment: env.profiles.disableEnrichment || null
     });
     
     enriched = await hydrateProfilesForAddresses(items, req);
@@ -809,11 +812,11 @@ async function runQuery(statement) {
 function pickRpcUrl(chain) {
   // Prefer network specific RPC, else generic ADDRESS_HISTORY_RPC_URL, else BASE_MAINNET
   // If LEADERBOARD_RPC_URL is provided, always use it (must not require custom headers)
-  if (process.env.LEADERBOARD_RPC_URL) {
-    return process.env.LEADERBOARD_RPC_URL;
+  if (env.rpc.leaderboard) {
+    return env.rpc.leaderboard;
   }
   if (chain === 84532) {
-    const url = process.env.BASE_SEPOLIA_RPC_URL || process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL;
+    const url = env.rpc.baseSepolia || process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL;
     if (!url || /developer\.coinbase\.com\/rpc\//.test(url)) {
       // Use public Base Sepolia RPC when CDP RPC (requiring headers) is set
       return "https://sepolia.base.org";
@@ -821,13 +824,13 @@ function pickRpcUrl(chain) {
     return url;
   }
   if (chain === 8453) {
-    const url = process.env.BASE_MAINNET_RPC_URL || process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL;
+    const url = env.rpc.baseMainnet || process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL;
     if (!url || /developer\.coinbase\.com\/rpc\//.test(url)) {
       return "https://mainnet.base.org";
     }
     return url;
   }
-  return process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL || process.env.BASE_SEPOLIA_RPC_URL;
+  return process.env.ADDRESS_HISTORY_RPC_URL || process.env.RPC_URL || env.rpc.baseSepolia;
 }
 
 async function fetchFromRpcFallback(limit, chainId = null) {
@@ -872,9 +875,9 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       log.warn(`Available env vars check:`, {
         hasRegistryAddress: !!registryAddress,
         targetChainId,
-        hasBaseMainnetReg: !!process.env.NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS,
-        hasBaseSepoliaReg: !!process.env.BASE_SEPOLIA_REGISTRY_ADDRESS,
-        hasRegDefaultTarget: !!process.env.REGISTRY_DEFAULT_TARGET
+        hasBaseMainnetReg: !!env.registry.baseMainnetAddress,
+        hasBaseSepoliaReg: !!env.registry.baseSepoliaAddress,
+        hasRegDefaultTarget: !!env.registry.defaultTarget
       });
       return [];
     }
@@ -883,9 +886,9 @@ async function fetchFromRpcFallback(limit, chainId = null) {
     if (!rpcUrl) {
       log.error(`RPC fallback failed: No RPC URL configured for chain ${targetChainId}`);
       log.error(`Available RPC env vars:`, {
-        hasLeaderboardRpc: !!process.env.LEADERBOARD_RPC_URL,
-        hasBaseMainnetRpc: !!process.env.BASE_MAINNET_RPC_URL,
-        hasBaseSepoliaRpc: !!process.env.BASE_SEPOLIA_RPC_URL,
+        hasLeaderboardRpc: !!env.rpc.leaderboard,
+        hasBaseMainnetRpc: !!env.rpc.baseMainnet,
+        hasBaseSepoliaRpc: !!env.rpc.baseSepolia,
         hasAddressHistoryRpc: !!process.env.ADDRESS_HISTORY_RPC_URL,
         hasRpc: !!process.env.RPC_URL,
         targetChainId
@@ -1252,8 +1255,8 @@ export default async function handler(req, res) {
     }
     
     log.debug(`Query returned ${items.length} items`);
-    const disableProfiles = String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase();
-    const shouldEnrich = !["1","true","yes","on"].includes(disableProfiles);
+    const disableProfiles = env.profiles.disableEnrichment;
+    const shouldEnrich = !disableProfiles;
     const isDebug = req?.query?.debug === '1' || req?.query?.debug === 'true';
     
     let result;

@@ -1,7 +1,9 @@
 import { Redis } from '@upstash/redis';
 import { createLogger } from '../../src/utils/logger.js';
+import { getEnv } from './env.js';
 
 const log = createLogger('ApiRedisProfiles');
+const env = getEnv();
 
 function formatAddress(address) {
   if (!address || typeof address !== "string") {
@@ -29,15 +31,15 @@ let hasLoggedMissingRedis = false;
 try {
   // Check if environment variables exist before initializing
   // Priority: KV_REST_API (Vercel KV) > UPSTASH_REDIS_REST > REDIS_URL
-  const hasKVVars = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-  const hasStandardVars = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-  const hasRedisUrl = !!process.env.REDIS_URL;
+  const hasKVVars = !!(env.redis.kvRestApiUrl && env.redis.kvRestApiToken);
+  const hasStandardVars = !!(env.redis.upstashRestUrl && env.redis.upstashRestToken);
+  const hasRedisUrl = !!env.redis.url;
   
   if (hasKVVars) {
     // Use Vercel KV (same API as Upstash, just different env var names)
     redis = new Redis({
-      url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN
+      url: env.redis.kvRestApiUrl,
+      token: env.redis.kvRestApiToken
     });
     log.debug('Redis client initialized with KV_REST_API');
   } else if (hasStandardVars || hasRedisUrl) {
