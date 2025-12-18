@@ -470,18 +470,22 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
         itemsErrored++;
       }
     }
+    const fragmentTopCount = fragmentTop.childNodes.length;
     log.info('renderRows: top items loop completed', JSON.stringify({
       loopIterations: topCount,
       itemsCreated,
       itemsSkipped,
       itemsErrored,
-      fragmentChildNodes: fragmentTop.childNodes.length
+      fragmentChildNodes: fragmentTopCount
     }));
-    if (fragmentTop.childNodes.length > 0) {
+    if (fragmentTopCount > 0) {
       topListEl.appendChild(fragmentTop);
+      // After appendChild, fragment nodes are moved to topListEl, so check topListEl
+      const actualRendered = topListEl.children.length;
       log.info('renderRows: top items rendered', JSON.stringify({
         expected: topCount,
-        actual: fragmentTop.childNodes.length,
+        fragmentCount: fragmentTopCount,
+        actual: actualRendered,
         element: 'topListEl'
       }));
     } else {
@@ -513,15 +517,26 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
         log.error(`renderRows: failed to create list item for entry at index ${topCount + i}:`, error);
       }
     }
-    if (fragmentRest.childNodes.length > 0) {
+    const fragmentRestCount = fragmentRest.childNodes.length;
+    log.info('renderRows: rest items loop completed', JSON.stringify({
+      loopIterations: restCount,
+      itemsCreated,
+      itemsSkipped,
+      itemsErrored,
+      fragmentChildNodes: fragmentRestCount
+    }));
+    if (fragmentRestCount > 0) {
       restListEl.appendChild(fragmentRest);
       scrollWrapper.hidden = false;
-      log.info('renderRows: rest items rendered', {
+      // After appendChild, fragment nodes are moved to restListEl, so check restListEl
+      const actualRendered = restListEl.children.length;
+      log.info('renderRows: rest items rendered', JSON.stringify({
         expected: restCount,
-        actual: fragmentRest.childNodes.length,
+        fragmentCount: fragmentRestCount,
+        actual: actualRendered,
         element: 'restListEl',
         scrollWrapperVisible: !scrollWrapper.hidden
-      });
+      }));
     } else {
       log.warn('renderRows: no rest items were created', {
         expected: restCount,
