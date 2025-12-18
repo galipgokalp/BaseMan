@@ -427,7 +427,8 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   const restCount = effectiveItems.length - topCount;
   
   // Use info level for critical rendering data (visible in production)
-  log.info('renderRows: item counts', {
+  // Stringify object for better visibility in console
+  log.info('renderRows: item counts', JSON.stringify({
     totalItems: items.length,
     effectiveItems: effectiveItems.length,
     limit,
@@ -438,7 +439,7 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
     hasTopListEl: !!topListEl,
     hasRestListEl: !!restListEl,
     hasScrollWrapper: !!scrollWrapper
-  });
+  }));
   
   // Build top items using DocumentFragment
   if (topListEl && topCount > 0) {
@@ -469,20 +470,20 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
         itemsErrored++;
       }
     }
-    log.info('renderRows: top items loop completed', {
+    log.info('renderRows: top items loop completed', JSON.stringify({
       loopIterations: topCount,
       itemsCreated,
       itemsSkipped,
       itemsErrored,
       fragmentChildNodes: fragmentTop.childNodes.length
-    });
+    }));
     if (fragmentTop.childNodes.length > 0) {
       topListEl.appendChild(fragmentTop);
-      log.info('renderRows: top items rendered', {
+      log.info('renderRows: top items rendered', JSON.stringify({
         expected: topCount,
         actual: fragmentTop.childNodes.length,
         element: 'topListEl'
-      });
+      }));
     } else {
       log.warn('renderRows: no top items were created', {
         expected: topCount,
