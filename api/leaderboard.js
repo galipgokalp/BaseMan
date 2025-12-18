@@ -205,7 +205,7 @@ function buildQuery(limit, chainId = null) {
   // Determine table name based on chain ID
   // Base Mainnet (8453) uses 'base.events', Base Sepolia (84532) uses 'base_sepolia.events'
   const eventsTable = targetChainId === 84532 ? 'base_sepolia.events' : 'base.events';
-  const lookbackDays = Number.parseInt(process.env.LEADERBOARD_SQL_LOOKBACK_DAYS || "30", 10);
+  const lookbackDays = Number.parseInt(process.env.LEADERBOARD_SQL_LOOKBACK_DAYS || "0", 10);
   const timeFilter =
     Number.isFinite(lookbackDays) && lookbackDays > 0
       ? `AND block_timestamp >= now() - INTERVAL ${lookbackDays} DAY`
