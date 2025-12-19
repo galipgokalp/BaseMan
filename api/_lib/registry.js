@@ -4,23 +4,29 @@ import { getEnv } from "./env.js";
 const CONTRACT_NAME = "BaseManRegistry";
 // EIP-712 domain version (matches on-chain EIP712 constructor). Default: 1
 // Default to V2 for latest contract; can be forced via REGISTRY_EIP712_VERSION
-function getContractVersion() {
-  const env = getEnv();
-  return env.registry.eip712Version;
-}
 
-const CONTRACT_VERSION = getContractVersion();
+// Lazy cached getters to avoid import-time env access
+let _contractVersion;
+function getContractVersion() {
+  if (_contractVersion === undefined) {
+    const env = getEnv();
+    _contractVersion = env.registry.eip712Version;
+  }
+  return _contractVersion;
+}
 
 function normalizeTarget(raw) {
   return (raw || "").trim().toLowerCase().replace(/_/g, "-");
 }
 
+let _defaultTarget;
 function getDefaultTarget() {
-  const env = getEnv();
-  return normalizeTarget(env.registry.defaultTarget);
+  if (_defaultTarget === undefined) {
+    const env = getEnv();
+    _defaultTarget = normalizeTarget(env.registry.defaultTarget);
+  }
+  return _defaultTarget;
 }
-
-const DEFAULT_TARGET = getDefaultTarget();
 
 const CHAIN_SOURCES = {
   base: {
@@ -56,7 +62,7 @@ function assert(condition, message) {
 }
 
 function resolveChainKey(target) {
-  const normalized = normalizeTarget(target || DEFAULT_TARGET);
+  const normalized = normalizeTarget(target || getDefaultTarget());
   const aliased = CHAIN_ALIASES[normalized] || normalized;
   const source = CHAIN_SOURCES[aliased];
   assert(source, `Unsupported registry target "${target || normalized}"`);
@@ -99,7 +105,7 @@ const registryCache = new Map();
 function buildDomain(address, chainId) {
   return {
     name: CONTRACT_NAME,
-    version: CONTRACT_VERSION,
+    version: getContractVersion(),
     chainId,
     verifyingContract: address
   };
@@ -146,8 +152,8 @@ function parseRegistryConfig(target) {
   return config;
 }
 
-export function getRegistryContext(target = DEFAULT_TARGET) {
-  return parseRegistryConfig(target);
+export function getRegistryContext(target = null) {
+  return parseRegistryConfig(target || getDefaultTarget());
 }
 
 export function getRegistryTargets() {
@@ -160,7 +166,16 @@ let _defaultContextError = null;
 
 function getDefaultContext() {
   if (_defaultContext) return _defaultContext;
-  if (_defaultContextError) throw _defaultContextError;
+  if (_defaultContextError) {
+    // Return fallback context if we've already errored
+    return {
+      target: 'base',
+      address: null,
+      chainId: null,
+      chainIdNumber: null,
+      domain: null
+    };
+  }
   
   try {
     _defaultContext = getRegistryContext();
@@ -169,8 +184,9 @@ function getDefaultContext() {
     _defaultContextError = error;
     // Return a fallback context instead of throwing
     // This allows the API to handle missing env vars gracefully
+    // Use a safe default target instead of calling getDefaultTarget() which might throw
     return {
-      target: DEFAULT_TARGET,
+      target: 'base',
       address: null,
       chainId: null,
       chainIdNumber: null,
@@ -199,11 +215,92 @@ export function getRegistryDomain() {
   return ctx.domain;
 }
 
-// Legacy exports for backward compatibility (lazy)
-export const registryAddress = getDefaultContext().address;
-export const registryChainId = getDefaultContext().chainId;
-export const registryChainIdNumber = getDefaultContext().chainIdNumber;
-export const registryDomain = getDefaultContext().domain;
+// Legacy exports for backward compatibility (lazy evaluation)
+// These are computed on first access, not at import time
+// We use getter functions that return the actual primitive values
+// This ensures compatibility with ethers functions that check typeof
+let _cachedRegistryAddress;
+let _cachedRegistryChainId;
+let _cachedRegistryChainIdNumber;
+let _cachedRegistryDomain;
+
+function getLazyRegistryAddress() {
+  if (_cachedRegistryAddress === undefined) {
+    try {
+      _cachedRegistryAddress = getDefaultContext().address;
+    } catch (error) {
+      _cachedRegistryAddress = null;
+    }
+  }
+  return _cachedRegistryAddress;
+}
+
+function getLazyRegistryChainId() {
+  if (_cachedRegistryChainId === undefined) {
+    try {
+      _cachedRegistryChainId = getDefaultContext().chainId;
+    } catch (error) {
+      _cachedRegistryChainId = null;
+    }
+  }
+  return _cachedRegistryChainId;
+}
+
+function getLazyRegistryChainIdNumber() {
+  if (_cachedRegistryChainIdNumber === undefined) {
+    try {
+      _cachedRegistryChainIdNumber = getDefaultContext().chainIdNumber;
+    } catch (error) {
+      _cachedRegistryChainIdNumber = null;
+    }
+  }
+  return _cachedRegistryChainIdNumber;
+}
+
+function getLazyRegistryDomain() {
+  if (_cachedRegistryDomain === undefined) {
+    try {
+      _cachedRegistryDomain = getDefaultContext().domain;
+    } catch (error) {
+      _cachedRegistryDomain = null;
+    }
+  }
+  return _cachedRegistryDomain;
+}
+
+// Export as getter properties using Object.defineProperty for true laziness
+// These will be evaluated on first property access, not at import time
+const lazyExports = {};
+
+Object.defineProperty(lazyExports, 'registryAddress', {
+  get: getLazyRegistryAddress,
+  enumerable: true,
+  configurable: true
+});
+
+Object.defineProperty(lazyExports, 'registryChainId', {
+  get: getLazyRegistryChainId,
+  enumerable: true,
+  configurable: true
+});
+
+Object.defineProperty(lazyExports, 'registryChainIdNumber', {
+  get: getLazyRegistryChainIdNumber,
+  enumerable: true,
+  configurable: true
+});
+
+Object.defineProperty(lazyExports, 'registryDomain', {
+  get: getLazyRegistryDomain,
+  enumerable: true,
+  configurable: true
+});
+
+// Export the getter properties - these evaluate lazily on first access
+export const registryAddress = lazyExports.registryAddress;
+export const registryChainId = lazyExports.registryChainId;
+export const registryChainIdNumber = lazyExports.registryChainIdNumber;
+export const registryDomain = lazyExports.registryDomain;
 
 const V1_scoreTypes = {
   Score: [
@@ -239,8 +336,38 @@ const V2_questTypes = {
   ]
 };
 
-export const scoreTypes = CONTRACT_VERSION === "2" ? V2_scoreTypes : V1_scoreTypes;
-export const questTypes = CONTRACT_VERSION === "2" ? V2_questTypes : V1_questTypes;
+// Lazy getters for scoreTypes and questTypes to avoid import-time env access
+let _cachedScoreTypes;
+let _cachedQuestTypes;
+
+function getLazyScoreTypes() {
+  if (_cachedScoreTypes === undefined) {
+    _cachedScoreTypes = getContractVersion() === "2" ? V2_scoreTypes : V1_scoreTypes;
+  }
+  return _cachedScoreTypes;
+}
+
+function getLazyQuestTypes() {
+  if (_cachedQuestTypes === undefined) {
+    _cachedQuestTypes = getContractVersion() === "2" ? V2_questTypes : V1_questTypes;
+  }
+  return _cachedQuestTypes;
+}
+
+const lazyTypeExports = {};
+Object.defineProperty(lazyTypeExports, 'scoreTypes', {
+  get: getLazyScoreTypes,
+  enumerable: true,
+  configurable: true
+});
+Object.defineProperty(lazyTypeExports, 'questTypes', {
+  get: getLazyQuestTypes,
+  enumerable: true,
+  configurable: true
+});
+
+export const scoreTypes = lazyTypeExports.scoreTypes;
+export const questTypes = lazyTypeExports.questTypes;
 
 export function getSigner(envKey = "SCORE_SIGNER_PRIVATE_KEY") {
   const env = getEnv();

@@ -28,17 +28,23 @@ function validateString(value, name, context = null) {
 /**
  * Validates a boolean value
  * Accepts: "true", "false", "1", "0", "yes", "no" (case-insensitive)
+ * Returns undefined if value is undefined, null, or empty string after trim
  */
 function validateBoolean(value, name, context = null) {
   if (value === undefined || value === null) {
     return undefined;
   }
-  const str = String(value).trim().toLowerCase();
+  const str = String(value).trim();
+  // Return undefined for empty strings (after trim)
+  if (str.length === 0) {
+    return undefined;
+  }
+  const normalized = str.toLowerCase();
   const truthy = ['true', '1', 'yes', 'on'];
   const falsy = ['false', '0', 'no', 'off'];
   
-  if (truthy.includes(str)) return true;
-  if (falsy.includes(str)) return false;
+  if (truthy.includes(normalized)) return true;
+  if (falsy.includes(normalized)) return false;
   
   throw new Error(
     `Environment variable ${name} must be a boolean` +
