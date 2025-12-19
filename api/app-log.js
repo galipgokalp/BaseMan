@@ -3,6 +3,11 @@ import { createLogger } from "../src/utils/logger.js";
 
 const log = createLogger("ApiAppLog");
 
+function sanitizeHeaderValue(value) {
+  if (!value) return '';
+  return String(value).trim().replace(/[\x00-\x1F\x7F]/g, '');
+}
+
 // Telegram Bot Configuration
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
@@ -58,9 +63,10 @@ globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
 let rollbar = null;
 try {
   // Support both Vercel Marketplace format and standard format
-  const rollbarToken = process.env.ROLLBAR_BASE_MAN_SERVER_TOKEN_1764367657 
+  const rollbarTokenRaw = process.env.ROLLBAR_BASE_MAN_SERVER_TOKEN_1764367657 
     || process.env.ROLLBAR_ACCESS_TOKEN 
     || process.env.ROLLBAR_SERVER_TOKEN;
+  const rollbarToken = sanitizeHeaderValue(rollbarTokenRaw);
   if (rollbarToken) {
     rollbar = new Rollbar({
       accessToken: rollbarToken,
