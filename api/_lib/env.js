@@ -94,7 +94,7 @@ function validateNumber(value, name, options = {}) {
 /**
  * Validates a valid absolute URL
  */
-function validateUrl(value, name, context = null) {
+function validateUrl(value, name, context = null, options = {}) {
   if (value === undefined || value === null) {
     return undefined;
   }
@@ -104,9 +104,16 @@ function validateUrl(value, name, context = null) {
     return undefined;
   }
   
+  const protocols = Array.isArray(options.protocols) && options.protocols.length > 0
+    ? options.protocols
+    : ['http:', 'https:'];
+  const protocolList = protocols.join(', ');
+  const exampleProtocol = protocols[0] || 'https:';
+  const example = `${exampleProtocol}//api.example.com/v1`;
+
   try {
     const url = new URL(str);
-    if (!['http:', 'https:'].includes(url.protocol)) {
+    if (!protocols.includes(url.protocol)) {
       throw new Error('URL must use http or https protocol');
     }
     return str;
@@ -114,7 +121,8 @@ function validateUrl(value, name, context = null) {
     throw new Error(
       `Environment variable ${name} must be a valid absolute URL` +
       (context ? ` (used in: ${context})` : '') +
-      `\n  Example: ${name}=https://api.example.com/v1`
+      `\n  Allowed protocols: ${protocolList}` +
+      `\n  Example: ${name}=${example}`
     );
   }
 }
@@ -239,7 +247,7 @@ export function optNum(name, defaultValue = undefined, options = {}) {
   return result !== undefined ? result : defaultValue;
 }
 
-export function reqUrl(name, context = null) {
+export function reqUrl(name, context = null, options = {}) {
   const value = process.env[name];
   if (value === undefined || value === null) {
     throw new Error(
@@ -248,12 +256,12 @@ export function reqUrl(name, context = null) {
       `\n  Example: ${name}=https://api.example.com/v1`
     );
   }
-  return validateUrl(value, name, context);
+  return validateUrl(value, name, context, options);
 }
 
-export function optUrl(name, defaultValue = undefined) {
+export function optUrl(name, defaultValue = undefined, options = {}) {
   const value = process.env[name];
-  const result = validateUrl(value, name);
+  const result = validateUrl(value, name, null, options);
   return result !== undefined ? result : defaultValue;
 }
 
@@ -345,13 +353,13 @@ export function loadEnv() {
       
       // Redis/KV Store
       redis: {
-        url: optUrl('REDIS_URL'),
+        url: optUrl('REDIS_URL', undefined, { protocols: ['http:', 'https:', 'redis:', 'rediss:'] }),
         upstashRestUrl: optUrl('UPSTASH_REDIS_REST_URL'),
         upstashRestToken: optString('UPSTASH_REDIS_REST_TOKEN'),
         kvRestApiUrl: optUrl('KV_REST_API_URL'),
         kvRestApiToken: optString('KV_REST_API_TOKEN'),
         kvRestApiReadOnlyToken: optString('KV_REST_API_READ_ONLY_TOKEN'),
-        kvUrl: optUrl('KV_URL'),
+        kvUrl: optUrl('KV_URL', undefined, { protocols: ['http:', 'https:', 'redis:', 'rediss:'] }),
       },
       
       // Signing Keys (optional - only if signing is enabled)
@@ -455,4 +463,3 @@ export function getEnv() {
 export function resetEnv() {
   _env = null;
 }
-
