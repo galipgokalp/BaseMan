@@ -57,22 +57,6 @@ export function initRollbar() {
     script.src = 'https://cdn.rollbar.com/rollbarjs/refs/tags/latest/rollbar.min.js';
     script.async = true;
     script.onload = function() {
-      if (window.Rollbar && !window.__ROLLBAR_READY_LOGGED) {
-        window.__ROLLBAR_READY_LOGGED = true;
-        try {
-          fetch('/api/app-log', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              event: 'rollbar:ready',
-              message: 'Rollbar client initialized',
-              meta: { environment, codeVersion }
-            }),
-            keepalive: true
-          }).catch(() => {});
-        } catch (_) {}
-      }
-
       // After Rollbar loads, set person tracking and custom data if available
       if (window.Rollbar && window.sdk && window.sdk.context) {
         window.sdk.context.then(context => {
