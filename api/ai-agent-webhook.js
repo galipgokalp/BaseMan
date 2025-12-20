@@ -3,36 +3,11 @@
  * Receives log entries from app-log.js and performs AI-powered analysis
  */
 
-import Rollbar from 'rollbar';
 import { createLogger } from "../src/utils/logger.js";
+import { getRollbar } from './_lib/rollbar.js';
 
 const log = createLogger("ApiAiAgentWebhook");
-
-function sanitizeHeaderValue(value) {
-  if (!value) return '';
-  return String(value).trim().replace(/[\x00-\x1F\x7F]/g, '');
-}
-
-// Initialize Rollbar (optional - only if ROLLBAR token is set)
-let rollbar = null;
-try {
-  // Support both Vercel Marketplace format and standard format
-  const rollbarTokenRaw = process.env.ROLLBAR_BASE_MAN_SERVER_TOKEN_1764367657 
-    || process.env.ROLLBAR_ACCESS_TOKEN 
-    || process.env.ROLLBAR_SERVER_TOKEN;
-  const rollbarToken = sanitizeHeaderValue(rollbarTokenRaw);
-  if (rollbarToken) {
-    rollbar = new Rollbar({
-      accessToken: rollbarToken,
-      captureUncaught: false,
-      captureUnhandledRejections: false,
-      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'production',
-      codeVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
-    });
-  }
-} catch (err) {
-  log.warnOnce('rollbar-init', 'Rollbar initialization failed:', err?.message);
-}
+const rollbar = getRollbar();
 
 // AI Provider Configuration
 const AI_PROVIDER = (process.env.AI_PROVIDER || 'groq').trim().toLowerCase(); // 'groq', 'openai', 'openrouter', 'rule-based'

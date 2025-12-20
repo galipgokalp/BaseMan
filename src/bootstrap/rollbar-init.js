@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { ROLLBAR_CLIENT_ACCESS_TOKEN } from '../lib/rollbar-tokens.js';
 
 const log = createLogger('RollbarInit');
 
@@ -26,11 +27,15 @@ export function initRollbar() {
     
     // Support both Vercel Marketplace format and standard format
     const token = window.__ENV.NEXT_PUBLIC_ROLLBAR_BASE_MAN_CLIENT_TOKEN_1764367657 
-      || window.__ENV.NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN;
+      || window.__ENV.NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN
+      || ROLLBAR_CLIENT_ACCESS_TOKEN;
     if (!token) {
       log.warn('Client token not found in environment variables');
       return;
     }
+
+    const environment = window.__ENV.VERCEL_ENV || window.__ENV.NODE_ENV || 'production';
+    const codeVersion = window.__ENV.VERCEL_GIT_COMMIT_SHA || 'unknown';
     
     // Initialize Rollbar config
     window._rollbarConfig = {
@@ -38,10 +43,10 @@ export function initRollbar() {
       captureUncaught: true,
       captureUnhandledRejections: true,
       payload: {
-        environment: window.__ENV.VERCEL_ENV || 'production',
+        environment,
         client: {
           javascript: {
-            code_version: '1.0'
+            code_version: codeVersion
           }
         }
       }
@@ -106,4 +111,3 @@ export function initRollbar() {
     tryInit();
   }
 }
-
