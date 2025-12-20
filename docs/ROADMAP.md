@@ -73,7 +73,7 @@ Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde
   - Yapılacaklar: AllowedAddresses (kontrat adresi), CSP kaynakları, requiredChains, Base Builder kuralları.
 
 - [ ] 14. E2E Doğrulama ve Smoke Testler
-  - Yerel kaynak:`BaseMan/scripts/smoke-sepolia.mjs`, `BaseMan/scripts/healthcheck.mjs`, `BaseMan/scripts/self-check.mjs`- Resmi web: https://docs.base.org/mini-apps/testing
+  - Yerel kaynak:`BaseMan/scripts/smoke-sepolia.mjs`, `BaseMan/scripts/healthcheck.mjs`, `BaseMan/scripts/self-check.mjs`- Resmi web: https://docs.base.org/mini-apps/troubleshooting/testing
   - Yapılacaklar: Sponsorlu tx akışı, profil ve leaderboard eşzamanlı güncelleme, webhook’lar ve manifest doğrulaması.
 
 - [ ] 15. Sürümleme ve Değişiklik Yönetimi

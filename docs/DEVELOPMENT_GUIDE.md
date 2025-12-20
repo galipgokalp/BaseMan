@@ -172,7 +172,7 @@ const provider = sdk.getProvider;
 ```
 
 **Dokümantasyon:**
-- [Base Account SDK](https://docs.base.org/base-account/reference/core/create-base-account-sdk)
+- [Base Account SDK](https://docs.base.org/base-account/reference/core/createBaseAccount#createbaseaccountsdk)
 - API: `sdk.getProvider`
 
 #### Wagmi ile Entegrasyon
@@ -864,7 +864,7 @@ Mevcut implementasyon:
 
 ### Dokümantasyon
 - [Farcaster Mini Apps - Wallets](https://miniapps.farcaster.xyz/docs/guides/wallets)
-- [Base Account SDK](https://docs.base.org/base-account)
+- [Base Account SDK](https://docs.base.org/base-account/overview/what-is-base-account)
 - [Wagmi Documentation](https://wagmi.sh)
 - [EIP-1193 Specification](https://eips.ethereum.org/EIPS/eip-1193)
 - [EIP-5792 Specification](https://eip5792.xyz)

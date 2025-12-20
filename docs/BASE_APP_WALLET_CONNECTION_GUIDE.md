@@ -21,7 +21,7 @@
 
 ### 2. Connect Button Gösterilmemeli ❌
 
-**Kaynak:** [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/guides/onboarding)
+**Kaynak:** [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/growth/optimize-onboarding)
 
 > **"Do not show a connect button on first load"**
 
@@ -32,7 +32,7 @@
 
 ### 3. Onchain Actions için Otomatik Base Account Kullanımı ✅
 
-**Kaynak:** [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/guides/onboarding)
+**Kaynak:** [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/growth/optimize-onboarding)
 
 > **"For onchain actions, use the Base Account automatically. Eliminate explicit wallet connect flows"**
 
@@ -43,7 +43,7 @@
 
 ### 4. Base Account Varsayılan Wallet Olmalı ✅
 
-**Kaynak:** [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/guides/onboarding)
+**Kaynak:** [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/growth/optimize-onboarding)
 
 > **"Base App provides an in-app Base Account. This should be the default wallet used by your app to streamline interactions."**
 
@@ -223,6 +223,6 @@
 ## 🔗 Referanslar
 
 - [Base Mini Apps - Base Account](https://docs.base.org/mini-apps/core-concepts/base-account)
-- [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/guides/onboarding)
+- [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/growth/optimize-onboarding)
 - [Base Account - Sub Accounts](https://docs.base.org/base-account/improve-ux/sub-accounts)
 

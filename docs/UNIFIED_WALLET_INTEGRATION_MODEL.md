@@ -357,7 +357,7 @@ if (window.fc?.miniapp) {
 
 ### Base App
 - [Base Mini Apps - Base Account](https://docs.base.org/mini-apps/core-concepts/base-account)
-- [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/guides/onboarding)
+- [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/growth/optimize-onboarding)
 - [Base Account - Wagmi Integration](https://docs.base.org/base-account/framework-integrations/wagmi)
 
 ### Standards

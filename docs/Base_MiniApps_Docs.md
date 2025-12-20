@@ -3135,7 +3135,7 @@ const address = '0x02feeb0AdE57b6adEEdE5A4EEea6Cf8c21BeB6B1';
 // omitted component code for brevity
 <Avatar address={address} chain={base} />
 <Name address={address} chain={base} />
-```Video: https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-identity-identity--use-basename-in-onchain-app&viewMode=story&dark=true&hero=true
+```Video: https://docs.base.org/onchainkit/guides/use-basename-in-onchain-app
 
 
 ## React hooks with`useAvatar`and`useName`
@@ -8211,8 +8211,8 @@ export function Providers(props: { children: React.ReactNode }) {
 - [Overview](https://docs.base.org/mini-apps/features/overview) â€” Feature index
 - [Manifest](https://docs.base.org/mini-apps/features/manifest) â€” Manifest
 - [Authentication](https://docs.base.org/mini-apps/features/Authentication) â€” Auth
-- [Embeds & Previews](https://docs.base.org/mini-apps/features/embeds-and-previews) â€” Embeds
-- [Search & Discovery](https://docs.base.org/mini-apps/technical-guides/search-discovery) â€” Discovery
+- [Embeds & Previews](https://docs.base.org/mini-apps/core-concepts/embeds-and-previews) â€” Embeds
+- [Search & Discovery](https://docs.base.org/mini-apps/troubleshooting/how-search-works) â€” Discovery
 - [Sharing & Social Graph](https://docs.base.org/mini-apps/features/sharing-and-social-graph) â€” Sharing
 - [Notifications](https://docs.base.org/mini-apps/features/notifications) â€” Notifications
 - [Links](https://docs.base.org/mini-apps/features/links) â€” Links
@@ -8242,7 +8242,7 @@ Source:`https://docs.base.org/mini-apps/overview`- Socialâ€‘native UX: Apps
 - Manifest: Declare capabilities, intents, and metadata to enable discovery and client features.
  - Source:`https://docs.base.org/mini-apps/features/manifest`- Onboarding: Reduce steps; defer heavy auth until value is shown; prefill from client context.
  - Source:`https://docs.base.org/mini-apps/growth/optimize-onboarding`- Discovery: Optimize for search and featuring by following guidelines.
- - Source:`https://docs.base.org/mini-apps/technical-guides/search-discovery`## Authentication Best Practices (excerpts)
+ - Source:`https://docs.base.org/mini-apps/troubleshooting/how-search-works`## Authentication Best Practices (excerpts)
 
 Sources:
 -`https://docs.base.org/mini-apps/features/Authentication`-`https://docs.base.org/mini-apps/growth/optimize-onboarding`- Defer authentication: Let users explore and reach first value before prompting to connect or sign. Gate only when action requires identity, balance, or write access.
@@ -14776,7 +14776,7 @@ Now that you have RainbowKit configured with Base Account, you can:
 
 
 
-- [Explore Base Account Features](https://docs.base.org/base-account)
+- [Explore Base Account Features](https://docs.base.org/base-account/overview/what-is-base-account)
 
 
 
@@ -24201,7 +24201,7 @@ If you're looking to quickly bootstrap a simple app, you can always use a script
 
 [TanStack Query]: https://tanstack.com/query/latest
 
-[Coinbase Smart Wallet with RainbowKit]: https://docs.base.org/tutorials/smart-wallet-and-rainbowkit
+[Coinbase Smart Wallet with RainbowKit]: https://docs.base.org/base-account/framework-integrations/rainbowkit
 
 [OnchainKit]: https://onchainkit.xyz/?utm_source=basedocs&utm_medium=tutorials&campaign=building-an-onchain-app
 

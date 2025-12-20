@@ -2668,10 +2668,10 @@ account association:```json
  "miniapp": {
 "version": "1",
 "name": "Rewards",
-"iconUrl": "https://rewards.warpcast.com/app.png
-"splashImageUrl": "https://rewards.warpcast.com/logo.png
+"iconUrl": "https://farcaster.xyz/rewards/app.png
+"splashImageUrl": "https://farcaster.xyz/rewards/logo.png
 "splashBackgroundColor": "#000000",
-"homeUrl": "https://rewards.warpcast.com
+"homeUrl": "https://farcaster.xyz/rewards
 "webhookUrl": "https://docs.farcaster.xyz/reference/warpcast/api#get-creator-reward-winners
 "subtitle": "Top Warpcast creators",
 "description": "Climb the leaderboard and earn rewards by being active on Warpcast.",
@@ -2687,11 +2687,11 @@ account association:```json
  "warpcast",
  "earn"
 ],
-"heroImageUrl": "https://rewards.warpcast.com/og.png
+"heroImageUrl": "https://farcaster.xyz/rewards/og.png
 "tagline": "Top Warpcast creators",
 "ogTitle": "Rewards",
 "ogDescription": "Climb the leaderboard and earn rewards by being active on Warpcast.",
-"ogImageUrl": "https://rewards.warpcast.com/og.png
+"ogImageUrl": "https://farcaster.xyz/rewards/og.png
  }
 }
 ```::::
@@ -5828,7 +5828,7 @@ There's no limit on the number of apps you can create. You can create a separate
 A domain does not include the scheme (e.g. https) or path. It can optionally include a subdomain.
 
 ✅ rewards.warpcast.com
-❌ https://rewards.warpcast.com
+❌ https://farcaster.xyz/rewards
 
 Host a manifest file
 Host a manifest file on your chosen domain at /.well-known/farcaster.json
@@ -5963,17 +5963,17 @@ Here's an example farcaster.json file for the domain yoink.party with the accoun
  "miniapp": {
 "version": "1",
 "name": "Rewards",
-"iconUrl": "https://rewards.warpcast.com/app.png
-"splashImageUrl": "https://rewards.warpcast.com/logo.png
+"iconUrl": "https://farcaster.xyz/rewards/app.png
+"splashImageUrl": "https://farcaster.xyz/rewards/logo.png
 "splashBackgroundColor": "#000000",
-"homeUrl": "https://rewards.warpcast.com
+"homeUrl": "https://farcaster.xyz/rewards
 "webhookUrl": "https://client.farcaster.xyz/v1/creator-rewards-notifs-webhook
 "subtitle": "Top Warpcast creators",
 "description": "Climb the leaderboard and earn rewards by being active on Warpcast.",
 "screenshotUrls": [
- "https://rewards.warpcast.com/screenshot1.png
- "https://rewards.warpcast.com/screenshot2.png
- "https://rewards.warpcast.com/screenshot3.png
+ "https://farcaster.xyz/rewards/screenshot1.png
+ "https://farcaster.xyz/rewards/screenshot2.png
+ "https://farcaster.xyz/rewards/screenshot3.png
 ],
 "primaryCategory": "social",
 "tags": [
@@ -5982,11 +5982,11 @@ Here's an example farcaster.json file for the domain yoink.party with the accoun
  "warpcast",
  "earn"
 ],
-"heroImageUrl": "https://rewards.warpcast.com/og.png
+"heroImageUrl": "https://farcaster.xyz/rewards/og.png
 "tagline": "Top Warpcast creators",
 "ogTitle": "Rewards",
 "ogDescription": "Climb the leaderboard and earn rewards by being active on Warpcast.",
-"ogImageUrl": "https://rewards.warpcast.com/og.png
+"ogImageUrl": "https://farcaster.xyz/rewards/og.png
  }
 }
 
@@ -10128,7 +10128,7 @@ A domain does not include the scheme (e.g. https) or path. It can optionally
 include a subdomain.
 
 - ✅ rewards.warpcast.com
-- ❌ [https://rewards.warpcast.com
+- ❌ [https://farcaster.xyz/rewards
   :::
 
 #### Host a manifest file
@@ -10346,17 +10346,17 @@ account association:```json
  "miniapp": {
 "version": "1",
 "name": "Rewards",
-"iconUrl": "https://rewards.warpcast.com/app.png
-"splashImageUrl": "https://rewards.warpcast.com/logo.png
+"iconUrl": "https://farcaster.xyz/rewards/app.png
+"splashImageUrl": "https://farcaster.xyz/rewards/logo.png
 "splashBackgroundColor": "#000000",
-"homeUrl": "https://rewards.warpcast.com
+"homeUrl": "https://farcaster.xyz/rewards
 "webhookUrl": "https://client.farcaster.xyz/v1/creator-rewards-notifs-webhook
 "subtitle": "Top Warpcast creators",
 "description": "Climb the leaderboard and earn rewards by being active on Warpcast.",
 "screenshotUrls": [
- "https://rewards.warpcast.com/screenshot1.png
- "https://rewards.warpcast.com/screenshot2.png
- "https://rewards.warpcast.com/screenshot3.png
+ "https://farcaster.xyz/rewards/screenshot1.png
+ "https://farcaster.xyz/rewards/screenshot2.png
+ "https://farcaster.xyz/rewards/screenshot3.png
 ],
 "primaryCategory": "social",
 "tags": [
@@ -10365,11 +10365,11 @@ account association:```json
  "warpcast",
  "earn"
 ],
-"heroImageUrl": "https://rewards.warpcast.com/og.png
+"heroImageUrl": "https://farcaster.xyz/rewards/og.png
 "tagline": "Top Warpcast creators",
 "ogTitle": "Rewards",
 "ogDescription": "Climb the leaderboard and earn rewards by being active on Warpcast.",
-"ogImageUrl": "https://rewards.warpcast.com/og.png
+"ogImageUrl": "https://farcaster.xyz/rewards/og.png
  }
 }
 ```::::
