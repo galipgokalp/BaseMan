@@ -929,7 +929,7 @@ TX --> Base[Base Network]
  - [Step: Fork or clone](#step-fork-or-clone)
  - [Step: Customize and deploy](#step-customize-and-deploy)
  - [More Mini App Resources](#more-mini-app-resources)
-- [Mini Apps â€” Deep Guide for LLMs](#mini-apps-deep-guide-for-llms)
+- [Mini Apps - Deep Guide for LLMs](#mini-apps-deep-guide-for-llms)
  - [What you can do here](#what-you-can-do-here)
 - [Minimal Critical Code (MiniKit + OnchainKit wiring)](#minimal-critical-code-minikit-onchainkit-wiring)
 - [Navigation (with brief descriptions)](#navigation-with-brief-descriptions)
@@ -8165,20 +8165,20 @@ Modify the templates to match your specific use case and deploy using your prefe
 
 # https://docs.base.org/mini-apps/llms-full.txt
 
-## Mini Apps â€” Deep Guide for LLMs
+## Mini Apps - Deep Guide for LLMs
 
-> Mini Apps are socialâ€‘native, instantâ€‘launch web apps that run inside Base App. This guide orients an LLM to MiniKit fundamentals, product capabilities, UX best practices, growth mechanics, and troubleshooting.
+> Mini Apps are social-native, instant-launch web apps that run inside Base App. This guide orients an LLM to MiniKit fundamentals, product capabilities, UX best practices, growth mechanics, and troubleshooting.
 
 ### What you can do here
 - Scaffold new Mini Apps with MiniKit and integrate existing Next.js apps
 - Configure manifests for discovery and client capabilities
-- Build socialâ€‘native UX using OnchainKit components
+- Build social-native UX using OnchainKit components
 - Plan growth loops (sharing, search, notifications) and optimize onboarding
 - Diagnose issues specific to Base App vs. other Farcaster clients
 
 ## Minimal Critical Code (MiniKit + OnchainKit wiring)
 #### Code```tsx
-// MiniKit and OnchainKit often coâ€‘exist in Mini Apps. Keep providers minimal.
+// MiniKit and OnchainKit often co-exist in Mini Apps. Keep providers minimal.
 import { OnchainKitProvider } from '@coinbase/onchainkit'
 import { base } from 'wagmi/chains'
 
@@ -8192,39 +8192,39 @@ export function Providers(props: { children: React.ReactNode }) {
 ```## Navigation (with brief descriptions)
 
 ### Introduction
-- [Overview](https://docs.base.org/mini-apps/overview) â€” Why Mini Apps
+- [Overview](https://docs.base.org/mini-apps/overview) - Why Mini Apps
 
 ### Quickstart
-- [New Apps: Install](https://docs.base.org/mini-apps/quickstart/new-apps/install) â€” Scaffold
-- [Existing Apps: Integrate](https://docs.base.org/mini-apps/quickstart/existing-apps/install) â€” Integrate
-- [Launch Checklist](https://docs.base.org/mini-apps/quickstart/launch-checklist) â€” Readiness
+- [New Apps: Install](https://docs.base.org/mini-apps/quickstart/new-apps/install) - Scaffold
+- [Existing Apps: Integrate](https://docs.base.org/mini-apps/quickstart/existing-apps/install) - Integrate
+- [Launch Checklist](https://docs.base.org/mini-apps/quickstart/launch-checklist) - Readiness
 
 ### Design Guidelines
-- [Best Practices](https://docs.base.org/mini-apps/design-ux/best-practices) â€” UX patterns
-- [OnchainKit](https://docs.base.org/mini-apps/design-ux/onchainkit) â€” Components
+- [Best Practices](https://docs.base.org/mini-apps/design-ux/best-practices) - UX patterns
+- [OnchainKit](https://docs.base.org/mini-apps/design-ux/onchainkit) - Components
 
 ### Growth Playbook
-- [Optimize Onboarding](https://docs.base.org/mini-apps/growth/optimize-onboarding) â€” Onboarding
-- [Build Viral Mini Apps](https://docs.base.org/mini-apps/growth/build-viral-mini-apps) â€” Viral growth
+- [Optimize Onboarding](https://docs.base.org/mini-apps/growth/optimize-onboarding) - Onboarding
+- [Build Viral Mini Apps](https://docs.base.org/mini-apps/growth/build-viral-mini-apps) - Viral growth
 
 ### Features
-- [Overview](https://docs.base.org/mini-apps/features/overview) â€” Feature index
-- [Manifest](https://docs.base.org/mini-apps/features/manifest) â€” Manifest
-- [Authentication](https://docs.base.org/mini-apps/features/Authentication) â€” Auth
-- [Embeds & Previews](https://docs.base.org/mini-apps/core-concepts/embeds-and-previews) â€” Embeds
-- [Search & Discovery](https://docs.base.org/mini-apps/troubleshooting/how-search-works) â€” Discovery
-- [Sharing & Social Graph](https://docs.base.org/mini-apps/features/sharing-and-social-graph) â€” Sharing
-- [Notifications](https://docs.base.org/mini-apps/features/notifications) â€” Notifications
-- [Links](https://docs.base.org/mini-apps/features/links) â€” Links
+- [Overview](https://docs.base.org/mini-apps/features/overview) - Feature index
+- [Manifest](https://docs.base.org/mini-apps/features/manifest) - Manifest
+- [Authentication](https://docs.base.org/mini-apps/features/Authentication) - Auth
+- [Embeds & Previews](https://docs.base.org/mini-apps/core-concepts/embeds-and-previews) - Embeds
+- [Search & Discovery](https://docs.base.org/mini-apps/troubleshooting/how-search-works) - Discovery
+- [Sharing & Social Graph](https://docs.base.org/mini-apps/features/sharing-and-social-graph) - Sharing
+- [Notifications](https://docs.base.org/mini-apps/features/notifications) - Notifications
+- [Links](https://docs.base.org/mini-apps/features/links) - Links
 
 ### Troubleshooting
-- [Common Issues](https://docs.base.org/mini-apps/troubleshooting/common-issues) â€” Issues
-- [Base App Compatibility](https://docs.base.org/mini-apps/troubleshooting/base-app-compatibility) â€” Client behavior
+- [Common Issues](https://docs.base.org/mini-apps/troubleshooting/common-issues) - Issues
+- [Base App Compatibility](https://docs.base.org/mini-apps/troubleshooting/base-app-compatibility) - Client behavior
 
 ### Technical Reference
-- [MiniKit Overview](https://docs.base.org/onchainkit/latest/components/minikit/overview) â€” Overview
-- [Provider & Initialization](https://docs.base.org/onchainkit/latest/components/minikit/provider-and-initialization) â€” Provider
-- [Hooks](https://docs.base.org/onchainkit/latest/components/minikit/hooks/useMiniKit) â€” Hooks
+- [MiniKit Overview](https://docs.base.org/onchainkit/latest/components/minikit/overview) - Overview
+- [Provider & Initialization](https://docs.base.org/onchainkit/latest/components/minikit/provider-and-initialization) - Provider
+- [Hooks](https://docs.base.org/onchainkit/latest/components/minikit/hooks/useMiniKit) - Hooks
 
 
 ## Quickstart (excerpts)
@@ -8238,7 +8238,7 @@ cd my-mini-app && npm i && npm run dev
 npm install @coinbase/minikit @coinbase/onchainkit
 ```## Key Concepts (excerpts)
 
-Source:`https://docs.base.org/mini-apps/overview`- Socialâ€‘native UX: Apps run inside Base App with identity, smart wallet, and sharing builtâ€‘in.
+Source:`https://docs.base.org/mini-apps/overview`- Social-native UX: Apps run inside Base App with identity, smart wallet, and sharing built-in.
 - Manifest: Declare capabilities, intents, and metadata to enable discovery and client features.
  - Source:`https://docs.base.org/mini-apps/features/manifest`- Onboarding: Reduce steps; defer heavy auth until value is shown; prefill from client context.
  - Source:`https://docs.base.org/mini-apps/growth/optimize-onboarding`- Discovery: Optimize for search and featuring by following guidelines.
@@ -8246,26 +8246,26 @@ Source:`https://docs.base.org/mini-apps/overview`- Socialâ€‘native UX: Apps
 
 Sources:
 -`https://docs.base.org/mini-apps/features/Authentication`-`https://docs.base.org/mini-apps/growth/optimize-onboarding`- Defer authentication: Let users explore and reach first value before prompting to connect or sign. Gate only when action requires identity, balance, or write access.
-- Progressive disclosure: Ask for the minimum capability first (e.g., identity only). Request additional permissions justâ€‘inâ€‘time when a feature needs them.
+- Progressive disclosure: Ask for the minimum capability first (e.g., identity only). Request additional permissions just-in-time when a feature needs them.
 - Use client context: Prefill known fields (handle, pfp, address) from the client to reduce typing and confusion. Avoid duplicate prompts the client already satisfied.
-- Least privilege: Prefer scoped, revocable permissions (e.g., perâ€‘action transaction trays) instead of broad, persistent approvals.
-- Clear intent: When prompting to authenticate, state why itâ€™s needed, what will happen, and the benefit. Keep copy short and actionâ€‘oriented.
-- Resilience & UX: Provide guest mode where possible; handle declined auth gracefully with alternate paths or readâ€‘only modes.
-- Server verification: Verify any signed payloads or tokens serverâ€‘side. Enforce replay protection, expiration, and domain binding.
+- Least privilege: Prefer scoped, revocable permissions (e.g., per-action transaction trays) instead of broad, persistent approvals.
+- Clear intent: When prompting to authenticate, state why it's needed, what will happen, and the benefit. Keep copy short and action-oriented.
+- Resilience & UX: Provide guest mode where possible; handle declined auth gracefully with alternate paths or read-only modes.
+- Server verification: Verify any signed payloads or tokens server-side. Enforce replay protection, expiration, and domain binding.
 - Secure webhooks: If using webhooks (e.g., for frame updates), require signature verification and rate limiting; log and alert on failures.
 
 Modes summary (from Authentication):
 
-- SIWF / Quick Auth â€” Social identity with low friction, session via JWT when needed.
- - Create Account users: See a Login Request tray; sign SIWF inâ€‘app with passkey.
- - Connect Account users: Oneâ€‘time deeplink to Farcaster to register an auth address, then seamless inâ€‘app signâ€‘in thereafter.
- - Source:`https://docs.base.org/mini-apps/features/Authentication`- Wallet Auth â€” Uses the inâ€‘app smart wallet. Prefer for persisted sessions only when necessary; do not gate initial exploration behind connect.
+- SIWF / Quick Auth - Social identity with low friction, session via JWT when needed.
+ - Create Account users: See a Login Request tray; sign SIWF in-app with passkey.
+ - Connect Account users: One-time deeplink to Farcaster to register an auth address, then seamless in-app sign-in thereafter.
+ - Source:`https://docs.base.org/mini-apps/features/Authentication`- Wallet Auth - Uses the in-app smart wallet. Prefer for persisted sessions only when necessary; do not gate initial exploration behind connect.
  - Pair with transaction trays for clear intent and safe approvals.
- - Source:`https://docs.base.org/mini-apps/features/Authentication`- Context Data â€” Provided by hosts and useful for personalization/analytics, but not cryptographic proof of identity.
- - Treat as hints only; never primary auth. It can be spoofed by nonâ€‘official hosts.
+ - Source:`https://docs.base.org/mini-apps/features/Authentication`- Context Data - Provided by hosts and useful for personalization/analytics, but not cryptographic proof of identity.
+ - Treat as hints only; never primary auth. It can be spoofed by non-official hosts.
  - Source:`https://docs.base.org/mini-apps/features/Authentication`Hook reference:
 
-- useAuthenticate â€” Returns verified user from SIWF or wallet auth. Use alongside`useMiniKit`context.
+- useAuthenticate - Returns verified user from SIWF or wallet auth. Use alongside`useMiniKit`context.
  - Source:`https://docs.base.org/onchainkit/latest/components/minikit/hooks/useAuthenticate`Example (hook usage):
 #### Code```tsx
 import { useMiniKit } from '@coinbase/minikit'
@@ -8282,7 +8282,7 @@ export function AuthGate(props: { children: React.ReactNode }) {
  if (!user) return <button>Sign in</button>
  return <div aria-live="polite">Welcome, {displayName}!{props.children}</div>
 }
-```Conceptual serverâ€‘side verification (pseudocode):
+```Conceptual server-side verification (pseudocode):
 #### Code```ts
 // Verify a signed payload from the client (conceptual)
 function verifyAuth({ address, message, signature }): boolean {
@@ -8295,7 +8295,7 @@ function verifyAuth({ address, message, signature }): boolean {
 ```Prompt timing guidelines:
 - On first open: no auth prompt; show value and CTA.
 - On action requiring identity or write: show a single, focused auth step.
-- After success: persist session, avoid reâ€‘prompting; provide visible account state.
+- After success: persist session, avoid re-prompting; provide visible account state.
 
 
 ## API and Schemas (pruned)
