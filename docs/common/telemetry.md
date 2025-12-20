@@ -15,4 +15,4 @@ owner: BaseMan
 
 # Telemetry Index
 
-- OnchainKit Telemetry overview and opt-out steps are documented in Base guide: see [Telemetry · OnchainKit](../Base_MiniApps_Docs.md#telemetry--onchainkit)
+- OnchainKit Telemetry overview and opt-out steps are documented in Base guide: see [Telemetry · OnchainKit](../vendor/Base_MiniApps_Docs.md#telemetry--onchainkit)

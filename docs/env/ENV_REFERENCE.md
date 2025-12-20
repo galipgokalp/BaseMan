@@ -301,7 +301,7 @@ This documentation describes all environment variables used in the BaseMan proje
 ### `MINIAPP_AUTH_VERIFY_URL`
 - **Type:** `string` (URL)
 - **Required:** Optional
-- **Default:** `"https://base-man.vercel.app/api/auth/verify"`
+- **Default:** `"https://base-man.vercel.app/api/miniapp-auth"`
 - **Description:** MiniApp authentication verification endpoint URL'i.
 
 ---
@@ -705,8 +705,8 @@ These variables start with the `NEXT_PUBLIC_` prefix and can be used on the clie
 - [AI Agent Setup](../AI_AGENT_SETUP.md)
 - [Neynar API Key Guide](../NEYNAR_API_KEY_GUIDE.md)
 - [Upstash Redis Env Vars](../UPSTASH_REDIS_ENV_VARS.md)
-- [Base MiniApps Docs](../Base_MiniApps_Docs.md)
-- [Farcaster MiniApps Docs](../Farcaster_MiniApps_Docs.md)
+- [Base MiniApps Docs](../vendor/Base_MiniApps_Docs.md)
+- [Farcaster MiniApps Docs](../vendor/Farcaster_MiniApps_Docs.md)
 
 ---
 

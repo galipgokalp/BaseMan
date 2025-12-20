@@ -456,7 +456,7 @@ BaseMan, Farcaster ve Base App mobil uygulamalarında çalışan bir Pac-Man min
 
 ## 🔗 İlgili Dokümanlar
 
-- [Unified Wallet Integration Model](./UNIFIED_WALLET_INTEGRATION_MODEL.md)
+- [Unified Wallet Integration Model](../reports/UNIFIED_WALLET_INTEGRATION_MODEL.md)
 - [Base App Wallet Connection Guide](./BASE_APP_WALLET_CONNECTION_GUIDE.md)
 - [Passkey Prompt Fix](./PASSKEY_PROMPT_FIX.md)
 - [Wallet Connection Status Analysis](./WALLET_CONNECTION_STATUS_ANALYSIS.md)

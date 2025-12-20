@@ -52,7 +52,7 @@
     "docs:merge": "node scripts/merge-md.mjs docs/Base_MiniApps_Docs.md --inplace",
     "docs:toc:shallow": "doctoc docs --github --maxlevel 3",
     "docs:lint": "markdownlint \"docs/**/*.md\"",
-    "docs:links": "node scripts/check-links.mjs",
+    "docs:links": "node scripts/docs-links.mjs",
     "docs:spell": "cspell \"docs/**/*.md\"",
     "docs:format": "prettier -w \"docs/**/*.md\"",
     "docs:verify": "npm run docs:lint && npm run docs:links && npm run docs:spell",

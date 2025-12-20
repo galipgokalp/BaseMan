@@ -17,7 +17,7 @@ Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde
   - Not: Hedefler — Paymaster sponsorlu oyun, toplam skor kontrata yazılsın, PAC-BOARD liderlik tablosu toplam skora göre sıralasın, profil sekmesi çalışsın.
 
 - [ ] 1. Ortam ve Değişkenler (.env)
-  - Yerel kaynak:`BaseMan/docs/env.example`(örnek),`BaseMan/docs/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`("Step: Create an .env file" ve ilgili kısımlar)
+  - Yerel kaynak:`BaseMan/.env.example`(örnek),`BaseMan/docs/vendor/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`("Step: Create an .env file" ve ilgili kısımlar)
   - Resmi web: https://docs.cdp.coinbase.com/ ve https://docs.base.org/builderkits/onchainkit/getting-started
   - Yapılacaklar: RPC, Paymaster/Bundler, Registry adresi, EIP712 versiyonu (2), WalletConnect Project ID, OnchainKit client key — hepsi`.env`içinde tanımlı olmalı.
 
@@ -30,7 +30,7 @@ Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde
   - Yapılacaklar: Authorizer backend imzalayıcıya ayarlı (tamam), gerekirse seedTotals ile göç verilerini yükleyin, pause akışını test edin.
 
 - [ ] 4. Paymaster ve Bundler Entegrasyonu
-  - Yerel kaynak:`BaseMan/api/paymaster-proxy.js`, `BaseMan/docs/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`(Paymaster quickstart ve proxy önerileri)
+  - Yerel kaynak:`BaseMan/api/paymaster-proxy.js`, `BaseMan/docs/vendor/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`(Paymaster quickstart ve proxy önerileri)
   - Resmi web: https://docs.cdp.coinbase.com/paymaster ve https://docs.base.org/mini-apps/paymasters
   - Yapılacaklar:`PAYMASTER_SERVICE_URL`, allowlist ve allowed selectors doğrulaması; sponsorlu submitScore/completeQuest işleyişi.
 

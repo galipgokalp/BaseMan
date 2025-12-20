@@ -15,6 +15,6 @@ owner: BaseMan
 
 # Troubleshooting Index
 
-- Base: see sections under [Troubleshooting](../Base_MiniApps_Docs.md#troubleshooting)
-- Farcaster Mini Apps: see [Troubleshooting](../Farcaster_MiniApps_Docs.md#troubleshooting)
-- Paymaster/Bundler: see [Troubleshooting](../CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md#troubleshooting)
+- Base: see sections under [Troubleshooting](../vendor/Base_MiniApps_Docs.md#troubleshooting)
+- Farcaster Mini Apps: see [Troubleshooting](../vendor/Farcaster_MiniApps_Docs.md#troubleshooting)
+- Paymaster/Bundler: see [Troubleshooting](../vendor/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md#troubleshooting)

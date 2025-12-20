@@ -2,7 +2,7 @@
 
 This file is the **single source of truth** for any AI agent entering the BaseMan repository. It provides complete architectural understanding, safety constraints, and operational guidelines. Read this document fully before making any modifications.
 
-> **Note**: This document is synchronized with README.md. For human developers, refer to README.md and docs/DEVELOPMENT_GUIDE.md.
+> **Note**: This document is synchronized with README.md. For human developers, refer to README.md and docs/guides/DEVELOPMENT_GUIDE.md.
 
 ---
 
@@ -1187,10 +1187,10 @@ curl -X POST http://localhost:5173/api/score-sign \
 
 - **CLAUDE.md**: Project development guide (human-focused)
 - **README.md**: Full project documentation
-- **docs/DEVELOPMENT_GUIDE.md**: Setup workflow
-- **docs/SCORE_SUBMISSION_FLOW.md**: Technical flow diagram
-- **docs/CONTRACT_INTERACTION_GUIDE.md**: Contract details
-- **docs/DEBUG_GUIDE.md**: Troubleshooting
+- **docs/guides/DEVELOPMENT_GUIDE.md**: Setup workflow
+- **docs/guides/SCORE_SUBMISSION_FLOW.md**: Technical flow diagram
+- **docs/guides/CONTRACT_INTERACTION_GUIDE.md**: Contract details
+- **docs/guides/DEBUG_GUIDE.md**: Troubleshooting
 
 ---
 

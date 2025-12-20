@@ -273,8 +273,8 @@ console.log('Paymaster support:', caps);
 
 ## 🔗 İlgili Dokümanlar
 
-- [Base Mini Apps Docs - Paymaster](./Base_MiniApps_Docs.md)
-- [CDP Paymaster Docs](./CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md)
+- [Base Mini Apps Docs - Paymaster](../vendor/Base_MiniApps_Docs.md)
+- [CDP Paymaster Docs](../vendor/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md)
 - [Score Submission Flow](./SCORE_SUBMISSION_FLOW.md)
 - [Score Submission Debug Guide](./SCORE_SUBMISSION_DEBUG_GUIDE.md)
 

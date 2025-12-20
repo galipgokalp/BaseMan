@@ -4,11 +4,15 @@
 
 - [Documentation Index](#documentation-index)
   - [Reference Documentation](#reference-documentation)
-  - [Analysis & Reports](#analysis--reports)
   - [Guides](#guides)
+  - [Reports](#reports)
+  - [Plans](#plans)
+  - [Archive](#archive)
   - [Common](#common)
+  - [Other](#other)
   - [Quick Project Setup (Repo)](#quick-project-setup-repo)
   - [Docs Maintenance](#docs-maintenance)
+  - [Notes](#notes)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -20,38 +24,68 @@ This folder contains working copies of documentation for Base, Farcaster Mini Ap
 
 Reference documentation files (do not modify, these are external references):
 
-- **Base Mini Apps**: `Base_MiniApps_Docs.md` — merged into a single lossless document.
-- **Farcaster Mini Apps**: `Farcaster_MiniApps_Docs.md`
-- **CDP Paymaster**: `CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`
-
-## Analysis & Reports
-
-Analysis and status reports:
-
-- **Unified Wallet Integration Model**: `UNIFIED_WALLET_INTEGRATION_MODEL.md` — Common wallet integration model for Farcaster and Base App
-- **Wallet Integration Compliance**: `WALLET_INTEGRATION_COMPLIANCE.md` — BaseMan's compliance with unified wallet integration model
-- **Integration Analysis**: `INTEGRATION_ANALYSIS.md` — Platform integrations, wallet integrations, paymaster, and status report
-- **Base App Wallet Connection Guide**: `BASE_APP_WALLET_CONNECTION_GUIDE.md` — Base App wallet connection best practices
-- **Passkey Prompt Fix**: `PASSKEY_PROMPT_FIX.md` — Fix for unnecessary passkey prompts in Base App
-- **Wallet Connection Status Analysis**: `WALLET_CONNECTION_STATUS_ANALYSIS.md` — Analysis of wallet connection status in mini-apps
-- **Code Review Report**: `CODE_REVIEW_REPORT.md` — Code base review with improvement suggestions
-- **Mini App Safety Analysis**: `MINI_APP_SAFETY_ANALYSIS.md` — Safety analysis for mini-app improvements
-- **InnerHTML Safety Analysis**: `INNERHTML_SAFETY_ANALYSIS.md` — Analysis of innerHTML security improvements
+- **Base Mini Apps**: `vendor/Base_MiniApps_Docs.md` — merged into a single lossless document.
+- **Farcaster Mini Apps**: `vendor/Farcaster_MiniApps_Docs.md`
+- **CDP Paymaster**: `vendor/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`
 
 ## Guides
 
 Development and debugging guides:
 
-- **User Experience Flow**: `USER_EXPERIENCE_FLOW.md` — Complete user experience flow for wallet-connected users playing the game
-- **Score Submission Flow**: `SCORE_SUBMISSION_FLOW.md` — How scores are submitted to the contract
-- **Score Submission Debug Guide**: `SCORE_SUBMISSION_DEBUG_GUIDE.md` — Debug guide for score submission issues (why scores don't appear in contract)
-- **Mobile Debug Logs Guide**: `MOBILE_DEBUG_LOGS_GUIDE.md` — How to view debug logs in mobile mini-app environments (Farcaster/Base App)
-- **Paymaster System Analysis**: `PAYMASTER_SYSTEM_ANALYSIS.md` — Gas fee payment system (paymaster) status and configuration guide
-- **Sponsorless Mode Guide**: `SPONSORLESS_MODE_GUIDE.md` — Current sponsorless mode (users pay gas fee) implementation guide
-- **Contract Interaction Guide**: `CONTRACT_INTERACTION_GUIDE.md` — **NEW** Contract interaction mechanism integration according to Farcaster and Base App documentation
-- **Development Guide**: `DEVELOPMENT_GUIDE.md` — Wallet integration, Wagmi config, troubleshooting, and best practices
-- **Debug Guide**: `DEBUG_GUIDE.md` — Console logs access and UI debug procedures
-- **UI Design Guide**: `UI_DESIGN_GUIDE.md` — Modern theme design and UI layout recommendations
+- **AI Agent Mechanism**: `guides/AI_AGENT_MECHANISM.md` — AI agent webhook pipeline and analysis flow
+- **AI Agent Setup**: `guides/AI_AGENT_SETUP.md` — Local setup and webhook configuration
+- **Base App Wallet Connection Guide**: `guides/BASE_APP_WALLET_CONNECTION_GUIDE.md` — Base App wallet connection best practices
+- **Contract Interaction Guide**: `guides/CONTRACT_INTERACTION_GUIDE.md` — Contract interaction mechanism integration
+- **Debug Guide**: `guides/DEBUG_GUIDE.md` — Console logs access and UI debug procedures
+- **Development Guide**: `guides/DEVELOPMENT_GUIDE.md` — Wallet integration, Wagmi config, troubleshooting, and best practices
+- **Mobile Debug Logs Guide**: `guides/MOBILE_DEBUG_LOGS_GUIDE.md` — How to view debug logs in mobile mini-app environments (Farcaster/Base App)
+- **Neynar API Key Guide**: `guides/NEYNAR_API_KEY_GUIDE.md` — API key setup steps
+- **Neynar Free Alternatives**: `guides/NEYNAR_FREE_ALTERNATIVES.md` — Alternative providers overview
+- **Paymaster System Analysis**: `guides/PAYMASTER_SYSTEM_ANALYSIS.md` — Gas fee payment system status and configuration guide
+- **Score Submission Debug Guide**: `guides/SCORE_SUBMISSION_DEBUG_GUIDE.md` — Why scores don't appear in contract
+- **Score Submission Flow**: `guides/SCORE_SUBMISSION_FLOW.md` — How scores are submitted to the contract
+- **Sponsorless Mode Guide**: `guides/SPONSORLESS_MODE_GUIDE.md` — Users pay gas fee implementation guide
+- **UI Design Guide**: `guides/UI_DESIGN_GUIDE.md` — Theme design and UI layout recommendations
+- **Upstash Redis Env Vars**: `guides/UPSTASH_REDIS_ENV_VARS.md` — Redis env configuration
+- **User Experience Flow**: `guides/USER_EXPERIENCE_FLOW.md` — Wallet-connected gameplay flow
+
+## Reports
+
+Analysis and status reports:
+
+- **API Endpoints Analysis**: `reports/API_ENDPOINTS_ANALYSIS.md`
+- **Code Review Report**: `reports/CODE_REVIEW_REPORT.md`
+- **InnerHTML Safety Analysis**: `reports/INNERHTML_SAFETY_ANALYSIS.md`
+- **Integration Analysis**: `reports/INTEGRATION_ANALYSIS.md`
+- **Keyboard Focus Issue Analysis**: `reports/KEYBOARD_FOCUS_ISSUE_ANALYSIS.md`
+- **Leaderboard Profile Fix**: `reports/LEADERBOARD_PROFILE_FIX.md`
+- **Leaderboard Profile Test Report**: `reports/LEADERBOARD_PROFILE_TEST_REPORT.md`
+- **Mini App Safety Analysis**: `reports/MINI_APP_SAFETY_ANALYSIS.md`
+- **Passkey Prompt Fix**: `reports/PASSKEY_PROMPT_FIX.md`
+- **Phase 2 Safety Analysis**: `reports/PHASE2_SAFETY_ANALYSIS.md`
+- **Profile Mapping Serverless Issue**: `reports/PROFILE_MAPPING_SERVERLESS_ISSUE.md`
+- **Unified Wallet Integration Model**: `reports/UNIFIED_WALLET_INTEGRATION_MODEL.md`
+- **Wallet Connection Status Analysis**: `reports/WALLET_CONNECTION_STATUS_ANALYSIS.md`
+- **Wallet Integration Compliance**: `reports/WALLET_INTEGRATION_COMPLIANCE.md`
+
+## Plans
+
+- **100 Percent Compliance Plan**: `plans/100_PERCENT_COMPLIANCE_PLAN.md`
+- **Merge Duplicate Profiles Plan**: `plans/MERGE_DUPLICATE_PROFILES_PLAN.md`
+- **Organization Plan**: `plans/ORGANIZATION_PLAN.md`
+- **Persistent Profile Storage Plan**: `plans/PERSISTENT_PROFILE_STORAGE_PLAN.md`
+- **Roadmap**: `plans/ROADMAP.md`
+
+## Archive
+
+Historical or superseded work artifacts:
+
+- `archive/100_PERCENT_COMPLIANCE_ACHIEVED.md`
+- `archive/API_KEY_UPDATE_STATUS.md`
+- `archive/BULK_ENDPOINT_SOLUTION.md`
+- `archive/FREE_AI_AGENT_SETUP.md`
+- `archive/FREE_SOLUTION_IMPLEMENTATION.md`
+- `archive/FREE_SOLUTION_PLAN.md`
 
 ## Common
 
@@ -64,9 +98,9 @@ Shared documentation:
 
 Additional documentation:
 
-- **Roadmap**: `ROADMAP.md` — Project roadmap
 - **Glossary**: `glossary.md` — Terminology and definitions
-- **Environment Example**: `env.example` — Environment variables template
+- **Environment Reference**: `env/ENV_REFERENCE.md` — Environment variables reference
+- **Environment Example**: `../.env.example` — Environment variables template
 
 ## Quick Project Setup (Repo)
 
@@ -86,12 +120,18 @@ Additional documentation:
 
 ## Notes
 
-- Base dokümanı tek dosyada birleştirilmişti (`Base_MiniApps_Docs.md`).
+- Base dokumani tek dosyada birlestirilmisti (`vendor/Base_MiniApps_Docs.md`).
 - Documentation reorganization completed (2025-01-06):
   - 8 analysis files merged into `INTEGRATION_ANALYSIS.md`
   - 3 guide files merged into `DEVELOPMENT_GUIDE.md`
   - 2 debug files merged into `DEBUG_GUIDE.md`
   - 2 design files merged into `UI_DESIGN_GUIDE.md`
   - Old files removed (content preserved in merged files, git history available)
+- Documentation reorganization completed (2025-12-20):
+  - Guides moved under `docs/guides/`
+  - Reports moved under `docs/reports/`
+  - Plans moved under `docs/plans/`
+  - Vendor references moved under `docs/vendor/`
+  - Historical files archived under `docs/archive/`
 - Başlıkları değiştirirseniz TOC'yi güncelleyin: `npm run docs:toc`.
-- Glossary: `docs/glossary.md`; Environment örneği: `docs/env.example`.
+- Glossary: `docs/glossary.md`; Environment ornegi: `.env.example`.

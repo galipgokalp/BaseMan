@@ -2,7 +2,7 @@
 
 ## Mevcut Durum
 - **Toplam dosya sayısı:** ~40+ MD dosyası
-- **Büyük dosyalar:** Base_MiniApps_Docs.md (25K satır), Farcaster_MiniApps_Docs.md (13K satır)
+- **Büyük dosyalar:** vendor/Base_MiniApps_Docs.md (25K satır), vendor/Farcaster_MiniApps_Docs.md (13K satır)
 - **Organizasyon:** Düz yapı, kategorilendirme yok
 
 ## Önerilen Klasör Yapısı
@@ -38,7 +38,7 @@ docs/
 
 ### guides/integration/
 - WALLET_INTEGRATION_COMPLIANCE.md
-- UNIFIED_WALLET_INTEGRATION_MODEL.md
+- reports/UNIFIED_WALLET_INTEGRATION_MODEL.md
 
 ### guides/user-experience/
 - USER_EXPERIENCE_FLOW.md
@@ -60,9 +60,9 @@ docs/
 - WALLET_CONNECTION_STATUS_ANALYSIS.md
 
 ### external/
-- Base_MiniApps_Docs.md
-- Farcaster_MiniApps_Docs.md
-- CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md
+- vendor/Base_MiniApps_Docs.md
+- vendor/Farcaster_MiniApps_Docs.md
+- vendor/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md
 
 ### reports/
 - CODE_REVIEW_REPORT.md
@@ -103,7 +103,7 @@ Ana index dosyası oluşturulmalı:
 
 ## Notlar
 
-- Büyük external dokümanlar (`Base_MiniApps_Docs.md`, `Farcaster_MiniApps_Docs.md`) ayrı klasörde tutulmalı
+- Büyük external dokümanlar (`vendor/Base_MiniApps_Docs.md`, `vendor/Farcaster_MiniApps_Docs.md`) ayrı klasörde tutulmalı
 - Plan dokümanları ayrı klasörde organize edilmeli
 - Rehberler kullanım amacına göre alt klasörlere ayrılmalı
 
