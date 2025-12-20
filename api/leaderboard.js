@@ -783,7 +783,7 @@ async function runQueryPlatform(base, statement) {
 }
 
 async function runQuery(statement) {
-  // Try provided base first, then alternate known base URLs
+  // Try platform endpoint first, then fallback to v1 if needed
   const tried = new Set();
   const bases = [SQL_BASE_URL, ALT_SQL_BASE, DEFAULT_SQL_BASE].filter(Boolean);
   let lastError = null;
@@ -792,15 +792,15 @@ async function runQuery(statement) {
     if (tried.has(key)) continue;
     tried.add(key);
     try {
-      return await runQueryV1(base, statement);
+      return await runQueryPlatform(base, statement);
     } catch (e1) {
       lastError = e1;
-      log.warn("v1 SQL failed, trying platform run on", base, ":", e1?.message || e1);
+      log.warn("platform run failed on", base, ":", e1?.message || e1);
       try {
-        return await runQueryPlatform(base, statement);
+        return await runQueryV1(base, statement);
       } catch (e2) {
         lastError = e2;
-        log.warn("platform run failed on", base, ":", e2?.message || e2);
+        log.warn("v1 SQL failed on", base, ":", e2?.message || e2);
       }
     }
   }
