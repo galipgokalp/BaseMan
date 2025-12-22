@@ -1195,3 +1195,55 @@ curl -X POST http://localhost:5173/api/score-sign \
 ---
 
 *This document is the master specification for AI agents operating on the BaseMan codebase. Last synchronized with README.md on December 2025.*
+
+## Meta / Governance Principles (Non-Negotiable)
+
+1) Single Source of Truth
+AGENTS.md is the sole and immutable constitution of the BaseMan project.
+All other documentation, AI instructions, and onboarding materials are strictly subordinate and may only summarize or link to it.
+If any conflict exists, AGENTS.md always prevails.
+
+2) No Import-Time Side Effects
+In serverless or edge environments, no environment access, network call, blockchain query, or heavy initialization may occur at module import time.
+All such operations must be executed lazily and only within request-handling logic.
+Violations of this rule are considered critical failures.
+
+3) Backward Compatibility First
+Backward compatibility is the default posture of the project.
+Any breaking change must be explicitly identified, justified, and accompanied by a safe transition or rollback strategy.
+Silent or accidental breaking changes are unacceptable.
+
+4) Environment Variable Governance
+Environment variables must be explicitly classified as required or optional.
+Optional variables must never crash the application or prevent non-dependent features from functioning.
+Differences between preview and production environments must be intentional and documented.
+
+5) Release Gating
+No production deployment may occur without passing the defined health checks, smoke tests, and environment validation.
+A clear rollback strategy must exist before deployment.
+Shipping without confidence is prohibited.
+
+6) Security and Abuse Minimums
+Any open endpoint, sponsored transaction, or paymaster-related flow must enforce rate limiting, authorization, and replay protection.
+Nonce handling, deadlines, and selector allowlists are mandatory where applicable.
+Cost-amplifying or abuse-prone behavior is never acceptable.
+
+7) Fail-Fast Over Silent Failure
+Systems must fail early and visibly rather than degrade silently or behave ambiguously.
+Errors must be explicit, actionable, and observable.
+Returning misleading or partially valid states is prohibited.
+
+8) Observability Is Mandatory
+All critical flows must emit meaningful logs and structured errors.
+Production issues must be diagnosable without guesswork or invasive debugging.
+Lack of observability is considered a system defect.
+
+9) Change Scope Awareness
+Every change must be evaluated for its impact on users, chains, environments, and dependent flows.
+Changes must be scoped narrowly and intentionally.
+Unclear or overly broad changes are not acceptable.
+
+10) Stop Over Ship Under Uncertainty
+When the correct action is unclear, stopping, reverting, or delaying is always preferred over shipping.
+Stability and trust outweigh speed.
+No deployment is better than a risky deployment.
