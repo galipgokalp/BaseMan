@@ -1,5 +1,7 @@
 # Documentation Index
 
+AGENTS.md is the constitution and sole source of truth for architecture, rules, and safety. Start here: [../AGENTS.md](../AGENTS.md)
+
 ## Start Here
 
 - [Development Guide](guides/DEVELOPMENT_GUIDE.md)

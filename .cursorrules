@@ -1,56 +1,13 @@
-# BaseMan - Cursor Rules
+Read AGENTS.md first - it is the only source of truth.
 
-## Project Context
-BaseMan is a Pac-Man arcade game remake with blockchain integration (Base + Farcaster Mini Apps).
+Checklist:
+- If there is any conflict, AGENTS.md wins.
+- Avoid import-time env or network side effects.
+- Do not change EIP-712 domain/types or registry contract logic without explicit instruction.
+- Keep paymaster allowlist and selector checks intact.
+- Preserve game loop timing, input latency, and state transitions.
+- Preserve backward compatibility for APIs and configs.
+- Follow self-check and tests before and after changes as appropriate.
+- Never log or expose secrets.
 
-## Key Technologies
-- Farcaster Mini Apps SDK
-- Base App Mini Apps SDK
-- Neynar API (for user profiles)
-- Ethereum/Ethers.js
-- Base Blockchain (Mainnet & Sepolia)
-
-## Neynar API Integration
-
-### API Endpoint
-- Base URL: `https://api.neynar.com`
-- Endpoint: `/v2/farcaster/user/by/verified_address`
-- Method: GET
-- Headers:
-  - `api_key: ${NEYNAR_API_KEY}`
-  - `x-api-key: ${NEYNAR_API_KEY}`
-  - `x-neynar-experimental: true`
-
-### Usage in Project
-- **File**: `api/_lib/farcaster-profiles.js`
-- **Function**: `fetchNeynarProfile(address)`
-- **Purpose**: Fetch user profile data (avatar, username, displayName) for leaderboard display
-
-### API Response Format
-The API returns user data in various formats. The `normalizeUser()` function handles:
-- `user.pfp?.url` or `user.pfp_url` → avatarUrl
-- `user.username` or `user.profile?.username` → username
-- `user.display_name` or `user.displayName` → displayName
-- `user.fid` → Farcaster ID
-
-### Environment Variables
-- `NEYNAR_API_KEY`: Required for API access
-- `FARCASTER_PROFILE_PROVIDER`: Set to "neynar" or leave empty (default)
-
-### Related Documentation
-- Neynar API Docs: https://docs.neynar.com/
-- Farcaster Mini Apps: https://miniapps.farcaster.xyz/
-- Base Mini Apps: https://docs.base.org/mini-apps/
-
-## Code Style
-- Use async/await for API calls
-- Always handle errors gracefully
-- Use Map cache for profile data to avoid duplicate API calls
-- Normalize addresses using `ethers.getAddress()`
-
-## Important Files
-- `api/leaderboard.js`: Leaderboard endpoint with profile enrichment
-- `api/_lib/farcaster-profiles.js`: Neynar API integration
-- `src/leaderboard-panel.js`: Frontend leaderboard display
-- `src/profile-panel.js`: User profile panel
-
+See AGENTS.md: ./AGENTS.md
