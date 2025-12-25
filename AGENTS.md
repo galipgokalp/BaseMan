@@ -832,13 +832,14 @@ SCORE_SIGNER_PRIVATE_KEY="0x..."
 # ═══════════════════════════════════════════════════════════════
 # Chain & Registry Configuration
 # ═══════════════════════════════════════════════════════════════
-REGISTRY_DEFAULT_TARGET=base-sepolia
-REGISTRY_CHAIN_ID=84532
+REGISTRY_DEFAULT_TARGET=base
+REGISTRY_CHAIN_ID=8453
 BASE_SEPOLIA_REGISTRY_CHAIN_ID=84532
-NEXT_PUBLIC_REGISTRY_ADDRESS="0x..."
+BASE_MAINNET_REGISTRY_ADDRESS="0x..."
 BASE_SEPOLIA_REGISTRY_ADDRESS="0x..."
-BASE_MAINNET_REGISTRY="0x..."
-BASE_SEPOLIA_REGISTRY="0x..."
+NEXT_PUBLIC_REGISTRY_ADDRESS="0x..."
+NEXT_PUBLIC_BASE_MAINNET_REGISTRY_ADDRESS="0x..."
+NEXT_PUBLIC_BASE_SEPOLIA_REGISTRY_ADDRESS="0x..."
 
 # ═══════════════════════════════════════════════════════════════
 # RPC Endpoints
@@ -850,7 +851,10 @@ BASE_MAINNET_RPC_URL="https://mainnet.base.org"
 # Paymaster / Bundler
 # ═══════════════════════════════════════════════════════════════
 PAYMASTER_SERVICE_URL="https://..."
-CDP_PAYMASTER_URL="https://paymaster.cdp.coinbase.com/v1/..."
+NEXT_PUBLIC_PAYMASTER_URL="/api/paymaster-proxy"
+NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL=false
+PAYMASTER_URL="https://api.developer.coinbase.com/rpc/v1/base/..."
+CDP_PAYMASTER_URL="https://api.developer.coinbase.com/rpc/v1/base/..."
 PAYMASTER_ENFORCE_ALLOWLIST=true
 PAYMASTER_ALLOWED_TARGETS="0x..."
 PAYMASTER_ALLOWED_SELECTORS="0x42a252f6,0xa12020e8"
