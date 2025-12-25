@@ -55,6 +55,10 @@ npm run test:all
 
 See `.env.example` for required variables and [docs/env/ENV_REFERENCE.md](./docs/env/ENV_REFERENCE.md) for details.
 
+Notes:
+- Paymaster gas sponsorship is supported in Base App; Farcaster mini-app wallets do not support paymaster and fall back to sponsorless submissions.
+- For gasless flow, keep `NEXT_PUBLIC_PAYMASTER_URL=/api/paymaster-proxy` and `NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL=false`, and configure `PAYMASTER_SERVICE_URL` + CDP keys server-side.
+
 ## License
 
 See [LICENSE](./LICENSE).

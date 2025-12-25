@@ -138,27 +138,27 @@ This documentation describes all environment variables used in the BaseMan proje
 
 ### `CDP_API_KEY`
 - **Type:** `string`
-- **Required:** Required
+- **Required:** Optional (legacy)
 - **Default:** None
-- **Description:** Coinbase Developer Platform API key. Used for paymaster and bundler services.
+- **Description:** Legacy variable not used by the current code path. Prefer `CDP_API_KEY_ID` + `CDP_API_KEY_SECRET` for paymaster/bundler authentication.
 
 ### `CDP_API_KEY_ID`
 - **Type:** `string` (UUID)
 - **Required:** Required
 - **Default:** None
-- **Description:** CDP API key ID. Used together with the API key.
+- **Description:** CDP API key ID (client key). Used in CDP RPC URLs and as the `x-api-key` header for bundler/paymaster endpoints.
 
 ### `CDP_API_KEY_SECRET`
 - **Type:** `string`
 - **Required:** Required
 - **Default:** None
-- **Description:** CDP API key secret. **SECURITY:** Never commit to public repository!
+- **Description:** CDP API key secret. Used server-side (paymaster proxy auth). **SECURITY:** Never commit or expose to the client.
 
 ### `CDP_BUNDLER_URL`
 - **Type:** `string` (URL)
-- **Required:** Required
-- **Default:** `"https://api.developer.coinbase.com/rpc/v1/base/{CDP_API_KEY}"`
-- **Description:** CDP bundler service endpoint URL. Used to bundle user operations.
+- **Required:** Optional
+- **Default:** `"https://api.developer.coinbase.com/rpc/v1/base/<CDP_API_KEY_ID>"`
+- **Description:** CDP bundler service endpoint URL. Use `/base` for mainnet or `/base-sepolia` for testnet.
 
 ### `CDP_DEFAULT_NETWORK`
 - **Type:** `string`
@@ -168,13 +168,13 @@ This documentation describes all environment variables used in the BaseMan proje
 
 ### `CDP_PAYMASTER_URL`
 - **Type:** `string` (URL)
-- **Required:** Required
-- **Default:** `"https://api.developer.coinbase.com/rpc/v1/base/{CDP_API_KEY}"`
-- **Description:** CDP paymaster service endpoint URL. Used for gasless transactions.
+- **Required:** Optional
+- **Default:** `"https://api.developer.coinbase.com/rpc/v1/base/<CDP_API_KEY_ID>"`
+- **Description:** CDP paymaster service endpoint URL. Use `/base` for mainnet or `/base-sepolia` for testnet.
 
 ### `CDP_SQL_API_KEY`
 - **Type:** `string`
-- **Required:** Required
+- **Required:** Optional
 - **Default:** None
 - **Description:** CDP SQL API key. Used to query blockchain data.
 
@@ -330,9 +330,9 @@ These variables start with the `NEXT_PUBLIC_` prefix and can be used on the clie
 
 ### `NEXT_PUBLIC_BUNDLER_URL`
 - **Type:** `string` (URL)
-- **Required:** Required
+- **Required:** Optional
 - **Default:** None
-- **Description:** Bundler servis URL'i (client-side).
+- **Description:** Bundler service URL (client-side). If unset, `NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT` can provide a fallback.
 
 ### `NEXT_PUBLIC_CDP_API`
 - **Type:** `string`
@@ -360,15 +360,21 @@ These variables start with the `NEXT_PUBLIC_` prefix and can be used on the clie
 
 ### `NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT`
 - **Type:** `string` (URL)
-- **Required:** Required
+- **Required:** Optional
 - **Default:** None
-- **Description:** Combined endpoint URL for paymaster and bundler.
+- **Description:** Combined endpoint URL for paymaster and bundler (used as a fallback when specific URLs are not set).
 
 ### `NEXT_PUBLIC_PAYMASTER_URL`
 - **Type:** `string` (URL)
-- **Required:** Required
-- **Default:** None
-- **Description:** Paymaster servis URL'i (client-side).
+- **Required:** Required (for gasless flow)
+- **Default:** `"/api/paymaster-proxy"`
+- **Description:** Paymaster service URL (client-side). Use `/api/paymaster-proxy` in production to avoid exposing CDP endpoints.
+
+### `NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL`
+- **Type:** `string` (boolean)
+- **Required:** Optional
+- **Default:** `"false"`
+- **Description:** If `"true"`, allows direct CDP paymaster URLs on the client in production. Keep `false` to force `/api/paymaster-proxy`.
 
 ### `NEXT_PUBLIC_REGISTRY_ADDRESS`
 - **Type:** `string` (address)
@@ -442,6 +448,8 @@ These variables start with the `NEXT_PUBLIC_` prefix and can be used on the clie
 
 ## Paymaster Configuration
 
+Paymaster support is available in Base App; Farcaster mini-app wallets do not support paymaster and fall back to sponsorless transactions.
+
 ### `PAYMASTER_ALLOWED_SELECTORS`
 - **Type:** `string` (comma-separated hex)
 - **Required:** Required
@@ -466,11 +474,17 @@ These variables start with the `NEXT_PUBLIC_` prefix and can be used on the clie
 - **Default:** `"1"`
 - **Description:** Maximum number of function calls that will be sponsored by paymaster.
 
+### `PAYMASTER_URL`
+- **Type:** `string` (URL)
+- **Required:** Optional
+- **Default:** None
+- **Description:** Legacy alias of `PAYMASTER_SERVICE_URL`. If set, the proxy will use it as the upstream paymaster endpoint.
+
 ### `PAYMASTER_SERVICE_URL`
 - **Type:** `string` (URL)
-- **Required:** Required
-- **Default:** `"https://api.developer.coinbase.com/rpc/v1/base/{CDP_API_KEY}"`
-- **Description:** Paymaster service endpoint URL.
+- **Required:** Required (for paymaster proxy)
+- **Default:** None
+- **Description:** Paymaster service endpoint URL (CDP Paymaster). Use `/base` for mainnet or `/base-sepolia` for testnet.
 
 ---
 
@@ -712,4 +726,3 @@ These variables start with the `NEXT_PUBLIC_` prefix and can be used on the clie
 
 **Last Updated:** 2025-12-18
 **Total Variables:** 89
-
