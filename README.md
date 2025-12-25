@@ -4,7 +4,8 @@ BaseMan is a Pac-Man style arcade game with on-chain scoring on Base and MiniApp
 
 ## Onboarding Router
 
-- AGENTS.md is the sole source of truth for architecture and rules: [AGENTS.md](./AGENTS.md)
+- README.md is the human-facing constitution and project overview.
+- AGENTS.md is the AI-agent constitution: [AGENTS.md](./AGENTS.md)
 - Dev setup: [docs/guides/DEVELOPMENT_GUIDE.md](./docs/guides/DEVELOPMENT_GUIDE.md)
 - Debug: [docs/guides/DEBUG_GUIDE.md](./docs/guides/DEBUG_GUIDE.md)
 - Env reference: [docs/env/ENV_REFERENCE.md](./docs/env/ENV_REFERENCE.md)

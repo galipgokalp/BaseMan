@@ -1,6 +1,6 @@
 # Documentation Index
 
-AGENTS.md is the constitution and sole source of truth for architecture, rules, and safety. Start here: [../AGENTS.md](../AGENTS.md)
+README.md is the human-facing constitution and project overview. AGENTS.md is the constitution for AI agent behavior. Start here: [../AGENTS.md](../AGENTS.md)
 
 ## Start Here
 

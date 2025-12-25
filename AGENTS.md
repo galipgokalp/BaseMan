@@ -1,8 +1,8 @@
 # AGENTS.md — AI Agent Master Specification for BaseMan
 
-This file is the **single source of truth** for any AI agent entering the BaseMan repository. It provides complete architectural understanding, safety constraints, and operational guidelines. Read this document fully before making any modifications.
+This file is the **single source of truth** for AI agent behavior in the BaseMan repository. It provides complete architectural understanding, safety constraints, and operational guidelines. Read this document fully before making any modifications.
 
-> **Note**: This document is synchronized with README.md. For human developers, refer to README.md and docs/guides/DEVELOPMENT_GUIDE.md.
+> **Note**: README.md is the human-facing constitution and project overview. AGENTS.md and README.md serve different audiences; they should not override each other. If facts diverge, confirm with the maintainer.
 
 ---
 
@@ -1202,14 +1202,14 @@ curl -X POST http://localhost:5173/api/score-sign \
 
 ---
 
-*This document is the master specification for AI agents operating on the BaseMan codebase. Last synchronized with README.md on December 2025.*
+*This document is the master specification for AI agents operating on the BaseMan codebase.*
 
 ## Meta / Governance Principles (Non-Negotiable)
 
-1) Single Source of Truth
-AGENTS.md is the sole and immutable constitution of the BaseMan project.
-All other documentation, AI instructions, and onboarding materials are strictly subordinate and may only summarize or link to it.
-If any conflict exists, AGENTS.md always prevails.
+1) AI Agent Constitution
+AGENTS.md is the constitution for AI agent behavior in this repository.
+README.md is the constitution for human developers and the project overview.
+If any conflict exists between AI-specific guidance and human-facing docs, do not override; confirm the decision with the maintainer.
 
 2) No Import-Time Side Effects
 In serverless or edge environments, no environment access, network call, blockchain query, or heavy initialization may occur at module import time.
