@@ -158,7 +158,8 @@ connectors: [
 **Mevcut Durum:**
 - ⚠️ **ÖNCEKİ:** Farcaster için de paymaster kullanılmaya çalışılıyordu
 - ✅ **YENİ:** Farcaster için paymaster skip ediliyor
-- ✅ Base App için paymaster kullanılıyor
+- ✅ Base App için paymaster kullanılıyor (proxy ile)
+- ✅ Base App mainnet paymaster akisi dogrulandi
 
 **Platform-Specific Paymaster Support:**
 
@@ -612,4 +613,3 @@ BaseMan için "Sign in with Base" özelliği **opsiyonel**. Mevcut wallet connec
 ---
 
 **Not:** Bu analiz, kod tabanının mevcut durumunu yansıtır. Sürekli güncellenmelidir.
-

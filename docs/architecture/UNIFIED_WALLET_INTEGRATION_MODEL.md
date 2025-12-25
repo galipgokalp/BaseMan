@@ -159,7 +159,7 @@ async function submitBatchTransactions() {
 - **Farcaster:** `atomicRequired: false` (sequential execution)
 - **Base App:** `atomicRequired: true` (atomic execution)
 - **Farcaster:** Paymaster desteği yok
-- **Base App:** Paymaster desteği var (ERC-7677)
+- **Base App:** Paymaster desteği var (ERC-7677, proxy ile yapilandirilinca aktif)
 
 ---
 
@@ -204,6 +204,7 @@ const config = createConfig({
 
 **Base App:**
 - ✅ Paymaster desteği var (ERC-7677)
+- ✅ Base App mainnet paymaster akisi test edildi
 - ✅ Atomic batch transactions
 - ✅ `wallet_getCapabilities` ile capability check
 
@@ -386,4 +387,3 @@ if (window.fc?.miniapp) {
 ---
 
 **Not:** Bu dokümantasyon, Farcaster ve Base App mobil uygulamaları için ortak cüzdan entegrasyon modelini belirler. Tüm wallet entegrasyonları bu modele uygun olmalıdır.
-

@@ -1,15 +1,15 @@
 # Paymaster System Analysis - Gas Fee Ödeme Sistemi Durumu
 
-**Tarih:** 2025-01-06  
+**Tarih:** 2025-12-25  
 **Soru:** Kullanıcıların oyun bittikten sonra skorunun kontrata yazılabilmesi için ödeme gas fee ödeme sistemi çalışıyor mu?
 
 ---
 
 ## ✅ Kısa Cevap
 
-**Paymaster sistemi kodda hazır ve çalışır durumda, ancak yapılandırma gerekiyor.**
+**Paymaster sistemi kodda hazır ve çalışır durumda; Base App mainnet'te dogrulandi.**
 
-- ✅ **Base App**: Paymaster desteği var ve çalışır
+- ✅ **Base App**: Paymaster desteği var ve calisir (mainnet dogrulama yapildi)
 - ❌ **Farcaster**: Paymaster desteği yok (fallback: kullanıcı gas öder)
 - ⚠️ **Yapılandırma Gerekiyor**: Environment variables ayarlanmalı
 
@@ -77,7 +77,7 @@ CDP_API_KEY_SECRET=your_api_key_secret
 ```bash
 PAYMASTER_ENFORCE_ALLOWLIST=true
 PAYMASTER_ALLOWED_TARGETS=0x2fd9492E5f0F9559152bB5d4d23843072bCF17E2
-PAYMASTER_ALLOWED_SELECTORS=0x12345678,0x87654321
+PAYMASTER_ALLOWED_SELECTORS=0x42a252f6,0xa12020e8
 ```
 
 **Not**: 
@@ -92,9 +92,10 @@ PAYMASTER_ALLOWED_SELECTORS=0x12345678,0x87654321
 #### 4. Public Paymaster URL (Opsiyonel)
 ```bash
 NEXT_PUBLIC_PAYMASTER_URL=/api/paymaster-proxy
+NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL=false
 ```
 
-**Not**: Bu, client-side'da kullanılacak paymaster URL'i. Default: `/api/paymaster-proxy`
+**Not**: Bu, client-side'da kullanılacak paymaster URL'i. Default: `/api/paymaster-proxy`. Prod'da direct CDP URL'lerini kapatmak icin `NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL=false` kullanin.
 
 ---
 
@@ -177,7 +178,7 @@ NEXT_PUBLIC_PAYMASTER_URL=/api/paymaster-proxy
 3. Environment variables'ları kontrol edin:
    ```bash
    PAYMASTER_ALLOWED_TARGETS=0x2fd9492E5f0F9559152bB5d4d23843072bCF17E2
-   PAYMASTER_ALLOWED_SELECTORS=0x12345678,0x87654321
+   PAYMASTER_ALLOWED_SELECTORS=0x42a252f6,0xa12020e8
    ```
 
 ### Sorun 4: Farcaster'da Paymaster Çalışmıyor
@@ -260,6 +261,11 @@ console.log('Paymaster support:', caps);
    - `submitScore: Paymaster-backed submission started` → Paymaster çalışıyor ✅
    - `submitScore: Transaction submitted via wallet_sendCalls (no paymaster)` → Paymaster yok ❌
 
+### 4. Base App Mainnet Dogrulama (2025-12-25)
+
+- Base App icinde oynanan bir oyunda paymaster sponsorlamasi dogrulandi.
+- BaseScan loglari `UserOperationSponsored` ve `UserOperationEvent` kayitlarini gosteriyor.
+
 ---
 
 ## 📊 Platform Karşılaştırması
@@ -318,4 +324,3 @@ console.log('Paymaster support:', caps);
 ---
 
 **Not**: Bu analiz, paymaster sisteminin kod durumunu ve yapılandırma gereksinimlerini açıklar. Paymaster'ın çalışması için environment variables'ların ayarlanması gerekiyor.
-

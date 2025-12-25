@@ -410,7 +410,7 @@ console.log('Transaction status:', status);
 - [x] `wallet_sendCalls` kullanımı (EIP-5792)
 - [x] Atomic batch (`atomicRequired: true`)
 - [x] Version formatı ("2.0.0" - REQUIRED)
-- [x] Paymaster desteği (Base App'te destekleniyor, şu anda devre dışı)
+- [x] Paymaster desteği (Base App'te destekleniyor; proxy ile yapılandırıldıysa aktif)
 
 ### EIP-5792 Compliance
 
@@ -426,12 +426,11 @@ console.log('Transaction status:', status);
 
 - **Version:** Platform-specific - Farcaster "1.0", Base App "2.0.0" (REQUIRED)
 - **Atomic Batch:** Farcaster'da false, Base App'te true
-- **Paymaster:** Sponsorless mode'da devre dışı
+- **Paymaster:** Base App'te `/api/paymaster-proxy` ile aktif; Farcaster sponsorless fallback
 - **Error Handling:** Detaylı loglama ve hata mesajları
 - **Capabilities:** Dinamik olarak kontrol ediliyor
 
 ---
 
-**Son Güncelleme:** 2025-01-06  
-**Durum:** Farcaster ve Base App dokümanlarına göre entegre edildi
-
+**Son Güncelleme:** 2025-12-25  
+**Durum:** Farcaster ve Base App dokumanlarina gore entegre edildi
