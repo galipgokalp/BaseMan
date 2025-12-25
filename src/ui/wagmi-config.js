@@ -3,9 +3,6 @@ import { base, baseSepolia } from 'wagmi/chains';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { injected, walletConnect, metaMask, safe, baseAccount } from 'wagmi/connectors';
 import {
-  isFarcasterMiniApp,
-  isBaseApp,
-  isMiniAppHost,
   isFarcasterMiniAppSync,
   isBaseAppSync,
   isMiniAppHostSync,
@@ -131,7 +128,8 @@ export function makeWagmiConfig() {
     if (isMiniAppHostSync()) {
       // Platform-specific connector selection based on official docs:
       // - Farcaster: @farcaster/miniapp-wagmi-connector
-      // - Base App: baseAccount connector (wagmi/connectors) - recommended by docs.base.org
+      // - Base App: baseAccount connector (wagmi/connectors) per docs.base.org
+      //   MiniKit docs also use the Farcaster connector when available, so we keep it as fallback.
 
       if (isFarcasterMiniAppSync()) {
         // Farcaster Mini App - use Farcaster connector
@@ -165,23 +163,13 @@ export function makeWagmiConfig() {
           }
         }
       } else if (isBaseAppSync()) {
-        // Base App - use both farcasterMiniApp() and baseAccount() connectors
-        // Per docs.base.org/mini-apps/core-concepts/base-account:
-        // "The farcasterMiniApp() connector automatically connects to the user's Base Account
-        //  when the Mini App launches within the Base App."
-        // Both connectors should be included for full Base Account support
+        // Base App - prefer Base Account connector, keep Farcaster connector as fallback
+        // Base Account connector is documented for Base Account features (docs.base.org).
+        // MiniKit uses the Farcaster connector when available, so we include both.
         const connectors = [];
         
         try {
-          // Farcaster connector automatically connects to Base Account in Base App
-          const farcasterConnector = miniAppConnector();
-          connectors.push(farcasterConnector);
-        } catch (farcasterError) {
-          log.warn('Farcaster connector failed in Base App:', farcasterError?.message || farcasterError);
-        }
-        
-        try {
-          // Base Account connector for explicit Base Account features
+          // Base Account connector for Base Account features
           const baseAccountConnector = baseAccount({
             appName: 'BaseMan',
             appLogoUrl: 'https://base-man.vercel.app/icon.png'
@@ -189,6 +177,14 @@ export function makeWagmiConfig() {
           connectors.push(baseAccountConnector);
         } catch (baseAccountError) {
           log.warn('Base Account connector failed:', baseAccountError?.message || baseAccountError);
+        }
+        
+        try {
+          // Farcaster connector fallback (MiniKit uses this when available)
+          const farcasterConnector = miniAppConnector();
+          connectors.push(farcasterConnector);
+        } catch (farcasterError) {
+          log.warn('Farcaster connector failed in Base App:', farcasterError?.message || farcasterError);
         }
         
         if (connectors.length > 0) {
@@ -323,7 +319,7 @@ async function waitForSDK(maxWait = 10000) {
           if (typeof sdk.isInMiniApp === 'function') {
             try {
               inMiniApp = await sdk.isInMiniApp(1000);
-            } catch (_) {
+            } catch {
               inMiniApp = false;
             }
           } else {

@@ -5,7 +5,7 @@
  * Ensures correct SDK selection for both Farcaster and Base App platforms.
  */
 
-import { isFarcasterMiniApp, isBaseApp } from './platform-detection.js';
+import { getPlatformSync, isFarcasterMiniAppSync, isBaseAppSync } from './platform-detection.js';
 
 /**
  * Resolves the appropriate SDK based on platform detection
@@ -15,11 +15,12 @@ export function resolveSDK() {
   try {
     if (typeof window === 'undefined') return null;
     
-    // Platform-aware SDK detection with priority ordering
+    // Platform-aware SDK detection with priority ordering (sync-only)
     const candidates = [];
+    const platform = getPlatformSync();
     
     // Priority 1: Platform-specific SDKs (most reliable)
-    if (isFarcasterMiniApp()) {
+    if (platform === 'farcaster' || isFarcasterMiniAppSync()) {
       // Farcaster SDK priority for Farcaster platform
       candidates.push(
         () => window.fc && window.fc.miniapp,
@@ -29,7 +30,7 @@ export function resolveSDK() {
         () => window.MiniAppSDK,
         () => window.FarcasterMiniAppSDK
       );
-    } else if (isBaseApp()) {
+    } else if (platform === 'base' || isBaseAppSync()) {
       // Base App SDK priority for Base App platform
       candidates.push(
         () => window.MiniKit && (window.MiniKit.sdk || window.MiniKit),
@@ -58,7 +59,7 @@ export function resolveSDK() {
       () => {
         try {
           if (window.__FARCASTER_SDK__) return window.__FARCASTER_SDK__;
-        } catch (_) {}
+        } catch {}
         return null;
       }
     );
@@ -75,13 +76,13 @@ export function resolveSDK() {
             return value;
           }
         }
-      } catch (_) {
+      } catch {
         // Continue to next candidate
       }
     }
     
     return null;
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -99,4 +100,3 @@ if (typeof window !== 'undefined') {
   window.resolveSDK = resolveSDK;
   window.getSDK = getSDK;
 }
-

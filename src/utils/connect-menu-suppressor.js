@@ -25,9 +25,22 @@ const log = createLogger('ConnectMenuSuppressor');
   // Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)
   function isMiniAppEnvironment() {
     try {
-      // Priority 1: Use centralized platform detection utility
-      if (typeof window !== 'undefined' && typeof window.isMiniAppEnv === 'function') {
-        return window.isMiniAppEnv();
+      // Priority 1: Use centralized platform detection utility (sync-only)
+      if (typeof window !== 'undefined') {
+        if (typeof window.isMiniAppEnvSync === 'function') {
+          return window.isMiniAppEnvSync();
+        }
+        if (typeof window.isMiniAppHostSync === 'function') {
+          return window.isMiniAppHostSync();
+        }
+        if (typeof window.isMiniAppEnv === 'function') {
+          const detected = window.isMiniAppEnv();
+          if (typeof detected === 'boolean') return detected;
+        }
+        if (typeof window.isMiniAppHost === 'function') {
+          const detected = window.isMiniAppHost();
+          if (typeof detected === 'boolean') return detected;
+        }
       }
       
       // Priority 2: Emergency fallback (should never reach here in normal operation)
@@ -43,7 +56,7 @@ const log = createLogger('ConnectMenuSuppressor');
         );
       }
       return false;
-    } catch (_) {
+    } catch {
       return false;
     }
   }
@@ -231,4 +244,3 @@ const log = createLogger('ConnectMenuSuppressor');
   // Fallback: try after a longer delay (in case module loading is slow)
   setTimeout(tryInit, 100);
 })();
-

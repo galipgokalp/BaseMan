@@ -12,9 +12,9 @@ Farcaster ve Base App mobil uygulamaları, **ortak bir cüzdan entegrasyon model
 ### Ortak Prensipler
 
 1. **EIP-1193 Ethereum Provider API:** Her iki platform da standart EIP-1193 provider API'sini kullanır
-2. **Otomatik Bağlantı:** Mini app açıldığında cüzdan otomatik olarak bağlanır (kullanıcı etkileşimi olmadan)
-3. **Progressive Disclosure:** Passkey/onay prompt'ları sadece transaction yapılırken görünür
-4. **Zero-Friction:** Wallet connection flow'u elimine edilir, kullanıcı hiçbir wallet setup yapmadan işlem yapabilir
+2. **Baglanti Akisini Ertele:** Ilk yuklemede connect flow gosterilmez, `eth_accounts` ile pasif kontrol yapilir
+3. **Progressive Disclosure:** Baglanti ve prompt'lar onchain aksiyonlarda tetiklenir
+4. **Zero-Friction:** Wallet connection flow'u minimize edilir, alternatif cüzdanlar opsiyonel kalir
 
 ---
 
@@ -57,7 +57,7 @@ async function ensureWallet(requestAccounts = false) {
   const accounts = await provider.request({ method: 'eth_accounts' });
   
   if (Array.isArray(accounts) && accounts.length) {
-    // ✅ Bağlantı mevcut - otomatik kullan
+    // ✅ Baglanti mevcut - kullan
     return accounts[0];
   }
   
@@ -69,7 +69,7 @@ async function ensureWallet(requestAccounts = false) {
   }
   
   // 4. Panel açıldığında - bağlantı yoksa "Not connected" göster
-  // Wallet ilk transaction'da otomatik bağlanacak
+  // Wallet ilk onchain aksiyonda istenir
   return null;
 }
 ```
@@ -82,31 +82,29 @@ async function ensureWallet(requestAccounts = false) {
 
 ---
 
-### 3. Otomatik Bağlantı (Auto-Connect)
-
-**Her iki platform da otomatik bağlantı sağlar:**
+### 3. Auto-Connect Davranisi
 
 #### Farcaster
 ```javascript
 // Farcaster Mini App - Auto-connect
 // Dokümantasyon: "If a user already has a connected wallet the connector will automatically connect to it"
 const { isConnected } = useAccount(); // Wagmi hook
-// isConnected otomatik olarak true olur
+// isConnected true ise aktif baglanti vardir
 ```
 
 #### Base App
 ```javascript
-// Base App Mini App - Auto-connect
-// Dokümantasyon: "Mini Apps launched within the Base App are automatically connected to the user's Base Account"
+// Base App Mini App
+// Dokumantasyon: Base Account varsayilan cüzdandir ve connect flow'u ertelenir
 const provider = await sdk.wallet.getEthereumProvider();
 const accounts = await provider.request({ method: 'eth_accounts' });
-// accounts otomatik olarak dolu gelir
+// accounts doluysa baglanti vardir
 ```
 
 **Ortak Davranış:**
-- ✅ Mini app açıldığında otomatik bağlantı
-- ✅ Passkey/onay prompt'u yok (ilk açılışta)
-- ✅ Kullanıcı hiçbir wallet setup yapmadan işlem yapabilir
+- ✅ Ilk yuklemede connect button yok
+- ✅ `eth_accounts` ile pasif baglanti kontrolu
+- ✅ Onchain aksiyonda baglanti istenir
 
 ---
 
@@ -183,16 +181,16 @@ import { baseAccount } from 'wagmi/connectors';
 
 const config = createConfig({
   connectors: [
-    miniAppConnector(), // Base Account'a otomatik bağlanır
-    baseAccount({ appName: 'BaseMan', appLogoUrl: '...' }) // Explicit Base Account features
+    baseAccount({ appName: 'BaseMan', appLogoUrl: '...' }), // Base Account features
+    miniAppConnector() // Farcaster connector fallback (MiniKit uyumlulugu)
   ]
 });
 ```
 
 **Ortak Nokta:**
-- Her iki platform da `farcasterMiniApp()` connector'ını kullanır
-- Base App'da ek olarak `baseAccount()` connector'ı da eklenir
-- Her iki platform da auto-connect özelliği sağlar
+- Farcaster: `farcasterMiniApp()` connector
+- Base App: `baseAccount()` connector oncelikli, `farcasterMiniApp()` fallback
+- Auto-connect davranisi connector'in host ortaminda sagladigi UX'e baglidir
 
 ---
 
@@ -211,7 +209,7 @@ const config = createConfig({
 **Ortak Pattern:**
 ```javascript
 // Platform-specific paymaster check
-const isFarcaster = isFarcasterMiniApp();
+const isFarcaster = isFarcasterMiniAppSync();
 if (!isFarcaster && isPaymasterSupported(provider)) {
   // Base App - paymaster kullan
   payload.capabilities = {
@@ -339,14 +337,14 @@ if (window.fc?.miniapp) {
 | Özellik | Farcaster | Base App | Ortak Model |
 |---------|-----------|----------|--------------|
 | **SDK Provider** | `sdk.wallet.getEthereumProvider()` | `sdk.wallet.getEthereumProvider()` | ✅ Aynı |
-| **Auto-Connect** | ✅ Var | ✅ Var | ✅ Aynı |
+| **Auto-Connect** | ✅ Var (baglanti varsa) | ✅ Var (baglanti varsa) | ✅ Benzer |
 | **eth_accounts** | ✅ Desteklenir | ✅ Desteklenir | ✅ Aynı |
 | **eth_requestAccounts** | ✅ Desteklenir | ✅ Desteklenir | ✅ Aynı |
 | **wallet_sendCalls** | ✅ Desteklenir | ✅ Desteklenir | ✅ Aynı |
-| **Wagmi Connector** | `farcasterMiniApp()` | `farcasterMiniApp()` + `baseAccount()` | ⚠️ Farklı |
+| **Wagmi Connector** | `farcasterMiniApp()` | `baseAccount()` + `farcasterMiniApp()` (fallback) | ⚠️ Farklı |
 | **Paymaster** | ❌ Yok | ✅ Var | ⚠️ Farklı |
 | **Atomic Batch** | ❌ Sequential | ✅ Atomic | ⚠️ Farklı |
-| **Passkey Prompt** | Transaction'da | Transaction'da | ✅ Aynı |
+| **Passkey Prompt** | Onchain aksiyonda | Onchain aksiyonda | ✅ Benzer |
 
 ---
 
@@ -357,9 +355,9 @@ if (window.fc?.miniapp) {
 - [Farcaster Mini Apps - SDK](https://miniapps.farcaster.xyz/docs/sdk/wallet)
 
 ### Base App
-- [Base Mini Apps - Base Account](https://docs.base.org/mini-apps/core-concepts/base-account)
-- [Base Mini Apps - Recommended Onboarding Flow](https://docs.base.org/mini-apps/growth/optimize-onboarding)
-- [Base Account - Wagmi Integration](https://docs.base.org/base-account/framework-integrations/wagmi)
+- [Optimize Onboarding](https://docs.base.org/mini-apps/growth/optimize-onboarding)
+- [Base App Compatibility](https://docs.base.org/mini-apps/troubleshooting/base-app-compatibility)
+- [Base Account - Wagmi Setup](https://docs.base.org/base-account/framework-integrations/wagmi/setup)
 
 ### Standards
 - [EIP-1193: Ethereum Provider API](https://eips.ethereum.org/EIPS/eip-1193)
@@ -373,7 +371,7 @@ if (window.fc?.miniapp) {
 **Ortak Entegrasyon Modeli:**
 
 1. ✅ **EIP-1193 Provider API:** Her iki platform da aynı API'yi kullanır
-2. ✅ **Otomatik Bağlantı:** Mini app açıldığında otomatik bağlantı
+2. ✅ **Baglanti Akisi Erteleme:** Ilk yuklemede connect flow gosterilmez
 3. ✅ **Progressive Disclosure:** Passkey prompt'ları sadece transaction yapılırken
 4. ✅ **Zero-Friction:** Wallet connection flow'u elimine edilir
 5. ✅ **Platform-Specific Optimizations:** Paymaster, atomic batch gibi özellikler platform-specific

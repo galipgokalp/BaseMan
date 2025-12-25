@@ -759,50 +759,17 @@ if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
 
 ---
 
-### 4.3. İyileştirilebilir Kısımlar ⚠️
+### 4.3. İyileştirilebilir Kısımlar ✅
 
-#### Farcaster ve Base App Ayrımı ⚠️
+#### Farcaster ve Base App Ayrımı ✅
 
 **Rehber:** Platform-specific connector kullan
 
 **Mevcut Durum:**
 - Farcaster: `farcasterMiniApp()` connector kullanılıyor ✅
-- Base App: `injected()` fallback kullanılıyor ⚠️
+- Base App: `baseAccount()` öncelikli, `farcasterMiniApp()` fallback ✅
 
-**Öneri:**
-Base App için `baseAccount` connector eklenebilir (opsiyonel, çünkü `injected()` çalışıyor):
-
-```javascript
-// src/ui/wagmi-config.js'e eklenebilir
-import { baseAccount } from 'wagmi/connectors';
-
-function isFarcasterMiniApp() {
-  return Boolean(
-    (window.fc && window.fc.miniapp) ||
-    (window.farcaster && window.farcaster.miniapp)
-  );
-}
-
-function isBaseApp() {
-  return Boolean(
-    window.ReactNativeWebView &&
-    !isFarcasterMiniApp()  // Base App ama Farcaster değil
-  );
-}
-
-if (isFarcasterMiniApp()) {
-  connectors.push(farcasterMiniApp());
-} else if (isBaseApp()) {
-  // Base Account connector (opsiyonel iyileştirme)
-  try {
-    connectors.push(baseAccount({ appName: 'BaseMan' }));
-  } catch (e) {
-    connectors.push(injected());  // Fallback
-  }
-}
-```
-
-**Öncelik:** Düşük (mevcut çözüm çalışıyor)
+**Durum:** ✅ Resmi Base Account + MiniKit rehberleriyle uyumlu
 
 ---
 
@@ -812,9 +779,9 @@ if (isFarcasterMiniApp()) {
 |---------|--------|------------|-------|
 | **Wagmi Config** | `farcasterMiniApp()` | `miniAppConnector()` | ✅ Uyumlu |
 | **window.ethereum Shim** | Gerekli | Mevcut | ✅ Uyumlu |
-| **Platform Detection** | İki ayrı fonksiyon | Tek fonksiyon | ⚠️ İyileştirilebilir |
+| **Platform Detection** | Merkezi utility | Merkezi utility | ✅ Uyumlu |
 | **Farcaster Connector** | `farcasterMiniApp()` | Kullanılıyor | ✅ Uyumlu |
-| **Base App Connector** | `baseAccount` veya `injected()` | `injected()` | ⚠️ Çalışıyor ama optimize edilebilir |
+| **Base App Connector** | `baseAccount` | `baseAccount` + `farcasterMiniApp()` fallback | ✅ Uyumlu |
 | **SDK Ready Check** | `await sdk.actions.ready()` | Farcaster için var | ✅ Uyumlu |
 | **Error Handling** | Çok katmanlı | 3 katmanlı fallback | ✅ Uyumlu |
 | **Batch Transactions** | `useSendCalls` | Kullanılıyor | ✅ Uyumlu |
@@ -890,4 +857,3 @@ Mevcut implementasyon:
 ✅ **Batch transactions desteklenir (EIP-5792)**
 
 Bu rehber, Farcaster ve Base App mobil uygulamalarında mini app cüzdan entegrasyonu için gerekli tüm bilgileri içerir. Platform-specific detaylara dikkat edin ve best practice'leri takip edin.
-

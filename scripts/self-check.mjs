@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import 'dotenv/config';
+import { ethers } from 'ethers';
 
 const BASE = process.env.SELF_CHECK_BASE || 'http://127.0.0.1:5173';
 
@@ -53,28 +54,66 @@ async function main() {
   // Paymaster proxy probe (only if configured)
   try {
     if (process.env.PAYMASTER_SERVICE_URL || process.env.PAYMASTER_URL) {
-      const probe = {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'wallet_sendCalls',
-        params: [
-          {
-            version: '1.0.0',
-            from: '0x0000000000000000000000000000000000000001',
-            chainId: '0x14a74', // 84532
-            atomicRequired: true,
-            calls: [
-              { to: process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000', data: '0x', value: '0x0' }
-            ],
-            capabilities: { paymasterService: { url: process.env.PAYMASTER_SERVICE_URL || process.env.PAYMASTER_URL, optional: false } }
-          }
-        ]
-      };
-      results.paymasterProxy = await getJson(`${BASE}/api/paymaster-proxy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(probe)
-      });
+      const sign = results.scoreSign?.body || null;
+      if (!sign?.contractAddress || !sign?.chainId || !sign?.signature || !sign?.deadline) {
+        results.paymasterProxy = { skipped: true, reason: 'score-sign missing required fields for paymaster probe' };
+      } else {
+        const abi = [
+          'function submitScore(address player,uint256 score,uint256 deadline,bytes signature)',
+          'function submitScore(address player,uint256 score,uint256 deadline,uint256 nonce,bytes signature)'
+        ];
+        const iface = new ethers.Interface(abi);
+        const isV2 = typeof sign?.nonce === 'string' || typeof sign?.nonce === 'number';
+        const scoreValue = sign?.score != null ? BigInt(sign.score) : 1n;
+        const deadline = BigInt(sign.deadline);
+        const player = '0x0000000000000000000000000000000000000001';
+        const registryCallData = isV2
+          ? iface.encodeFunctionData('submitScore(address,uint256,uint256,uint256,bytes)', [
+              player,
+              scoreValue,
+              deadline,
+              BigInt(sign.nonce),
+              sign.signature
+            ])
+          : iface.encodeFunctionData('submitScore(address,uint256,uint256,bytes)', [
+              player,
+              scoreValue,
+              deadline,
+              sign.signature
+            ]);
+
+        const walletIface = new ethers.Interface(['function execute(address target,uint256 value,bytes data)']);
+        const callData = walletIface.encodeFunctionData('execute', [sign.contractAddress, 0, registryCallData]);
+        const chainHex = '0x' + Number(sign.chainId).toString(16);
+        const probe = {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'pm_getPaymasterStubData',
+          params: [
+            {
+              sender: '0x0000000000000000000000000000000000000002',
+              nonce: '0x0',
+              initCode: '0x',
+              callData,
+              callGasLimit: '0x0',
+              verificationGasLimit: '0x0',
+              preVerificationGas: '0x0',
+              maxFeePerGas: '0x0',
+              maxPriorityFeePerGas: '0x0',
+              paymasterAndData: '0x',
+              signature: '0x'
+            },
+            '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789',
+            chainHex,
+            {}
+          ]
+        };
+        results.paymasterProxy = await getJson(`${BASE}/api/paymaster-proxy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(probe)
+        });
+      }
     } else {
       results.paymasterProxy = { skipped: true, reason: 'PAYMASTER_SERVICE_URL not set' };
     }

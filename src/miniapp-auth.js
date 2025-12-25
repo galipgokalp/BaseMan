@@ -10,9 +10,22 @@ const log = createLogger('UtilMiniappAuth');
   // Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)
   function isMiniAppEnv() {
     try {
-      // Priority 1: Use centralized platform detection utility
-      if (typeof window !== 'undefined' && typeof window.isMiniAppHost === 'function') {
-        return window.isMiniAppHost();
+      // Priority 1: Use centralized platform detection utility (sync-only)
+      if (typeof window !== 'undefined') {
+        if (typeof window.isMiniAppHostSync === 'function') {
+          return window.isMiniAppHostSync();
+        }
+        if (typeof window.isMiniAppEnvSync === 'function') {
+          return window.isMiniAppEnvSync();
+        }
+        if (typeof window.isMiniAppHost === 'function') {
+          const detected = window.isMiniAppHost();
+          if (typeof detected === 'boolean') return detected;
+        }
+        if (typeof window.isMiniAppEnv === 'function') {
+          const detected = window.isMiniAppEnv();
+          if (typeof detected === 'boolean') return detected;
+        }
       }
       
       // Priority 2: Emergency fallback (should never reach here in normal operation)
@@ -28,7 +41,7 @@ const log = createLogger('UtilMiniappAuth');
         );
       }
       return false;
-    } catch (_) { 
+    } catch { 
       return false; 
     }
   }
@@ -60,7 +73,7 @@ const log = createLogger('UtilMiniappAuth');
         window.sdk ||
         null
       );
-    } catch (_) {
+    } catch {
       return null;
     }
   }
@@ -74,7 +87,7 @@ const log = createLogger('UtilMiniappAuth');
     if (typeof sdk.isInMiniApp === 'function') {
       try {
         inMiniApp = await sdk.isInMiniApp(1000);
-      } catch (_) {
+      } catch {
         inMiniApp = false;
       }
     } else {
@@ -171,7 +184,7 @@ const log = createLogger('UtilMiniappAuth');
       if (!isMiniAppEnv()) return;
       const token = await getQuickAuthToken();
       if (!token || typeof token !== 'string' || token.length < 8) return;
-      try { window.__MINIAPP_AUTH_TOKEN__ = token; } catch (_) {}
+      try { window.__MINIAPP_AUTH_TOKEN__ = token; } catch {}
       await sendToken(token);
     } catch (err) {
       // Prevent unhandled promise rejection
@@ -184,5 +197,5 @@ const log = createLogger('UtilMiniappAuth');
     main().catch(err => {
       log.error('miniapp-auth-failed', { step: 'main:promise', reason: err?.message || err });
     });
-  } catch (_) {}
+  } catch {}
 })();

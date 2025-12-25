@@ -42,9 +42,10 @@ const resolveFirstNonEmpty = (...candidates) => {
 const isProduction = (process.env.NODE_ENV || "").toLowerCase() === "production";
 const allowDirectPaymaster = String(process.env.NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL || "")
   .toLowerCase() === "true";
+const CDP_RPC_REGEX = /^https?:\/\/api\.developer\.coinbase\.com\/rpc\/v1\//;
 const isCdpRpcUrl = (value) => {
   if (typeof value !== "string") return false;
-  return /^https?:\\/\\/api\\.developer\\.coinbase\\.com\\/rpc\\/v1\\//.test(value.trim());
+  return CDP_RPC_REGEX.test(value.trim());
 };
 
 // Keep NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT in sync with NEXT_PUBLIC_PAYMASTER_URL

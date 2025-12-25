@@ -28,30 +28,32 @@ Bu doküman, BaseMan'in Farcaster ve Base App platformlarına entegrasyon durumu
 
 ### 1.1. Base App Mini Apps
 
-**Kaynak:** [Base Mini Apps - Base Account](https://docs.base.org/mini-apps/core-concepts/base-account)
+**Kaynaklar:**
+- [Base Account Wagmi Setup](https://docs.base.org/base-account/framework-integrations/wagmi/setup)
+- [MiniKit Provider](https://docs.base.org/onchainkit/latest/components/minikit/provider-and-initialization)
 
 #### Wagmi Provider Setup ✅
 
 **Dokümantasyon Önerisi:**
 ```typescript
 connectors: [
-  farcasterMiniApp(), 
   baseAccount({
     appName: METADATA.name,
     appLogoUrl: METADATA.iconImageUrl,
-  })
+  }),
+  farcasterMiniApp()
 ]
 ```
 
 **Açıklama:**
-- Base App içindeki Mini Apps için **hem `farcasterMiniApp()` hem de `baseAccount()` connector'ları birlikte kullanılmalı**
-- `farcasterMiniApp()` connector, Base App içinde otomatik olarak kullanıcının Base Account'una bağlanır
-- `baseAccount()` connector, Base Account özelliklerine açık erişim sağlar
+- Base App için resmi öneri: `baseAccount()` connector (Base Account Wagmi Setup)
+- MiniKit, Farcaster connector'u kullanılabilir olduğunda otomatik tercih eder
+- Bu nedenle Base App içinde `baseAccount()` + `farcasterMiniApp()` fallback modeli uygulanır
 
 **Mevcut Implementasyon:**
-- ✅ Base App için her iki connector da eklendi
-- ✅ Farcaster connector otomatik Base Account bağlantısı sağlıyor
-- ✅ Base Account connector explicit Base Account özellikleri için
+- ✅ Base App için Base Account connector öncelikli
+- ✅ Farcaster connector fallback olarak ekli
+- ✅ Base Account özellikleri erişilebilir
 
 #### Batch Transactions with Capabilities ✅
 
@@ -87,8 +89,8 @@ connectors: [
 #### Base Account Özellikleri
 
 **Universal Sign-On ✅**
-- Base Account, tüm Base-enabled app'lerde tek passkey ile çalışır
-- Mini Apps otomatik olarak Base Account'a bağlanır
+- Base Account, Base App icinde varsayilan cüzdan olarak sunulur
+- Onboarding dokumani, connect flow'larinin ertelenmesini ve Base Account'un otomatik kullanilmasini onerir
 
 **One-tap USDC Payments ✅**
 - Base Account layer'ında düşük friction ödemeler
@@ -443,7 +445,7 @@ capabilities: {
 
 **Dokümantasyon:**
 - Base Account connector kullanıldığında, provider'dan `wallet_sendCalls` ile paymaster capabilities kullanılabilir
-- Base Account otomatik olarak paymaster desteğini gösterir
+- `wallet_getCapabilities` ile paymasterService destek durumu kontrol edilir
 
 **Mevcut Durum:**
 - ✅ Base Account connector eklendi (`wagmi-config.js`)
@@ -597,7 +599,8 @@ BaseMan için "Sign in with Base" özelliği **opsiyonel**. Mevcut wallet connec
 ## 🔗 Referanslar
 
 ### Base App
-- [Base Mini Apps - Base Account](https://docs.base.org/mini-apps/core-concepts/base-account)
+- [Optimize Onboarding](https://docs.base.org/mini-apps/growth/optimize-onboarding)
+- [Base App Compatibility](https://docs.base.org/mini-apps/troubleshooting/base-app-compatibility)
 - [Base Account - Sponsor Gas (Paymasters)](https://docs.base.org/base-account/improve-ux/sponsor-gas/paymasters)
 - [Base Account - Sign in with Base](https://docs.base.org/base-account/framework-integrations/wagmi/sign-in-with-base)
 

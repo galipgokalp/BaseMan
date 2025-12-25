@@ -68,12 +68,12 @@ async function ensureWallet(requestAccounts = false) {
 
 ---
 
-### 3. Otomatik Bağlantı (Auto-Connect) ✅
+### 3. Passive Baglanti Kontrolu ✅
 
 **Ortak Model Gereksinimi:**
-- Mini app açıldığında otomatik bağlantı
-- Passkey/onay prompt'u yok (ilk açılışta)
-- Kullanıcı hiçbir wallet setup yapmadan işlem yapabilir
+- İlk yüklemede connect flow gosterilmemeli
+- `eth_accounts` ile mevcut baglanti pasif kontrol edilmeli
+- Onchain aksiyonlarda baglanti istenmeli
 
 **Mevcut Implementasyon:**
 ```javascript
@@ -85,7 +85,7 @@ if (isMiniAppEnv()) {
       if (provider) {
         const accounts = await provider.request({ method: 'eth_accounts' });
         if (Array.isArray(accounts) && accounts.length > 0) {
-          await ensureWallet(); // ✅ Otomatik bağlantı
+          await ensureWallet(); // ✅ Mevcut hesap varsa kullan
         }
       }
     } catch (_) {
@@ -96,9 +96,9 @@ if (isMiniAppEnv()) {
 ```
 
 **Durum:** ✅ **Uyumlu**
-- ✅ Arka planda otomatik bağlantı kontrol ediliyor
-- ✅ `eth_accounts` ile passive kontrol yapılıyor
-- ✅ Passkey prompt yok
+- ✅ `eth_accounts` ile pasif kontrol yapiliyor
+- ✅ Ilk yuklemede prompt tetiklenmiyor
+- ✅ Baglanti sadece gerekli oldugunda isteniyor
 
 ---
 
@@ -177,11 +177,11 @@ export function isMiniAppHost() { /* ... */ }
 
 // src/onchain-client.js - satır 34-39
 const isFarcaster = typeof window !== 'undefined' && 
-  typeof window.isFarcasterMiniApp === 'function' && 
-  window.isFarcasterMiniApp();
+  typeof window.isFarcasterMiniAppSync === 'function' && 
+  window.isFarcasterMiniAppSync();
 const isBase = typeof window !== 'undefined' && 
-  typeof window.isBaseApp === 'function' && 
-  window.isBaseApp();
+  typeof window.isBaseAppSync === 'function' && 
+  window.isBaseAppSync();
 ```
 
 **Durum:** ✅ **Uyumlu**
@@ -201,12 +201,12 @@ const isBase = typeof window !== 'undefined' &&
 **Mevcut Implementasyon:**
 ```javascript
 // src/ui/wagmi-config.js
-if (isFarcasterMiniApp()) {
+if (isFarcasterMiniAppSync()) {
   connectors: [miniAppConnector()] // ✅ Farcaster connector
-} else if (isBaseApp()) {
+} else if (isBaseAppSync()) {
   connectors: [
-    miniAppConnector(), // ✅ Base Account'a otomatik bağlanır
-    baseAccount({ appName: 'BaseMan', appLogoUrl: '...' }) // ✅ Explicit Base Account features
+    baseAccount({ appName: 'BaseMan', appLogoUrl: '...' }), // ✅ Base Account features
+    miniAppConnector() // ✅ Farcaster connector fallback (MiniKit uyumlulugu)
   ]
 }
 ```
@@ -227,9 +227,9 @@ if (isFarcasterMiniApp()) {
 **Mevcut Implementasyon:**
 ```javascript
 // src/onchain-client.js - submitScoreWithPaymaster()
-const isFarcaster = isFarcasterMiniApp();
+const isFarcaster = isFarcasterMiniAppSync();
 const payload = {
-  version: "1.0.0",
+  version: isFarcaster ? "1.0" : "2.0.0",
   from: state.address,
   chainId: hexChainId,
   atomicRequired: !isFarcaster, // ✅ Platform-specific
@@ -362,4 +362,3 @@ BaseMan implementasyonu, Unified Wallet Integration Model'e büyük ölçüde uy
 - [Passkey Prompt Fix](./PASSKEY_PROMPT_FIX.md)
 - [Wallet Connection Status Analysis](./WALLET_CONNECTION_STATUS_ANALYSIS.md)
 - [Integration Analysis](./INTEGRATION_ANALYSIS.md)
-

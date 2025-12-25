@@ -3,15 +3,16 @@
     const env = (window.__ENV && typeof window.__ENV === 'object') ? window.__ENV : {};
     const cfg = (window.BaseManOnchainConfig = window.BaseManOnchainConfig || {});
     const allowDirectPaymaster = String(env.NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL || '').toLowerCase() === 'true';
+    const CDP_RPC_REGEX = /^https?:\/\/api\.developer\.coinbase\.com\/rpc\/v1\//;
     const isCdpRpcUrl = (value) => {
       if (!value || typeof value !== 'string') return false;
-      return /^https?:\\/\\/api\\.developer\\.coinbase\\.com\\/rpc\\/v1\\//.test(value.trim());
+      return CDP_RPC_REGEX.test(value.trim());
     };
     const isLocalhost = () => {
       try {
         const host = window.location.hostname;
         return host === 'localhost' || host === '127.0.0.1' || host === '::1';
-      } catch (_) {
+      } catch {
         return false;
       }
     };
@@ -58,7 +59,7 @@
     if (cfg.paymasterUrl && isCdpRpcUrl(cfg.paymasterUrl) && !isLocalhost() && !allowDirectPaymaster) {
       cfg.paymasterUrl = "/api/paymaster-proxy";
     }
-  } catch (_) {
+  } catch {
     // no-op best effort
   }
 })();

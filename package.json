@@ -65,8 +65,8 @@
     "test:phase5": "node scripts/test-phase5-all.mjs",
     "test:phase6": "node scripts/test-phase6.mjs",
     "test:all": "npm run self:check && npm run self:check:config && npm run healthcheck && npm run docs:verify && npm test && npm run smoke:sepolia && npm run e2e:sponsor && npm run e2e:bundler && npm run check:sponsor && npm run check:bundler",
-    "lint": "eslint \"src/**/*.js\" \"api/**/*.js\" \"scripts/**/*.mjs\"",
-    "lint:fix": "eslint \"src/**/*.js\" \"api/**/*.js\" \"scripts/**/*.mjs\" --fix"
+    "lint": "eslint \"src/**/*.js\" \"src/**/*.jsx\" \"api/**/*.js\" \"scripts/**/*.mjs\"",
+    "lint:fix": "eslint \"src/**/*.js\" \"src/**/*.jsx\" \"api/**/*.js\" \"scripts/**/*.mjs\" --fix"
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.8.0",

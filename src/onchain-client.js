@@ -1,12 +1,6 @@
 import {
-  CHAIN_METADATA,
-  toHexChainId,
   ensureChain as ensureChainUtil,
   getChainKey,
-  getCachedSDKContext,
-  getFreshSDKContext,
-  hasProfileMappingBeenSent,
-  markProfileMappingSent,
   sendProfileMapping,
   requestScoreSignature as requestScoreSignatureUtil,
   sendCalls as sendCallsUtil,
@@ -78,16 +72,6 @@ if (typeof window !== "undefined") {
     }
   }
 
-  // Best-effort: prefetch mini app auth token once at startup to minimize delays during score submit
-  (async () => {
-    try {
-      const t = await getMiniAppAuthToken();
-      if (t) {
-        debug('Mini app auth token prefetched');
-      }
-    } catch (_) {}
-  })();
-
   function showFailure(message) {
     debug(`HATA: ${message}`);
     if (typeof window.__showModuleFailure === "function") {
@@ -133,12 +117,36 @@ if (typeof window !== "undefined") {
       // This fallback is kept for safety but should not be needed
       // Utility loads early in index.html as type="module" script
       debug("WARNING: Using emergency SDK fallback - centralized utility not available");
-      const isFarcaster = typeof window !== 'undefined' && 
-        typeof window.isFarcasterMiniApp === 'function' && 
-        window.isFarcasterMiniApp();
-      const isBase = typeof window !== 'undefined' && 
-        typeof window.isBaseApp === 'function' && 
-        window.isBaseApp();
+      const isFarcaster = (() => {
+        try {
+          if (typeof window === 'undefined') return false;
+          if (typeof window.isFarcasterMiniAppSync === 'function') {
+            return window.isFarcasterMiniAppSync();
+          }
+          if (typeof window.isFarcasterMiniApp === 'function') {
+            const detected = window.isFarcasterMiniApp();
+            return typeof detected === 'boolean' ? detected : false;
+          }
+          return false;
+        } catch (_) {
+          return false;
+        }
+      })();
+      const isBase = (() => {
+        try {
+          if (typeof window === 'undefined') return false;
+          if (typeof window.isBaseAppSync === 'function') {
+            return window.isBaseAppSync();
+          }
+          if (typeof window.isBaseApp === 'function') {
+            const detected = window.isBaseApp();
+            return typeof detected === 'boolean' ? detected : false;
+          }
+          return false;
+        } catch (_) {
+          return false;
+        }
+      })();
       
       // Minimal fallback - try most common SDK locations
       if (isFarcaster) {
@@ -497,12 +505,28 @@ if (typeof window !== "undefined") {
   // Use centralized platform detection utility (100% compliance with Unified Wallet Integration Model)
     function isMiniAppEnv() {
     try {
-      // Priority 1: Use centralized platform detection utility
-      if (typeof window !== 'undefined' && typeof window.isMiniAppEnv === 'function') {
-        const result = window.isMiniAppEnv();
-        if (result) {
-          debug('isMiniAppEnv: Detected via centralized utility');
-          return result;
+      // Priority 1: Use centralized platform detection utility (sync-only)
+      if (typeof window !== 'undefined') {
+        if (typeof window.isMiniAppEnvSync === 'function') {
+          const result = window.isMiniAppEnvSync();
+          if (result === true) {
+            debug('isMiniAppEnv: Detected via centralized utility (sync)');
+            return true;
+          }
+        }
+        if (typeof window.isMiniAppHostSync === 'function') {
+          const result = window.isMiniAppHostSync();
+          if (result === true) {
+            debug('isMiniAppEnv: Detected via centralized utility (host sync)');
+            return true;
+          }
+        }
+        if (typeof window.isMiniAppEnv === 'function') {
+          const result = window.isMiniAppEnv();
+          if (result === true) {
+            debug('isMiniAppEnv: Detected via centralized utility');
+            return true;
+          }
         }
       }
       
@@ -573,6 +597,16 @@ if (typeof window !== "undefined") {
       return null;
     }
 
+    // Best-effort: prefetch mini app auth token once at init to minimize delays during score submit
+    (async () => {
+      try {
+        const t = await getMiniAppAuthToken();
+        if (t) {
+          debug('Mini app auth token prefetched');
+        }
+      } catch {}
+    })();
+
     async function ensureWallet(requestAccounts = false) {
       // If wallet is already fully initialized (has contract), return early
       if (state.contract && state.address) {
@@ -631,10 +665,17 @@ if (typeof window !== "undefined") {
           // Detect Base App specifically
           const isBaseAppDetected = (() => {
             try {
-              if (typeof window !== 'undefined' && typeof window.isBaseApp === 'function') {
-                return window.isBaseApp();
+              if (typeof window !== 'undefined') {
+                if (typeof window.isBaseAppSync === 'function') {
+                  return window.isBaseAppSync();
+                }
+                if (typeof window.isBaseApp === 'function') {
+                  const detected = window.isBaseApp();
+                  if (typeof detected === 'boolean') return detected;
+                }
+                return Boolean(window.MiniKit || window.ReactNativeWebView);
               }
-              return Boolean(window.MiniKit || window.ReactNativeWebView);
+              return false;
             } catch (_) {
               return false;
             }
@@ -1142,9 +1183,22 @@ if (typeof window !== "undefined") {
       // Farcaster Wallet does not support paymaster yet (per miniapps.farcaster.xyz/docs/guides/wallets)
       // Paymaster is only supported in Base App, not in Farcaster/Warpcast
       // Use centralized platform detection
-      const isFarcaster = typeof window !== 'undefined' && 
-        typeof window.isFarcasterMiniApp === 'function' && 
-        window.isFarcasterMiniApp();
+      let isFarcaster = false;
+      try {
+        if (typeof window !== 'undefined') {
+          if (typeof window.isFarcasterMiniAppSync === 'function') {
+            isFarcaster = window.isFarcasterMiniAppSync();
+          }
+          if (!isFarcaster && typeof window.isFarcasterMiniApp === 'function') {
+            const detected = await window.isFarcasterMiniApp();
+            if (typeof detected === 'boolean') {
+              isFarcaster = detected;
+            }
+          }
+        }
+      } catch (_) {
+        isFarcaster = false;
+      }
       
       if (isFarcaster) {
         debug('Farcaster Wallet does not support paymaster; attempting wallet_sendCalls without paymaster');
@@ -1579,20 +1633,34 @@ if (typeof window !== "undefined") {
         const hasSDK = sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function';
         const isBaseAppSpecific = (() => {
           try {
-            if (typeof window !== 'undefined' && typeof window.isBaseApp === 'function') {
-              return window.isBaseApp();
+            if (typeof window !== 'undefined') {
+              if (typeof window.isBaseAppSync === 'function') {
+                return window.isBaseAppSync();
+              }
+              if (typeof window.isBaseApp === 'function') {
+                const detected = window.isBaseApp();
+                if (typeof detected === 'boolean') return detected;
+              }
+              return Boolean(window.MiniKit || window.ReactNativeWebView);
             }
-            return Boolean(window.MiniKit || window.ReactNativeWebView);
+            return false;
           } catch (_) {
             return false;
           }
         })();
         const isFarcasterSpecific = (() => {
           try {
-            if (typeof window !== 'undefined' && typeof window.isFarcasterMiniApp === 'function') {
-              return window.isFarcasterMiniApp();
+            if (typeof window !== 'undefined') {
+              if (typeof window.isFarcasterMiniAppSync === 'function') {
+                return window.isFarcasterMiniAppSync();
+              }
+              if (typeof window.isFarcasterMiniApp === 'function') {
+                const detected = window.isFarcasterMiniApp();
+                if (typeof detected === 'boolean') return detected;
+              }
+              return Boolean(window.fc || (window.farcaster && window.farcaster.miniapp));
             }
-            return Boolean(window.fc || (window.farcaster && window.farcaster.miniapp));
+            return false;
           } catch (_) {
             return false;
           }

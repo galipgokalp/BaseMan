@@ -113,7 +113,7 @@ export async function requestScoreSignature({
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ event: 'score-sign:error', meta: { message: String(message), durationMs, errorKind: error.kind } }) 
       }).catch(()=>{});
-    } catch(_) {}
+    } catch {}
     throw error;
   }
 
@@ -125,7 +125,7 @@ export async function requestScoreSignature({
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ event: 'score-sign:ok', meta: { score: score.toString(), durationMs } }) 
     }).catch(()=>{});
-  } catch(_) {}
+  } catch {}
   return payload;
 }
 
@@ -178,9 +178,22 @@ export async function sendCalls({
   // According to docs:
   // - Farcaster: Sequential execution (atomicRequired: false), version: "1.0"
   // - Base App: Atomic batch supported (atomicRequired: true), version: "2.0.0" (REQUIRED)
-  const isFarcaster = typeof window !== 'undefined' && 
-    typeof window.isFarcasterMiniApp === 'function' && 
-    window.isFarcasterMiniApp();
+  let isFarcaster = false;
+  try {
+    if (typeof window !== 'undefined') {
+      if (typeof window.isFarcasterMiniAppSync === 'function') {
+        isFarcaster = window.isFarcasterMiniAppSync();
+      }
+      if (!isFarcaster && typeof window.isFarcasterMiniApp === 'function') {
+        const detected = await window.isFarcasterMiniApp();
+        if (typeof detected === 'boolean') {
+          isFarcaster = detected;
+        }
+      }
+    }
+  } catch {
+    isFarcaster = false;
+  }
   const atomicRequired = !isFarcaster; // Farcaster: false, Base App: true
   const version = isFarcaster ? "1.0" : "2.0.0"; // Base App requires "2.0.0"
   
@@ -227,7 +240,7 @@ export async function sendCalls({
         } 
       }) 
     }).catch(()=>{}); 
-  } catch(_) {}
+  } catch {}
   
   try {
     // Send transaction using wallet_sendCalls (EIP-5792)
@@ -251,7 +264,7 @@ export async function sendCalls({
           } 
         }) 
       }).catch(()=>{});
-    } catch(_) {}
+    } catch {}
     
     return result;
   } catch (error) {
@@ -277,7 +290,7 @@ export async function sendCalls({
           } 
         }) 
       }).catch(()=>{});
-    } catch(_) {}
+    } catch {}
     
     // Re-throw with additional context
     throw new Error(`sendCalls: Transaction failed: ${errorMsg}${errorCode ? ` (code: ${errorCode})` : ''}`);
@@ -314,7 +327,7 @@ export async function sendEthTransaction({
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ event: 'eth_sendTransaction:start' }) 
     }).catch(()=>{});
-  } catch(_) {}
+  } catch {}
   const hash = await state.provider.request({ method: 'eth_sendTransaction', params: [tx] });
   debug(`sendEthTransaction: eth_sendTransaction hash: ${hash}`);
   try { 
@@ -323,7 +336,6 @@ export async function sendEthTransaction({
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify({ event: 'eth_sendTransaction:success', meta: { hash } }) 
     }).catch(()=>{});
-  } catch(_) {}
+  } catch {}
   return hash;
 }
-
