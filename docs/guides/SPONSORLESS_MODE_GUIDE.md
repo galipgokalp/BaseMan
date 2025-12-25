@@ -23,7 +23,7 @@ BaseMan mini app'i şu anda **sponsorless mode** (sponsorsuz mod) ile çalışı
 
 ```
 1. Kullanıcı mini app'a girer (Farcaster/Base App)
-2. Cüzdan otomatik olarak bağlanır
+2. Cüzdan mevcutsa otomatik görünür; aksi halde işlem sırasında onay istenir
 3. Kullanıcı oyun oynar
 4. Game Over olur
 5. submitScore() otomatik olarak çağrılır
@@ -42,8 +42,8 @@ BaseMan mini app'i şu anda **sponsorless mode** (sponsorsuz mod) ile çalışı
 - Kullanıcı gas fee öder
 
 **Platform Farkları:**
-- **Farcaster**: Sequential execution (atomic değil)
-- **Base App**: Atomic batch destekliyor
+- **Farcaster**: Sequential execution (atomic değil), `version: "1.0"`
+- **Base App**: Atomic batch destekliyor, `version: "2.0.0"`
 
 ### 3. Gas Fee Ödemesi
 
@@ -78,11 +78,13 @@ if (isMiniAppEnv()) {
 ```javascript
 async function sendCalls(callData, paymasterUrl) {
   // paymasterUrl = null (sponsorless mode)
+  const isFarcasterMiniApp = Boolean(window.isFarcasterMiniAppSync?.());
   const payload = {
-    version: "1.0.0",
+    // Farcaster: "1.0", Base App: "2.0.0"
+    version: isFarcasterMiniApp ? "1.0" : "2.0.0",
     from: state.address,
     chainId: hexChainId,
-    atomicRequired: atomicRequired,
+    atomicRequired: !isFarcasterMiniApp,
     calls: [{ 
       to: config.registryAddress, 
       data: callData, 
@@ -284,4 +286,3 @@ Paymaster entegrasyonu eklendiğinde:
 
 **Son Güncelleme:** 2025-01-06  
 **Durum:** Sponsorless mode aktif, paymaster devre dışı
-

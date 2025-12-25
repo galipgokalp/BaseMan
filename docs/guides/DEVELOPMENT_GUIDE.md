@@ -41,8 +41,8 @@ const provider = await sdk.wallet.getEthereumProvider();
 
 **Base App:**
 ```javascript
-const sdk = createBaseAccountSDK({...});
-const provider = sdk.getProvider;
+const sdk = window.resolveSDK?.() || window.MiniKit?.sdk || window.MiniKit || window.sdk;
+const provider = await sdk.wallet.getEthereumProvider();
 ```
 
 ---
@@ -150,46 +150,41 @@ function BatchTransfer() {
 
 ### 1.4. Base App Mini App Cüzdan Entegrasyonu
 
-#### Base Account SDK
+#### MiniKit / Base App SDK (Önerilen)
 
-**Kurulum:**
-```bash
-npm install @base-org/account
-```
+Base App MiniApp ortamında SDK, host tarafından sağlanır. Provider'a `sdk.wallet.getEthereumProvider()` ile erişilir.
 
-**SDK Oluşturma:**
-```typescript
-import { createBaseAccountSDK, base } from '@base-org/account';
-
-const sdk = createBaseAccountSDK({
-  appName: 'My App Name',
-  appLogoUrl: 'https://example.com/logo.png',
-  appChainIds: [base.constants.CHAIN_IDS.base], // [8453]
-});
-
-// Provider'ı al
-const provider = sdk.getProvider;
+**Kullanım:**
+```javascript
+const sdk = window.resolveSDK?.() || window.MiniKit?.sdk || window.MiniKit || window.sdk;
+if (!sdk?.wallet?.getEthereumProvider) {
+  throw new Error('Base App SDK not available');
+}
+const provider = await sdk.wallet.getEthereumProvider();
 ```
 
 **Dokümantasyon:**
-- [Base Account SDK](https://docs.base.org/base-account/reference/core/createBaseAccount#createbaseaccountsdk)
-- API: `sdk.getProvider`
+- [MiniKit Provider](https://docs.base.org/onchainkit/latest/components/minikit/provider-and-initialization)
+- [Base App Compatibility](https://docs.base.org/mini-apps/troubleshooting/base-app-compatibility)
 
 #### Wagmi ile Entegrasyon
 
-**Option 1: Base Account Connector**
+**Option 1: Base Account Connector (Base App) + Farcaster Fallback**
 
 ```typescript
 import { http, createConfig } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { baseAccount } from 'wagmi/connectors';
+import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
 
 export const config = createConfig({
   chains: [base],
   connectors: [
     baseAccount({
-      appName: 'Base App',
-    })
+      appName: 'BaseMan',
+      appLogoUrl: 'https://base-man.vercel.app/icon.png'
+    }),
+    farcasterMiniApp() // fallback (MiniKit uyumlu)
   ],
   transports: {
     [base.id]: http()
@@ -197,7 +192,9 @@ export const config = createConfig({
 });
 ```
 
-**Option 2: Mobile Wallet Protocol Connector**
+**Option 2 (Legacy): Mobile Wallet Protocol Connector**
+
+> BaseMan bu yaklaşımı kullanmıyor; yalnızca alternatif bir yöntem olarak bırakıldı.
 
 ```bash
 npm install @mobile-wallet-protocol/wagmi-connectors
@@ -235,21 +232,23 @@ export const config = createConfig({
 
 ```javascript
 function isFarcasterMiniApp() {
-  return Boolean(
-    (window.fc && window.fc.miniapp) ||
-    (window.farcaster && window.farcaster.miniapp) ||
-    window.MiniAppSDK
-  );
+  if (typeof window.isFarcasterMiniAppSync === 'function') {
+    return window.isFarcasterMiniAppSync();
+  }
+  return Boolean((window.fc && window.fc.miniapp) || (window.farcaster && window.farcaster.miniapp));
 }
 
 function isBaseApp() {
-  return Boolean(
-    window.ReactNativeWebView ||
-    (window.navigator?.userAgent?.includes('BaseApp'))
-  );
+  if (typeof window.isBaseAppSync === 'function') {
+    return window.isBaseAppSync();
+  }
+  return Boolean(window.MiniKit || window.ReactNativeWebView);
 }
 
 function isMiniAppEnvironment() {
+  if (typeof window.isMiniAppHostSync === 'function') {
+    return window.isMiniAppHostSync();
+  }
   return isFarcasterMiniApp() || isBaseApp();
 }
 ```
@@ -267,20 +266,18 @@ Birçok web3 kütüphanesi `window.ethereum` bekler. Mini app ortamlarında SDK 
 
   function getMiniAppProvider() {
     try {
-      // Farcaster SDK
-      const farcasterSDK = 
+      const sdk =
+        window.resolveSDK?.() ||
+        (window.MiniKit && (window.MiniKit.sdk || window.MiniKit)) ||
         (window.fc && window.fc.miniapp) ||
         (window.farcaster && window.farcaster.miniapp) ||
-        window.MiniAppSDK;
-      
-      if (farcasterSDK?.wallet?.getEthereumProvider) {
-        return farcasterSDK.wallet.getEthereumProvider();
+        window.MiniAppSDK ||
+        window.sdk;
+
+      if (sdk?.wallet?.getEthereumProvider) {
+        return sdk.wallet.getEthereumProvider();
       }
 
-      // Base App SDK (eğer varsa)
-      // Base App genellikle ReactNativeWebView kullanır
-      // ve kendi provider'ını zaten expose eder
-      
       return null;
     } catch (_) {
       return null;
@@ -323,17 +320,20 @@ Her iki platformu destekleyen tek bir config:
 import { createConfig, http } from 'wagmi';
 import { base, baseSepolia } from 'wagmi/chains';
 import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
-import { injected, metaMask, safe } from 'wagmi/connectors';
+import { injected, walletConnect, baseAccount } from 'wagmi/connectors';
 
 function isFarcasterMiniApp() {
-  return Boolean(
-    (window.fc && window.fc.miniapp) ||
-    (window.farcaster && window.farcaster.miniapp)
-  );
+  if (typeof window.isFarcasterMiniAppSync === 'function') {
+    return window.isFarcasterMiniAppSync();
+  }
+  return Boolean((window.fc && window.fc.miniapp) || (window.farcaster && window.farcaster.miniapp));
 }
 
 function isBaseApp() {
-  return Boolean(window.ReactNativeWebView);
+  if (typeof window.isBaseAppSync === 'function') {
+    return window.isBaseAppSync();
+  }
+  return Boolean(window.MiniKit || window.ReactNativeWebView);
 }
 
 export function makeWagmiConfig() {
@@ -355,12 +355,29 @@ export function makeWagmiConfig() {
       connectors.push(injected());
     }
   } else if (isBaseApp()) {
-    // Base App için injected() yeterli
-    // miniapp-ethereum-shim.js zaten window.ethereum'ı expose eder
-    connectors.push(injected());
+    // Base App için baseAccount öncelikli, Farcaster connector fallback
+    try {
+      connectors.push(baseAccount({
+        appName: 'BaseMan',
+        appLogoUrl: 'https://base-man.vercel.app/icon.png'
+      }));
+    } catch (e) {
+      console.warn('Base Account connector failed:', e);
+    }
+    try {
+      connectors.push(farcasterMiniApp());
+    } catch (e) {
+      console.warn('Farcaster connector failed in Base App:', e);
+    }
+    if (!connectors.length) {
+      connectors.push(injected());
+    }
   } else {
     // Web ortamı
-    connectors.push(injected(), metaMask(), safe());
+    connectors.push(injected());
+    if (window.__ENV?.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
+      connectors.push(walletConnect({ projectId: window.__ENV.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }));
+    }
   }
 
   return createConfig({
@@ -563,8 +580,8 @@ await sdk.actions.ready();
 
 // Base App
 // SDK genellikle anında hazır, ama kontrol edin
-if (!sdk || !sdk.getProvider) {
-  throw new Error('Base Account SDK not available');
+if (!sdk?.wallet?.getEthereumProvider) {
+  throw new Error('Base App SDK not available');
 }
 ```
 
@@ -680,11 +697,14 @@ function getMiniAppProvider() {
 ```javascript
 // src/ui/wagmi-config.js:86
 function isMiniAppHost() {
+  if (typeof window.isMiniAppHostSync === 'function') {
+    return window.isMiniAppHostSync();
+  }
   return Boolean(
     (window.fc && window.fc.miniapp) ||
     (window.farcaster && window.farcaster.miniapp) ||
-    window.MiniAppSDK ||
-    window.ReactNativeWebView  // Base App
+    window.MiniKit ||
+    window.ReactNativeWebView
   );
 }
 ```
@@ -795,8 +815,8 @@ if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
 #### Öncelik 1: Yüksek (Gerekli değil, ama iyi olur)
 
 1. **Platform-specific connector seçimi:**
-   - Base App için `baseAccount` connector eklenebilir
-   - Ancak `injected()` çalıştığı için zorunlu değil
+   - Base App için `baseAccount` zaten öncelikli
+   - Farcaster fallback ve `injected()` yedekleri mevcut
 
 #### Öncelik 2: Orta (Opsiyonel)
 
@@ -839,10 +859,10 @@ Mevcut implementasyon:
 ### Paketler
 - `@farcaster/miniapp-sdk` - Farcaster Mini App SDK
 - `@farcaster/miniapp-wagmi-connector` - Farcaster Wagmi Connector
-- `@base-org/account` - Base Account SDK
-- `@mobile-wallet-protocol/wagmi-connectors` - Base App Wagmi Connector
 - `wagmi` - React Hooks for Ethereum
 - `viem` - TypeScript Ethereum Library
+- `@mobile-wallet-protocol/wagmi-connectors` - Legacy/opsiyonel (BaseMan kullanmıyor)
+- `@base-org/account` - Legacy/opsiyonel (Base App SDK host tarafından sağlanır)
 
 ---
 
