@@ -58,6 +58,7 @@ See `.env.example` for required variables and [docs/env/ENV_REFERENCE.md](./docs
 Notes:
 - Paymaster gas sponsorship is supported in Base App; Farcaster mini-app wallets do not support paymaster and fall back to sponsorless submissions.
 - For gasless flow, keep `NEXT_PUBLIC_PAYMASTER_URL=/api/paymaster-proxy` and `NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL=false`, and configure `PAYMASTER_SERVICE_URL` + CDP keys server-side.
+- MiniApp wallet connectors are platform-specific: Farcaster uses `@farcaster/miniapp-wagmi-connector`, Base App prefers `baseAccount` with Farcaster connector fallback, and web uses injected/WalletConnect.
 
 ## License
 

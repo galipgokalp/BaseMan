@@ -348,15 +348,15 @@ These variables start with the `NEXT_PUBLIC_` prefix and can be used on the clie
 
 ### `NEXT_PUBLIC_ONCHAINKIT_API_KEY`
 - **Type:** `string`
-- **Required:** Required
+- **Required:** Optional
 - **Default:** None
-- **Description:** OnchainKit API key. Used for wallet connection and blockchain transactions.
+- **Description:** OnchainKit API key. Only required if you embed OnchainKit components; BaseMan wallet connection uses Wagmi connectors.
 
 ### `NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME`
 - **Type:** `string`
-- **Required:** Required
+- **Required:** Optional
 - **Default:** `"BaseMan"`
-- **Description:** OnchainKit project name.
+- **Description:** OnchainKit project name (only needed when OnchainKit components are in use).
 
 ### `NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT`
 - **Type:** `string` (URL)

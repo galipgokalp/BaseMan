@@ -738,11 +738,17 @@ function searchLeaderboard(searchTerm) {
 
 ### MiniApp Capabilities
 
-- Automatic wallet connection (no user prompts)
+- Automatic wallet connection when SDK provides accounts; transactions may still require user approval
 - Seamless Quick Auth integration
 - Native UI (bottom navigation, panels, modals)
 - Webhook support via `/api/miniapp-webhook`
 - Manifest-driven configuration
+
+### Connector Strategy
+
+- **Farcaster Mini App**: `@farcaster/miniapp-wagmi-connector`
+- **Base App**: `baseAccount` connector first, `@farcaster/miniapp-wagmi-connector` as fallback
+- **Web**: `injected()` and `walletConnect()` (if project ID is set)
 
 ### Quick Auth (Farcaster)
 
@@ -768,17 +774,15 @@ const response = await fetch('/api/miniapp-auth', {
 function isBaseAppEnvironment() {
   if (typeof window === 'undefined') return false;
 
-  // Use centralized SDK detection utility
-  if (typeof window.resolveSDK === 'function') {
-    const sdk = window.resolveSDK();
-    if (sdk) {
-      return typeof window.isBaseApp === 'function' && window.isBaseApp();
-    }
+  if (typeof window.isBaseAppSync === 'function') {
+    return window.isBaseAppSync();
+  }
+  if (typeof window.isBaseApp === 'function') {
+    const detected = window.isBaseApp();
+    if (typeof detected === 'boolean') return detected;
   }
 
-  // Fallback detection
-  return typeof window.MiniKit !== 'undefined' ||
-         typeof window.BaseAppSDK !== 'undefined';
+  return Boolean(window.MiniKit || window.BaseAppSDK || window.ReactNativeWebView);
 }
 
 // Step 2: Initialize wallet
@@ -786,8 +790,8 @@ async function initializeBaseAppWallet() {
   if (!isBaseAppEnvironment()) return null;
 
   // Resolve SDK
-  let sdk = window.resolveSDK?.() || window.MiniKit?.sdk || window.sdk;
-  if (!sdk) throw new Error('Base App SDK not available');
+  const sdk = window.resolveSDK?.() || window.MiniKit?.sdk || window.MiniKit || window.sdk;
+  if (!sdk?.wallet?.getEthereumProvider) throw new Error('Base App SDK not available');
 
   // Get provider and accounts
   const provider = await sdk.wallet.getEthereumProvider();
