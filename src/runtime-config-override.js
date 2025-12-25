@@ -2,6 +2,19 @@
   try {
     const env = (window.__ENV && typeof window.__ENV === 'object') ? window.__ENV : {};
     const cfg = (window.BaseManOnchainConfig = window.BaseManOnchainConfig || {});
+    const allowDirectPaymaster = String(env.NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL || '').toLowerCase() === 'true';
+    const isCdpRpcUrl = (value) => {
+      if (!value || typeof value !== 'string') return false;
+      return /^https?:\\/\\/api\\.developer\\.coinbase\\.com\\/rpc\\/v1\\//.test(value.trim());
+    };
+    const isLocalhost = () => {
+      try {
+        const host = window.location.hostname;
+        return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      } catch (_) {
+        return false;
+      }
+    };
 
     // Override registry from NEXT_PUBLIC_REGISTRY_ADDRESS if provided
     if (env.NEXT_PUBLIC_REGISTRY_ADDRESS && env.NEXT_PUBLIC_REGISTRY_ADDRESS !== cfg.registryAddress) {
@@ -39,6 +52,11 @@
       const url = env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT;
       if (!cfg.paymasterUrl) cfg.paymasterUrl = url;
       if (!cfg.bundlerUrl) cfg.bundlerUrl = url;
+    }
+
+    // Prefer proxy in non-local environments when a direct CDP RPC URL is provided.
+    if (cfg.paymasterUrl && isCdpRpcUrl(cfg.paymasterUrl) && !isLocalhost() && !allowDirectPaymaster) {
+      cfg.paymasterUrl = "/api/paymaster-proxy";
     }
   } catch (_) {
     // no-op best effort

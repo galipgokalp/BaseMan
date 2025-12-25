@@ -39,16 +39,28 @@ const resolveFirstNonEmpty = (...candidates) => {
   return "";
 };
 
+const isProduction = (process.env.NODE_ENV || "").toLowerCase() === "production";
+const allowDirectPaymaster = String(process.env.NEXT_PUBLIC_ALLOW_DIRECT_PAYMASTER_URL || "")
+  .toLowerCase() === "true";
+const isCdpRpcUrl = (value) => {
+  if (typeof value !== "string") return false;
+  return /^https?:\\/\\/api\\.developer\\.coinbase\\.com\\/rpc\\/v1\\//.test(value.trim());
+};
+
 // Keep NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT in sync with NEXT_PUBLIC_PAYMASTER_URL
 // Preference:
 // 1) NEXT_PUBLIC_PAYMASTER_URL
 // 2) NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT (used by some examples)
 // 3) PAYMASTER_URL (server-provided fallback)
-const paymasterUrl = resolveFirstNonEmpty(
+let paymasterUrl = resolveFirstNonEmpty(
   process.env.NEXT_PUBLIC_PAYMASTER_URL,
   process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT,
   process.env.PAYMASTER_URL
 );
+// Prefer proxy in production to avoid exposing direct CDP RPC endpoints.
+if (paymasterUrl && isProduction && isCdpRpcUrl(paymasterUrl) && !allowDirectPaymaster) {
+  paymasterUrl = "/api/paymaster-proxy";
+}
 if (paymasterUrl) {
   config.paymasterUrl = paymasterUrl;
 }
