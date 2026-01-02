@@ -78,6 +78,21 @@ const log = createLogger('UtilMiniappAuth');
     }
   }
 
+  async function waitForSDK(timeoutMs = 5000, intervalMs = 120) {
+    const start = Date.now();
+    let sdk = getSDK();
+    if (sdk) return sdk;
+    return new Promise(resolve => {
+      const check = () => {
+        sdk = getSDK();
+        if (sdk) return resolve(sdk);
+        if (Date.now() - start >= timeoutMs) return resolve(null);
+        setTimeout(check, intervalMs);
+      };
+      check();
+    });
+  }
+
   async function waitReady(sdk, ms = 6000) {
     const ready = sdk && sdk.actions && typeof sdk.actions.ready === 'function';
     if (!ready) return;
@@ -120,8 +135,7 @@ const log = createLogger('UtilMiniappAuth');
     }
   }
 
-  async function getQuickAuthToken() {
-    const sdk = getSDK();
+  async function getQuickAuthToken(sdk) {
     if (!sdk) return null;
     await waitReady(sdk).catch(() => {});
     const getToken = sdk?.quickAuth && (sdk.quickAuth.getToken || sdk.quickAuth.token);
@@ -152,11 +166,10 @@ const log = createLogger('UtilMiniappAuth');
     }
   }
 
-  const ADD_PROMPT_KEY = 'baseMan:addMiniAppPromptedAt';
+  const ADD_PROMPT_KEY = 'baseMan:addMiniAppPromptedAt:v2';
   const ADD_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
-  async function maybePromptAddMiniApp() {
-    const sdk = getSDK();
+  async function maybePromptAddMiniApp(sdk) {
     if (!sdk?.actions) return;
 
     const addMiniApp = sdk.actions.addMiniApp;
@@ -193,15 +206,14 @@ const log = createLogger('UtilMiniappAuth');
     }
 
     try {
-      localStorage.setItem(ADD_PROMPT_KEY, String(Date.now()));
-    } catch (_) {}
-
-    try {
       if (typeof addMiniApp === 'function') {
         await addMiniApp();
       } else {
         await addMiniApp;
       }
+      try {
+        localStorage.setItem(ADD_PROMPT_KEY, String(Date.now()));
+      } catch (_) {}
     } catch (err) {
       log.debug('addMiniApp failed (non-critical):', err?.message || err);
     }
@@ -236,13 +248,19 @@ const log = createLogger('UtilMiniappAuth');
 
   async function main() {
     try {
-      if (!isMiniAppEnv()) return;
-      const token = await getQuickAuthToken();
+      const hasMiniAppHints = isMiniAppEnv() || (
+        typeof window !== 'undefined' &&
+        ((window !== window.parent) || (typeof window.ReactNativeWebView !== 'undefined'))
+      );
+      if (!hasMiniAppHints) return;
+      const sdk = await waitForSDK(6000);
+      if (!sdk) return;
+      await maybePromptAddMiniApp(sdk);
+      const token = await getQuickAuthToken(sdk);
       if (token && typeof token === 'string' && token.length >= 8) {
         try { window.__MINIAPP_AUTH_TOKEN__ = token; } catch {}
         await sendToken(token);
       }
-      await maybePromptAddMiniApp();
     } catch (err) {
       // Prevent unhandled promise rejection
       log.error('miniapp-auth-failed', { step: 'main', reason: err?.message || err });
