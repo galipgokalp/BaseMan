@@ -89,24 +89,24 @@ test('Registry module loads without crashing on missing optional envs', async ()
     
     // Verify lazy exports exist (accessing them may return null if env is incomplete, but shouldn't crash)
     try {
-      const addr = registryModule.registryAddress;
-      log(typeof addr !== 'undefined', 'registryAddress export exists and is accessible');
+      const addr = registryModule.getRegistryAddress();
+      log(typeof addr !== 'undefined', 'getRegistryAddress export exists and is accessible');
     } catch (error) {
-      log(false, `registryAddress access failed: ${error.message}`);
+      log(false, `getRegistryAddress access failed: ${error.message}`);
     }
     
     try {
-      const types = registryModule.scoreTypes;
-      log(typeof types === 'object', 'scoreTypes export exists and is accessible');
+      const types = registryModule.getScoreTypes();
+      log(typeof types === 'object', 'getScoreTypes export exists and is accessible');
     } catch (error) {
-      log(false, `scoreTypes access failed: ${error.message}`);
+      log(false, `getScoreTypes access failed: ${error.message}`);
     }
     
     try {
-      const qtypes = registryModule.questTypes;
-      log(typeof qtypes === 'object', 'questTypes export exists and is accessible');
+      const qtypes = registryModule.getQuestTypes();
+      log(typeof qtypes === 'object', 'getQuestTypes export exists and is accessible');
     } catch (error) {
-      log(false, `questTypes access failed: ${error.message}`);
+      log(false, `getQuestTypes access failed: ${error.message}`);
     }
     
   } catch (error) {
@@ -137,13 +137,13 @@ test('Lazy evaluation - values computed on first access, not import time', async
     const registryModule = await import('../api/_lib/registry.js');
     
     // Access lazy values - should compute on first access
-    const address = registryModule.registryAddress;
-    const scoreTypes = registryModule.scoreTypes;
-    const questTypes = registryModule.questTypes;
+    const address = registryModule.getRegistryAddress();
+    const scoreTypes = registryModule.getScoreTypes();
+    const questTypes = registryModule.getQuestTypes();
     
-    log(typeof address === 'string' || address === null, 'registryAddress is computed lazily');
-    log(typeof scoreTypes === 'object', 'scoreTypes is computed lazily');
-    log(typeof questTypes === 'object', 'questTypes is computed lazily');
+    log(typeof address === 'string' || address === null, 'getRegistryAddress is computed lazily');
+    log(typeof scoreTypes === 'object', 'getScoreTypes is computed lazily');
+    log(typeof questTypes === 'object', 'getQuestTypes is computed lazily');
     
     // Verify scoreTypes has nonce (V2)
     if (scoreTypes && scoreTypes.Score) {
@@ -269,30 +269,30 @@ test('Registry exports work with ethers functions', async () => {
     const { ethers } = await import('ethers');
     const registryModule = await import('../api/_lib/registry.js');
     
-    // Test that registryAddress works with ethers.getAddress
-    const address = registryModule.registryAddress;
+    // Test that getRegistryAddress works with ethers.getAddress
+    const address = registryModule.getRegistryAddress();
     if (address) {
       try {
         const normalized = ethers.getAddress(address);
-        log(true, 'registryAddress works with ethers.getAddress()');
+        log(true, 'getRegistryAddress works with ethers.getAddress()');
       } catch (error) {
         log(false, `ethers.getAddress() failed: ${error.message}`);
       }
     } else {
-      log(true, 'registryAddress is null (expected when env missing)');
+      log(true, 'getRegistryAddress is null (expected when env missing)');
     }
     
-    // Test that registryChainId works with ethers.toBeHex
-    const chainId = registryModule.registryChainId;
+    // Test that getRegistryChainId works with ethers.toBeHex
+    const chainId = registryModule.getRegistryChainId();
     if (chainId) {
       try {
         const hex = ethers.toBeHex(chainId);
-        log(true, 'registryChainId works with ethers.toBeHex()');
+        log(true, 'getRegistryChainId works with ethers.toBeHex()');
       } catch (error) {
         log(false, `ethers.toBeHex() failed: ${error.message}`);
       }
     } else {
-      log(true, 'registryChainId is null (expected when env missing)');
+      log(true, 'getRegistryChainId is null (expected when env missing)');
     }
     
   } catch (error) {
@@ -333,4 +333,3 @@ runTests().catch(error => {
   console.error('Fatal error running tests:', error);
   process.exit(1);
 });
-

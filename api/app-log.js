@@ -3,12 +3,30 @@ import { getRollbar } from './_lib/rollbar.js';
 
 const log = createLogger("ApiAppLog");
 
-// Telegram Bot Configuration
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
+let cachedConfig = null;
 
-async function sendTelegramAlert(entry) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+function getAppLogConfig() {
+  if (cachedConfig) return cachedConfig;
+  const forwardUrl = process.env.CDP_WEBHOOK_LOG_ENDPOINT || process.env.LOG_FORWARD_URL || '';
+  let forwardHeaders = {};
+  try {
+    const raw = process.env.CDP_WEBHOOK_LOG_HEADERS || process.env.LOG_FORWARD_HEADERS || '';
+    if (raw && typeof raw === 'string') {
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === 'object') forwardHeaders = obj;
+    }
+  } catch (_) {}
+  cachedConfig = {
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
+    forwardUrl,
+    forwardHeaders
+  };
+  return cachedConfig;
+}
+
+async function sendTelegramAlert(entry, config) {
+  if (!config.telegramBotToken || !config.telegramChatId) return;
 
   try {
     const emoji = entry.event === 'error' ? '🔴' : '⚠️';
@@ -27,11 +45,11 @@ async function sendTelegramAlert(entry) {
       text += `\n\n<pre>${shortStack}</pre>`;
     }
 
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
+        chat_id: config.telegramChatId,
         text: text.slice(0, 4000),
         parse_mode: 'HTML',
         disable_web_page_preview: true
@@ -43,17 +61,7 @@ async function sendTelegramAlert(entry) {
 }
 
 const RING_SIZE = 200;
-const FORWARD_URL = process.env.CDP_WEBHOOK_LOG_ENDPOINT || process.env.LOG_FORWARD_URL || '';
-let FORWARD_HEADERS = {};
-try {
-  const raw = process.env.CDP_WEBHOOK_LOG_HEADERS || process.env.LOG_FORWARD_HEADERS || '';
-  if (raw && typeof raw === 'string') {
-    const obj = JSON.parse(raw);
-    if (obj && typeof obj === 'object') FORWARD_HEADERS = obj;
-  }
-} catch (_) {}
 globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
-const rollbar = getRollbar();
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -109,6 +117,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
+    const config = getAppLogConfig();
+    const rollbar = getRollbar();
     let body = req.body;
     if (typeof body === 'string') {
       try { body = JSON.parse(body); } catch { body = { raw: body }; }
@@ -192,11 +202,11 @@ export default async function handler(req, res) {
     }
     
     // Optional forward to external log/alert endpoint (AI Agent or custom webhook)
-    if (FORWARD_URL) {
+    if (config.forwardUrl) {
       try {
-        const headers = Object.assign({ 'Content-Type': 'application/json' }, FORWARD_HEADERS);
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, config.forwardHeaders);
         // Fire-and-forget; do not block response on failures
-        fetch(FORWARD_URL, { method: 'POST', headers, body: JSON.stringify(entry) }).catch(() => {});
+        fetch(config.forwardUrl, { method: 'POST', headers, body: JSON.stringify(entry) }).catch(() => {});
       } catch (_) {}
     }
     
@@ -214,8 +224,8 @@ export default async function handler(req, res) {
     }
 
     // Send to Telegram (only for errors and warnings)
-    if ((entry.event === 'error' || entry.event === 'warn') && TELEGRAM_BOT_TOKEN) {
-      sendTelegramAlert(entry).catch(() => {});
+    if (entry.event === 'error' || entry.event === 'warn') {
+      sendTelegramAlert(entry, config).catch(() => {});
     }
 
     return res.status(200).json({ ok: true });

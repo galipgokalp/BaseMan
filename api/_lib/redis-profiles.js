@@ -3,7 +3,6 @@ import { createLogger } from '../../src/utils/logger.js';
 import { getEnv } from './env.js';
 
 const log = createLogger('ApiRedisProfiles');
-const env = getEnv();
 
 function formatAddress(address) {
   if (!address || typeof address !== "string") {
@@ -27,47 +26,53 @@ function formatAddress(address) {
 // - REDIS_URL (Vercel integration format)
 let redis = null;
 let hasLoggedMissingRedis = false;
+let redisInitAttempted = false;
 
-try {
-  // Check if environment variables exist before initializing
-  // Priority: KV_REST_API (Vercel KV) > UPSTASH_REDIS_REST > REDIS_URL
-  const hasKVVars = !!(env.redis.kvRestApiUrl && env.redis.kvRestApiToken);
-  const hasStandardVars = !!(env.redis.upstashRestUrl && env.redis.upstashRestToken);
-  const hasRedisUrl = !!env.redis.url;
-  
-  if (hasKVVars) {
-    // Use Vercel KV (same API as Upstash, just different env var names)
-    redis = new Redis({
-      url: env.redis.kvRestApiUrl,
-      token: env.redis.kvRestApiToken
-    });
-    log.debug('Redis client initialized with KV_REST_API');
-  } else if (hasStandardVars || hasRedisUrl) {
-    redis = Redis.fromEnv();
-    log.debug('Redis client initialized', {
-      hasStandardVars,
-      hasRedisUrl,
-      method: hasStandardVars ? 'standard' : (hasRedisUrl ? 'REDIS_URL' : 'unknown')
-    });
-  } else {
+function initRedis() {
+  if (redisInitAttempted) return;
+  redisInitAttempted = true;
+  try {
+    const env = getEnv();
+    // Check if environment variables exist before initializing
+    // Priority: KV_REST_API (Vercel KV) > UPSTASH_REDIS_REST > REDIS_URL
+    const hasKVVars = !!(env.redis.kvRestApiUrl && env.redis.kvRestApiToken);
+    const hasStandardVars = !!(env.redis.upstashRestUrl && env.redis.upstashRestToken);
+    const hasRedisUrl = !!env.redis.url;
+
+    if (hasKVVars) {
+      // Use Vercel KV (same API as Upstash, just different env var names)
+      redis = new Redis({
+        url: env.redis.kvRestApiUrl,
+        token: env.redis.kvRestApiToken
+      });
+      log.debug('Redis client initialized with KV_REST_API');
+    } else if (hasStandardVars || hasRedisUrl) {
+      redis = Redis.fromEnv();
+      log.debug('Redis client initialized', {
+        hasStandardVars,
+        hasRedisUrl,
+        method: hasStandardVars ? 'standard' : (hasRedisUrl ? 'REDIS_URL' : 'unknown')
+      });
+    } else {
+      if (!hasLoggedMissingRedis) {
+        hasLoggedMissingRedis = true;
+        log.warnOnce(
+          'missing-redis-config',
+          'Redis environment variables not found. Profile caching will use in-memory fallback only.'
+        );
+      }
+      redis = null;
+    }
+  } catch (error) {
     if (!hasLoggedMissingRedis) {
       hasLoggedMissingRedis = true;
       log.warnOnce(
-        'missing-redis-config',
-        'Redis environment variables not found. Profile caching will use in-memory fallback only.'
+        'redis-init-failed',
+        `Redis client initialization failed (will fallback to in-memory): ${error?.message || error}`
       );
     }
     redis = null;
   }
-} catch (error) {
-  if (!hasLoggedMissingRedis) {
-    hasLoggedMissingRedis = true;
-    log.warnOnce(
-      'redis-init-failed',
-      `Redis client initialization failed (will fallback to in-memory): ${error?.message || error}`
-    );
-  }
-  redis = null;
 }
 
 // Key prefix
@@ -78,6 +83,7 @@ const PROFILE_TTL = 7 * 24 * 60 * 60; // 7 gün (saniye cinsinden)
  * Redis kullanılabilir mi?
  */
 export function isRedisAvailable() {
+  initRedis();
   return redis !== null;
 }
 
@@ -88,6 +94,7 @@ export function isRedisAvailable() {
  * @returns {Promise<boolean>} - Success
  */
 export async function saveProfileMapping(address, mapping) {
+  initRedis();
   if (!address || !mapping || !mapping.fid) {
     log.debug("saveProfileMapping: Invalid input");
     return false;
@@ -130,6 +137,7 @@ export async function saveProfileMapping(address, mapping) {
  * @returns {Promise<object|null>} - Profile mapping or null
  */
 export async function getProfileMapping(address) {
+  initRedis();
   if (!address || typeof address !== 'string') {
     return null;
   }
@@ -170,6 +178,7 @@ export async function getProfileMapping(address) {
  * @returns {Promise<Map>} - Map of address -> profile mapping
  */
 export async function getProfileMappings(addresses) {
+  initRedis();
   if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
     return new Map();
   }

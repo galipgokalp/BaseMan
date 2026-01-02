@@ -1,33 +1,54 @@
 import { ethers } from "ethers";
 import { Buffer } from "buffer";
 import { z } from "zod";
-import { registryAddress, registryChainId } from "./_lib/registry.js";
+import { getRegistryContext } from "./_lib/registry.js";
 import { createLogger } from "../src/utils/logger.js";
 
 const log = createLogger("ApiPaymasterProxy");
 
-function env(key, fallback = "") {
+function readEnv(key, fallback = "") {
   const v = process?.env?.[key];
   return typeof v === "string" ? v.trim() : fallback;
 }
 
-const MAX_CALLS = (() => {
-  const raw = process.env.PAYMASTER_MAX_CALLS ?? "1";
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isFinite(value) || value <= 0) {
-    return 1;
-  }
-  return value;
-})();
+let cachedConfig = null;
 
-const ENFORCE_ALLOWLIST =
-  (process.env.PAYMASTER_ENFORCE_ALLOWLIST ?? "true").toLowerCase() !== "false";
+function getPaymasterConfig() {
+  if (cachedConfig) return cachedConfig;
+  const rawMaxCalls = process.env.PAYMASTER_MAX_CALLS ?? "1";
+  const maxCalls = (() => {
+    const value = Number.parseInt(rawMaxCalls, 10);
+    if (!Number.isFinite(value) || value <= 0) {
+      return 1;
+    }
+    return value;
+  })();
 
-function buildAllowlistContext() {
+  const enforceAllowlist =
+    (process.env.PAYMASTER_ENFORCE_ALLOWLIST ?? "true").toLowerCase() !== "false";
+
+  const extraTargets = (process.env.PAYMASTER_ALLOWED_TARGETS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const rawSelectors = (process.env.PAYMASTER_ALLOWED_SELECTORS || "").trim();
+  const allowedFunctionSelectors = parseAllowedSelectors(rawSelectors) || defaultAllowedSelectors;
+
+  cachedConfig = {
+    maxCalls,
+    enforceAllowlist,
+    extraTargets,
+    allowedFunctionSelectors
+  };
+  return cachedConfig;
+}
+
+function buildAllowlistContext(registryContext, extraTargets) {
   const addresses = new Set();
   let normalizedRegistryAddress;
   try {
-    normalizedRegistryAddress = ethers.getAddress(registryAddress);
+    normalizedRegistryAddress = ethers.getAddress(registryContext.address);
     addresses.add(normalizedRegistryAddress);
   } catch (error) {
     throw new Error(
@@ -35,12 +56,7 @@ function buildAllowlistContext() {
     );
   }
 
-  const extra = (process.env.PAYMASTER_ALLOWED_TARGETS || "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  for (const value of extra) {
+  for (const value of extraTargets || []) {
     if (!ethers.isAddress(value)) {
       throw new Error(
         `PAYMASTER_ALLOWED_TARGETS includes invalid address: ${value}`
@@ -51,7 +67,7 @@ function buildAllowlistContext() {
 
   let expectedChainIdHex;
   try {
-    expectedChainIdHex = ethers.toBeHex(registryChainId);
+    expectedChainIdHex = ethers.toBeHex(registryContext.chainId);
   } catch (error) {
     throw new Error(
       `registryChainId is missing or invalid for paymaster proxy: ${error?.message || error}`
@@ -66,8 +82,7 @@ const smartWalletInterface = new ethers.Interface([
   "function executeBatch(tuple(address target,uint256 value,bytes data)[] calls)"
 ]);
 
-function parseAllowedSelectorsFromEnv() {
-  const raw = (process.env.PAYMASTER_ALLOWED_SELECTORS || "").trim();
+function parseAllowedSelectors(raw) {
   if (!raw) return null;
   const items = raw
     .split(",")
@@ -87,8 +102,6 @@ const defaultAllowedSelectors = new Set([
   ethers.id("submitScore(address,uint256,uint256,uint256,bytes)").slice(0, 10).toLowerCase(),
   ethers.id("completeQuest(address,uint256,uint256,uint256,bytes)").slice(0, 10).toLowerCase()
 ]);
-
-const allowedFunctionSelectors = parseAllowedSelectorsFromEnv() || defaultAllowedSelectors;
 
 const JsonRpcRequestSchema = z
   .object({
@@ -170,7 +183,7 @@ function bigIntFrom(value) {
   throw new Error(`Cannot convert value to bigint: ${value}`);
 }
 
-function validateTargetsFromCallData(callData, allowlist) {
+function validateTargetsFromCallData(callData, allowlist, config) {
   let parsed;
   try {
     parsed = smartWalletInterface.parseTransaction({ data: callData });
@@ -191,10 +204,10 @@ function validateTargetsFromCallData(callData, allowlist) {
     if (!Array.isArray(calls)) {
       return { ok: false, error: "Unexpected executeBatch arguments" };
     }
-    if (calls.length > MAX_CALLS) {
+    if (calls.length > config.maxCalls) {
       return {
         ok: false,
-        error: `executeBatch contains ${calls.length} calls but maximum is ${MAX_CALLS}`
+        error: `executeBatch contains ${calls.length} calls but maximum is ${config.maxCalls}`
       };
     }
     for (const call of calls) {
@@ -212,7 +225,7 @@ function validateTargetsFromCallData(callData, allowlist) {
       return { ok: false, error: `Invalid call target: ${target}` };
     }
     const normalizedTarget = ethers.getAddress(target);
-    if (ENFORCE_ALLOWLIST && allowlist && !allowlist.allowedTargets.has(normalizedTarget)) {
+    if (config.enforceAllowlist && allowlist && !allowlist.allowedTargets.has(normalizedTarget)) {
       return {
         ok: false,
         error: `Call target ${normalizedTarget} is not allowlisted for sponsorship`
@@ -240,7 +253,7 @@ function validateTargetsFromCallData(callData, allowlist) {
 
     // Function-level allowlist only for registry calls
     if (
-      ENFORCE_ALLOWLIST &&
+      config.enforceAllowlist &&
       allowlist &&
       normalizedTarget === allowlist.normalizedRegistryAddress
     ) {
@@ -248,7 +261,7 @@ function validateTargetsFromCallData(callData, allowlist) {
         return { ok: false, error: "Missing or invalid call data for registry target" };
       }
       const selector = data.slice(0, 10).toLowerCase();
-      if (!allowedFunctionSelectors.has(selector)) {
+      if (!config.allowedFunctionSelectors.has(selector)) {
         return {
           ok: false,
           error: `Function selector ${selector} is not allowlisted for sponsorship`
@@ -261,8 +274,8 @@ function validateTargetsFromCallData(callData, allowlist) {
 }
 
 async function forwardToPaymaster(payload, authMode, overrideHeaders) {
-  const PAYMASTER_SERVICE_URL = env('PAYMASTER_SERVICE_URL') || env('PAYMASTER_URL');
-  if (!PAYMASTER_SERVICE_URL) {
+  const paymasterServiceUrl = readEnv('PAYMASTER_SERVICE_URL') || readEnv('PAYMASTER_URL');
+  if (!paymasterServiceUrl) {
     throw new Error("Paymaster proxy is missing PAYMASTER_SERVICE_URL configuration.");
   }
 
@@ -272,11 +285,11 @@ async function forwardToPaymaster(payload, authMode, overrideHeaders) {
       return [Object.assign({ "Content-Type": "application/json" }, overrideHeaders)];
     }
     const list = [];
-    const PAYMASTER_API_KEY = env('PAYMASTER_API_KEY');
-    const PAYMASTER_API_KEY_HEADER = env('PAYMASTER_API_KEY_HEADER', 'Authorization') || 'Authorization';
-    const PAYMASTER_API_KEY_SCHEME = env('PAYMASTER_API_KEY_SCHEME', 'Bearer');
-    const CDP_API_KEY_SECRET = env('CDP_API_KEY_SECRET');
-    const CDP_API_KEY_ID = env('CDP_API_KEY_ID');
+    const PAYMASTER_API_KEY = readEnv('PAYMASTER_API_KEY');
+    const PAYMASTER_API_KEY_HEADER = readEnv('PAYMASTER_API_KEY_HEADER', 'Authorization') || 'Authorization';
+    const PAYMASTER_API_KEY_SCHEME = readEnv('PAYMASTER_API_KEY_SCHEME', 'Bearer');
+    const CDP_API_KEY_SECRET = readEnv('CDP_API_KEY_SECRET');
+    const CDP_API_KEY_ID = readEnv('CDP_API_KEY_ID');
     const addAuth = (name, scheme, value) => {
       if (!name || !value) return;
       const headers = { "Content-Type": "application/json" };
@@ -351,7 +364,7 @@ async function forwardToPaymaster(payload, authMode, overrideHeaders) {
     const headers = authHeaderCandidates[i];
     let headerNames = [];
     try { headerNames = Object.keys(headers).filter(k => k.toLowerCase() !== 'content-type'); } catch (_) {}
-    const response = await fetch(PAYMASTER_SERVICE_URL, {
+    const response = await fetch(paymasterServiceUrl, {
       method: "POST",
       headers,
       body: JSON.stringify(payload)
@@ -390,7 +403,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed. Use POST." });
   }
 
-  if (!env('PAYMASTER_SERVICE_URL') && !env('PAYMASTER_URL')) {
+  const config = getPaymasterConfig();
+  const serviceUrl = process.env.PAYMASTER_SERVICE_URL || process.env.PAYMASTER_URL || "";
+  if (!serviceUrl) {
     return res.status(500).json({ error: "Paymaster proxy is not configured." });
   }
 
@@ -410,9 +425,10 @@ export default async function handler(req, res) {
   const jsonRpc = parsed.data;
   let allowlistCtx = null;
 
-  if (ENFORCE_ALLOWLIST) {
+  if (config.enforceAllowlist) {
     try {
-      allowlistCtx = buildAllowlistContext();
+      const registryContext = getRegistryContext();
+      allowlistCtx = buildAllowlistContext(registryContext, config.extraTargets);
     } catch (error) {
       return res.status(503).json({
         error: "Paymaster allowlist is not configured",
@@ -422,7 +438,7 @@ export default async function handler(req, res) {
 
     const userOp = extractUserOperation(jsonRpc);
     if (userOp?.callData) {
-      const validation = validateTargetsFromCallData(userOp.callData, allowlistCtx);
+      const validation = validateTargetsFromCallData(userOp.callData, allowlistCtx, config);
       if (!validation.ok) {
         return res.status(403).json({ error: validation.error });
       }
@@ -459,7 +475,7 @@ export default async function handler(req, res) {
     if (!isProd) {
       try { res.setHeader('X-Env-Has-PSU', String(Boolean(process?.env?.PAYMASTER_SERVICE_URL))); } catch (_) {}
       try { if (Array.isArray(upstream.debug)) res.setHeader('X-Auth-Debug', upstream.debug.join(',')); } catch (_) {}
-      try { const u = new URL(env('PAYMASTER_SERVICE_URL') || env('PAYMASTER_URL')); res.setHeader('X-Target-Host', u.host); res.setHeader('X-Target-Path', u.pathname); } catch (_) {}
+      try { const u = new URL(serviceUrl); res.setHeader('X-Target-Host', u.host); res.setHeader('X-Target-Path', u.pathname); } catch (_) {}
     }
     try { log.debug(`method=${method} status=${upstream.status}`); } catch (_) {}
     return res.send(upstream.body);

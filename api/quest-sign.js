@@ -5,29 +5,36 @@ import {
   getRegistryTargets,
   getSigner,
   normalizeAddress,
-  questTypes
+  getQuestTypes
 } from "./_lib/registry.js";
 import { extractQuickAuthToken, isMiniAppAuthRequired, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
 import { getEnv } from "./_lib/env.js";
 
-// Load env once at module level
-const env = getEnv();
+let cachedConfig = null;
 
-const SIGNATURE_TTL_SECONDS = Number(process.env.QUEST_SIGNATURE_TTL_SECONDS ?? "300");
-const DEFAULT_CHAIN = env.registry.defaultTarget;
-
-const allowedQuestIds = (process.env.ALLOWED_QUEST_IDS || "")
-  .split(",")
-  .map((item) => item.trim())
-  .filter(Boolean)
-  .map((value) => {
-    try {
-      return BigInt(value);
-    } catch (error) {
-      return null;
-    }
-  })
-  .filter((value) => value !== null);
+function getQuestConfig() {
+  if (cachedConfig) return cachedConfig;
+  const env = getEnv();
+  const allowedQuestIds = (process.env.ALLOWED_QUEST_IDS || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((value) => {
+      try {
+        return BigInt(value);
+      } catch (error) {
+        return null;
+      }
+    })
+    .filter((value) => value !== null);
+  cachedConfig = {
+    signatureTtlSeconds: Number(process.env.QUEST_SIGNATURE_TTL_SECONDS ?? "300"),
+    defaultChain: env.registry.defaultTarget,
+    allowedQuestIds,
+    eip712Version: env.registry.eip712Version
+  };
+  return cachedConfig;
+}
 
 const QuestPayloadSchema = z.object({
   playerAddress: z
@@ -94,7 +101,8 @@ export default async function handler(req, res) {
   }
 
   const data = parsed.data;
-  const targetChain = data.chain ?? DEFAULT_CHAIN;
+  const config = getQuestConfig();
+  const targetChain = data.chain ?? config.defaultChain;
   let registryContext;
   try {
     registryContext = getRegistryContext(targetChain);
@@ -112,18 +120,18 @@ export default async function handler(req, res) {
   }
 
   const questId = data.questId;
-  if (allowedQuestIds.length && !allowedQuestIds.some((value) => value === questId)) {
+  if (config.allowedQuestIds.length && !config.allowedQuestIds.some((value) => value === questId)) {
     return res.status(400).json({
       error: "questId not allowed",
-      allowed: allowedQuestIds.map((value) => value.toString())
+      allowed: config.allowedQuestIds.map((value) => value.toString())
     });
   }
 
   const player = normalizeAddress(data.playerAddress);
-  const deadlineSeconds = Math.floor(Date.now() / 1000) + Math.max(SIGNATURE_TTL_SECONDS, 60);
+  const deadlineSeconds = Math.floor(Date.now() / 1000) + Math.max(config.signatureTtlSeconds, 60);
   const deadline = BigInt(deadlineSeconds);
 
-  const isV2 = (process.env.REGISTRY_EIP712_VERSION || "2").toString() === "2";
+  const isV2 = (config.eip712Version || "2").toString() === "2";
   let nonce = undefined;
   if (isV2) {
     nonce = BigInt(Date.now());
@@ -139,6 +147,7 @@ export default async function handler(req, res) {
   };
   const signerKey = signerKeyMap[registryContext.target] || "QUEST_SIGNER_PRIVATE_KEY";
   const signer = getSigner(signerKey);
+  const questTypes = getQuestTypes();
   const signature = await signer.signTypedData(registryContext.domain, questTypes, value);
 
   const response = {

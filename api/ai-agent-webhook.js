@@ -7,21 +7,25 @@ import { createLogger } from "../src/utils/logger.js";
 import { getRollbar } from './_lib/rollbar.js';
 
 const log = createLogger("ApiAiAgentWebhook");
-const rollbar = getRollbar();
 
-// AI Provider Configuration
-const AI_PROVIDER = (process.env.AI_PROVIDER || 'groq').trim().toLowerCase(); // 'groq', 'openai', 'openrouter', 'rule-based'
-const OPENAI_API_KEY = (process.env.OPENAI_API_KEY || '').trim();
-const GROQ_API_KEY = (process.env.GROQ_API_KEY || '').trim();
-const OPENROUTER_API_KEY = (process.env.OPENROUTER_API_KEY || '').trim();
-const AI_AGENT_ENABLED = (process.env.AI_AGENT_ENABLED || '').trim().toLowerCase() === 'true';
-const AI_AGENT_MODEL = (process.env.AI_AGENT_MODEL || 'llama-3.3-70b-versatile').trim();
-const AI_AGENT_MIN_SEVERITY = (process.env.AI_AGENT_MIN_SEVERITY || 'error').trim(); // 'error', 'warn', 'log'
+let cachedConfig = null;
 
-// Notification endpoints (optional)
-const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
-const EMAIL_API_KEY = process.env.EMAIL_API_KEY || '';
-const EMAIL_TO = process.env.EMAIL_TO || '';
+function getAiAgentConfig() {
+  if (cachedConfig) return cachedConfig;
+  cachedConfig = {
+    provider: (process.env.AI_PROVIDER || 'groq').trim().toLowerCase(),
+    openaiApiKey: (process.env.OPENAI_API_KEY || '').trim(),
+    groqApiKey: (process.env.GROQ_API_KEY || '').trim(),
+    openrouterApiKey: (process.env.OPENROUTER_API_KEY || '').trim(),
+    agentEnabled: (process.env.AI_AGENT_ENABLED || '').trim().toLowerCase() === 'true',
+    agentModel: (process.env.AI_AGENT_MODEL || 'llama-3.3-70b-versatile').trim(),
+    agentMinSeverity: (process.env.AI_AGENT_MIN_SEVERITY || 'error').trim(),
+    slackWebhookUrl: process.env.SLACK_WEBHOOK_URL || '',
+    emailApiKey: process.env.EMAIL_API_KEY || '',
+    emailTo: process.env.EMAIL_TO || ''
+  };
+  return cachedConfig;
+}
 
 // Cache for recent analyses to avoid duplicate processing
 const ANALYSIS_CACHE = new Map();
@@ -114,26 +118,27 @@ function analyzeErrorRuleBased(logEntry) {
 /**
  * Analyze error using AI API (Groq, OpenAI, or OpenRouter)
  */
-async function analyzeErrorWithAI(logEntry, provider = AI_PROVIDER) {
+async function analyzeErrorWithAI(logEntry, provider, config) {
+  const activeProvider = provider || config.provider;
   let apiKey = '';
   let apiUrl = '';
-  let model = AI_AGENT_MODEL;
+  let model = config.agentModel;
   
   // Configure API based on provider
-  if (provider === 'groq') {
-    apiKey = GROQ_API_KEY;
+  if (activeProvider === 'groq') {
+    apiKey = config.groqApiKey;
     apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
     if (!model.includes('llama') && !model.includes('mixtral')) {
       model = 'llama-3.3-70b-versatile'; // Default Groq model
     }
-  } else if (provider === 'openrouter') {
-    apiKey = OPENROUTER_API_KEY;
+  } else if (activeProvider === 'openrouter') {
+    apiKey = config.openrouterApiKey;
     apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
     if (!model) {
       model = 'meta-llama/llama-3.3-70b-instruct:free'; // Free model on OpenRouter
     }
-  } else if (provider === 'openai') {
-    apiKey = OPENAI_API_KEY;
+  } else if (activeProvider === 'openai') {
+    apiKey = config.openaiApiKey;
     apiUrl = 'https://api.openai.com/v1/chat/completions';
     if (!model) {
       model = 'gpt-4o-mini';
@@ -142,13 +147,13 @@ async function analyzeErrorWithAI(logEntry, provider = AI_PROVIDER) {
     return null; // Unknown provider
   }
   
-  if (!apiKey || !AI_AGENT_ENABLED) {
+  if (!apiKey || !config.agentEnabled) {
     return null;
   }
 
   // Only analyze errors and warnings
   if (logEntry.event !== 'error' && logEntry.event !== 'warn') {
-    if (AI_AGENT_MIN_SEVERITY === 'error' && logEntry.event !== 'error') {
+    if (config.agentMinSeverity === 'error' && logEntry.event !== 'error') {
       return null;
     }
   }
@@ -288,14 +293,14 @@ Provide your analysis in JSON format:
 /**
  * Main analyze error function - tries AI first, falls back to rule-based
  */
-async function analyzeError(logEntry) {
-  if (!AI_AGENT_ENABLED) {
+async function analyzeError(logEntry, config) {
+  if (!config.agentEnabled) {
     return null;
   }
 
   // Only analyze errors and warnings
   if (logEntry.event !== 'error' && logEntry.event !== 'warn') {
-    if (AI_AGENT_MIN_SEVERITY === 'error' && logEntry.event !== 'error') {
+    if (config.agentMinSeverity === 'error' && logEntry.event !== 'error') {
       return null;
     }
   }
@@ -311,22 +316,22 @@ async function analyzeError(logEntry) {
   let analysis = null;
   
   // Check if we should use rule-based directly
-  const hasGroqKey = !!GROQ_API_KEY && GROQ_API_KEY.length > 0;
-  const hasOpenRouterKey = !!OPENROUTER_API_KEY && OPENROUTER_API_KEY.length > 0;
-  const hasOpenAIKey = !!OPENAI_API_KEY && OPENAI_API_KEY.length > 0;
+  const hasGroqKey = !!config.groqApiKey && config.groqApiKey.length > 0;
+  const hasOpenRouterKey = !!config.openrouterApiKey && config.openrouterApiKey.length > 0;
+  const hasOpenAIKey = !!config.openaiApiKey && config.openaiApiKey.length > 0;
   const hasAnyAIKey = hasGroqKey || hasOpenRouterKey || hasOpenAIKey;
   
-  if (AI_PROVIDER === 'rule-based' || !hasAnyAIKey) {
+  if (config.provider === 'rule-based' || !hasAnyAIKey) {
     // Use rule-based analysis (completely free)
     analysis = analyzeErrorRuleBased(logEntry);
   } else {
     // Try AI providers in priority order
     const providers = [];
-    if (AI_PROVIDER === 'groq' && hasGroqKey) {
+    if (config.provider === 'groq' && hasGroqKey) {
       providers.push('groq');
-    } else if (AI_PROVIDER === 'openrouter' && hasOpenRouterKey) {
+    } else if (config.provider === 'openrouter' && hasOpenRouterKey) {
       providers.push('openrouter');
-    } else if (AI_PROVIDER === 'openai' && hasOpenAIKey) {
+    } else if (config.provider === 'openai' && hasOpenAIKey) {
       providers.push('openai');
     }
     
@@ -337,7 +342,7 @@ async function analyzeError(logEntry) {
     
     // Try each provider
     for (const provider of providers) {
-      analysis = await analyzeErrorWithAI(logEntry, provider);
+      analysis = await analyzeErrorWithAI(logEntry, provider, config);
       if (analysis) break; // Success, stop trying other providers
     }
     
@@ -361,8 +366,8 @@ async function analyzeError(logEntry) {
 /**
  * Send notification to Slack
  */
-async function notifySlack(logEntry, analysis) {
-  if (!SLACK_WEBHOOK_URL) return;
+async function notifySlack(logEntry, analysis, config) {
+  if (!config.slackWebhookUrl) return;
 
   try {
     const severityEmoji = {
@@ -420,7 +425,7 @@ async function notifySlack(logEntry, analysis) {
       });
     }
 
-    await fetch(SLACK_WEBHOOK_URL, {
+    await fetch(config.slackWebhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ blocks })
@@ -433,33 +438,34 @@ async function notifySlack(logEntry, analysis) {
 /**
  * Send notification via email (using a simple email service)
  */
-async function notifyEmail(logEntry, analysis) {
-  if (!EMAIL_API_KEY || !EMAIL_TO) return;
+async function notifyEmail(logEntry, analysis, config) {
+  if (!config.emailApiKey || !config.emailTo) return;
 
   // This is a placeholder - you can integrate with SendGrid, Resend, etc.
   // For now, we'll just log it
   log.debug('Email notification (not implemented):', {
-    to: EMAIL_TO,
+      to: config.emailTo,
     subject: `BaseMan Error: ${logEntry.message?.slice(0, 50)}`,
     analysis: analysis?.severity || 'Unknown'
   });
 }
 
 export default async function handler(req, res) {
+  const config = getAiAgentConfig();
   // Debug endpoint - GET request for checking configuration
   if (req.method === 'GET') {
     return res.status(200).json({
-      enabled: AI_AGENT_ENABLED,
-      provider: AI_PROVIDER,
-      hasGroqKey: !!GROQ_API_KEY && GROQ_API_KEY.length > 0,
-      hasOpenRouterKey: !!OPENROUTER_API_KEY && OPENROUTER_API_KEY.length > 0,
-      hasOpenAIKey: !!OPENAI_API_KEY && OPENAI_API_KEY.length > 0,
-      groqKeyPrefix: GROQ_API_KEY ? GROQ_API_KEY.substring(0, 15) + '...' : 'missing',
-      openRouterKeyPrefix: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 15) + '...' : 'missing',
-      openAIKeyPrefix: OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 15) + '...' : 'missing',
-      model: AI_AGENT_MODEL,
-      minSeverity: AI_AGENT_MIN_SEVERITY,
-      hasSlackWebhook: !!SLACK_WEBHOOK_URL && SLACK_WEBHOOK_URL.length > 0,
+      enabled: config.agentEnabled,
+      provider: config.provider,
+      hasGroqKey: !!config.groqApiKey && config.groqApiKey.length > 0,
+      hasOpenRouterKey: !!config.openrouterApiKey && config.openrouterApiKey.length > 0,
+      hasOpenAIKey: !!config.openaiApiKey && config.openaiApiKey.length > 0,
+      groqKeyPrefix: config.groqApiKey ? config.groqApiKey.substring(0, 15) + '...' : 'missing',
+      openRouterKeyPrefix: config.openrouterApiKey ? config.openrouterApiKey.substring(0, 15) + '...' : 'missing',
+      openAIKeyPrefix: config.openaiApiKey ? config.openaiApiKey.substring(0, 15) + '...' : 'missing',
+      model: config.agentModel,
+      minSeverity: config.agentMinSeverity,
+      hasSlackWebhook: !!config.slackWebhookUrl && config.slackWebhookUrl.length > 0,
       environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown',
       fallback: 'rule-based (always available, completely free)'
     });
@@ -478,8 +484,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid log entry format' });
     }
 
+    const rollbar = getRollbar();
+
     // Perform AI analysis
-    const analysis = await analyzeError(logEntry);
+    const analysis = await analyzeError(logEntry, config);
 
     // Send AI analysis to Rollbar if configured
     log.debug('Rollbar check:', {
@@ -543,8 +551,8 @@ export default async function handler(req, res) {
     // Send notifications if analysis is available or if it's a critical error
     if (analysis || logEntry.event === 'error') {
       await Promise.all([
-        notifySlack(logEntry, analysis),
-        notifyEmail(logEntry, analysis)
+        notifySlack(logEntry, analysis, config),
+        notifyEmail(logEntry, analysis, config)
       ]);
     }
 

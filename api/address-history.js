@@ -12,15 +12,24 @@ const ScoreAddedEvent = "event ScoreAdded(address indexed player,uint256 added,u
 const QuestEvent = "event QuestCompleted(address indexed player,uint256 indexed questId,uint256 timestamp)";
 const iface = new ethers.Interface([ScoreEvent, ScoreAddedEvent, QuestEvent]);
 
-const ADDRESS_HISTORY_API_KEY = process.env.CDP_ADDRESS_HISTORY_API_KEY?.trim();
-const ADDRESS_HISTORY_BASE_URL = (process.env.CDP_ADDRESS_HISTORY_BASE_URL || "https://api.cdp.coinbase.com").replace(
-  /\/$/,
-  ""
-);
-const ADDRESS_HISTORY_CACHE_TTL_MS = Number.parseInt(
-  process.env.ADDRESS_HISTORY_CACHE_TTL_MS || String(5 * 60 * 1000),
-  10
-);
+let cachedConfig = null;
+
+function getAddressHistoryConfig() {
+  if (cachedConfig) return cachedConfig;
+  cachedConfig = {
+    apiKey: process.env.CDP_ADDRESS_HISTORY_API_KEY?.trim() || "",
+    baseUrl: (process.env.CDP_ADDRESS_HISTORY_BASE_URL || "https://api.cdp.coinbase.com").replace(
+      /\/$/,
+      ""
+    ),
+    cacheTtlMs: Number.parseInt(
+      process.env.ADDRESS_HISTORY_CACHE_TTL_MS || String(5 * 60 * 1000),
+      10
+    )
+  };
+  return cachedConfig;
+}
+
 const ADDRESS_HISTORY_CACHE_MAX = 128;
 const addressHistoryCache = new Map();
 
@@ -52,8 +61,8 @@ const QuerySchema = z.object({
     .transform((value) => (value ? Number.parseInt(value, 10) : undefined))
 });
 
-function isAddressHistoryApiConfigured(player) {
-  return Boolean(player && ADDRESS_HISTORY_API_KEY);
+function isAddressHistoryApiConfigured(player, config) {
+  return Boolean(player && config.apiKey);
 }
 
 function normalizeLimit(limit) {
@@ -67,8 +76,8 @@ function getCacheKey(network, player, fromBlock, toBlock, limit) {
   return JSON.stringify([network, player || "*", fromBlock ?? null, toBlock ?? null, limit]);
 }
 
-function readCache(key) {
-  if (!ADDRESS_HISTORY_CACHE_TTL_MS) return null;
+function readCache(key, config) {
+  if (!config.cacheTtlMs) return null;
   const snapshot = addressHistoryCache.get(key);
   if (!snapshot) return null;
   if (snapshot.expiresAt < Date.now()) {
@@ -78,11 +87,11 @@ function readCache(key) {
   return snapshot.value;
 }
 
-function writeCache(key, value) {
-  if (!ADDRESS_HISTORY_CACHE_TTL_MS) return;
+function writeCache(key, value, config) {
+  if (!config.cacheTtlMs) return;
   addressHistoryCache.set(key, {
     value,
-    expiresAt: Date.now() + ADDRESS_HISTORY_CACHE_TTL_MS
+    expiresAt: Date.now() + config.cacheTtlMs
   });
   if (addressHistoryCache.size > ADDRESS_HISTORY_CACHE_MAX) {
     const iterator = addressHistoryCache.keys();
@@ -330,17 +339,18 @@ async function fetchFromAddressHistoryApi({
   fromBlock,
   toBlock
 }) {
-  if (!isAddressHistoryApiConfigured(player)) {
+  const config = getAddressHistoryConfig();
+  if (!isAddressHistoryApiConfigured(player, config)) {
     return null;
   }
 
   const cacheKey = getCacheKey(networkId, player, fromBlock, toBlock, limit);
-  const cached = readCache(cacheKey);
+  const cached = readCache(cacheKey, config);
   if (cached) {
     return { ...cached, source: "address-history-api", cached: true };
   }
 
-  const url = new URL(`/address-history/v1/wallets/${player}`, ADDRESS_HISTORY_BASE_URL);
+  const url = new URL(`/address-history/v1/wallets/${player}`, config.baseUrl);
   url.searchParams.set("network_id", networkId);
   url.searchParams.set("page_size", String(Math.min(limit, 500)));
   if (registryAddress) {
@@ -359,7 +369,7 @@ async function fetchFromAddressHistoryApi({
   const response = await fetch(url, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${ADDRESS_HISTORY_API_KEY}`,
+      Authorization: `Bearer ${config.apiKey}`,
       Accept: "application/json"
     }
   });
@@ -376,7 +386,7 @@ async function fetchFromAddressHistoryApi({
       payload?.nextPageToken ?? payload?.next_page_token ?? payload?.pagination?.nextPageToken ?? null,
     source: "address-history-api"
   };
-  writeCache(cacheKey, result);
+  writeCache(cacheKey, result, config);
   return result;
 }
 
@@ -426,6 +436,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const config = getAddressHistoryConfig();
     const { player, network, fromBlock, toBlock, limit } = parsed.data;
     const networkId = assertNetwork(network);
     const registry = getRegistryContext(networkId);
@@ -442,7 +453,7 @@ export default async function handler(req, res) {
     let timeline = null;
     let provider = null;
 
-    if (isAddressHistoryApiConfigured(player)) {
+    if (isAddressHistoryApiConfigured(player, config)) {
       try {
         timeline = await fetchFromAddressHistoryApi({
           player,

@@ -215,93 +215,6 @@ export function getRegistryDomain() {
   return ctx.domain;
 }
 
-// Legacy exports for backward compatibility (lazy evaluation)
-// These are computed on first access, not at import time
-// We use getter functions that return the actual primitive values
-// This ensures compatibility with ethers functions that check typeof
-let _cachedRegistryAddress;
-let _cachedRegistryChainId;
-let _cachedRegistryChainIdNumber;
-let _cachedRegistryDomain;
-
-function getLazyRegistryAddress() {
-  if (_cachedRegistryAddress === undefined) {
-    try {
-      _cachedRegistryAddress = getDefaultContext().address;
-    } catch (error) {
-      _cachedRegistryAddress = null;
-    }
-  }
-  return _cachedRegistryAddress;
-}
-
-function getLazyRegistryChainId() {
-  if (_cachedRegistryChainId === undefined) {
-    try {
-      _cachedRegistryChainId = getDefaultContext().chainId;
-    } catch (error) {
-      _cachedRegistryChainId = null;
-    }
-  }
-  return _cachedRegistryChainId;
-}
-
-function getLazyRegistryChainIdNumber() {
-  if (_cachedRegistryChainIdNumber === undefined) {
-    try {
-      _cachedRegistryChainIdNumber = getDefaultContext().chainIdNumber;
-    } catch (error) {
-      _cachedRegistryChainIdNumber = null;
-    }
-  }
-  return _cachedRegistryChainIdNumber;
-}
-
-function getLazyRegistryDomain() {
-  if (_cachedRegistryDomain === undefined) {
-    try {
-      _cachedRegistryDomain = getDefaultContext().domain;
-    } catch (error) {
-      _cachedRegistryDomain = null;
-    }
-  }
-  return _cachedRegistryDomain;
-}
-
-// Export as getter properties using Object.defineProperty for true laziness
-// These will be evaluated on first property access, not at import time
-const lazyExports = {};
-
-Object.defineProperty(lazyExports, 'registryAddress', {
-  get: getLazyRegistryAddress,
-  enumerable: true,
-  configurable: true
-});
-
-Object.defineProperty(lazyExports, 'registryChainId', {
-  get: getLazyRegistryChainId,
-  enumerable: true,
-  configurable: true
-});
-
-Object.defineProperty(lazyExports, 'registryChainIdNumber', {
-  get: getLazyRegistryChainIdNumber,
-  enumerable: true,
-  configurable: true
-});
-
-Object.defineProperty(lazyExports, 'registryDomain', {
-  get: getLazyRegistryDomain,
-  enumerable: true,
-  configurable: true
-});
-
-// Export the getter properties - these evaluate lazily on first access
-export const registryAddress = lazyExports.registryAddress;
-export const registryChainId = lazyExports.registryChainId;
-export const registryChainIdNumber = lazyExports.registryChainIdNumber;
-export const registryDomain = lazyExports.registryDomain;
-
 const V1_scoreTypes = {
   Score: [
     { name: "player", type: "address" },
@@ -354,20 +267,13 @@ function getLazyQuestTypes() {
   return _cachedQuestTypes;
 }
 
-const lazyTypeExports = {};
-Object.defineProperty(lazyTypeExports, 'scoreTypes', {
-  get: getLazyScoreTypes,
-  enumerable: true,
-  configurable: true
-});
-Object.defineProperty(lazyTypeExports, 'questTypes', {
-  get: getLazyQuestTypes,
-  enumerable: true,
-  configurable: true
-});
+export function getScoreTypes() {
+  return getLazyScoreTypes();
+}
 
-export const scoreTypes = lazyTypeExports.scoreTypes;
-export const questTypes = lazyTypeExports.questTypes;
+export function getQuestTypes() {
+  return getLazyQuestTypes();
+}
 
 export function getSigner(envKey = "SCORE_SIGNER_PRIVATE_KEY") {
   const env = getEnv();

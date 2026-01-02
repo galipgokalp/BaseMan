@@ -133,10 +133,18 @@ function verifySignature(req, rawBody, secret) {
 }
 
 const EVENT_CACHE = new Map();
-const MAX_CACHE_SIZE = Number(process.env.CDP_WEBHOOK_CACHE_SIZE || 200);
-const LOG_ENDPOINT = process.env.CDP_WEBHOOK_LOG_ENDPOINT || "";
+let cachedConfig = null;
 
-function isDuplicate(eventId, ttlMs) {
+function getWebhookConfig() {
+  if (cachedConfig) return cachedConfig;
+  cachedConfig = {
+    maxCacheSize: Number(process.env.CDP_WEBHOOK_CACHE_SIZE || 200),
+    logEndpoint: process.env.CDP_WEBHOOK_LOG_ENDPOINT || ""
+  };
+  return cachedConfig;
+}
+
+function isDuplicate(eventId, ttlMs, config) {
   if (!eventId) return false;
   const now = Date.now();
   const expiresAt = EVENT_CACHE.get(eventId);
@@ -144,7 +152,7 @@ function isDuplicate(eventId, ttlMs) {
     return true;
   }
   EVENT_CACHE.set(eventId, now + ttlMs);
-  if (EVENT_CACHE.size > MAX_CACHE_SIZE) {
+  if (EVENT_CACHE.size > config.maxCacheSize) {
     const iterator = EVENT_CACHE.keys();
     const key = iterator.next().value;
     if (key) EVENT_CACHE.delete(key);
@@ -152,10 +160,10 @@ function isDuplicate(eventId, ttlMs) {
   return false;
 }
 
-async function forwardLog(details) {
-  if (!LOG_ENDPOINT) return;
+async function forwardLog(details, config) {
+  if (!config.logEndpoint) return;
   try {
-    await fetch(LOG_ENDPOINT, {
+    await fetch(config.logEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(details)
@@ -167,6 +175,7 @@ async function forwardLog(details) {
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
+    const config = getWebhookConfig();
     const secret = process.env.CDP_WEBHOOK_SECRET;
     const cacheTtl = Number(process.env.CDP_WEBHOOK_CACHE_TTL_MS || 5 * 60 * 1000);
     const rawBody = extractRawBody(req);
@@ -187,7 +196,7 @@ export default async function handler(req, res) {
         signatureHeader: getSignatureHeader(req),
         headers: req.headers,
         receivedAt: new Date().toISOString()
-      });
+      }, config);
       return res.status(401).json({ error: "invalid signature", reason: verification.reason });
     }
 
@@ -196,7 +205,7 @@ export default async function handler(req, res) {
       req.headers["x-cdp-event-id"] ||
       req.headers["X-Hook0-Id"] ||
       req.headers["X-Cdp-Event-Id"];
-    if (isDuplicate(eventId, cacheTtl)) {
+    if (isDuplicate(eventId, cacheTtl, config)) {
       log.debug("duplicate event ignored", eventId);
       return res.status(200).json({ received: true, duplicate: true });
     }
@@ -210,7 +219,7 @@ export default async function handler(req, res) {
       eventId,
       headers: req.headers,
       receivedAt: new Date().toISOString()
-    });
+    }, config);
     return res.status(200).json({ received: true });
   }
 

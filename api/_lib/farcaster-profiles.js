@@ -39,16 +39,13 @@ function profileMeta(profile) {
 
 import { getEnv } from "./env.js";
 
-// Load env once at module level
-const env = getEnv();
-
-const PROFILE_PROVIDER = env.profiles.provider?.toLowerCase() || "";
-const NEYNAR_API_KEY = env.profiles.neynarApiKey || null;
-const NEYNAR_API_BASE_URL = env.profiles.neynarApiBaseUrl || "https://api.neynar.com";
+let PROFILE_PROVIDER;
+let NEYNAR_API_KEY;
+let NEYNAR_API_BASE_URL;
+let DISABLE_ENRICHMENT;
 const PROFILE_CACHE = new Map();
 const MANUAL_PROFILE_CACHE = new Map();
 const FALLBACK_PROVIDER = "neynar";
-const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
 let ENRICHMENT_DISABLED_REASON = null;
 
 // Warn once flags for missing configuration
@@ -65,6 +62,15 @@ const inflightNeynarRequests = new Map(); // key: address, value: Promise
 // Track in-flight bulk FID requests
 let inflightBulkFidRequest = null;
 let inflightBulkFidRequestFids = null;
+
+function ensureProfileConfig() {
+  if (PROFILE_PROVIDER !== undefined) return;
+  const env = getEnv();
+  PROFILE_PROVIDER = env.profiles.provider?.toLowerCase() || "";
+  NEYNAR_API_KEY = env.profiles.neynarApiKey || null;
+  NEYNAR_API_BASE_URL = env.profiles.neynarApiBaseUrl || "https://api.neynar.com";
+  DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
+}
 
 function normalizeAddress(value) {
   if (!value) return null;
@@ -147,6 +153,7 @@ function normalizeUser(user, address) {
 }
 
 async function fetchNeynarProfile(address) {
+  ensureProfileConfig();
   const cacheKey = address.toLowerCase();
   
   // Phase 4.3: Check for in-flight request for this address
@@ -199,6 +206,7 @@ async function fetchNeynarProfile(address) {
 // Fetch profiles by FID using bulk endpoint (free tier)
 // Phase 4.3: Added in-flight request deduplication
 async function fetchProfilesByFids(fids) {
+  ensureProfileConfig();
   if (!fids || !fids.length || !NEYNAR_API_KEY) {
     return new Map();
   }
@@ -297,6 +305,7 @@ async function fetchProfilesByFids(fids) {
 }
 
 async function resolveProfile(address) {
+  ensureProfileConfig();
   if (!address) return null;
 
   const cacheKey = address.toLowerCase();
@@ -322,6 +331,7 @@ async function resolveProfile(address) {
 }
 
 export async function fetchProfilesForAddresses(addresses = []) {
+  ensureProfileConfig();
   const results = new Map();
   const normalizedAddresses = addresses
     .map(addr => normalizeAddress(addr))
@@ -629,15 +639,12 @@ export function setManualProfile(address, { fid = null, username = null, display
  * @returns {Promise<Object<string, Profile>>} - { [address]: normalizedProfile }
  */
 export async function fetchFarcasterProfilesByAddresses(addresses) {
+  ensureProfileConfig();
   // Guard: if no addresses or Neynar not enabled → return {}
   if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
     return {};
   }
 
-  const PROFILE_PROVIDER = env.profiles.provider?.toLowerCase() || "";
-  const NEYNAR_API_KEY = env.profiles.neynarApiKey || null;
-  const NEYNAR_API_BASE_URL = env.profiles.neynarApiBaseUrl || "https://api.neynar.com";
-  const DISABLE_ENRICHMENT = ["none", "off", "false", "0"].includes(PROFILE_PROVIDER);
   const disableEnrichmentFlag = ["1","true","yes","on"].includes(String(process.env.LEADERBOARD_DISABLE_PROFILE_ENRICHMENT || "").trim().toLowerCase());
 
   log.debug("Neynar ENV:", {

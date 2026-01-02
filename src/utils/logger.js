@@ -81,16 +81,30 @@ function resolveLogLevel() {
 }
 
 // Current log level (can be changed at runtime)
-let CURRENT_LEVEL = resolveLogLevel();
+let CURRENT_LEVEL;
 
 // Check if timestamps should be shown
-const SHOW_TIMESTAMPS = getEnv().BASEMAN_LOG_TIMESTAMPS !== "false";
+let SHOW_TIMESTAMPS;
 
 // Set to track logged-once keys
 const loggedOnce = new Set();
 
 // Maximum size for loggedOnce to prevent memory leaks
 const MAX_ONCE_CACHE = 1000;
+
+function getCurrentLevel() {
+  if (CURRENT_LEVEL === undefined) {
+    CURRENT_LEVEL = resolveLogLevel();
+  }
+  return CURRENT_LEVEL;
+}
+
+function shouldShowTimestamps() {
+  if (SHOW_TIMESTAMPS === undefined) {
+    SHOW_TIMESTAMPS = getEnv().BASEMAN_LOG_TIMESTAMPS !== "false";
+  }
+  return SHOW_TIMESTAMPS;
+}
 
 /**
  * Set the current log level
@@ -122,7 +136,8 @@ export function setLogLevel(level) {
  * @returns {boolean}
  */
 function shouldLog(level) {
-  return level >= CURRENT_LEVEL && CURRENT_LEVEL !== LogLevel.SILENT;
+  const current = getCurrentLevel();
+  return level >= current && current !== LogLevel.SILENT;
 }
 
 /**
@@ -146,7 +161,7 @@ function safeConsole(method, ...args) {
  * @returns {Array}
  */
 function formatArgs(...args) {
-  return SHOW_TIMESTAMPS ? [nowTs(), ...args] : args;
+  return shouldShowTimestamps() ? [nowTs(), ...args] : args;
 }
 
 /**
@@ -157,7 +172,7 @@ export const logger = {
    * Get current log level
    * @returns {number}
    */
-  level: () => CURRENT_LEVEL,
+  level: () => getCurrentLevel(),
 
   /**
    * Set log level
@@ -334,7 +349,7 @@ export const logger = {
    * @returns {boolean}
    */
   isDev() {
-    return CURRENT_LEVEL === LogLevel.DEBUG;
+    return getCurrentLevel() === LogLevel.DEBUG;
   },
 };
 
@@ -354,7 +369,7 @@ export function createLogger(namespace) {
     debug: (...args) => logger.debug(prefix, ...args),
     
     debugLazy: (fn) => {
-      if (CURRENT_LEVEL <= LogLevel.DEBUG) {
+      if (getCurrentLevel() <= LogLevel.DEBUG) {
         const result = typeof fn === "function" ? fn() : fn;
         logger.debug(prefix, result);
       }
@@ -397,4 +412,3 @@ if (typeof window !== "undefined") {
   // Keep backward compatibility with old window.logger
   window.logger = logger;
 }
-

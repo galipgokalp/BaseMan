@@ -8,7 +8,7 @@
  * - Profile mapping caching (already present)
  */
 import { ethers } from "ethers";
-import { registryAddress, getRegistryContext, getRegistryChainIdNumber } from "./_lib/registry.js";
+import { getRegistryContext, getRegistryChainIdNumber, getRegistryAddress } from "./_lib/registry.js";
 import { fetchFarcasterProfilesByAddresses } from "./_lib/farcaster-profiles.js";
 import { getEnv } from "./_lib/env.js";
 
@@ -60,6 +60,7 @@ let inflightLeaderboardQueryKey = null;
 const ADDRESS_TO_PROFILE_MAP = new Map();
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+let cleanupScheduled = false;
 
 function cleanupOldEntries() {
   const now = Date.now();
@@ -75,14 +76,19 @@ function cleanupOldEntries() {
   }
 }
 
-if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupOldEntries, CLEANUP_INTERVAL_MS);
+function ensureProfileCleanup() {
+  if (cleanupScheduled) return;
+  cleanupScheduled = true;
+  if (typeof setInterval !== 'undefined') {
+    setInterval(cleanupOldEntries, CLEANUP_INTERVAL_MS);
+  }
 }
 
 // Export functions for use in farcaster-profiles.js
 // Note: This function is synchronous for backwards compatibility
 // For Redis support, use getProfileMappingFromRedis from redis-profiles.js
 export function getProfileMapping(address) {
+  ensureProfileCleanup();
   if (!address || typeof address !== 'string') {
     log.debug('getProfileMapping: invalid address input');
     return null;
@@ -107,6 +113,7 @@ export function getProfileMapping(address) {
 }
 
 export async function getAllFidMappings(addresses) {
+  ensureProfileCleanup();
   const result = new Map();
   
   // Normalize addresses
@@ -150,19 +157,27 @@ const ALT_SQL_BASE = "https://api.developer.coinbase.com";
 // Event topics (computed at runtime for safety)
 const SCORE_ADDED_TOPIC = ethers.id("ScoreAdded(address,uint256,uint256,uint256)");
 
-// Load env once at module level
-const env = getEnv();
+let cachedConfig = null;
 
-const SQL_API_KEY = env.cdp.sqlApiKey || "";
-const DISABLE_FLAG = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
-const LEADERBOARD_DISABLED = ["1","true","yes","on"].includes(DISABLE_FLAG);
-const SQL_BASE_URL = (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, "");
-const SQL_TIMEOUT_MS = Number.parseInt(process.env.CDP_SQL_QUERY_TIMEOUT_MS || "15000", 10);
-const SQL_POLL_INTERVAL_MS = 750;
+function getLeaderboardConfig() {
+  if (cachedConfig) return cachedConfig;
+  const env = getEnv();
+  const disableFlag = String(process.env.LEADERBOARD_DISABLE || "").trim().toLowerCase();
+  cachedConfig = {
+    env,
+    sqlApiKey: env.cdp.sqlApiKey || "",
+    leaderboardDisabled: ["1","true","yes","on"].includes(disableFlag),
+    sqlBaseUrl: (process.env.CDP_SQL_API_BASE_URL || DEFAULT_SQL_BASE).replace(/\/$/, ""),
+    sqlTimeoutMs: Number.parseInt(process.env.CDP_SQL_QUERY_TIMEOUT_MS || "15000", 10),
+    sqlPollIntervalMs: 750,
+    rlWindowMs: Number.parseInt(process.env.LEADERBOARD_RATE_WINDOW_MS || "10000", 10),
+    rlMax: Number.parseInt(process.env.LEADERBOARD_RATE_MAX || "5", 10),
+    lookbackDays: Number.parseInt(process.env.LEADERBOARD_SQL_LOOKBACK_DAYS || "0", 10)
+  };
+  return cachedConfig;
+}
 
 // Basic in-memory rate limit for the leaderboard endpoint (prod-friendly defaults low)
-const RL_WINDOW_MS = Number.parseInt(process.env.LEADERBOARD_RATE_WINDOW_MS || "10000", 10);
-const RL_MAX = Number.parseInt(process.env.LEADERBOARD_RATE_MAX || "5", 10);
 const __rlBuckets = new Map();
 function clientIp(req) {
   try {
@@ -171,14 +186,14 @@ function clientIp(req) {
     return req.socket?.remoteAddress || req.connection?.remoteAddress || "";
   } catch { return ""; }
 }
-function rlCheck(key) {
-  if (!RL_WINDOW_MS || !RL_MAX || RL_MAX <= 0) return false;
+function rlCheck(key, config) {
+  if (!config.rlWindowMs || !config.rlMax || config.rlMax <= 0) return false;
   const now = Date.now();
-  const windowStart = now - RL_WINDOW_MS;
+  const windowStart = now - config.rlWindowMs;
   let bucket = __rlBuckets.get(key);
   if (!Array.isArray(bucket)) bucket = [];
   const fresh = bucket.filter((ts) => Number.isFinite(ts) && ts >= windowStart);
-  if (fresh.length >= RL_MAX) { __rlBuckets.set(key, fresh); return true; }
+  if (fresh.length >= config.rlMax) { __rlBuckets.set(key, fresh); return true; }
   fresh.push(now); __rlBuckets.set(key, fresh); return false;
 }
 function endpointsFor(baseUrl) {
@@ -200,7 +215,7 @@ function sanitizeLimit(value) {
   return Math.min(parsed, 100);
 }
 
-function buildQuery(limit, chainId = null) {
+function buildQuery(limit, chainId = null, config) {
   // Handle missing registry address gracefully
   // Determine chain ID: use provided chainId, or try to get from registry context, or default to Base Mainnet (8453)
   const targetChainId = chainId !== null 
@@ -210,7 +225,7 @@ function buildQuery(limit, chainId = null) {
   // Determine table name based on chain ID
   // Base Mainnet (8453) uses 'base.events', Base Sepolia (84532) uses 'base_sepolia.events'
   const eventsTable = targetChainId === 84532 ? 'base_sepolia.events' : 'base.events';
-  const lookbackDays = Number.parseInt(process.env.LEADERBOARD_SQL_LOOKBACK_DAYS || "0", 10);
+  const lookbackDays = config?.lookbackDays ?? 0;
   const timeFilter =
     Number.isFinite(lookbackDays) && lookbackDays > 0
       ? `AND block_timestamp >= now() - INTERVAL ${lookbackDays} DAY`
@@ -229,11 +244,13 @@ function buildQuery(limit, chainId = null) {
       registry = ctx.address ? ethers.getAddress(ctx.address).toLowerCase() : null;
     } else {
       // Fallback to default registry address
-      registry = registryAddress ? ethers.getAddress(registryAddress).toLowerCase() : null;
+      const fallback = getRegistryAddress();
+      registry = fallback ? ethers.getAddress(fallback).toLowerCase() : null;
     }
   } catch (error) {
     log.warn(`Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
-    registry = registryAddress ? ethers.getAddress(registryAddress).toLowerCase() : null;
+    const fallback = getRegistryAddress();
+    registry = fallback ? ethers.getAddress(fallback).toLowerCase() : null;
   }
   
   if (!registry) {
@@ -266,11 +283,11 @@ LIMIT ${limit};
 `.trim();
 }
 
-async function postQuery(endpoint, statement) {
+async function postQuery(endpoint, statement, config) {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${SQL_API_KEY}`,
+      Authorization: `Bearer ${config.sqlApiKey}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -289,11 +306,11 @@ async function postQuery(endpoint, statement) {
   }
 }
 
-async function fetchQuery(baseEndpoint, queryId) {
+async function fetchQuery(baseEndpoint, queryId, config) {
   const response = await fetch(`${baseEndpoint}/${queryId}`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${SQL_API_KEY}`
+      Authorization: `Bearer ${config.sqlApiKey}`
     }
   });
 
@@ -403,6 +420,7 @@ function toIsoTimestamp(seconds) {
  * @returns {Promise<Array>} - Items with enriched profile data
  */
 async function hydrateProfilesForAddresses(items, req = null) {
+  const env = getEnv();
   // If no items, nothing to do
   if (!Array.isArray(items) || items.length === 0) {
     return [];
@@ -645,6 +663,7 @@ async function hydrateProfilesForAddresses(items, req = null) {
 }
 
 async function enrichWithProfiles(items, req = null) {
+  const env = getEnv();
   if (!Array.isArray(items) || items.length === 0) {
     return {
       enriched: [],
@@ -715,13 +734,13 @@ async function enrichWithProfiles(items, req = null) {
   };
 }
 
-async function runQueryV1(base, statement) {
+async function runQueryV1(base, statement, config) {
   const eps = endpointsFor(base);
-  const initial = await postQuery(eps.v1, statement);
+  const initial = await postQuery(eps.v1, statement, config);
 
   let rows = extractRows(initial?.result ?? initial);
   if (!rows && initial?.id) {
-    const deadline = Date.now() + SQL_TIMEOUT_MS;
+    const deadline = Date.now() + config.sqlTimeoutMs;
     let current = initial;
     while (!rows && Date.now() < deadline) {
       if (current?.status === "failed" || current?.state === "failed") {
@@ -731,9 +750,9 @@ async function runQueryV1(base, statement) {
         rows = extractRows(current?.result ?? current);
         break;
       }
-      await new Promise((resolve) => setTimeout(resolve, SQL_POLL_INTERVAL_MS));
+      await new Promise((resolve) => setTimeout(resolve, config.sqlPollIntervalMs));
       try {
-        current = await fetchQuery(eps.v1, initial.id);
+        current = await fetchQuery(eps.v1, initial.id, config);
         rows = extractRows(current?.result ?? current);
       } catch (err) {
         // If fetchQuery fails, log and continue polling (will timeout eventually)
@@ -755,12 +774,12 @@ async function runQueryV1(base, statement) {
   return rows;
 }
 
-async function runQueryPlatform(base, statement) {
+async function runQueryPlatform(base, statement, config) {
   const eps = endpointsFor(base);
   const response = await fetch(eps.platform, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${SQL_API_KEY}`,
+      Authorization: `Bearer ${config.sqlApiKey}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ sql: statement })
@@ -782,22 +801,22 @@ async function runQueryPlatform(base, statement) {
   return rows;
 }
 
-async function runQuery(statement) {
+async function runQuery(statement, config) {
   // Try platform endpoint first, then fallback to v1 if needed
   const tried = new Set();
-  const bases = [SQL_BASE_URL, ALT_SQL_BASE, DEFAULT_SQL_BASE].filter(Boolean);
+  const bases = [config.sqlBaseUrl, ALT_SQL_BASE, DEFAULT_SQL_BASE].filter(Boolean);
   let lastError = null;
   for (const base of bases) {
     const key = (base || '').toLowerCase();
     if (tried.has(key)) continue;
     tried.add(key);
     try {
-      return await runQueryPlatform(base, statement);
+      return await runQueryPlatform(base, statement, config);
     } catch (e1) {
       lastError = e1;
       log.warn("platform run failed on", base, ":", e1?.message || e1);
       try {
-        return await runQueryV1(base, statement);
+        return await runQueryV1(base, statement, config);
       } catch (e2) {
         lastError = e2;
         log.warn("v1 SQL failed on", base, ":", e2?.message || e2);
@@ -812,6 +831,7 @@ async function runQuery(statement) {
 function pickRpcUrl(chain) {
   // Prefer network specific RPC, else generic ADDRESS_HISTORY_RPC_URL, else BASE_MAINNET
   // If LEADERBOARD_RPC_URL is provided, always use it (must not require custom headers)
+  const env = getEnv();
   if (env.rpc.leaderboard) {
     return env.rpc.leaderboard;
   }
@@ -835,6 +855,7 @@ function pickRpcUrl(chain) {
 
 async function fetchFromRpcFallback(limit, chainId = null) {
   try {
+    const env = getEnv();
     // Determine chain ID: use provided chainId, or try to get from registry context, or default to Base Mainnet (8453)
     const targetChainId = chainId !== null 
       ? Number(chainId) 
@@ -860,20 +881,23 @@ async function fetchFromRpcFallback(limit, chainId = null) {
       } else {
         // Fallback to default registry address
         log.debug(`Using default registry address...`);
-        address = registryAddress ? ethers.getAddress(registryAddress) : null;
+        const fallback = getRegistryAddress();
+        address = fallback ? ethers.getAddress(fallback) : null;
         log.debug(`Default registry address: ${address || 'NOT FOUND'}`);
       }
     } catch (error) {
       log.warn(`Failed to get registry context for chain ${targetChainId}:`, error?.message || error);
-      address = registryAddress ? ethers.getAddress(registryAddress) : null;
+      const fallback = getRegistryAddress();
+      address = fallback ? ethers.getAddress(fallback) : null;
       log.debug(`Fallback registry address after error: ${address || 'NOT FOUND'}`);
     }
     
     // Handle missing registry address gracefully
     if (!address) {
+      const fallback = getRegistryAddress();
       log.warn(`RPC fallback skipped: registry address not configured for chain ${targetChainId}`);
       log.warn(`Available env vars check:`, {
-        hasRegistryAddress: !!registryAddress,
+        hasRegistryAddress: !!fallback,
         targetChainId,
         hasBaseMainnetReg: !!env.registry.baseMainnetAddress,
         hasBaseSepoliaReg: !!env.registry.baseSepoliaAddress,
@@ -1015,6 +1039,9 @@ async function fetchFromRpcFallback(limit, chainId = null) {
 }
 
 export default async function handler(req, res) {
+  ensureProfileCleanup();
+  const config = getLeaderboardConfig();
+  const env = config.env;
   // Handle profile mapping POST requests (integrated to avoid function limit)
   if (req.method === "POST" && req.query.action === "profile-mapping") {
     try {
@@ -1073,13 +1100,13 @@ export default async function handler(req, res) {
 
   try {
     const ip = clientIp(req);
-    if (rlCheck(ip)) {
+    if (rlCheck(ip, config)) {
       return res.status(429).json({ error: "Rate limit exceeded" });
     }
   } catch (_) {}
 
   // Allow disabling the leaderboard in local/dev to avoid noisy logs
-  if (LEADERBOARD_DISABLED) {
+  if (config.leaderboardDisabled) {
     return res.status(200).json({
       source: "disabled",
       limit: sanitizeLimit(req.query.limit),
@@ -1114,7 +1141,7 @@ export default async function handler(req, res) {
 
   // If no SQL key, fall back to RPC so the app still functions in dev
   const limit = sanitizeLimit(req.query.limit);
-  if (!SQL_API_KEY) {
+  if (!config.sqlApiKey) {
     try {
       const fallback = await fetchFromRpcFallback(limit, chainId);
       const result = await enrichWithProfiles(fallback, req);
@@ -1200,13 +1227,13 @@ export default async function handler(req, res) {
     
     // Create the query promise and track it
     const queryPromise = (async () => {
-      const statement = buildQuery(limit, chainId);
+      const statement = buildQuery(limit, chainId, config);
       let rows = [];
       
       // Skip SQL query if registry address is not configured
       if (statement && statement.trim()) {
         try {
-          rows = await runQuery(statement);
+          rows = await runQuery(statement, config);
         } catch (sqlError) {
           log.warn(`SQL query failed for chain ${chainId}:`, sqlError?.message || sqlError);
           rows = [];
@@ -1280,7 +1307,7 @@ export default async function handler(req, res) {
 
     const enriched = Array.isArray(result) ? result : result.enriched;
     const resultDebugInfo = Array.isArray(result) ? null : result.debugInfo;
-    const config = Array.isArray(result) ? null : result._config;
+    const resultConfig = Array.isArray(result) ? null : result._config;
 
     const response = {
       source: "cdp-sql-api",
@@ -1297,8 +1324,8 @@ export default async function handler(req, res) {
     if (resultDebugInfo || isDebugMode || isDevEnv) {
       response._debug = resultDebugInfo || {};
       // Add diagnostic info for dev/debug mode
-      if ((isDebugMode || isDevEnv) && config) {
-        const { hasNeynarKey, hasRedis, enrichmentDisabled } = config;
+      if ((isDebugMode || isDevEnv) && resultConfig) {
+        const { hasNeynarKey, hasRedis, enrichmentDisabled } = resultConfig;
         if (!hasNeynarKey && !enrichmentDisabled) {
           response._debug.missingNeynarKey = true;
         }
