@@ -46,6 +46,13 @@ export async function detectPlatform(context, debug = () => {}) {
   if (!context) {
     return null;
   }
+
+  const hasBaseAppSignals = typeof window !== 'undefined' && (
+    window.MiniKit ||
+    window.BaseAppSDK ||
+    window.MiniApp ||
+    window.ReactNativeWebView
+  );
   
   // OFFICIAL METHOD: Detect platform using clientFid (per Base App docs)
   // Base App clientFid is 309857, Farcaster clientFid is typically 9152 (Warpcast)
@@ -53,6 +60,10 @@ export async function detectPlatform(context, debug = () => {}) {
     debug('detectPlatform: ✅ Base App detected via clientFid (309857) - OFFICIAL METHOD');
     return 'base-app';
   } else if (context?.client?.clientFid) {
+    if (hasBaseAppSignals) {
+      debug('detectPlatform: ✅ Base App detected via Base App signals (clientFid override)');
+      return 'base-app';
+    }
     // If clientFid exists but is not 309857, it's Farcaster
     debug(`detectPlatform: ✅ Farcaster detected via clientFid (${context.client.clientFid}) - OFFICIAL METHOD`);
     return 'farcaster';
@@ -165,4 +176,3 @@ export async function sendProfileMapping({ sdk, address, debug = () => {} }) {
     log.warn('sendProfileMapping: Profile mapping error (non-critical):', profileErr?.message || profileErr);
   }
 }
-

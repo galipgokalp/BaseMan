@@ -91,6 +91,13 @@ async function detectPlatformInternal() {
             return 'base';
           }
           
+          // Some Base App contexts may not expose the official clientFid value.
+          // Prefer Base App signals when present to avoid mislabeling.
+          if (hasBaseAppSignals()) {
+            log.debug('platform-detected', { platform: 'base', method: 'base-app-signal', clientFid: fid });
+            return 'base';
+          }
+
           // If clientFid exists but is not 309857, it's Farcaster
           // Warpcast clientFid is 9152 (per Farcaster docs example)
           log.debug('platform-detected', { platform: 'farcaster', method: 'clientFid', clientFid: fid });
