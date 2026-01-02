@@ -625,9 +625,9 @@ export function setManualProfile(address, { fid = null, username = null, display
   // Also save to Redis for persistence
   if (validPlatform) {
     try {
-      import('./redis-profiles.js').then(({ saveProfileToRedis }) => {
-        if (typeof saveProfileToRedis === 'function') {
-          saveProfileToRedis(normalized, profile).catch(() => {});
+      import('./redis-profiles.js').then(({ saveProfileMapping }) => {
+        if (typeof saveProfileMapping === 'function') {
+          saveProfileMapping(normalized, profile).catch(() => {});
         }
       }).catch(() => {});
     } catch (_) {}

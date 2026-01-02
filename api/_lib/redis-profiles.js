@@ -95,8 +95,20 @@ export function isRedisAvailable() {
  */
 export async function saveProfileMapping(address, mapping) {
   initRedis();
-  if (!address || !mapping || !mapping.fid) {
+  if (!address || !mapping) {
     log.debug("saveProfileMapping: Invalid input");
+    return false;
+  }
+
+  const hasAnyProfileField = Boolean(
+    mapping.fid ||
+    mapping.username ||
+    mapping.displayName ||
+    mapping.avatarUrl ||
+    mapping.platform
+  );
+  if (!hasAnyProfileField) {
+    log.debug("saveProfileMapping: No profile fields to save");
     return false;
   }
   
@@ -107,7 +119,7 @@ export async function saveProfileMapping(address, mapping) {
   
   const key = `${PROFILE_KEY_PREFIX}${address.toLowerCase()}`;
   const value = {
-    fid: String(mapping.fid),
+    fid: mapping.fid !== undefined && mapping.fid !== null ? String(mapping.fid) : null,
     username: mapping.username || null,
     displayName: mapping.displayName || null,
     avatarUrl: mapping.avatarUrl || null,
@@ -286,7 +298,7 @@ export async function getProfilesForAddresses(addresses) {
     const result = {};
 
     for (const [address, mapping] of mappings) {
-      if (mapping && (mapping.username || mapping.displayName || mapping.avatarUrl || mapping.fid)) {
+      if (mapping && (mapping.username || mapping.displayName || mapping.avatarUrl || mapping.fid || mapping.platform)) {
         result[address] = {
           fid: mapping.fid || null,
           username: mapping.username || null,
@@ -357,7 +369,7 @@ export async function setProfilesForAddresses(profilesByAddress) {
       };
 
       // Only save if we have at least fid or username/displayName/avatarUrl
-      if (value.fid || value.username || value.displayName || value.avatarUrl) {
+      if (value.fid || value.username || value.displayName || value.avatarUrl || value.platform) {
         pipeline.push(redis.set(key, JSON.stringify(value), { ex: PROFILE_TTL }));
         savedCount++;
       }
