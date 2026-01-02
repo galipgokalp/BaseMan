@@ -13,6 +13,21 @@
 import { createLogger } from './logger.js';
 const log = createLogger('UtilPlatformDetect');
 
+function hasBaseAppSignals() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    window.MiniKit ||
+    window.BaseAppSDK ||
+    window.MiniApp ||
+    window.ReactNativeWebView
+  );
+}
+
+function hasFarcasterSignals() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(window.fc?.miniapp || window.farcaster?.miniapp);
+}
+
 // Platform detection cache
 let cachedPlatform = null;
 let platformDetectionPromise = null;
@@ -89,20 +104,20 @@ async function detectPlatformInternal() {
           log.debug('platform-context-missing-clientFid', { hasUser: true });
           
           // Check if MiniKit is available (Base App indicator)
-          if (window.MiniKit) {
+          if (hasBaseAppSignals()) {
             log.debug('platform-detected', { platform: 'base', method: 'minikit' });
             return 'base';
           }
           
           // Check for Farcaster indicators
-          if (window.fc?.miniapp || window.farcaster?.miniapp) {
+          if (hasFarcasterSignals()) {
             log.debug('platform-detected', { platform: 'farcaster', method: 'sdk-indicator' });
             return 'farcaster';
           }
           
-          // Default to farcaster if we have user FID but can't determine platform
+          // Unknown host; avoid mislabeling when clientFid is missing
           log.debug('platform-default', { reason: 'hasUserNoClientFid' });
-          return 'farcaster';
+          return 'web';
         }
       } catch (err) {
         log.warnOnce('platform-detect-failed', { reason: err?.message || err });
@@ -110,12 +125,12 @@ async function detectPlatformInternal() {
     }
     
     // Additional fallback checks even if SDK not available
-    if (window.MiniKit) {
+    if (hasBaseAppSignals()) {
       log.debug('platform-detected', { platform: 'base', method: 'minikit' });
       return 'base';
     }
     
-    if (window.fc?.miniapp || window.farcaster?.miniapp) {
+    if (hasFarcasterSignals()) {
       log.debug('platform-detected', { platform: 'farcaster', method: 'sdk-indicator' });
       return 'farcaster';
     }
