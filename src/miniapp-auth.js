@@ -152,6 +152,61 @@ const log = createLogger('UtilMiniappAuth');
     }
   }
 
+  const ADD_PROMPT_KEY = 'baseMan:addMiniAppPromptedAt';
+  const ADD_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+  async function maybePromptAddMiniApp() {
+    const sdk = getSDK();
+    if (!sdk?.actions) return;
+
+    const addMiniApp = sdk.actions.addMiniApp;
+    if (typeof addMiniApp !== 'function' && !(addMiniApp && typeof addMiniApp.then === 'function')) {
+      return;
+    }
+
+    try {
+      const lastPrompt = Number(localStorage.getItem(ADD_PROMPT_KEY) || 0);
+      if (lastPrompt && (Date.now() - lastPrompt) < ADD_PROMPT_COOLDOWN_MS) {
+        return;
+      }
+    } catch (_) {}
+
+    await waitReady(sdk).catch(() => {});
+
+    let alreadyAdded = false;
+    try {
+      if (sdk.context) {
+        const context = await Promise.race([
+          sdk.context,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('context timeout')), 1500))
+        ]);
+        alreadyAdded = Boolean(
+          context?.client?.added ??
+          context?.added ??
+          context?.miniapp?.added
+        );
+      }
+    } catch (_) {}
+
+    if (alreadyAdded) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(ADD_PROMPT_KEY, String(Date.now()));
+    } catch (_) {}
+
+    try {
+      if (typeof addMiniApp === 'function') {
+        await addMiniApp();
+      } else {
+        await addMiniApp;
+      }
+    } catch (err) {
+      log.debug('addMiniApp failed (non-critical):', err?.message || err);
+    }
+  }
+
   async function sendToken(token) {
     // Phase 6: Use safeFetchJson for robust error handling
     try {
@@ -183,9 +238,11 @@ const log = createLogger('UtilMiniappAuth');
     try {
       if (!isMiniAppEnv()) return;
       const token = await getQuickAuthToken();
-      if (!token || typeof token !== 'string' || token.length < 8) return;
-      try { window.__MINIAPP_AUTH_TOKEN__ = token; } catch {}
-      await sendToken(token);
+      if (token && typeof token === 'string' && token.length >= 8) {
+        try { window.__MINIAPP_AUTH_TOKEN__ = token; } catch {}
+        await sendToken(token);
+      }
+      await maybePromptAddMiniApp();
     } catch (err) {
       // Prevent unhandled promise rejection
       log.error('miniapp-auth-failed', { step: 'main', reason: err?.message || err });
