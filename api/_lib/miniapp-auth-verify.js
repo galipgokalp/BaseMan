@@ -32,7 +32,9 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
   const shouldUseJWKS = !shouldUseRemote;
   
   if (shouldUseJWKS) {
-    const origin = env('MINIAPP_AUTH_ORIGIN', 'https://auth.farcaster.xyz');
+    // CRITICAL: Always use Farcaster's official auth origin for JWKS
+    // Do not allow environment variable override - it causes issues when misconfigured
+    const origin = 'https://auth.farcaster.xyz';
     
     // Domain resolution: explicit domain > domainOverride > host header
     const explicitDomain = env('MINIAPP_AUTH_DOMAIN', '');
@@ -165,7 +167,8 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
           }));
           
           // Fallback to JWKS verification
-          const origin = env('MINIAPP_AUTH_ORIGIN', 'https://auth.farcaster.xyz');
+          // CRITICAL: Always use Farcaster's official auth origin
+          const origin = 'https://auth.farcaster.xyz';
           const explicitDomain = domainOverride || env('MINIAPP_AUTH_DOMAIN', '');
           const hostHeader = String(req?.headers?.host || '').split(':')[0];
           const domain = explicitDomain || hostHeader || undefined;

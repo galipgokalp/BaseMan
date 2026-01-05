@@ -288,9 +288,10 @@ This documentation describes all environment variables used in the BaseMan proje
 
 ### `MINIAPP_AUTH_ORIGIN`
 - **Type:** `string` (URL)
-- **Required:** Required
-- **Default:** `"https://base-man.vercel.app"`
-- **Description:** Origin URL for MiniApp authentication. Used for CORS and security checks.
+- **Required:** Optional (deprecated - not used for Quick Auth Server)
+- **Default:** `"https://auth.farcaster.xyz"` (hardcoded in code, not configurable)
+- **Description:** ~~Origin URL for MiniApp authentication. Used for CORS and security checks.~~
+- **Note:** This variable is **NOT used** for Quick Auth Server origin. The Quick Auth Server origin is hardcoded to `https://auth.farcaster.xyz` per Farcaster official documentation. This variable may be used for other purposes in the future.
 
 ### `MINIAPP_AUTH_VERIFY_HEADERS`
 - **Type:** `string` (comma-separated)
