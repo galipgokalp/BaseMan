@@ -52,20 +52,88 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
         if (typeof v === 'string') headers[k] = v;
       }
     }
-    const upstream = await fetch(VERIFY_URL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ token })
-    });
-    const text = await upstream.text();
-    let json = null; try { json = JSON.parse(text); } catch {}
-    if (!upstream.ok) {
-      const err = new Error(json?.error || 'token verification failed');
-      err.statusCode = 401;
-      err.response = json || text;
+    
+    // Log request details (mask token for security)
+    const tokenPrefix = token?.substring(0, 20) || 'missing';
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: 'debug',
+      message: 'miniapp-auth-verify: calling remote endpoint',
+      verifyUrl: VERIFY_URL,
+      tokenPrefix: tokenPrefix + '...',
+      tokenLength: token?.length || 0,
+      hasExtraHeaders: !!extra,
+      headerKeys: Object.keys(headers)
+    }));
+    
+    try {
+      const upstream = await fetch(VERIFY_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ token })
+      });
+      const text = await upstream.text();
+      let json = null; 
+      try { 
+        json = JSON.parse(text); 
+      } catch (parseErr) {
+        console.log(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'warn',
+          message: 'miniapp-auth-verify: failed to parse response as JSON',
+          status: upstream.status,
+          statusText: upstream.statusText,
+          responseText: text?.substring(0, 200) || 'empty'
+        }));
+      }
+      
+      if (!upstream.ok) {
+        console.log(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'error',
+          message: 'miniapp-auth-verify: remote endpoint returned error',
+          verifyUrl: VERIFY_URL,
+          status: upstream.status,
+          statusText: upstream.statusText,
+          response: json || text?.substring(0, 200) || 'empty',
+          responseType: json ? 'json' : 'text'
+        }));
+        
+        const err = new Error(json?.error || text || 'token verification failed');
+        err.statusCode = upstream.status === 401 || upstream.status === 403 ? 401 : 500;
+        err.response = json || text;
+        err.remoteStatus = upstream.status;
+        err.remoteStatusText = upstream.statusText;
+        throw err;
+      }
+      
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'miniapp-auth-verify: remote endpoint success',
+        verifyUrl: VERIFY_URL,
+        status: upstream.status,
+        hasIdentity: !!json
+      }));
+      
+      return { ok: true, identity: json || null };
+    } catch (fetchErr) {
+      // Network or fetch errors
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'error',
+        message: 'miniapp-auth-verify: fetch error',
+        verifyUrl: VERIFY_URL,
+        error: fetchErr?.message || 'unknown fetch error',
+        errorName: fetchErr?.name || 'UnknownError',
+        errorCode: fetchErr?.code || null
+      }));
+      
+      const err = new Error(fetchErr?.message || 'token verification failed (network error)');
+      err.statusCode = 500;
+      err.originalError = fetchErr;
       throw err;
     }
-    return { ok: true, identity: json || null };
   }
 
   const err = new Error('Verification not configured');
