@@ -311,6 +311,13 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       platform: currentPlatform,
       addressPrefix: currentAddress ? currentAddress.substring(0, 10) + '...' : null
     });
+    
+    // Debug: Log platform info for troubleshooting
+    if (currentPlatform) {
+      log.info('🔍 Platform detected:', currentPlatform);
+    } else {
+      log.warn('⚠️ No platform detected - platform matching will be skipped');
+    }
 
     await loadLeaderboard({
       limit,

@@ -169,13 +169,36 @@ export function clearUserInfoCache() {
 export function isMyEntry(entry, currentUser) {
   if (!entry || !currentUser) return false;
 
-  // Platform matching: If both current user and entry have platform info, they must match
+  // Platform matching: If current user has platform info, entry must also have platform info and match
   // This ensures Base App users see Base App entries, Farcaster users see Farcaster entries
-  // If platform info is missing, allow match (backward compatibility)
-  if (currentUser.platform && entry?.profile?.platform) {
-    if (currentUser.platform !== entry.profile.platform) {
+  // If current user has platform but entry doesn't, reject (to avoid matching wrong account)
+  // If neither has platform info, allow match (backward compatibility)
+  if (currentUser.platform) {
+    // User has platform info - entry must also have platform info and match
+    if (!entry?.profile?.platform) {
+      // Entry has no platform info, but user does - reject to avoid matching wrong account
+      log.debug('isMyEntry: Rejected - user has platform but entry does not', {
+        userPlatform: currentUser.platform,
+        entryAddress: entry?.player?.substring(0, 10) + '...',
+        entryFid: entry?.profile?.fid
+      });
       return false;
     }
+    if (currentUser.platform !== entry.profile.platform) {
+      // Platforms don't match - reject
+      log.debug('isMyEntry: Rejected - platform mismatch', {
+        userPlatform: currentUser.platform,
+        entryPlatform: entry.profile.platform,
+        entryAddress: entry?.player?.substring(0, 10) + '...',
+        entryFid: entry?.profile?.fid
+      });
+      return false;
+    }
+    log.debug('isMyEntry: Platform match', {
+      platform: currentUser.platform,
+      entryAddress: entry?.player?.substring(0, 10) + '...',
+      entryFid: entry?.profile?.fid
+    });
   }
 
   // Match by FID if available

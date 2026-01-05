@@ -16,14 +16,21 @@ export function calculateMyRank(entries, isMyEntryFn) {
     return null;
   }
   
-  const myEntry = entries.find(entry => isMyEntryFn(entry));
-  if (!myEntry) {
+  // Find all matching entries (user might have multiple accounts: Base App + Farcaster)
+  const matchingEntries = entries.filter(entry => isMyEntryFn(entry));
+  
+  if (matchingEntries.length === 0) {
     return { rank: 0, score: '', hasEntry: false };
   }
   
+  // isMyEntryFn already filters by platform, so matchingEntries should only contain
+  // entries that match the current user's platform (if platform info is available)
+  // If multiple matches (shouldn't happen with platform matching), use first one
+  const myEntry = matchingEntries[0];
+  
   const rank = typeof myEntry.rank === "number" && Number.isFinite(myEntry.rank)
     ? myEntry.rank
-    : entries.findIndex(e => isMyEntryFn(e)) + 1;
+    : entries.findIndex(e => e === myEntry) + 1;
   
   const score = formatScore(myEntry.totalScore, myEntry.highScore);
   
