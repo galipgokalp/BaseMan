@@ -43,7 +43,8 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
       message: 'miniapp-auth-verify: using JWKS verification',
       origin,
       domain,
-      mode: mode || 'default (no VERIFY_URL)'
+      mode: mode || 'default (no VERIFY_URL)',
+      jwksUrl: `${origin}/.well-known/jwks.json`
     }));
     
     const client = createQuickAuthClient({ origin });
@@ -53,17 +54,46 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
         timestamp: new Date().toISOString(),
         level: 'info',
         message: 'miniapp-auth-verify: JWKS verification success',
-        hasIdentity: !!payload
+        hasIdentity: !!payload,
+        fid: payload?.fid || null
       }));
       return { ok: true, identity: payload };
     } catch (error) {
-      console.log(JSON.stringify({
+      // Enhanced error logging for JWKS failures
+      const errorDetails = {
         timestamp: new Date().toISOString(),
         level: 'error',
         message: 'miniapp-auth-verify: JWKS verification failed',
         error: error?.message || 'invalid token (jwks)',
-        errorName: error?.name || 'UnknownError'
-      }));
+        errorName: error?.name || 'UnknownError',
+        origin,
+        domain,
+        jwksUrl: `${origin}/.well-known/jwks.json`
+      };
+      
+      // Try to fetch JWKS endpoint to diagnose the issue
+      try {
+        const jwksResponse = await fetch(`${origin}/.well-known/jwks.json`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        errorDetails.jwksStatus = jwksResponse.status;
+        errorDetails.jwksStatusText = jwksResponse.statusText;
+        const jwksText = await jwksResponse.text();
+        errorDetails.jwksResponseLength = jwksText.length;
+        errorDetails.jwksResponsePreview = jwksText.substring(0, 200);
+        try {
+          JSON.parse(jwksText);
+          errorDetails.jwksIsValidJson = true;
+        } catch {
+          errorDetails.jwksIsValidJson = false;
+        }
+      } catch (jwksFetchErr) {
+        errorDetails.jwksFetchError = jwksFetchErr?.message || 'failed to fetch JWKS';
+      }
+      
+      console.log(JSON.stringify(errorDetails));
+      
       const err = new Error(error?.message || 'invalid token (jwks)');
       err.statusCode = 401;
       throw err;
@@ -133,22 +163,61 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
           
           if (domain) {
             try {
+              console.log(JSON.stringify({
+                timestamp: new Date().toISOString(),
+                level: 'debug',
+                message: 'miniapp-auth-verify: attempting JWKS fallback',
+                origin,
+                domain,
+                jwksUrl: `${origin}/.well-known/jwks.json`
+              }));
+              
               const client = createQuickAuthClient({ origin });
               const payload = await client.verifyJwt({ token, domain });
               console.log(JSON.stringify({
                 timestamp: new Date().toISOString(),
                 level: 'info',
                 message: 'miniapp-auth-verify: JWKS fallback success',
-                hasIdentity: !!payload
+                hasIdentity: !!payload,
+                fid: payload?.fid || null
               }));
               return { ok: true, identity: payload };
             } catch (jwksError) {
-              console.log(JSON.stringify({
+              // Enhanced error logging for JWKS fallback failures
+              const errorDetails = {
                 timestamp: new Date().toISOString(),
                 level: 'error',
                 message: 'miniapp-auth-verify: JWKS fallback also failed',
-                error: jwksError?.message || 'invalid token (jwks)'
-              }));
+                error: jwksError?.message || 'invalid token (jwks)',
+                errorName: jwksError?.name || 'UnknownError',
+                origin,
+                domain,
+                jwksUrl: `${origin}/.well-known/jwks.json`
+              };
+              
+              // Try to fetch JWKS endpoint to diagnose the issue
+              try {
+                const jwksResponse = await fetch(`${origin}/.well-known/jwks.json`, {
+                  method: 'GET',
+                  headers: { 'Accept': 'application/json' }
+                });
+                errorDetails.jwksStatus = jwksResponse.status;
+                errorDetails.jwksStatusText = jwksResponse.statusText;
+                const jwksText = await jwksResponse.text();
+                errorDetails.jwksResponseLength = jwksText.length;
+                errorDetails.jwksResponsePreview = jwksText.substring(0, 200);
+                try {
+                  JSON.parse(jwksText);
+                  errorDetails.jwksIsValidJson = true;
+                } catch {
+                  errorDetails.jwksIsValidJson = false;
+                }
+              } catch (jwksFetchErr) {
+                errorDetails.jwksFetchError = jwksFetchErr?.message || 'failed to fetch JWKS';
+              }
+              
+              console.log(JSON.stringify(errorDetails));
+              
               const err = new Error(jwksError?.message || 'token verification failed (remote 404, JWKS fallback failed)');
               err.statusCode = 401;
               throw err;
