@@ -298,6 +298,16 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     // This ensures we pick up wallet connections that happened after panel was first shown
     clearUserInfoCache();
 
+    // CRITICAL: Ensure platform detection is initialized before loading leaderboard
+    // This is especially important for mobile MiniApp environments where SDK may load slowly
+    try {
+      const { initPlatformDetection } = await import('../utils/platform-detection.js');
+      await initPlatformDetection();
+      log.debug('Platform detection initialized before leaderboard load');
+    } catch (platformErr) {
+      log.warn('Platform detection init failed (non-critical):', platformErr?.message);
+    }
+
     // Update current user info
     const userInfo = await getCurrentUserInfo();
     currentUser = userInfo.user;

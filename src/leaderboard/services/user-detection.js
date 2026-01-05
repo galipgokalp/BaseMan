@@ -4,7 +4,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { getPlatformSync, isPlatformDetected } from '../../utils/platform-detection.js';
+import { getPlatformSync, isPlatformDetected, getPlatform, initPlatformDetection } from '../../utils/platform-detection.js';
 
 const log = createLogger('LeaderboardUserDetection');
 
@@ -108,27 +108,39 @@ export async function getCachedUserInfo() {
       }
     }
 
-    // Use cached platform detection (sync, no await needed)
-    // If not detected yet, try to detect now
-    if (isPlatformDetected()) {
-      const detectedPlatform = getPlatformSync();
+    // Platform detection: Always wait for async detection to ensure we get the correct platform
+    // This is critical for mobile MiniApp environments where SDK may load slowly
+    try {
+      let detectedPlatform;
+      if (isPlatformDetected()) {
+        // Use cached value if available
+        detectedPlatform = getPlatformSync();
+      } else {
+        // Wait for platform detection to complete (important for mobile)
+        // This ensures we get the correct platform even if SDK loads slowly
+        detectedPlatform = await getPlatform();
+      }
+      
+      // Convert platform format: 'base' -> 'base-app', 'farcaster' -> 'farcaster'
       if (detectedPlatform === 'base') {
         platform = 'base-app';
+        log.debug('Platform detected: base-app');
       } else if (detectedPlatform === 'farcaster') {
         platform = 'farcaster';
+        log.debug('Platform detected: farcaster');
+      } else {
+        log.debug('Platform not detected (web mode):', detectedPlatform);
       }
-    } else {
-      // Try async detection if not cached yet
-      try {
-        const { getPlatform } = await import('../../utils/platform-detection.js');
-        const detectedPlatform = await getPlatform();
+    } catch (platformErr) {
+      log.warn('Platform detection failed:', platformErr?.message);
+      // Fallback: try sync version
+      if (isPlatformDetected()) {
+        const detectedPlatform = getPlatformSync();
         if (detectedPlatform === 'base') {
           platform = 'base-app';
         } else if (detectedPlatform === 'farcaster') {
           platform = 'farcaster';
         }
-      } catch (platformErr) {
-        log.debug('Platform detection failed:', platformErr?.message);
       }
     }
   } catch (err) {
