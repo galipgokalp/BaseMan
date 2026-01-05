@@ -75,7 +75,14 @@ async function detectPlatformInternal() {
     // Check if SDK context is available (sdk.context is a Promise, not object)
     if (window.sdk && window.sdk.context) {
       try {
-        const context = await window.sdk.context;
+        // CRITICAL: Add timeout for mobile environments where SDK may load slowly
+        // Without timeout, this can hang indefinitely if SDK never resolves
+        const context = await Promise.race([
+          window.sdk.context,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Platform detection timeout (5s)')), 5000)
+          )
+        ]);
         
         // Debug: Log what we got
         const hasClient = !!(context && context.client);

@@ -118,7 +118,19 @@ export async function getCachedUserInfo() {
       } else {
         // Wait for platform detection to complete (important for mobile)
         // This ensures we get the correct platform even if SDK loads slowly
-        detectedPlatform = await getPlatform();
+        // Add timeout to prevent hanging if SDK never loads
+        try {
+          detectedPlatform = await Promise.race([
+            getPlatform(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Platform detection timeout')), 5000)
+            )
+          ]);
+        } catch (timeoutErr) {
+          log.warn('Platform detection timed out, using fallback:', timeoutErr?.message);
+          // Fallback: try sync version or default to web
+          detectedPlatform = isPlatformDetected() ? getPlatformSync() : 'web';
+        }
       }
       
       // Convert platform format: 'base' -> 'base-app', 'farcaster' -> 'farcaster'
