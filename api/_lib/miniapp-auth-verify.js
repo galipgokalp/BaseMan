@@ -21,21 +21,30 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
   const mode = (env('MINIAPP_AUTH_MODE', '').toLowerCase() || '').trim();
   const VERIFY_URL = env('MINIAPP_AUTH_VERIFY_URL');
 
-  // CRITICAL: Prefer JWKS/local verification over remote endpoint
-  // Remote endpoint is only used if explicitly configured AND mode is not 'jwks' or 'local'
-  // If VERIFY_URL is set but endpoint returns 404, fallback to JWKS
+  // CRITICAL: Always use JWKS verification by default
+  // Remote endpoint is unreliable and often misconfigured (404 errors)
+  // JWKS is the official Farcaster method and more reliable
+  // Only use remote endpoint if explicitly required (mode='remote' AND VERIFY_URL set)
   
-  // Local/JWKS verification using Farcaster issuer JWKS
-  if (mode === 'jwks' || mode === 'local' || !VERIFY_URL) {
+  // Local/JWKS verification using Farcaster issuer JWKS (DEFAULT)
+  // Use JWKS unless explicitly told to use remote endpoint
+  const shouldUseRemote = mode === 'remote' && VERIFY_URL;
+  const shouldUseJWKS = !shouldUseRemote;
+  
+  if (shouldUseJWKS) {
     const origin = env('MINIAPP_AUTH_ORIGIN', 'https://auth.farcaster.xyz');
-    const explicitDomain = domainOverride || env('MINIAPP_AUTH_DOMAIN', '');
-    const hostHeader = String(req?.headers?.host || '').split(':')[0];
-    const domain = explicitDomain || hostHeader || undefined;
-    if (!domain) {
+    
+    // Domain resolution: explicit domain > domainOverride > host header
+    const explicitDomain = env('MINIAPP_AUTH_DOMAIN', '');
+    const resolvedDomain = domainOverride || explicitDomain || String(req?.headers?.host || '').split(':')[0] || undefined;
+    
+    if (!resolvedDomain) {
       const err = new Error('Missing MINIAPP_AUTH_DOMAIN and could not infer from Host header');
       err.statusCode = 400;
       throw err;
     }
+    
+    const domain = resolvedDomain;
     
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
@@ -100,8 +109,8 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
     }
   }
 
-  // Remote verify endpoint (only if VERIFY_URL is set AND mode is not 'jwks'/'local')
-  if (VERIFY_URL) {
+  // Remote verify endpoint (only if explicitly requested: mode='remote' AND VERIFY_URL set)
+  if (shouldUseRemote && VERIFY_URL) {
     const headers = { 'Content-Type': 'application/json' };
     const extra = parseHeadersConfig(env('MINIAPP_AUTH_VERIFY_HEADERS', ''));
     if (extra) {
