@@ -15,11 +15,13 @@ const log = createLogger('UtilPlatformDetect');
 
 function hasBaseAppSignals() {
   if (typeof window === 'undefined') return false;
+  // CRITICAL: Don't check ReactNativeWebView - it exists in both Farcaster and Base App mobile apps
+  // Only check Base App-specific signals
   return Boolean(
     window.MiniKit ||
     window.BaseAppSDK ||
-    window.MiniApp ||
-    window.ReactNativeWebView
+    window.MiniApp
+    // Removed: window.ReactNativeWebView - not reliable (exists in both platforms)
   );
 }
 
@@ -87,70 +89,78 @@ async function detectPlatformInternal() {
         // Debug: Log what we got
         const hasClient = !!(context && context.client);
         const clientFid = context?.client?.clientFid;
-        log.debug('platform-context', { hasClient, clientFid });
+        // CRITICAL: Always log platform detection details for debugging
+        log.info('🔍 Platform detection - SDK context:', { 
+          hasClient, 
+          clientFid,
+          hasUser: !!(context && context.user),
+          userFid: context?.user?.fid
+        });
         
         if (context && context.client && typeof context.client.clientFid === 'number') {
           const fid = context.client.clientFid;
           
           // OFFICIAL METHOD: Base App clientFid is 309857 (per Base App docs)
+          // CRITICAL: clientFid is the authoritative source - don't override with signal checks
           if (fid === 309857) {
-            log.debug('platform-detected', { platform: 'base', method: 'clientFid' });
-            return 'base';
-          }
-          
-          // Some Base App contexts may not expose the official clientFid value.
-          // Prefer Base App signals when present to avoid mislabeling.
-          if (hasBaseAppSignals()) {
-            log.debug('platform-detected', { platform: 'base', method: 'base-app-signal', clientFid: fid });
+            log.info('✅ Platform detected: base-app (clientFid=309857)');
             return 'base';
           }
 
           // If clientFid exists but is not 309857, it's Farcaster
           // Warpcast clientFid is 9152 (per Farcaster docs example)
-          log.debug('platform-detected', { platform: 'farcaster', method: 'clientFid', clientFid: fid });
+          // CRITICAL: Don't check hasBaseAppSignals() here - ReactNativeWebView exists in both
+          // Farcaster and Base App mobile apps, so it's not a reliable indicator
+          log.info('✅ Platform detected: farcaster (clientFid=' + fid + ', expected 9152 for Warpcast)');
           return 'farcaster';
         }
         
-        // Context exists but no clientFid - check other indicators
+        // Context exists but no clientFid - this is unusual but can happen
+        // CRITICAL: Don't use hasBaseAppSignals() here - ReactNativeWebView exists in both platforms
+        // Only trust Farcaster signals as they're more specific
         if (context && context.user && context.user.fid) {
           // We have a user with FID, so we're in a mini app
-          // Try to detect platform from other signals
-          log.debug('platform-context-missing-clientFid', { hasUser: true });
+          // But clientFid is missing - this is unusual
+          log.warn('⚠️ Platform detection: Context has user but no clientFid - this is unusual', { 
+            hasUser: true,
+            userFid: context.user.fid 
+          });
           
-          // Check if MiniKit is available (Base App indicator)
-          if (hasBaseAppSignals()) {
-            log.debug('platform-detected', { platform: 'base', method: 'minikit' });
-            return 'base';
-          }
-          
-          // Check for Farcaster indicators
+          // Only use Farcaster signals - more reliable
           if (hasFarcasterSignals()) {
-            log.debug('platform-detected', { platform: 'farcaster', method: 'sdk-indicator' });
+            log.info('✅ Platform detected: farcaster (hasFarcasterSignals, no clientFid)');
             return 'farcaster';
           }
           
-          // Unknown host; avoid mislabeling when clientFid is missing
-          log.debug('platform-default', { reason: 'hasUserNoClientFid' });
+          // Don't use hasBaseAppSignals() - unreliable (ReactNativeWebView in both)
+          // If we have user context but no clientFid and no Farcaster signals, we can't determine platform
+          log.warn('⚠️ Platform detection: No clientFid and no clear Farcaster signals - defaulting to web');
           return 'web';
         }
       } catch (err) {
         log.warnOnce('platform-detect-failed', { reason: err?.message || err });
+        // If SDK context failed, don't use fallback signals - they're unreliable
+        // ReactNativeWebView exists in both platforms, so hasBaseAppSignals() is not reliable
+        // Only use fallback if we have clear Farcaster signals
+        if (hasFarcasterSignals()) {
+          log.info('✅ Platform detected: farcaster (fallback: hasFarcasterSignals, SDK context failed)');
+          return 'farcaster';
+        }
+        // Don't use hasBaseAppSignals() as fallback - it's unreliable (ReactNativeWebView in both)
+        log.warn('⚠️ Platform detection: SDK context failed and no clear Farcaster signals - defaulting to web');
+        return 'web';
       }
     }
     
-    // Additional fallback checks even if SDK not available
-    if (hasBaseAppSignals()) {
-      log.debug('platform-detected', { platform: 'base', method: 'minikit' });
-      return 'base';
-    }
-    
+    // CRITICAL: Don't use hasBaseAppSignals() as fallback - ReactNativeWebView exists in both platforms
+    // Only use Farcaster signals as fallback (more reliable)
     if (hasFarcasterSignals()) {
-      log.debug('platform-detected', { platform: 'farcaster', method: 'sdk-indicator' });
+      log.info('✅ Platform detected: farcaster (fallback: hasFarcasterSignals, no SDK context)');
       return 'farcaster';
     }
     
-    // If SDK context is not available, assume web
-    log.debug('platform-default', { reason: 'no-sdk' });
+    // If SDK context is not available and no clear signals, assume web
+    log.warn('⚠️ Platform detection: No SDK context and no clear signals - defaulting to web');
     return 'web';
   } catch (err) {
     log.warnOnce('platform-detect-failed', { reason: err?.message || err });
