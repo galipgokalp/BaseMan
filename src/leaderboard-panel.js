@@ -301,7 +301,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     // CRITICAL: Ensure platform detection is initialized before loading leaderboard
     // This is especially important for mobile MiniApp environments where SDK may load slowly
     try {
-      const { initPlatformDetection } = await import('../utils/platform-detection.js');
+      const { initPlatformDetection } = await import('./utils/platform-detection.js');
       await initPlatformDetection();
       log.debug('Platform detection initialized before leaderboard load');
     } catch (platformErr) {
