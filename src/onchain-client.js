@@ -185,7 +185,32 @@ if (typeof window !== "undefined") {
     const ethers = resolveEthers();
     const onchainConfig = window.BaseManOnchainConfig;
 
+    // Enhanced debugging for mobile environments (log every 5 attempts)
+    if (attempts > 0 && attempts % 5 === 0) {
+      const debugInfo = {
+        attempt: attempts,
+        hasSDK: !!sdk,
+        hasEthers: !!ethers,
+        hasConfig: !!onchainConfig,
+        hasResolveSDK: typeof window !== 'undefined' && typeof window.resolveSDK === 'function',
+        isMiniApp: typeof window !== 'undefined' && (
+          (window !== window.parent) || 
+          (typeof window.ReactNativeWebView !== 'undefined') ||
+          (typeof window.isMiniAppEnvSync === 'function' && window.isMiniAppEnvSync())
+        ),
+        sdkKeys: typeof window !== 'undefined' ? Object.keys(window).filter(k => 
+          k.toLowerCase().includes('sdk') || 
+          k.toLowerCase().includes('miniapp') || 
+          k.toLowerCase().includes('farcaster') ||
+          k.toLowerCase().includes('minikit')
+        ).slice(0, 10).join(', ') : 'N/A'
+      };
+      log.debug('SDK detection attempt:', debugInfo);
+      debug(`SDK detection #${attempts}: ${JSON.stringify(debugInfo)}`);
+    }
+
     if (sdk && ethers && onchainConfig) {
+      log.info('✅ SDK, ethers, and config found - initializing');
       initialize(sdk, ethers, onchainConfig);
       return;
     }
@@ -200,12 +225,31 @@ if (typeof window !== "undefined") {
     }
 
     if (attempts >= MAX_ATTEMPTS) {
+      // Enhanced error reporting with diagnostic information
+      const diagnostics = {
+        attempts: attempts,
+        hasSDK: !!sdk,
+        hasEthers: !!ethers,
+        hasConfig: !!config,
+        hasResolveSDK: typeof window !== 'undefined' && typeof window.resolveSDK === 'function',
+        isMiniApp: typeof window !== 'undefined' && (
+          (window !== window.parent) || 
+          (typeof window.ReactNativeWebView !== 'undefined') ||
+          (typeof window.isMiniAppEnvSync === 'function' && window.isMiniAppEnvSync())
+        ),
+        sdkKeys: typeof window !== 'undefined' ? Object.keys(window).filter(k => k.toLowerCase().includes('sdk') || k.toLowerCase().includes('miniapp') || k.toLowerCase().includes('farcaster')).join(', ') : 'N/A'
+      };
+      
+      log.error('SDK initialization failed after max attempts:', diagnostics);
+      
       if (!sdk) {
-        showFailure("Farcaster Mini App SDK not found.");
+        const errorMsg = `Farcaster Mini App SDK not found. Diagnostics: ${JSON.stringify(diagnostics)}`;
+        showFailure(errorMsg);
+        log.error('SDK not found. Available window keys:', typeof window !== 'undefined' ? Object.keys(window).slice(0, 20) : 'N/A');
       } else if (!ethers) {
-        showFailure("ethers.js library not loaded.");
+        showFailure(`ethers.js library not loaded. Diagnostics: ${JSON.stringify(diagnostics)}`);
       } else {
-        showFailure("On-chain configuration not found.");
+        showFailure(`On-chain configuration not found. Diagnostics: ${JSON.stringify(diagnostics)}`);
       }
       return;
     }
