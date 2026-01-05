@@ -230,7 +230,7 @@ if (typeof window !== "undefined") {
         attempts: attempts,
         hasSDK: !!sdk,
         hasEthers: !!ethers,
-        hasConfig: !!config,
+        hasConfig: !!onchainConfig,
         hasResolveSDK: typeof window !== 'undefined' && typeof window.resolveSDK === 'function',
         isMiniApp: typeof window !== 'undefined' && (
           (window !== window.parent) || 
