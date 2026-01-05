@@ -163,11 +163,20 @@ export function clearUserInfoCache() {
 /**
  * Check if an entry belongs to the current user
  * @param {Object} entry - Leaderboard entry
- * @param {Object} currentUser - Current user info { address, user }
+ * @param {Object} currentUser - Current user info { address, user, platform }
  * @returns {boolean} True if entry belongs to current user
  */
 export function isMyEntry(entry, currentUser) {
   if (!entry || !currentUser) return false;
+
+  // Platform matching: If both current user and entry have platform info, they must match
+  // This ensures Base App users see Base App entries, Farcaster users see Farcaster entries
+  // If platform info is missing, allow match (backward compatibility)
+  if (currentUser.platform && entry?.profile?.platform) {
+    if (currentUser.platform !== entry.profile.platform) {
+      return false;
+    }
+  }
 
   // Match by FID if available
   if (currentUser.user?.fid && entry?.profile?.fid) {

@@ -96,6 +96,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   // Current user state (cached)
   let currentUser = null;
   let currentAddress = null;
+  let currentPlatform = null;
   
   // My rank state cache - avoid redundant DOM updates
   let lastMyRankState = null; // { rank, score, hasEntry, connected }
@@ -109,16 +110,17 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
    */
   const getCurrentUserInfo = async () => {
     const userInfo = await getCachedUserInfo();
-    return { address: userInfo.address, user: userInfo.user };
+    return { address: userInfo.address, user: userInfo.user, platform: userInfo.platform };
   };
 
   /**
    * Check if an entry belongs to the current user
    * Wrapper around service function
+   * Now includes platform matching to distinguish between Base App and Farcaster accounts
    */
   const isMyEntry = (entry) => {
     if (!entry) return false;
-    return isMyEntryService(entry, { address: currentAddress, user: currentUser });
+    return isMyEntryService(entry, { address: currentAddress, user: currentUser, platform: currentPlatform });
   };
 
   /**
@@ -300,11 +302,13 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     const userInfo = await getCurrentUserInfo();
     currentUser = userInfo.user;
     currentAddress = userInfo.address;
+    currentPlatform = userInfo.platform;
 
     log.debug('loadLeaderboardData user info:', {
       hasUser: !!currentUser,
       hasAddress: !!currentAddress,
       hasFid: !!currentUser?.fid,
+      platform: currentPlatform,
       addressPrefix: currentAddress ? currentAddress.substring(0, 10) + '...' : null
     });
 
