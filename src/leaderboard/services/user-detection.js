@@ -110,38 +110,57 @@ export async function getCachedUserInfo() {
 
     // Platform detection: Always wait for async detection to ensure we get the correct platform
     // This is critical for mobile MiniApp environments where SDK may load slowly
+    // CRITICAL: Increase timeout to 10 seconds for mobile environments where SDK may load very slowly
     try {
       let detectedPlatform;
       if (isPlatformDetected()) {
         // Use cached value if available
         detectedPlatform = getPlatformSync();
+        log.debug('Platform detected (cached):', detectedPlatform);
       } else {
         // Wait for platform detection to complete (important for mobile)
         // This ensures we get the correct platform even if SDK loads slowly
-        // Add timeout to prevent hanging if SDK never loads
+        // CRITICAL: Increase timeout to 10 seconds for mobile environments
+        // SDK polling can take up to ~90 seconds in worst case, but we wait max 10s here
         try {
           detectedPlatform = await Promise.race([
             getPlatform(),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Platform detection timeout')), 5000)
+              setTimeout(() => reject(new Error('Platform detection timeout (10s)')), 10000)
             )
           ]);
+          log.debug('Platform detected (async):', detectedPlatform);
         } catch (timeoutErr) {
-          log.warn('Platform detection timed out, using fallback:', timeoutErr?.message);
-          // Fallback: try sync version or default to web
-          detectedPlatform = isPlatformDetected() ? getPlatformSync() : 'web';
+          log.warn('Platform detection timed out after 10s, trying sync fallback:', timeoutErr?.message);
+          // Fallback: try sync version or default to null (don't assume web - let matching work without platform)
+          // CRITICAL: Don't default to 'web' - if we're in a MiniApp but SDK is slow, we should wait
+          // Setting platform to null allows backward compatibility (matching by FID/address only)
+          if (isPlatformDetected()) {
+            detectedPlatform = getPlatformSync();
+            log.debug('Platform detected (sync fallback):', detectedPlatform);
+          } else {
+            // No platform detected - set to null to allow matching without platform requirement
+            detectedPlatform = null;
+            log.warn('⚠️ Platform detection failed - platform matching will be skipped (matching by FID/address only)');
+          }
         }
       }
       
       // Convert platform format: 'base' -> 'base-app', 'farcaster' -> 'farcaster'
       if (detectedPlatform === 'base') {
         platform = 'base-app';
-        log.debug('Platform detected: base-app');
+        log.info('✅ Platform detected: base-app');
       } else if (detectedPlatform === 'farcaster') {
         platform = 'farcaster';
-        log.debug('Platform detected: farcaster');
+        log.info('✅ Platform detected: farcaster');
+      } else if (detectedPlatform === null) {
+        // Platform not detected - set to null (don't use 'web' as it breaks matching)
+        platform = null;
+        log.warn('⚠️ Platform not detected - platform matching will be skipped');
       } else {
-        log.debug('Platform not detected (web mode):', detectedPlatform);
+        // Unknown platform - set to null
+        platform = null;
+        log.warn('⚠️ Unknown platform detected:', detectedPlatform, '- platform matching will be skipped');
       }
     } catch (platformErr) {
       log.warn('Platform detection failed:', platformErr?.message);
@@ -150,9 +169,17 @@ export async function getCachedUserInfo() {
         const detectedPlatform = getPlatformSync();
         if (detectedPlatform === 'base') {
           platform = 'base-app';
+          log.info('✅ Platform detected (sync fallback): base-app');
         } else if (detectedPlatform === 'farcaster') {
           platform = 'farcaster';
+          log.info('✅ Platform detected (sync fallback): farcaster');
+        } else {
+          platform = null;
+          log.warn('⚠️ Unknown platform (sync fallback):', detectedPlatform);
         }
+      } else {
+        platform = null;
+        log.warn('⚠️ Platform detection failed - platform matching will be skipped');
       }
     }
   } catch (err) {
@@ -195,19 +222,11 @@ export function isMyEntry(entry, currentUser) {
 
   // Platform matching: If current user has platform info, entry must also have platform info and match
   // This ensures Base App users see Base App entries, Farcaster users see Farcaster entries
-  // If current user has platform but entry doesn't, reject (to avoid matching wrong account)
-  // If neither has platform info, allow match (backward compatibility)
-  if (currentUser.platform) {
-    // User has platform info - entry must also have platform info and match
-    if (!entry?.profile?.platform) {
-      // Entry has no platform info, but user does - reject to avoid matching wrong account
-      log.debug('isMyEntry: Rejected - user has platform but entry does not', {
-        userPlatform: currentUser.platform,
-        entryAddress: entry?.player?.substring(0, 10) + '...',
-        entryFid: entry?.profile?.fid
-      });
-      return false;
-    }
+  // CRITICAL: Only enforce platform matching if BOTH user and entry have platform info
+  // If user has platform but entry doesn't, we can't be sure - allow match by FID/address
+  // This prevents false negatives when leaderboard entries don't have platform info yet
+  if (currentUser.platform && entry?.profile?.platform) {
+    // Both have platform info - they must match
     if (currentUser.platform !== entry.profile.platform) {
       // Platforms don't match - reject
       log.debug('isMyEntry: Rejected - platform mismatch', {
@@ -220,6 +239,14 @@ export function isMyEntry(entry, currentUser) {
     }
     log.debug('isMyEntry: Platform match', {
       platform: currentUser.platform,
+      entryAddress: entry?.player?.substring(0, 10) + '...',
+      entryFid: entry?.profile?.fid
+    });
+  } else if (currentUser.platform && !entry?.profile?.platform) {
+    // User has platform but entry doesn't - log but don't reject (allow match by FID/address)
+    // This prevents false negatives when leaderboard entries don't have platform info yet
+    log.debug('isMyEntry: User has platform but entry does not - allowing match by FID/address', {
+      userPlatform: currentUser.platform,
       entryAddress: entry?.player?.substring(0, 10) + '...',
       entryFid: entry?.profile?.fid
     });
