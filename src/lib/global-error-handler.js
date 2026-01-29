@@ -18,7 +18,10 @@ const noisyPatterns = [
   'vendor/miniapp-sdk',  // SDK file path errors
   'Request failed with status 400',  // SDK request errors (non-critical)
   'RequestFailedError',  // SDK request error class
-  'status 400'  // Generic 400 errors from SDK
+  'status 400',  // Generic 400 errors from SDK
+  'User rejected sign in request', // User cancelled sign in
+  'User rejected wallet connection', // User cancelled wallet connection
+  'Wallet connection was rejected' // User cancelled wallet connection (variant)
 ];
 
 function shouldDowngrade(message = '', stack = '') {
