@@ -33,7 +33,6 @@ import {
   renderLoading,
   showDebugInfo, 
   hideDebugInfo,
-  formatScore,
   resetRenderCache
 } from './leaderboard/dom.js';
 import { initSearch, closeSearchModal } from './leaderboard/search.js';

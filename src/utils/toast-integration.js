@@ -98,7 +98,7 @@ function handleScoreSubmitted(event) {
 }
 
 function handleScoreConfirmed(event) {
-  const { score, txHash } = event.detail || {};
+  const { score, txHash: _txHash } = event.detail || {};
   const scoreStr = score ? Number(score).toLocaleString() : '';
   
   // Dismiss any lingering loading toast
@@ -112,7 +112,7 @@ function handleScoreConfirmed(event) {
 }
 
 function handleScoreError(event) {
-  const { message, code } = event.detail || {};
+  const { message, code: _code } = event.detail || {};
   
   // Dismiss loading toast
   if (scoreSubmissionToast) {
@@ -247,5 +247,4 @@ export default {
   emitToastEvent,
   toast
 };
-
 

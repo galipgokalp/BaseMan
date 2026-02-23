@@ -47,13 +47,6 @@ export async function safeFetchJson(input, init = {}, { timeoutMs = DEFAULT_TIME
       error.status = response.status;
       error.statusText = response.statusText;
 
-      let kind = 'BAD_RESPONSE';
-      if (response.status === 401) {
-        kind = 'UNAUTHORIZED';
-      } else if (response.status >= 500) {
-        kind = 'NETWORK_ERROR';
-      }
-
       return err(createAppError(error, {
         context,
         meta: {
@@ -138,4 +131,3 @@ export function requireOnline(actionName, context = 'unknown') {
   }
   return null;
 }
-

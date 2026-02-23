@@ -41,7 +41,7 @@ let searchInput = null;
 let searchResults = null;
 let searchClose = null;
 let searchClear = null;
-let searchSpinner = null;
+let _searchSpinner = null;
 let searchBackdrop = null;
 let searchAbortController = null;
 let searchDebounced = null;
@@ -84,7 +84,7 @@ function ensureSearchDOM() {
   
   const loadingEl = document.querySelector('[data-search-loading]');
   if (loadingEl) {
-    searchSpinner = loadingEl.querySelector('.leaderboard-search-loading-spinner') || null;
+    _searchSpinner = loadingEl.querySelector('.leaderboard-search-loading-spinner') || null;
     loadingEl.hidden = true;
     loadingEl.style.display = 'none';
   }
@@ -192,7 +192,7 @@ function computeResultHash(filtered) {
  * 
  * Phase 4.1: Skip redundant renders when results unchanged
  */
-function renderResults(filtered, { topListEl, restListEl, onItemClick }) {
+function renderResults(filtered, { topListEl: _topListEl, restListEl: _restListEl, onItemClick }) {
   if (!searchResults) return;
   
   // Compute hash to detect if results changed
@@ -488,7 +488,6 @@ function teardownKeydownHandlers() {
  * Phase 4.1: Reset cache state on open for fresh search
  */
 export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemClick, onClose }) {
-  const allEntries = typeof getAllEntries === 'function' ? getAllEntries() : getAllEntries;
   if (!ensureSearchDOM()) return;
   restoreFocusEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   
@@ -524,21 +523,21 @@ export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemCl
   if (isAndroid()) {
     try {
       searchInput.click();
-    } catch (e) {}
+    } catch (_e) {}
   }
   
   if (isIOS()) {
     try {
       const ev = new PointerEvent('pointerdown', { bubbles: true, cancelable: true });
       searchInput.dispatchEvent(ev);
-    } catch (e) {}
+    } catch (_e) {}
   }
   
   searchInput.focus({ preventScroll: true });
   try {
     const end = searchInput.value.length;
     searchInput.setSelectionRange(end, end);
-  } catch (e) {}
+  } catch (_e) {}
   
   requestAnimationFrame(() => {
     searchModal.classList.add('modal-open');
@@ -548,13 +547,13 @@ export function openSearchModal(getAllEntries, { topListEl, restListEl, onItemCl
         if (isAndroid()) {
           try {
             searchInput.click();
-          } catch (e) {}
+          } catch (_e) {}
         }
         if (isIOS()) {
           try {
             const ev = new PointerEvent('pointerdown', { bubbles: true });
             searchInput.dispatchEvent(ev);
-          } catch (e) {}
+          } catch (_e) {}
         }
         searchInput.focus({ preventScroll: true });
       }

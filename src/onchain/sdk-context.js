@@ -6,10 +6,6 @@
  * - Context retrieval (cached or fresh)
  */
 
-import { createLogger } from '../utils/logger.js';
-
-const log = createLogger('OnchainSDKContext');
-
 /**
  * SDK context cache configuration
  */
@@ -75,4 +71,3 @@ export function clearSDKContextCache() {
   cachedSDKContext = null;
   cachedSDKContextTimestamp = 0;
 }
-

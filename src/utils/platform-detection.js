@@ -13,7 +13,7 @@
 import { createLogger } from './logger.js';
 const log = createLogger('UtilPlatformDetect');
 
-function hasBaseAppSignals() {
+function _hasBaseAppSignals() {
   if (typeof window === 'undefined') return false;
   // CRITICAL: Don't check ReactNativeWebView - it exists in both Farcaster and Base App mobile apps
   // Only check Base App-specific signals

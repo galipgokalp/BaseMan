@@ -7,10 +7,6 @@
  * - Provider chain switching
  */
 
-import { createLogger } from '../utils/logger.js';
-
-const log = createLogger('OnchainProvider');
-
 /**
  * Chain metadata for supported networks
  */
@@ -99,4 +95,3 @@ export async function ensureChain(provider, chainId, debug = () => {}) {
 export function getChainKey(chainId) {
   return chainId === 8453 ? 'base' : (chainId === 84532 ? 'base-sepolia' : 'base');
 }
-

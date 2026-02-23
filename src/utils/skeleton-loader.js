@@ -18,7 +18,7 @@
  * @returns {string} HTML string
  */
 export function renderLeaderboardSkeleton(count = 10) {
-  const items = Array.from({ length: count }, (_, i) => `
+  const items = Array.from({ length: count }, (_unused, _i) => `
     <div class="leaderboard-skeleton-item" aria-hidden="true">
       <div class="skeleton skeleton-rank"></div>
       <div class="skeleton skeleton-avatar"></div>
@@ -165,5 +165,4 @@ if (typeof window !== 'undefined') {
 }
 
 export default SkeletonLoader;
-
 

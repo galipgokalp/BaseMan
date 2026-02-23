@@ -3,7 +3,7 @@
  * Displays wallet information, network, and balances
  */
 
-import { abbreviateAddress, networkLabel, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('UiWalletPanel');

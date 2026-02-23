@@ -5,7 +5,6 @@
 
 import { createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
-import { escapeHtml } from './utils/escape-html.js';
 
 const log = createLogger('UiSettingsPanel');
 const PANEL_TITLE_ID = 'settings-panel-title';
@@ -211,7 +210,7 @@ function refresh() {
 
     try {
       // Get environment
-      const env = window.__ENV || {};
+      const _env = window.__ENV || {};
       const envEl = panel.querySelector('[data-environment]');
       if (envEl) {
         const isProd = window.location.hostname.includes('vercel.app') || 
@@ -234,7 +233,7 @@ function getSetting(key, defaultValue) {
         if (stored === 'false') return false;
         return stored;
       }
-    } catch (e) {}
+    } catch (_e) {}
     return defaultValue;
 }
 
@@ -993,8 +992,6 @@ function clearDebugLogs(panel) {
 
 async function copyAllLogs(panel) {
     const copyBtn = panel.querySelector('[data-debug-logs-copy]');
-    const originalText = copyBtn ? copyBtn.textContent : '📋 Copy';
-    
     // Show loading feedback
     if (copyBtn) {
       copyBtn.textContent = '⏳ Copying...';
@@ -1145,7 +1142,7 @@ async function copyToClipboard(text) {
             if (permissionStatus.state === 'denied') {
               // Silently fall through to fallback method
             }
-          } catch (permError) {
+          } catch (_permError) {
             // Permission API not supported or failed, try Clipboard API anyway
             hasPermission = true;
           }

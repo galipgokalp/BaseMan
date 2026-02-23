@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { WagmiProvider, useAccount, useConnect, useSendTransaction, useSendCalls } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { parseEther } from 'viem';
-import { config as wagmiConfig, makeWagmiConfig, getConfig } from './wagmi-config.js';
+import { config as wagmiConfig, getConfig } from './wagmi-config.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ConnectMenu');

@@ -39,7 +39,7 @@ export function bootstrap() {
         console.debug('Early platform detection failed (non-critical):', err?.message);
       }
     });
-  } catch (err) {
+  } catch (_err) {
     // Catch sync errors (shouldn't happen, but safety first)
     // Silent fail - platform detection will retry when needed
   }
@@ -49,4 +49,3 @@ export function bootstrap() {
 if (typeof window !== 'undefined') {
   bootstrap();
 }
-

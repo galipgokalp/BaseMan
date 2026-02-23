@@ -4,7 +4,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { getPlatformSync, isPlatformDetected, getPlatform, initPlatformDetection } from '../../utils/platform-detection.js';
+import { getPlatformSync, isPlatformDetected, getPlatform } from '../../utils/platform-detection.js';
 
 const log = createLogger('LeaderboardUserDetection');
 
@@ -34,7 +34,7 @@ async function getSdkUserOnce() {
       ]);
       cachedSdkUser = context?.user || null;
     }
-  } catch (err) {
+  } catch (_err) {
     // SDK context not available or timed out
     log.debug('SDK user fetch failed or timed out');
   }
@@ -263,4 +263,3 @@ export function isMyEntry(entry, currentUser) {
 function normalizeAddress(addr) {
   return typeof addr === "string" ? addr.toLowerCase() : null;
 }
-

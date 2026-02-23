@@ -57,7 +57,7 @@ export function getVisible() {
  * 
  * NOTE: Auto-refresh disabled - polling is no-op
  */
-export function startPolling(loadFn) {
+export function startPolling(_loadFn) {
   // Auto-refresh disabled - do nothing
   stopPolling();
 }
@@ -107,4 +107,3 @@ export function setVisible(value, options = {}) {
     }
   }
 }
-

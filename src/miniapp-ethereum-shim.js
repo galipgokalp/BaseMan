@@ -57,7 +57,7 @@
       if (!sdk || !sdk.wallet || typeof sdk.wallet.getEthereumProvider !== 'function') return null;
       try {
         return sdk.wallet.getEthereumProvider();
-      } catch (error) {
+      } catch (_error) {
         // Silently fail for shim - this is a background operation
         return null;
       }

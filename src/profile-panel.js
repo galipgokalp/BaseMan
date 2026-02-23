@@ -3,7 +3,6 @@ import { createLogger } from './utils/logger.js';
 
 const log = createLogger('UiProfilePanel');
 const PANEL_ID = 'baseman-profile-panel';
-const BTN_ID = 'baseman-profile-btn';
 const PANEL_TITLE_ID = 'profile-panel-title';
 
 // Use helpers from panel-base
@@ -332,7 +331,7 @@ async function refresh(panel) {
                 // Silently fail - not critical for UI
               });
             }
-          } catch (mappingErr) {
+          } catch (_mappingErr) {
             // Silently fail - not critical for UI
           }
         } else {

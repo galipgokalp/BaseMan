@@ -502,27 +502,37 @@ export function renderRows(items, { topListEl, restListEl, scrollWrapper, status
   // restCount already calculated above
   if (restCount > 0 && restListEl && scrollWrapper) {
     const fragmentRest = document.createDocumentFragment();
+    let restItemsCreated = 0;
+    let restItemsSkipped = 0;
+    let restItemsErrored = 0;
     for (let i = 0; i < restCount; i++) {
       const entry = effectiveItems[topCount + i];
       if (!entry) {
         log.warn(`renderRows: entry at index ${topCount + i} is null/undefined`);
+        restItemsSkipped++;
         continue;
       }
       try {
         const fallbackRank = topCount + i + 1;
         const isMe = isMyEntry ? isMyEntry(entry) : false;
         const listItem = createListItem(entry, fallbackRank, isMe);
+        if (!listItem) {
+          restItemsSkipped++;
+          continue;
+        }
         fragmentRest.appendChild(listItem);
+        restItemsCreated++;
       } catch (error) {
         log.error(`renderRows: failed to create list item for entry at index ${topCount + i}:`, error);
+        restItemsErrored++;
       }
     }
     const fragmentRestCount = fragmentRest.childNodes.length;
     log.info('renderRows: rest items loop completed', JSON.stringify({
       loopIterations: restCount,
-      itemsCreated,
-      itemsSkipped,
-      itemsErrored,
+      itemsCreated: restItemsCreated,
+      itemsSkipped: restItemsSkipped,
+      itemsErrored: restItemsErrored,
       fragmentChildNodes: fragmentRestCount
     }));
     if (fragmentRestCount > 0) {

@@ -36,7 +36,7 @@
     try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'mock-miniapp', meta: { msg: String(msg) } }) }).catch(()=>{});} catch(_) {}
   }
 
-  function hexChainId() {
+  function _hexChainId() {
     try {
       const id = Number(window?.BaseManOnchainConfig?.chainId || 84532);
       return window.ethers ? window.ethers.toBeHex(id) : '0x' + id.toString(16);

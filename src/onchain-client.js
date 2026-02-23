@@ -96,7 +96,7 @@ if (typeof window !== "undefined") {
       // Priority 2: Wait briefly for utility to load (utility loads early in index.html)
       // This is a safety fallback - utility should already be loaded
       let attempts = 0;
-      const maxWait = 500; // 500ms max wait
+      const _maxWait = 500; // 500ms max wait
       while (attempts < 10 && typeof window !== 'undefined') {
         if (typeof window.resolveSDK === 'function') {
           const sdk = window.resolveSDK();
@@ -177,7 +177,7 @@ if (typeof window !== "undefined") {
       if (typeof window !== 'undefined' && window.performance && window.performance.mark) {
         try {
           window.performance.mark('sdk-detection-start');
-        } catch (e) {}
+        } catch (_e) {}
       }
     }
     
@@ -274,7 +274,7 @@ if (typeof window !== "undefined") {
         if (window.performance.measure) {
           window.performance.measure('sdk-detection-time', 'sdk-detection-start', 'sdk-detection-complete');
         }
-      } catch (e) {}
+      } catch (_e) {}
     }
     
     window.sdk = sdk;
@@ -319,7 +319,7 @@ if (typeof window !== "undefined") {
     
     // In-flight ensureWallet deduplication
     // Note: Profile mapping deduplication is now handled by onchain/profile-service module
-    let inflightEnsureWallet = null;
+    let _inflightEnsureWallet = null;
     
     // SDK context caching and profile mapping are now handled by onchain modules
     // These functions are imported and used directly - no local implementation needed
@@ -464,7 +464,7 @@ if (typeof window !== "undefined") {
               try {
                 window.__basemanSDKReadyFired = true;
                 window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk, error: errorMsg } }));
-              } catch (eventError) {}
+              } catch (_eventError) {}
             }
           } else {
             debug("Warning: SDK detected but not in mini app context");
@@ -472,7 +472,7 @@ if (typeof window !== "undefined") {
             try {
               window.__basemanSDKReadyFired = true;
               window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
-            } catch (eventError) {}
+            } catch (_eventError) {}
           }
         } else {
           debug("Warning: sdk.actions.ready is not available");
@@ -480,7 +480,7 @@ if (typeof window !== "undefined") {
           try {
             window.__basemanSDKReadyFired = true;
             window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
-          } catch (eventError) {}
+          } catch (_eventError) {}
         }
       } catch (error) {
         debug(`Error in SDK initialization: ${error?.message || error}`);
@@ -489,7 +489,7 @@ if (typeof window !== "undefined") {
         try {
           window.__basemanSDKReadyFired = true;
           window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null, error: error?.message } }));
-        } catch (eventError) {}
+        } catch (_eventError) {}
         
         if (!(sdk && sdk.actions && typeof sdk.actions.ready === 'function')) {
           // No SDK available, allow game to start
@@ -497,7 +497,7 @@ if (typeof window !== "undefined") {
             try {
               window.__basemanSDKReadyFired = true;
               window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
-            } catch (eventError) {}
+            } catch (_eventError) {}
           }, 300);
         }
       }
@@ -522,7 +522,7 @@ if (typeof window !== "undefined") {
             }
           } catch (_) {}
         }
-        const wantSepolia = 84532;
+        const _wantSepolia = 84532;
         const wantMainnet = 8453;
         const hasSepolia = Array.isArray(supported) && supported.some((c) => String(c).includes('84532'));
         const hasMainnet = Array.isArray(supported) && supported.some((c) => String(c).includes('8453'));
@@ -707,7 +707,7 @@ if (typeof window !== "undefined") {
           // Mini‑app providers may not support wallet_switchEthereumChain; skip enforcing switch
 
           // Detect Base App specifically
-          const isBaseAppDetected = (() => {
+          const _isBaseAppDetected = (() => {
             try {
               if (typeof window !== 'undefined') {
                 if (typeof window.isBaseAppSync === 'function') {
@@ -1062,7 +1062,7 @@ if (typeof window !== "undefined") {
     }
 
     // Discover paymaster capability URL via provider (EIP-5792 style)
-    async function discoverPaymasterUrl(provider, chainId) {
+    async function _discoverPaymasterUrl(provider, _chainId) {
       try {
         // If a paymaster URL is already configured (e.g., our proxy), do not override.
         if (config.paymasterUrl && String(config.paymasterUrl).trim().length > 0) {
@@ -1223,7 +1223,7 @@ if (typeof window !== "undefined") {
       }
     }
 
-    async function submitScoreWithPaymaster(callData) {
+    async function _submitScoreWithPaymaster(callData) {
       // Farcaster Wallet does not support paymaster yet (per miniapps.farcaster.xyz/docs/guides/wallets)
       // Paymaster is only supported in Base App, not in Farcaster/Warpcast
       // Use centralized platform detection
@@ -1999,7 +1999,7 @@ if (typeof window !== "undefined") {
         const qid = signedQuestId ? BigInt(signedQuestId) : BigInt(questId);
         const deadlineValue = BigInt(deadline);
 
-        let paymasterHandled = false;
+        let _paymasterHandled = false;
         const contractInterface = state.contract && state.contract.interface;
         if (contractInterface && typeof contractInterface.encodeFunctionData === "function") {
           const eip712v = (window.__ENV && (String(window.__ENV.NEXT_PUBLIC_REGISTRY_EIP712_VERSION || '').trim() || String(window.__ENV.REGISTRY_EIP712_VERSION || '').trim())) || '';
