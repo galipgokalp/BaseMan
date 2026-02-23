@@ -102,13 +102,27 @@ function readTypedDataVersion() {
         content.match(/CONTRACT_VERSION[^=]*=\s*["'`]([^"'`]+)["'`]/) ||
         content.match(/CONTRACT_VERSION[^=]*=\s*\([^)]*["'`]([^"'`]+)["'`]\)/);
       if (match) {
-        return { version: match[1], path };
+        return { version: match[1], path, dynamic: false };
+      }
+
+      // Dynamic version source pattern used in api/_lib/registry.js:
+      // version is resolved lazily from env.registry.eip712Version
+      const hasDynamicEnvVersion =
+        /function\s+getContractVersion\s*\(/.test(content) &&
+        /env\.registry\.eip712Version/.test(content);
+      if (hasDynamicEnvVersion) {
+        return {
+          version: null,
+          path,
+          dynamic: true,
+          source: 'env.registry.eip712Version (lazy getter)'
+        };
       }
     } catch (_) {
       continue;
     }
   }
-  return { version: null, path: null };
+  return { version: null, path: null, dynamic: false };
 }
 
 /**
@@ -251,6 +265,9 @@ function checkConfig() {
     log.error(colors.red(msg));
     errors.push(msg);
     issuesFound++;
+  } else if (typedVersionInfo.dynamic) {
+    // Dynamic source is valid: version comes from env at runtime (checked above via eip712.env).
+    log.info(`Typed-data version source detected (dynamic): ${typedVersionInfo.path} -> ${typedVersionInfo.source}`);
   } else if (!typedVersionInfo.version) {
     const msg = 'Typed-data version source not found (expected src/utils/typed-data.js or api/_lib/registry.js)';
     log.warn(colors.yellow(msg));

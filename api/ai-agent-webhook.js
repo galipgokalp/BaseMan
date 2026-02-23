@@ -36,7 +36,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 function analyzeErrorRuleBased(logEntry) {
   const message = (logEntry.message || '').toLowerCase();
-  const stack = (logEntry.meta?.stack || '').toLowerCase();
+  const _stack = (logEntry.meta?.stack || '').toLowerCase();
   const filename = logEntry.meta?.filename || 'unknown';
   
   // Pattern matching for common errors
@@ -246,7 +246,7 @@ Provide your analysis in JSON format:
                        [null, analysisText];
       const jsonText = jsonMatch[1] || analysisText;
       analysis = JSON.parse(jsonText);
-    } catch (parseError) {
+    } catch (_parseError) {
       // If JSON parsing fails, create a structured response from text
       analysis = {
         rootCause: 'Analysis parsing failed',

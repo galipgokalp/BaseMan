@@ -30,7 +30,7 @@
           if (typeof arg === 'object') {
             try {
               return JSON.stringify(arg, null, 2);
-            } catch (e) {
+            } catch (_e) {
               return String(arg);
             }
           }
@@ -40,7 +40,7 @@
           if (typeof arg === 'object') {
             try {
               return JSON.stringify(arg, null, 2);
-            } catch (e) {
+            } catch (_e) {
               return String(arg);
             }
           }
@@ -65,7 +65,7 @@
             body: JSON.stringify(logEntry),
             keepalive: true
           }).catch(() => {}); // Ignore fetch errors
-        } catch (e) {}
+        } catch (_e) {}
       }
     };
   });
@@ -102,7 +102,7 @@
           body: JSON.stringify(errorEntry),
           keepalive: true
         }).catch(() => {});
-      } catch (e) {}
+      } catch (_e) {}
     }
   });
 
@@ -188,7 +188,7 @@
           body: JSON.stringify(errorEntry),
           keepalive: true
         }).catch(() => {});
-      } catch (e) {}
+      } catch (_e) {}
     }
     
     // Prevent default browser console error for handled cases
@@ -241,4 +241,3 @@
   console.log('[ConsoleLogger] Initialized - use window.ConsoleLogger to access logs');
   console.log('[ConsoleLogger] Available methods:', Object.keys(window.ConsoleLogger).join(', '));
 })();
-

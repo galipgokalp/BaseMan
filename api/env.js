@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     
     res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
     res.status(200).send(`window.__ENV = ${JSON.stringify(obj)};`);
-  } catch (error) {
+  } catch (_error) {
     // On validation error, still try to serve basic env (for graceful degradation)
     try {
       const processEnv = process.env || {};

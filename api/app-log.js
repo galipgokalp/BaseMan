@@ -63,15 +63,59 @@ async function sendTelegramAlert(entry, config) {
 const RING_SIZE = 200;
 globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
 
+function parseTimestampQuery(value) {
+  if (value == null || value === '') return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n < 1e12 ? n * 1000 : n;
+  }
+  const t = Date.parse(raw);
+  return Number.isFinite(t) ? t : null;
+}
+
+function summarizeLogs(entries, allStoredCount) {
+  const byEvent = {};
+  let oldestTs = null;
+  let newestTs = null;
+  for (const entry of entries) {
+    const key = String(entry?.event || 'unknown');
+    byEvent[key] = (byEvent[key] || 0) + 1;
+    const ts = Date.parse(String(entry?.ts || ''));
+    if (Number.isFinite(ts)) {
+      if (oldestTs == null || ts < oldestTs) oldestTs = ts;
+      if (newestTs == null || ts > newestTs) newestTs = ts;
+    }
+  }
+  return {
+    ringSize: RING_SIZE,
+    stored: allStoredCount,
+    returned: entries.length,
+    oldestTs: oldestTs != null ? new Date(oldestTs).toISOString() : null,
+    newestTs: newestTs != null ? new Date(newestTs).toISOString() : null,
+    byEvent
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       let dump = Array.isArray(globalThis.__APP_LOGS) ? globalThis.__APP_LOGS.slice(-RING_SIZE) : [];
+      const storedCount = dump.length;
       
       // Filter by event type if provided
       if (req.query.event) {
         const eventFilter = String(req.query.event).trim();
         dump = dump.filter(entry => entry.event === eventFilter);
+      }
+
+      // Filter by event prefix if provided
+      if (req.query.eventPrefix) {
+        const prefix = String(req.query.eventPrefix).trim();
+        if (prefix) {
+          dump = dump.filter(entry => String(entry?.event || '').startsWith(prefix));
+        }
       }
       
       // Filter by address if provided (check meta.address or meta.stateAddress)
@@ -93,19 +137,44 @@ export default async function handler(req, res) {
           return eventMatch || messageMatch;
         });
       }
+
+      // Filter by time range if provided (unix sec/ms or ISO string)
+      const sinceTs = parseTimestampQuery(req.query.since);
+      const untilTs = parseTimestampQuery(req.query.until);
+      if (sinceTs != null) {
+        dump = dump.filter(entry => {
+          const ts = Date.parse(String(entry?.ts || ''));
+          return Number.isFinite(ts) && ts >= sinceTs;
+        });
+      }
+      if (untilTs != null) {
+        dump = dump.filter(entry => {
+          const ts = Date.parse(String(entry?.ts || ''));
+          return Number.isFinite(ts) && ts <= untilTs;
+        });
+      }
+
+      const order = String(req.query.order || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
+      if (order === 'desc') dump = dump.slice().reverse();
       
       // Limit results
       const limit = req.query.limit ? Math.min(parseInt(req.query.limit, 10) || 200, 500) : 200;
-      dump = dump.slice(-limit);
+      dump = order === 'desc' ? dump.slice(0, limit) : dump.slice(-limit);
+      const summary = summarizeLogs(dump, storedCount);
       
       return res.status(200).json({ 
         logs: dump,
         total: dump.length,
+        summary,
         filters: {
           event: req.query.event || null,
+          eventPrefix: req.query.eventPrefix || null,
           address: req.query.address || null,
           contains: req.query.contains || null,
-          limit: limit
+          since: req.query.since || null,
+          until: req.query.until || null,
+          order,
+          limit
         }
       });
     } catch (err) {

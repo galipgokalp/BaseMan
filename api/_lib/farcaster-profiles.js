@@ -50,7 +50,7 @@ let ENRICHMENT_DISABLED_REASON = null;
 
 // Warn once flags for missing configuration
 let hasLoggedMissingNeynarKey = false;
-let hasLoggedMissingRedis = false;
+let _hasLoggedMissingRedis = false;
 
 // ============================================
 // IN-FLIGHT REQUEST DEDUPLICATION - Phase 4.3

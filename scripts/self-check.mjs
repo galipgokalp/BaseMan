@@ -3,6 +3,10 @@ import 'dotenv/config';
 import { ethers } from 'ethers';
 
 const BASE = process.env.SELF_CHECK_BASE || 'http://127.0.0.1:5173';
+const PUBLIC_NEXT_PUBLIC_KEYS = new Set([
+  'NEXT_PUBLIC_ONCHAINKIT_API_KEY',
+  'NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID'
+]);
 
 async function getJson(url, opts = {}) {
   const res = await fetch(url, opts);
@@ -24,12 +28,23 @@ async function main() {
     const txt = await res.text();
     const jsonStr = (txt.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, '');
     const pub = JSON.parse(jsonStr);
+    const publicKeyMatches = [];
     const offenders = Object.entries(pub)
-      .filter(([k, v]) => k.startsWith('NEXT_PUBLIC_') && sensitiveKeys.some(s => k.includes(s) || String(v).includes(s)));
+      .filter(([k, v]) => {
+        if (!k.startsWith('NEXT_PUBLIC_')) return false;
+        if (PUBLIC_NEXT_PUBLIC_KEYS.has(k)) {
+          publicKeyMatches.push(k);
+          return false;
+        }
+        return sensitiveKeys.some(s => k.includes(s) || String(v).includes(s));
+      });
+    if (publicKeyMatches.length) {
+      console.log('[self-check] INFO: Allowed publishable NEXT_PUBLIC_* keys detected:', publicKeyMatches);
+    }
     if (offenders.length) {
       console.warn('[self-check] WARNING: Potential sensitive values in NEXT_PUBLIC_*:', offenders.map(([k]) => k));
     }
-  } catch (_) {}
+  } catch {}
   try {
     results.env = await getJson(`${BASE}/api/env.js`);
   } catch (e) { results.env = { error: String(e) }; }

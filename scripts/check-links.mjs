@@ -51,7 +51,7 @@ const head = async (url, signal) => {
   try {
     const r = await fetch(url, { method: 'HEAD', redirect: 'follow', signal });
     return r;
-  } catch (e) {
+  } catch (_e) {
     return { ok: false, status: 0 };
   }
 };
@@ -60,7 +60,7 @@ const get = async (url, signal) => {
   try {
     const r = await fetch(url, { method: 'GET', redirect: 'follow', signal });
     return r;
-  } catch (e) {
+  } catch (_e) {
     return { ok: false, status: 0 };
   }
 };

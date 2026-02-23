@@ -117,7 +117,7 @@ function validateUrl(value, name, context = null, options = {}) {
       throw new Error('URL must use http or https protocol');
     }
     return str;
-  } catch (error) {
+  } catch (_error) {
     throw new Error(
       `Environment variable ${name} must be a valid absolute URL` +
       (context ? ` (used in: ${context})` : '') +

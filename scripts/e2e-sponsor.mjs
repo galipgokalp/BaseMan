@@ -28,12 +28,6 @@ async function get(path) {
   return r;
 }
 
-async function getJson(path) {
-  const r = await get(path);
-  const t = await r.text();
-  try { return { status: r.status, json: JSON.parse(t) }; } catch { return { status: r.status, text: t }; }
-}
-
 function parseEnvFromScriptTag(text) {
   // __env.js returns: window.__ENV = {...};
   const jsonStr = (text.split('window.__ENV = ')[1] || '{}').replace(/;\s*$/, '');

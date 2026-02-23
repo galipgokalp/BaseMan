@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import crypto from 'node:crypto';
 
 function usage() {
@@ -90,4 +89,3 @@ if (inplace) {
 } else {
   console.log(`Wrote merged file: ${outPath}`);
 }
-

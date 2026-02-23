@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         try {
           const { getProfileMapping } = await import('./_lib/redis-profiles.js');
           // Test with a dummy address to see if Redis responds
-          const testMapping = await getProfileMapping('0x0000000000000000000000000000000000000000');
+          const _testMapping = await getProfileMapping('0x0000000000000000000000000000000000000000');
           testResult = {
             operation: 'get',
             success: true,

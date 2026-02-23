@@ -27,6 +27,9 @@ export default [
         Response: 'readonly',
         Headers: 'readonly',
         FormData: 'readonly',
+        Element: 'readonly',
+        HTMLElement: 'readonly',
+        Node: 'readonly',
         // Node.js globals (for scripts)
         process: 'readonly',
         Buffer: 'readonly',
@@ -218,12 +221,42 @@ export default [
     },
     rules: {
       // Basic syntax checking
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
       'no-console': 'off', // Allow console in this project
       'no-undef': 'error',
       'no-unreachable': 'error',
       'no-extra-semi': 'error',
       'no-unexpected-multiline': 'error',
+    },
+  },
+  {
+    // Legacy bundled arcade engine files rely on cross-file globals and old patterns.
+    // Keep lint signal focused on modern modular code (api/, scripts/, src/leaderboard/, src/onchain/, etc.).
+    files: ['src/*.js'],
+    ignores: [
+      'src/bottom-nav.js',
+      'src/console-logger.js',
+      'src/debug-autosubmit.js',
+      'src/leaderboard-panel.js',
+      'src/miniapp-auth.js',
+      'src/miniapp-ethereum-shim.js',
+      'src/mock-miniapp-provider.js',
+      'src/onchain-bootstrap.js',
+      'src/onchain-client.js',
+      'src/onchain-config.js',
+      'src/profile-panel.js',
+      'src/runtime-config-override.js',
+      'src/settings-panel.js',
+      'src/wallet-panel.js',
+    ],
+    rules: {
+      'no-undef': 'off',
+      'no-unreachable': 'off',
+      'no-unused-vars': 'off',
     },
   },
 ];
