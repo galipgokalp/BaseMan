@@ -136,7 +136,7 @@ function parseRegistryConfig(target) {
   let chainId;
   try {
     chainId = BigInt(rawChainId);
-  } catch (error) {
+  } catch (_error) {
     throw new Error(`[BaseManRegistry] ${source.chainIdEnv[0]} must be a valid integer value`);
   }
 

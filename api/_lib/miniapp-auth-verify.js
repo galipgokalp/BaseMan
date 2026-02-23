@@ -144,7 +144,7 @@ export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) 
       let json = null; 
       try { 
         json = JSON.parse(text); 
-      } catch (parseErr) {
+      } catch (_parseErr) {
         console.log(JSON.stringify({
           timestamp: new Date().toISOString(),
           level: 'warn',
@@ -322,4 +322,3 @@ export function isMiniAppAuthRequired(endpoint) {
   if (v === 'false') return false;
   return global;
 }
-

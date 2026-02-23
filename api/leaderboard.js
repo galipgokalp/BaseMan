@@ -966,7 +966,7 @@ async function fetchFromRpcFallback(limit, chainId = null) {
           }
           start = end + 1;
           break;
-        } catch (err) {
+        } catch (_err) {
           // Reduce chunk size and retry (free tiers may require <=10 blocks)
           size = Math.max(1, Math.floor(size / 2));
           if (size === 1) {

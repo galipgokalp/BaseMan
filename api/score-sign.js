@@ -94,7 +94,7 @@ function parseBody(req) {
   if (typeof req.body === "string" && req.body.length) {
     try {
       return JSON.parse(req.body);
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }

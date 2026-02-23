@@ -234,7 +234,7 @@ function validateTargetsFromCallData(callData, allowlist, config) {
     const amount = (() => {
       try {
         return bigIntFrom(value);
-      } catch (error) {
+      } catch (_error) {
         return null;
       }
     })();

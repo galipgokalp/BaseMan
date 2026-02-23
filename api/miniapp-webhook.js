@@ -179,11 +179,11 @@ export default async function handler(req, res) {
     const secret = process.env.CDP_WEBHOOK_SECRET;
     const cacheTtl = Number(process.env.CDP_WEBHOOK_CACHE_TTL_MS || 5 * 60 * 1000);
     const rawBody = extractRawBody(req);
-    let parsedBody = null;
+    let _parsedBody = null;
     try {
-      parsedBody = rawBody ? JSON.parse(rawBody) : null;
-    } catch (error) {
-      parsedBody = null;
+      _parsedBody = rawBody ? JSON.parse(rawBody) : null;
+    } catch (_error) {
+      _parsedBody = null;
     }
 
     const verification = verifySignature(req, rawBody, secret);
