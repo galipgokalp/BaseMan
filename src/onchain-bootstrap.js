@@ -36,18 +36,11 @@ window.__showModuleFailure = function (message) {
 window.addEventListener("load", function () {
   // Increased timeout for mobile environments where SDK may load slowly
   // SDK polling can take up to ~90 seconds in worst case (50 attempts with backoff)
-  // But we show error earlier to give user feedback
-  // Check at 3 seconds (quick feedback), then again at 10 seconds (final check)
-  setTimeout(function () {
-    if (!window.BaseManModuleLoaded) {
-      // First check: Show warning but don't give up yet (SDK might still be loading)
-      console.warn("On-chain module not loaded yet (3s check) - SDK may still be initializing...");
-    }
-  }, 3000);
-  
+  // Final check: only escalate once we are confident this is not just slow SDK startup.
   // Final check: Show error only if still not loaded after reasonable time
   setTimeout(function () {
     if (!window.BaseManModuleLoaded) {
+      const hasPlaceholder = typeof window.BaseManOnchain === 'object' && window.BaseManOnchain !== null;
       // Check if we're in a MiniApp environment - if not, this is expected
       const isMiniApp = typeof window !== 'undefined' && (
         (window !== window.parent) || 
@@ -57,8 +50,12 @@ window.addEventListener("load", function () {
       );
       
       if (isMiniApp) {
-        // In MiniApp: Show error (SDK should have loaded by now)
-        window.__showModuleFailure("On-chain module did not load. Please refresh the page.");
+        // If the placeholder exists, the runtime module loaded and the remaining delay is SDK readiness.
+        if (!hasPlaceholder) {
+          window.__showModuleFailure("On-chain module did not load. Please refresh the page.");
+        } else {
+          console.debug("On-chain runtime exported, still waiting for SDK readiness");
+        }
       } else {
         // In web browser: This is expected (no SDK), don't show error
         console.debug("On-chain module not loaded (web browser - expected)");

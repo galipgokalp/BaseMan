@@ -60,6 +60,32 @@ async function sendTelegramAlert(entry, config) {
   }
 }
 
+function isAlertEvent(entry) {
+  return entry?.event === 'error' || entry?.event === 'warn';
+}
+
+function getAlertSuppressionReason(entry) {
+  const message = String(entry?.message || '').toLowerCase();
+
+  if (message.includes('autoconsent already initialized')) {
+    return 'third-party-autoconsent-noise';
+  }
+
+  if (message.includes('on-chain module not loaded yet (3s check)')) {
+    return 'obsolete-onchain-bootstrap-warning';
+  }
+
+  if (message.includes('no platform detected - platform matching will be skipped')) {
+    return 'low-signal-platform-warning';
+  }
+
+  return null;
+}
+
+function shouldForwardAlert(entry) {
+  return isAlertEvent(entry) && !getAlertSuppressionReason(entry);
+}
+
 const RING_SIZE = 200;
 globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
 
@@ -224,6 +250,13 @@ export default async function handler(req, res) {
       message: String(msg).slice(0, 300), 
       meta: meta || {} 
     };
+    const suppressionReason = getAlertSuppressionReason(entry);
+    if (suppressionReason) {
+      entry.meta = Object.assign({}, entry.meta || {}, {
+        suppressed: true,
+        suppressionReason
+      });
+    }
     // push to ring buffer
     try {
       globalThis.__APP_LOGS.push(entry);
@@ -281,7 +314,7 @@ export default async function handler(req, res) {
     
     // Forward to AI Agent webhook if enabled (only for errors and warnings)
     const AI_AGENT_URL = process.env.AI_AGENT_WEBHOOK_URL || '';
-    if (AI_AGENT_URL && (entry.event === 'error' || entry.event === 'warn')) {
+    if (AI_AGENT_URL && shouldForwardAlert(entry)) {
       try {
         const secret = String(process.env.AI_AGENT_WEBHOOK_SECRET || '').trim();
         const headers = { 'Content-Type': 'application/json' };
@@ -298,7 +331,7 @@ export default async function handler(req, res) {
     }
 
     // Send to Telegram (only for errors and warnings)
-    if (entry.event === 'error' || entry.event === 'warn') {
+    if (shouldForwardAlert(entry)) {
       sendTelegramAlert(entry, config).catch(() => {});
     }
 

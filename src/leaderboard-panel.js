@@ -321,11 +321,18 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
       addressPrefix: currentAddress ? currentAddress.substring(0, 10) + '...' : null
     });
     
-    // Debug: Log platform info for troubleshooting
+    // Only surface platform warnings when we actually have identity/address signals
+    // and platform matching would materially improve ranking/ownership detection.
     if (currentPlatform) {
       log.info('🔍 Platform detected:', currentPlatform);
+    } else if (currentAddress || currentUser?.fid || currentUser?.username) {
+      log.warn('⚠️ Platform not detected despite user/address signals - platform matching will be skipped', {
+        hasAddress: !!currentAddress,
+        hasFid: !!currentUser?.fid,
+        hasUsername: !!currentUser?.username
+      });
     } else {
-      log.warn('⚠️ No platform detected - platform matching will be skipped');
+      log.debug('No platform detected and no user/address signals available; platform matching skipped');
     }
 
     await loadLeaderboard({
