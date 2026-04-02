@@ -404,8 +404,12 @@ async function fetchFromRpcFallback(limit, chainId) {
 }
 
 export async function fetchLeaderboardItems(limit, chainId, config) {
+  const timings = {};
   if (!config.sqlApiKey) {
-    return { items: await fetchFromRpcFallback(limit, chainId), source: "rpc-fallback" };
+    const rpcStartedAt = Date.now();
+    const items = await fetchFromRpcFallback(limit, chainId);
+    timings.rpcDurationMs = Date.now() - rpcStartedAt;
+    return { items, source: "rpc-fallback", timings };
   }
 
   const statement = buildQuery(limit, chainId, config);
@@ -413,7 +417,9 @@ export async function fetchLeaderboardItems(limit, chainId, config) {
 
   if (statement && statement.trim()) {
     try {
+      const sqlStartedAt = Date.now();
       const rows = await runQuery(statement, config);
+      timings.sqlDurationMs = Date.now() - sqlStartedAt;
       items = Array.isArray(rows) ? rows.map(mapLeaderboardRow).filter(Boolean) : [];
     } catch (sqlError) {
       log.warn(`SQL query failed for chain ${chainId}:`, sqlError?.message || sqlError);
@@ -423,11 +429,13 @@ export async function fetchLeaderboardItems(limit, chainId, config) {
   }
 
   if (!items.length) {
+    const rpcStartedAt = Date.now();
     const fallback = await fetchFromRpcFallback(limit, chainId);
+    timings.rpcDurationMs = Date.now() - rpcStartedAt;
     if (fallback.length) {
-      return { items: fallback, source: "rpc-fallback" };
+      return { items: fallback, source: "rpc-fallback", timings };
     }
   }
 
-  return { items, source: "cdp-sql-api" };
+  return { items, source: "cdp-sql-api", timings };
 }

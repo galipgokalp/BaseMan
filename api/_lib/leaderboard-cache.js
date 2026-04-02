@@ -2,8 +2,8 @@ import { createLogger } from "../../src/utils/logger.js";
 
 const log = createLogger("ApiLeaderboardCache");
 
-const LEADERBOARD_RESULT_CACHE_TTL_MS = 30000;
-const LEADERBOARD_ENRICHED_CACHE_TTL_MS = 10000;
+const LEADERBOARD_RESULT_CACHE_TTL_MS = 120000;
+const LEADERBOARD_ENRICHED_CACHE_TTL_MS = 60000;
 
 const leaderboardResultCache = {
   data: null,

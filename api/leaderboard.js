@@ -109,6 +109,7 @@ export default async function handler(req, res) {
       items,
       source,
       itemsHash,
+      timings: rawTimings,
       cacheHit: rawCacheHit,
       cacheAgeMs: rawCacheAgeMs
     } = rawResult;
@@ -147,6 +148,7 @@ export default async function handler(req, res) {
             ...(result.debugInfo || {}),
             timings: {
               ...(result.debugInfo?.timings || {}),
+              ...(rawTimings || {}),
               totalDurationMs: Date.now() - requestStartedAt
             },
             cache: {
