@@ -3,6 +3,8 @@
 This file is the **single source of truth** for AI agent behavior in the BaseMan repository. It provides complete architectural understanding, safety constraints, and operational guidelines. Read this document fully before making any modifications.
 
 > **Note**: README.md is the human-facing constitution and project overview. AGENTS.md and README.md serve different audiences; they should not override each other. If facts diverge, confirm with the maintainer.
+>
+> **Workflow Note**: The repo-wide execution, review, and release workflow is documented in `docs/operations/ENGINEERING_PLAYBOOK.md`. If workflow guidance conflicts with AI safety rules, follow AGENTS.md.
 
 ---
 

@@ -4,9 +4,14 @@ README.md is the human-facing constitution and project overview. AGENTS.md is th
 
 ## Start Here
 
+- [Engineering Playbook](operations/ENGINEERING_PLAYBOOK.md)
 - [Development Guide](guides/DEVELOPMENT_GUIDE.md)
 - [Debug Guide](guides/DEBUG_GUIDE.md)
 - [Architecture Overview](architecture/UNIFIED_WALLET_INTEGRATION_MODEL.md)
+
+## Operations
+
+- [Engineering Playbook](operations/ENGINEERING_PLAYBOOK.md)
 
 ## Guides
 
@@ -50,6 +55,7 @@ README.md is the human-facing constitution and project overview. AGENTS.md is th
 
 ## Plans
 
+- [90-Day Execution Backlog](plans/EXECUTION_BACKLOG_90_DAYS.md)
 - [100 Percent Compliance Plan](plans/100_PERCENT_COMPLIANCE_PLAN.md)
 - [Merge Duplicate Profiles Plan](plans/MERGE_DUPLICATE_PROFILES_PLAN.md)
 - [Organization Plan](plans/ORGANIZATION_PLAN.md)

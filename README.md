@@ -6,6 +6,7 @@
 
 - README.md is the human-facing constitution and project overview.
 - AGENTS.md is the AI-agent constitution: [AGENTS.md](./AGENTS.md)
+- Engineering workflow and review model: [docs/operations/ENGINEERING_PLAYBOOK.md](./docs/operations/ENGINEERING_PLAYBOOK.md)
 - Dev setup: [docs/guides/DEVELOPMENT_GUIDE.md](./docs/guides/DEVELOPMENT_GUIDE.md)
 - Debug: [docs/guides/DEBUG_GUIDE.md](./docs/guides/DEBUG_GUIDE.md)
 - Env reference: [docs/env/ENV_REFERENCE.md](./docs/env/ENV_REFERENCE.md)
@@ -177,10 +178,10 @@ npm run game:build  # Bundles src/*.js → pacman.js
 
 | Endpoint | Method | Visibility | Purpose |
 |----------|--------|------------|---------|
-| `/api/miniapp-webhook` | POST | Internal/Ops | Farcaster webhook handler |
-| `/api/ai-agent-webhook` | POST | Internal/Ops | AI agent automation webhook |
+| `/api/miniapp-webhook` | POST | Internal/Ops | Farcaster webhook handler; production requires server-side secret configuration |
+| `/api/ai-agent-webhook` | POST | Internal/Ops | AI agent automation webhook; production requires shared-secret protection |
 | `/api/env` | GET | Internal/Ops | Runtime environment inspection |
-| `/api/test-redis` | GET | Dev/Test | Redis connectivity diagnostics |
+| `/api/test-redis` | GET | Dev/Test | Redis connectivity diagnostics; production default-deny |
 
 **Supporting Libraries**:
 - `api/_lib/registry.js` - Smart contract interaction utilities
@@ -994,8 +995,10 @@ if (wallet) {
 **Backend**: `api/_lib/miniapp-auth-verify.js`
 
 - Verifies JWT tokens from Quick Auth
+- Uses JWKS verification by default
 - Validates domain and signature
-- Returns user context for session management
+- Returns deterministic auth errors (`missing_token`, `invalid_token`, `verification_failed`, `misconfigured_auth`)
+- Keeps verbose verification diagnostics behind debug-only configuration
 
 ---
 
@@ -1014,6 +1017,8 @@ BaseMan supports gasless transactions through CDP Paymaster integration.
 - `PAYMASTER_ENFORCE_ALLOWLIST`: Enable allowlist checks (default: `true`)
 - `PAYMASTER_ALLOWED_TARGETS`: Allowed contract addresses
 - `PAYMASTER_ALLOWED_SELECTORS`: Allowed function selectors
+- Client-supplied `Authorization` and `x-api-key` headers are not accepted
+- Proxy authentication is resolved from server environment only
 
 ### Allowlist Enforcement
 
