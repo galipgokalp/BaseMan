@@ -10,7 +10,7 @@
 
 import { createLogger } from './utils/logger.js';
 import { createPanelLifecycle } from './utils/panel-base.js';
-import { loadLeaderboard } from './leaderboard/api.js';
+import { getCachedLeaderboardSnapshot, loadLeaderboard } from './leaderboard/api.js';
 import { getCachedUserInfo, isMyEntry as isMyEntryService, clearUserInfoCache } from './leaderboard/services/user-detection.js';
 import { calculateMyRank } from './leaderboard/services/rank-calculation.js';
 
@@ -288,9 +288,31 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     if (!getVisible()) return;
     setLoading(true);
     const loadStartedAt = Date.now();
+    const staleSnapshot = getCachedLeaderboardSnapshot(limit);
+    const hasStaleItems = Array.isArray(staleSnapshot?.items) && staleSnapshot.items.length > 0;
 
-    // Phase 6: Show loading state
-    renderLoading({ topListEl, restListEl, scrollWrapper, statusEl });
+    if (hasStaleItems) {
+      setAllEntries(staleSnapshot.items);
+      renderRows(staleSnapshot.items, {
+        topListEl,
+        restListEl,
+        scrollWrapper,
+        statusEl,
+        limit,
+        isMyEntry,
+        forceRender: true
+      });
+      updateMyRankSummary(staleSnapshot.items);
+      if (statusEl) {
+        statusEl.textContent = 'Refreshing leaderboard...';
+      }
+      log.debug('Rendered stale leaderboard snapshot', {
+        source: staleSnapshot.source,
+        itemsCount: staleSnapshot.items.length
+      });
+    } else {
+      renderLoading({ topListEl, restListEl, scrollWrapper, statusEl });
+    }
 
     // Clear user info cache to get fresh data on each load
     // This ensures we pick up wallet connections that happened after panel was first shown
@@ -447,18 +469,24 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
         }
         
         // Phase 6: Show error with retry button
-        renderError(message, { 
-          topListEl, 
-          restListEl, 
-          scrollWrapper, 
-          statusEl,
-          onRetry: () => {
-            // Retry after a short delay
-            setTimeout(() => {
-              loadLeaderboardData();
-            }, 500);
+        if (hasStaleItems) {
+          if (statusEl) {
+            statusEl.textContent = 'Showing saved leaderboard. Refresh failed.';
           }
-        });
+        } else {
+          renderError(message, { 
+            topListEl, 
+            restListEl, 
+            scrollWrapper, 
+            statusEl,
+            onRetry: () => {
+              // Retry after a short delay
+              setTimeout(() => {
+                loadLeaderboardData();
+              }, 500);
+            }
+          });
+        }
         setLoading(false);
       }
     });

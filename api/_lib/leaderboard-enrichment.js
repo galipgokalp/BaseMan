@@ -17,9 +17,36 @@ import {
 } from "./leaderboard-shared.js";
 
 const log = createLogger("ApiLeaderboardEnrichment");
+const REDIS_ENRICHMENT_BUDGET_MS = 250;
+const NEYNAR_ENRICHMENT_BUDGET_MS = 800;
+const TOTAL_ENRICHMENT_BUDGET_MS = 1200;
 
-async function hydrateProfilesForAddresses(items, req = null) {
+async function timebox(stage, budgetMs, fn, fallbackValue, timings, flags) {
+  const startedAt = Date.now();
+  let timeoutId = null;
+  const timeoutToken = Symbol(stage);
+  try {
+    const result = await Promise.race([
+      Promise.resolve().then(fn),
+      new Promise((resolve) => {
+        timeoutId = setTimeout(() => resolve(timeoutToken), budgetMs);
+      })
+    ]);
+    timings[stage] = Date.now() - startedAt;
+    if (result === timeoutToken) {
+      flags.partialEnrichment = true;
+      flags[`${stage}TimedOut`] = true;
+      return fallbackValue;
+    }
+    return result;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function hydrateProfilesForAddresses(items, req = null, timings = {}, flags = {}) {
   const env = getEnv();
+  const overallStartedAt = Date.now();
   if (!Array.isArray(items) || items.length === 0) {
     return [];
   }
@@ -88,7 +115,14 @@ async function hydrateProfilesForAddresses(items, req = null) {
   let cachedProfiles = {};
   if (externalEnrichmentEnabled) {
     try {
-      cachedProfiles = await getProfilesFromRedis(addresses);
+      cachedProfiles = await timebox(
+        "redisDurationMs",
+        REDIS_ENRICHMENT_BUDGET_MS,
+        () => getProfilesFromRedis(addresses),
+        {},
+        timings,
+        flags
+      );
       log.debug(`Loaded ${Object.keys(cachedProfiles).length} cached profiles from Redis`);
     } catch (error) {
       log.warn("Failed to load profiles from Redis (non-critical):", error?.message || error);
@@ -101,9 +135,20 @@ async function hydrateProfilesForAddresses(items, req = null) {
     : [];
 
   let fetchedProfiles = {};
-  if (externalEnrichmentEnabled && missingForExternalFetch.length > 0) {
+  const remainingBudgetMs = Math.max(
+    0,
+    Math.min(NEYNAR_ENRICHMENT_BUDGET_MS, TOTAL_ENRICHMENT_BUDGET_MS - (Date.now() - overallStartedAt))
+  );
+  if (externalEnrichmentEnabled && missingForExternalFetch.length > 0 && remainingBudgetMs > 0) {
     try {
-      fetchedProfiles = await fetchFarcasterProfilesByAddresses(missingForExternalFetch);
+      fetchedProfiles = await timebox(
+        "neynarDurationMs",
+        remainingBudgetMs,
+        () => fetchFarcasterProfilesByAddresses(missingForExternalFetch),
+        {},
+        timings,
+        flags
+      );
       if (Object.keys(fetchedProfiles).length > 0) {
         try {
           await setProfilesToRedis(fetchedProfiles);
@@ -115,6 +160,8 @@ async function hydrateProfilesForAddresses(items, req = null) {
       log.error("Failed to fetch profiles from Neynar (non-critical):", error?.message || error);
       fetchedProfiles = {};
     }
+  } else if (externalEnrichmentEnabled && missingForExternalFetch.length > 0) {
+    flags.partialEnrichment = true;
   }
 
   const allProfiles = {};
@@ -185,19 +232,27 @@ export async function enrichLeaderboardItems(items, req = null) {
   const hasNeynarKey = !!env.profiles.neynarApiKey;
   const hasRedis = !!(env.redis.url || env.redis.upstashRestUrl);
   const enrichmentDisabled = env.profiles.disableEnrichment;
+  const timings = {};
+  const flags = {
+    partialEnrichment: false,
+    redisDurationMsTimedOut: false,
+    neynarDurationMsTimedOut: false
+  };
 
   let enriched = [];
   let debugInfo = null;
+  const startedAt = Date.now();
 
   try {
-    enriched = await hydrateProfilesForAddresses(items, req);
+    enriched = await hydrateProfilesForAddresses(items, req, timings, flags);
   } catch (error) {
     log.error("hydrateProfilesForAddresses failed", error);
     enriched = items.map((item, index) => shapeLeaderboardEntry(item, index));
     if (isDebug) {
       debugInfo = {
         error: error?.message || String(error),
-        hydrationFailed: true
+        hydrationFailed: true,
+        partialEnrichment: true
       };
     }
   }
@@ -208,7 +263,12 @@ export async function enrichLeaderboardItems(items, req = null) {
       items: enriched.length,
       hasNeynarKey,
       hasRedis,
-      enrichmentDisabled
+      enrichmentDisabled,
+      partialEnrichment: flags.partialEnrichment,
+      timings: {
+        enrichmentDurationMs: Date.now() - startedAt,
+        ...timings
+      }
     };
   }
 

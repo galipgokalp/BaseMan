@@ -10,7 +10,11 @@ import {
   getLeaderboardConfig,
   isRateLimited
 } from "./_lib/leaderboard-query.js";
-import { getCachedOrFetchLeaderboardItems } from "./_lib/leaderboard-cache.js";
+import {
+  getCachedEnrichedLeaderboard,
+  getCachedOrFetchLeaderboardItems,
+  setCachedEnrichedLeaderboard
+} from "./_lib/leaderboard-cache.js";
 import {
   buildDebugResponseInfo,
   enrichLeaderboardItems
@@ -80,6 +84,7 @@ export default async function handler(req, res) {
 
   const limit = sanitizeLimit(req.query.limit);
   const chainId = parseLeaderboardChainId(req.query.chain, 8453);
+  const bypassCache = req.query.refresh === "1" || req.query.refresh === "true";
 
   if (config.leaderboardDisabled) {
     return res.status(200).json({
@@ -93,18 +98,66 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { items, source } = await getCachedOrFetchLeaderboardItems({
+    const requestStartedAt = Date.now();
+    const rawResult = await getCachedOrFetchLeaderboardItems({
       chainId,
       limit,
-      fetcher: () => fetchLeaderboardItems(limit, chainId, config)
+      fetcher: () => fetchLeaderboardItems(limit, chainId, config),
+      bypassCache
     });
+    const {
+      items,
+      source,
+      itemsHash,
+      cacheHit: rawCacheHit,
+      cacheAgeMs: rawCacheAgeMs
+    } = rawResult;
 
     const isDebug = req?.query?.debug === "1" || req?.query?.debug === "true";
-    const result = config.env.profiles.disableEnrichment
+    const cachedEnriched = getCachedEnrichedLeaderboard({
+      chainId,
+      limit,
+      itemsHash,
+      bypassCache
+    });
+    const result = cachedEnriched
+      ? {
+          enriched: cachedEnriched.enriched,
+          debugInfo: cachedEnriched.debugInfo,
+          _config: cachedEnriched._config
+        }
+      : config.env.profiles.disableEnrichment
       ? buildProfilesDisabledResult(items, isDebug)
       : await enrichLeaderboardItems(items, req);
 
-    const debugInfo = buildDebugResponseInfo(req, result.debugInfo, result._config);
+    if (!cachedEnriched) {
+      setCachedEnrichedLeaderboard({
+        chainId,
+        limit,
+        itemsHash,
+        enriched: result.enriched,
+        debugInfo: result.debugInfo,
+        config: result._config
+      });
+    }
+
+    const mergedDebugInfo =
+      isDebug || result.debugInfo
+        ? {
+            ...(result.debugInfo || {}),
+            timings: {
+              ...(result.debugInfo?.timings || {}),
+              totalDurationMs: Date.now() - requestStartedAt
+            },
+            cache: {
+              rawCacheHit: !!rawCacheHit,
+              rawCacheAgeMs: rawCacheAgeMs ?? null,
+              enrichedCacheHit: !!cachedEnriched,
+              bypassCache
+            }
+          }
+        : result.debugInfo;
+    const debugInfo = buildDebugResponseInfo(req, mergedDebugInfo, result._config);
     return res.status(200).json(
       buildSuccessResponse({
         source,

@@ -19,6 +19,8 @@ import { sendProfileMappingIfNeeded, buildProfileMappingHeader } from './service
 import { getConfiguredChainId } from '../onchain/provider.js';
 
 const log = createLogger('UiLeaderboard');
+const LOCAL_SNAPSHOT_TTL_MS = 10 * 60 * 1000;
+const LEADERBOARD_SNAPSHOT_KEY = 'baseManLeaderboardSnapshot';
 
 // ============================================
 // CACHING & DEDUPLICATION - Phase 4.3
@@ -34,6 +36,58 @@ const leaderboardCache = {
 };
 const LEADERBOARD_CACHE_TTL_MS = 5000; // 5 seconds - fast updates after score submission
 const LEADERBOARD_TIMEOUT_MS = 15000;
+let forceFreshRequest = false;
+
+function snapshotStorageKey(chainId, limit) {
+  return `${LEADERBOARD_SNAPSHOT_KEY}:${chainId}:${limit}`;
+}
+
+function persistSnapshot(chainId, limit, items, debugInfo) {
+  try {
+    localStorage.setItem(
+      snapshotStorageKey(chainId, limit),
+      JSON.stringify({
+        ts: Date.now(),
+        items: Array.isArray(items) ? items : [],
+        debugInfo: debugInfo || null
+      })
+    );
+  } catch (_) {}
+}
+
+export function getCachedLeaderboardSnapshot(limit) {
+  const chainId = getConfiguredChainId();
+  const now = Date.now();
+
+  if (
+    leaderboardCache.data &&
+    leaderboardCache.chainId === chainId &&
+    leaderboardCache.limit >= limit &&
+    now - leaderboardCache.timestamp < LOCAL_SNAPSHOT_TTL_MS
+  ) {
+    return {
+      items: leaderboardCache.data.slice(0, limit),
+      debugInfo: leaderboardCache.debugInfo,
+      source: 'memory'
+    };
+  }
+
+  try {
+    const raw = localStorage.getItem(snapshotStorageKey(chainId, limit));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || now - parsed.ts >= LOCAL_SNAPSHOT_TTL_MS) {
+      return null;
+    }
+    return {
+      items: Array.isArray(parsed.items) ? parsed.items : [],
+      debugInfo: parsed.debugInfo || null,
+      source: 'localStorage'
+    };
+  } catch (_) {
+    return null;
+  }
+}
 
 /**
  * Invalidate leaderboard cache
@@ -42,6 +96,7 @@ const LEADERBOARD_TIMEOUT_MS = 15000;
 export function invalidateLeaderboardCache() {
   leaderboardCache.data = null;
   leaderboardCache.timestamp = 0;
+  forceFreshRequest = true;
   log.debug('Leaderboard cache invalidated');
 }
 
@@ -68,13 +123,14 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
   const leaderboardChainId = getConfiguredChainId();
   const now = Date.now();
   const requestStartedAt = now;
+  const shouldForceRefresh = forceRefresh || forceFreshRequest;
   
   // Check for debug mode
   const urlHash = window.location.hash || '';
   const isDebugMode = urlHash.includes('debug=1') || localStorage.getItem('baseManDebug') === '1';
   
   // Phase 4.3: Return cached data if fresh (unless forced refresh)
-  if (!forceRefresh && 
+  if (!shouldForceRefresh && 
       leaderboardCache.data && 
       leaderboardCache.chainId === leaderboardChainId &&
       leaderboardCache.limit >= limit &&
@@ -93,7 +149,7 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
   }
   
   // Phase 4.3: Deduplicate in-flight requests
-  if (inflightLeaderboardRequest) {
+  if (!shouldForceRefresh && inflightLeaderboardRequest) {
     log.debug('Reusing in-flight leaderboard request', {
       chainId: leaderboardChainId,
       limit
@@ -157,7 +213,8 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
         headers['X-Profile-Mapping'] = profileMappingHeader;
       }
       
-      const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}`;
+      const refreshSuffix = shouldForceRefresh ? '&refresh=1' : '';
+      const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}${refreshSuffix}`;
       log.debug('Fetching leaderboard', {
         apiUrl,
         chainId: leaderboardChainId,
@@ -213,6 +270,8 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
       leaderboardCache.timestamp = Date.now();
       leaderboardCache.chainId = leaderboardChainId;
       leaderboardCache.limit = limit;
+      persistSnapshot(leaderboardChainId, limit, items, debugInfo);
+      forceFreshRequest = false;
       
       return { items, debugInfo };
     } finally {
