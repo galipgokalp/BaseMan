@@ -209,6 +209,11 @@ export async function getCachedUserInfo() {
 
   cachedUserInfo = { address, user, platform };
   cachedUserInfoTimestamp = now;
+  try {
+    if (typeof window !== 'undefined') {
+      window.__BaseManLastUserInfo = cachedUserInfo;
+    }
+  } catch (_error) {}
 
   log.debug('getCachedUserInfo result:', {
     hasAddress: !!address,
@@ -227,6 +232,11 @@ export async function getCachedUserInfo() {
 export function clearUserInfoCache() {
   cachedUserInfo = null;
   cachedUserInfoTimestamp = 0;
+  try {
+    if (typeof window !== 'undefined') {
+      window.__BaseManLastUserInfo = null;
+    }
+  } catch (_error) {}
   // Also reset SDK user cache to allow re-fetch
   cachedSdkUser = null;
   sdkUserFetched = false;

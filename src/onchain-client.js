@@ -1141,6 +1141,19 @@ ensureOnchainPlaceholder();
 
     async function resolveSubmissionPlatform() {
       try {
+        const sdkContext = await Promise.race([
+          sdk?.context || Promise.resolve(null),
+          new Promise((resolve) => setTimeout(() => resolve(null), 1000))
+        ]);
+        const clientFid = sdkContext?.client?.clientFid;
+        if (typeof clientFid === 'number' && Number.isFinite(clientFid)) {
+          return clientFid === 309857 ? 'base-app' : 'farcaster';
+        }
+      } catch (error) {
+        debug(`resolveSubmissionPlatform: sdk.context failed: ${error?.message || error}`);
+      }
+
+      try {
         if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
           const platform = await window.getPlatform();
           if (platform === 'base') return 'base-app';
@@ -1167,6 +1180,15 @@ ensureOnchainPlaceholder();
         }
       } catch (error) {
         debug(`resolveSubmissionPlatform: sync detection failed: ${error?.message || error}`);
+      }
+
+      try {
+        const userInfo = typeof window !== 'undefined' && window.__BaseManLastUserInfo;
+        if (userInfo?.platform === 'base-app' || userInfo?.platform === 'farcaster') {
+          return userInfo.platform;
+        }
+      } catch (error) {
+        debug(`resolveSubmissionPlatform: cached user info failed: ${error?.message || error}`);
       }
 
       return 'unknown';

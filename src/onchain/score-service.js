@@ -34,7 +34,7 @@ export function selectSubmissionTransport(platform) {
   if (platform === 'base-app') {
     return 'wallet_sendCalls';
   }
-  return 'wallet_sendCalls';
+  return 'eth_sendTransaction';
 }
 
 /**
