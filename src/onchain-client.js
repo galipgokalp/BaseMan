@@ -4,47 +4,23 @@ import {
   sendProfileMapping,
   requestScoreSignature as requestScoreSignatureUtil,
   sendCalls as sendCallsUtil,
-  sendEthTransaction as sendEthTransactionUtil
+  sendEthTransaction as sendEthTransactionUtil,
+  ensureOnchainPlaceholder,
+  bindPublicOnchainApi,
+  createEventBridge,
+  runSdkReadyLifecycle,
+  scheduleBackgroundMiniAppWallet,
+  resolveCapabilityUrl,
+  getCapabilities,
+  isPaymasterSupported,
+  scheduleStateHookPatching
 } from './onchain/index.js';
 import { createLogger } from './utils/logger.js';
+import { createDebugOverlay } from './onchain/debug-overlay.js';
 
 // CRITICAL: Export window.BaseManOnchain immediately (before async initialization)
 // Base App Mini-App SDK requires this to be available synchronously
-if (typeof window !== "undefined") {
-  // Create a placeholder object that will be populated when initialize() runs
-  // This ensures Base App can detect the module even if SDK isn't ready yet
-  window.BaseManOnchain = {
-    // Placeholder methods that will be replaced in initialize()
-    ensureWallet: async function() {
-      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
-    },
-    setNetwork: async function() {
-      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
-    },
-    submitScore: async function() {
-      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
-    },
-    completeQuest: async function() {
-      throw new Error("Onchain client not initialized yet. Please wait for SDK to load.");
-    },
-    handleRunStart: function() {
-      // No-op until initialized
-    },
-    getCurrentChainId: function() {
-      return null; // Will return actual chainId after initialization
-    },
-    log: function() {},
-    isWalletReady: function() {
-      return false; // Will return actual state after initialization
-    },
-    getWalletError: function() {
-      return null;
-    },
-    getWalletAddress: function() {
-      return null;
-    }
-  };
-}
+ensureOnchainPlaceholder();
 
 (function () {
   // SDK polling with optimized backoff for better mobile performance
@@ -324,43 +300,7 @@ if (typeof window !== "undefined") {
     // SDK context caching and profile mapping are now handled by onchain modules
     // These functions are imported and used directly - no local implementation needed
 
-    // Helper to emit toast-related events for UI feedback
-    function emitToastEvent(eventType, detail = {}) {
-      try {
-        window.dispatchEvent(
-          new CustomEvent(`baseman:${eventType}`, { detail })
-        );
-        debug(`Toast event emitted: baseman:${eventType}`);
-      } catch (e) {
-        debug(`Toast event emit error: ${e?.message || e}`);
-      }
-    }
-
-    function emitWalletStatus(ready, error) {
-      state.walletReady = !!ready;
-      state.walletError = ready ? null : error ? String(error) : null;
-      
-      // Emit toast events for wallet status changes
-      if (ready && state.address) {
-        emitToastEvent('wallet:connected', { address: state.address });
-      } else if (error) {
-        emitToastEvent('wallet:error', { message: String(error) });
-      }
-      
-      try {
-        window.dispatchEvent(
-          new CustomEvent("baseman-wallet-status", {
-            detail: {
-              ready: state.walletReady,
-              error: state.walletError,
-              address: state.walletReady ? state.address : null
-            }
-          })
-        );
-      } catch (eventError) {
-        debug(`wallet-status event error: ${eventError?.message || eventError}`);
-      }
-    }
+    const { emitToastEvent, emitWalletStatus } = createEventBridge({ state, debug });
 
     function attachProviderEvents(provider) {
       if (!provider || typeof provider !== 'object') return;
@@ -389,119 +329,7 @@ if (typeof window !== "undefined") {
     // Call ready asynchronously to hide splash screen
     // IMPORTANT: This must be called early to prevent infinite loading screen
     // Also dispatch an event when ready() completes so the game can start
-    (async () => {
-      try {
-        // Wait a bit for SDK to fully initialize (especially on mobile)
-        // Increased delay for mobile webview environments
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          // Verify SDK is fully ready by checking for context
-          let isReady = false;
-          if (typeof sdk.isInMiniApp === 'function') {
-            try {
-              // Increased timeout for mobile environments
-              isReady = await sdk.isInMiniApp(1000);
-            } catch (e) {
-              // If isInMiniApp fails, we're NOT in a mini app - don't call SDK methods
-              debug(`isInMiniApp check failed: ${e?.message || e}`);
-              isReady = false;
-            }
-          } else {
-            // If isInMiniApp not available, check for iframe or webview context
-            // Don't assume ready - only proceed if we have clear signals
-            isReady = (typeof window !== 'undefined' && window !== window.parent) ||
-                      (typeof window.ReactNativeWebView !== 'undefined');
-          }
-          
-          // Additional check: if we're in a mobile webview, assume ready
-          if (!isReady) {
-            try {
-              const ua = navigator.userAgent || '';
-              const isMobileWebView = ua.includes('Farcaster') || 
-                                     ua.includes('Warpcast') || 
-                                     ua.includes('BaseApp') ||
-                                     typeof window.ReactNativeWebView !== 'undefined';
-              if (isMobileWebView) {
-                isReady = true;
-              }
-            } catch (_) {}
-          }
-          
-          if (isReady) {
-            try {
-              await sdk.actions.ready({ disableNativeGestures: true });
-              debug("sdk.actions.ready() called successfully");
-              // Dispatch event to signal that SDK is ready and splash screen is hidden
-              try {
-                window.__basemanSDKReadyFired = true;
-                window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk } }));
-              } catch (eventError) {
-                debug(`Failed to dispatch sdk-ready event: ${eventError?.message || eventError}`);
-              }
-            } catch (readyError) {
-              // Handle SDK ready errors gracefully
-              const errorMsg = readyError?.message || String(readyError);
-              const isNonCriticalError = 
-                errorMsg.includes('Request failed') || 
-                errorMsg.includes('result') ||           // SDK internal "result" property errors
-                errorMsg.includes('undefined') ||        // Property access errors
-                readyError?.name === 'RequestFailedError' ||
-                readyError?.name === 'TypeError' ||      // Catch TypeError (undefined property access)
-                readyError?.status === 400;
-              
-              if (isNonCriticalError) {
-                debug(`SDK ready error (non-critical): ${errorMsg}`);
-                // Log but don't block - allow game to continue
-                log.warn(`SDK ready error: ${errorMsg}`, readyError);
-              } else {
-                debug(`Error calling sdk.actions.ready: ${errorMsg}`);
-                // Don't re-throw - allow game to continue even on unexpected errors
-                log.error(`SDK ready unexpected error: ${errorMsg}`, readyError);
-              }
-              
-              // Still dispatch event even if ready failed (for non-critical errors)
-              try {
-                window.__basemanSDKReadyFired = true;
-                window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk, error: errorMsg } }));
-              } catch (_eventError) {}
-            }
-          } else {
-            debug("Warning: SDK detected but not in mini app context");
-            // Even if not in mini app, allow game to start
-            try {
-              window.__basemanSDKReadyFired = true;
-              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
-            } catch (_eventError) {}
-          }
-        } else {
-          debug("Warning: sdk.actions.ready is not available");
-          // If SDK not available, allow game to start anyway (web mode)
-          try {
-            window.__basemanSDKReadyFired = true;
-            window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
-          } catch (_eventError) {}
-        }
-      } catch (error) {
-        debug(`Error in SDK initialization: ${error?.message || error}`);
-        // Don't retry sdk.actions.ready() - if we got here, context check already failed
-        // Just allow game to start
-        try {
-          window.__basemanSDKReadyFired = true;
-          window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null, error: error?.message } }));
-        } catch (_eventError) {}
-        
-        if (!(sdk && sdk.actions && typeof sdk.actions.ready === 'function')) {
-          // No SDK available, allow game to start
-          setTimeout(() => {
-            try {
-              window.__basemanSDKReadyFired = true;
-              window.dispatchEvent(new CustomEvent('baseman-sdk-ready', { detail: { sdk: null } }));
-            } catch (_eventError) {}
-          }, 300);
-        }
-      }
-    })();
+    runSdkReadyLifecycle({ sdk, debug, log });
 
     // Try to detect supported chains early and reconfigure if needed
     (async () => {
@@ -1046,183 +874,6 @@ if (typeof window !== "undefined") {
       return payload;
     }
 
-    function resolveCapabilityUrl(url) {
-      if (!url || typeof url !== "string") {
-        return null;
-      }
-      try {
-        if (url.startsWith("http://") || url.startsWith("https://")) {
-          return url;
-        }
-        return new URL(url, window.location.origin).toString();
-      } catch (error) {
-        debug(`paymaster URL could not be resolved: ${error?.message || error}`);
-        return null;
-      }
-    }
-
-    // Discover paymaster capability URL via provider (EIP-5792 style)
-    async function _discoverPaymasterUrl(provider, _chainId) {
-      try {
-        // If a paymaster URL is already configured (e.g., our proxy), do not override.
-        if (config.paymasterUrl && String(config.paymasterUrl).trim().length > 0) {
-          debug('paymasterUrl preset; skipping capability discovery');
-          return null;
-        }
-        if (!provider || typeof provider.request !== 'function') return null;
-        // Try capabilities discovery. Some providers accept no params; some accept [address].
-        let caps = null;
-        try {
-          caps = await provider.request({ method: 'wallet_getCapabilities' });
-        } catch (_) {}
-        if (!caps) {
-          try {
-            const addr = state.address || null;
-            if (addr) {
-              caps = await provider.request({ method: 'wallet_getCapabilities', params: [addr] });
-            }
-          } catch (_) {}
-        }
-
-        const candidates = [
-          'paymasterService',
-          'org.cdp.paymaster',
-          'capabilities.paymasterService',
-          'capabilities.org.cdp.paymaster'
-        ];
-
-        function pickUrl(obj) {
-          if (!obj || typeof obj !== 'object') return null;
-          if (typeof obj.url === 'string' && obj.url.length) return obj.url;
-          for (const key of Object.keys(obj)) {
-            const val = obj[key];
-            if (val && typeof val === 'object' && typeof val.url === 'string') return val.url;
-          }
-          return null;
-        }
-
-        let url = null;
-        if (caps && typeof caps === 'object') {
-          for (const path of candidates) {
-            try {
-              const parts = path.split('.');
-              let cur = caps;
-              for (const p of parts) cur = cur?.[p];
-              const maybe = pickUrl(cur);
-              if (maybe) { url = maybe; break; }
-            } catch (_) {}
-          }
-        }
-
-        if (url) {
-          config.paymasterUrl = url;
-          debug(`Discovered paymaster capability url: ${url}`);
-          return url;
-        }
-        return null;
-      } catch (error) {
-        debug(`discoverPaymasterUrl error: ${error?.message || error}`);
-        return null;
-      }
-    }
-
-    /**
-     * Get wallet capabilities using wallet_getCapabilities (EIP-5792)
-     * 
-     * According to Farcaster and Base App documentation:
-     * - Can be called without params (returns capabilities for current account)
-     * - Can be called with address param (returns capabilities for specific account)
-     * - Returns capabilities object with chain-specific and global capabilities
-     * 
-     * @param {Object} provider - Ethereum provider
-     * @param {string|null} address - Optional address to check capabilities for
-     * @returns {Promise<Object|null>} Capabilities object or null if unavailable
-     */
-    async function getCapabilities(provider, address) {
-      if (!provider || typeof provider.request !== 'function') {
-        debug('getCapabilities: Provider not available');
-        return null;
-      }
-      
-      let caps = null;
-      
-      // Try without address first (current account capabilities)
-      caps = await safeProviderRequest(provider, { method: 'wallet_getCapabilities' }, null);
-      if (caps && typeof caps === 'object') {
-        debug(`getCapabilities: Retrieved capabilities (without address): ${Object.keys(caps).join(', ')}`);
-        return caps;
-      }
-      
-      // Try with address if provided
-      if (!caps && address && typeof address === 'string' && address.startsWith('0x')) {
-        caps = await safeProviderRequest(provider, { method: 'wallet_getCapabilities', params: [address] }, null);
-        if (caps && typeof caps === 'object') {
-          debug(`getCapabilities: Retrieved capabilities (with address): ${Object.keys(caps).join(', ')}`);
-          return caps;
-        }
-      }
-      
-      return caps || null;
-    }
-
-    /**
-     * Check if paymaster is supported for a given chain
-     * 
-     * According to Farcaster and Base App documentation:
-     * - Farcaster: Paymaster not supported
-     * - Base App: Paymaster supported via paymasterService capability
-     * - Capabilities can be chain-specific or global
-     * 
-     * @param {Object} caps - Capabilities object from wallet_getCapabilities
-     * @param {number} chainId - Chain ID to check
-     * @returns {boolean} True if paymaster is supported
-     */
-    function isPaymasterSupported(caps, chainId) {
-      try {
-        if (!caps || typeof caps !== 'object') {
-          debug('isPaymasterSupported: No capabilities provided');
-          return false;
-        }
-        
-        // Convert chainId to different formats for checking
-        const hex = (() => { 
-          try { 
-            return ethers.toBeHex(chainId); 
-          } catch (_) { 
-            return null; 
-          } 
-        })();
-        const caip = `eip155:${chainId}`;
-        const chainIdStr = String(chainId);
-        
-        // Check global capabilities (flat structure)
-        const byFlat = caps?.paymasterService?.supported === true || 
-                      caps?.org?.cdp?.paymaster?.supported === true;
-        
-        // Check nested capabilities structure
-        const byCaps = caps?.capabilities?.paymasterService?.supported === true || 
-                      caps?.capabilities?.['org.cdp.paymaster']?.supported === true;
-        
-        // Check chain-specific capabilities (multiple formats)
-        const byChainId = caps?.[chainIdStr]?.paymasterService?.supported === true ||
-          (hex && caps?.[hex]?.paymasterService?.supported === true) ||
-                         caps?.[caip]?.paymasterService?.supported === true;
-        
-        // Check chains object structure
-        const byChains = caps?.chains?.[caip]?.paymasterService?.supported === true ||
-                        caps?.chains?.[chainIdStr]?.paymasterService?.supported === true ||
-          (hex && caps?.chains?.[hex]?.paymasterService?.supported === true);
-        
-        const supported = byFlat || byCaps || byChainId || byChains;
-        debug(`isPaymasterSupported: chainId=${chainId}, supported=${supported}`);
-        
-        return supported;
-      } catch (error) {
-        debug(`isPaymasterSupported: Error checking capabilities: ${error?.message || error}`);
-        return false;
-      }
-    }
-
     async function _submitScoreWithPaymaster(callData) {
       // Farcaster Wallet does not support paymaster yet (per miniapps.farcaster.xyz/docs/guides/wallets)
       // Paymaster is only supported in Base App, not in Farcaster/Warpcast
@@ -1259,12 +910,12 @@ if (typeof window !== "undefined") {
       }
       // Soft‑gate: kontrol et ama başarısızsa yine de dene (cüzdanlar capability bilgisini eksik döndürebilir)
       try {
-        const caps = await getCapabilities(state.provider, state.address);
-        const supported = isPaymasterSupported(caps, config.chainId);
+        const caps = await getCapabilities(state.provider, state.address, debug);
+        const supported = isPaymasterSupported(caps, config.chainId, { ethers, debug });
         debug(`paymaster capability support: ${supported ? 'yes' : 'unknown/no'}`);
       } catch (_) { debug('wallet_getCapabilities failed; proceeding to try wallet_sendCalls'); }
 
-      const capabilityUrl = resolveCapabilityUrl(config.paymasterUrl);
+      const capabilityUrl = resolveCapabilityUrl(config.paymasterUrl, debug);
       if (!capabilityUrl) {
         debug("Paymaster capability URL could not be resolved; falling back to wallet_sendCalls without capabilities.");
         return await sendCalls(callData, null);
@@ -2105,425 +1756,27 @@ if (typeof window !== "undefined") {
       debug("Game start detected");
     }
 
-    function patchStateHooks(attempt = 0) {
-      debug(`patchStateHooks: Attempt ${attempt + 1}`);
-      try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:attempt', meta: { attempt: attempt + 1 } }) }).catch(()=>{});} catch(_) {}
-
-      const ensureRunStart = () => {
-        if (state.runStartedAt === null) {
-          handleRunStart();
-        }
-      };
-
-        const patchInit = (target, flagKey, hook, label, isAsync = false) => {
-        if (!target) {
-          const errorMsg = `${label}: State not available yet (target is ${typeof target})`;
-          debug(errorMsg);
-          log.warn(`${errorMsg}`);
-          log.warn(`Available window states:`, {
-            overState: typeof window.overState,
-            finishState: typeof window.finishState,
-            newGameState: typeof window.newGameState,
-            readyState: typeof window.readyState
-          });
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:missing', meta: { label, targetType: typeof target, availableStates: { overState: !!window.overState, finishState: !!window.finishState } } }) }).catch(()=>{});} catch(_) {}
-          return false;
-        }
-        if (!target.init) {
-          const errorMsg = `${label}: init method not available (target type: ${typeof target})`;
-          debug(errorMsg);
-          log.warn(`${errorMsg}`);
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-init', meta: { label, targetType: typeof target } }) }).catch(()=>{});} catch(_) {}
-          return false;
-        }
-        if (target[flagKey]) {
-          debug(`${label}: Already patched`);
-          return true;
-        }
-        
-        // Validate hook function exists
-        if (!hook || typeof hook !== 'function') {
-          const errorMsg = `${label}: Hook function is not available (hook type: ${typeof hook})`;
-          debug(errorMsg);
-          log.error(`${errorMsg}`);
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:no-hook', meta: { label, hookType: typeof hook } }) }).catch(()=>{});} catch(_) {}
-          return false;
-        }
-        const original = target.init.bind(target);
-        target.init = function patchedInit(...args) {
-          debug(`${label}: init called (patched)`);
-          log.debug(`${label}: init called (patched)`);
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:called', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
-          
-          // Execute hook BEFORE original init (important for submitScore)
-          // Handle async hooks properly
-          if (isAsync) {
-            // For async hooks, execute asynchronously and don't block original init
-            // BUT: Log immediately that we're starting the async hook
-            debug(`${label}: Starting async hook BEFORE original init...`);
-            log.debug(`${label}: Starting async hook (submitScore)...`);
-            try { 
-              fetch('/api/app-log', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ 
-                  event: 'state:init:hook:start', 
-                  meta: { label, timestamp: new Date().toISOString(), stack: new Error().stack } 
-                }) 
-              }).catch(()=>{});
-            } catch(_) {}
-            
-            // Execute async hook in background
-            (async () => {
-              try {
-                debug(`${label}: Executing async hook (awaiting)...`);
-                log.debug(`${label}: Executing async hook (awaiting)...`);
-                
-                // IMPORTANT: Actually call the hook function and await it
-                const hookResult = await hook?.apply(this, args);
-                
-                debug(`${label}: async hook completed successfully, result:`, hookResult);
-                log.debug(`${label}: async hook completed successfully`);
-                try { 
-                  fetch('/api/app-log', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ 
-                      event: 'state:init:hook:success', 
-                      meta: { label, timestamp: new Date().toISOString(), result: hookResult ? 'success' : 'no-result' } 
-                    }) 
-                  }).catch(()=>{});
-                } catch(_) {}
-          } catch (error) {
-                const errorMsg = error?.message || String(error);
-                const errorStack = error?.stack || new Error().stack;
-                debug(`${label} async hook ERROR: ${errorMsg}`);
-                log.error(`${label} async hook ERROR:`, error);
-                log.error(`${label} async hook ERROR stack:`, errorStack);
-                try { 
-                  fetch('/api/app-log', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ 
-                      event: 'state:init:hook:error', 
-                      meta: { 
-                        label, 
-                        error: errorMsg, 
-                        stack: errorStack, 
-                        timestamp: new Date().toISOString(),
-                        errorName: error?.name || 'Error',
-                        errorCode: error?.code || null
-                      } 
-                    }) 
-                  }).catch(()=>{});
-                } catch(_) {}
-                // Show user-friendly error message for critical errors
-                if (label.includes('overState') || label.includes('finishState')) {
-                  // Only show error if it's a wallet connection issue (not user rejection)
-                  if (!errorMsg.includes('reject') && !errorMsg.includes('denied') && !errorMsg.includes('User rejected')) {
-                    try {
-                      // Try to show error in a non-blocking way
-                      setTimeout(() => {
-                        log.error(`Score submission failed: ${errorMsg}`);
-                        // Could show a toast notification here in the future
-                      }, 100);
-                    } catch (_) {}
-                  }
-                }
-              }
-            })();
-          } else {
-            // For sync hooks, execute synchronously
-            try {
-              debug(`${label}: Executing hook BEFORE original init...`);
-              log.debug(`${label}: Executing hook...`);
-              const hookResult = hook?.apply(this, args);
-              debug(`${label}: hook executed successfully, result:`, hookResult);
-              log.debug(`${label}: hook executed successfully`);
-              try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:success', meta: { label, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
-            } catch (error) {
-              const errorMsg = error?.message || String(error);
-              debug(`${label} hook error: ${errorMsg}`);
-              log.error(`${label} hook error:`, error);
-              try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'state:init:hook:error', meta: { label, error: errorMsg, stack: error?.stack, timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
-              // Don't throw - continue with original init even if hook fails
-            }
-          }
-          
-          // Execute original init AFTER hook (don't wait for async hooks)
-          debug(`${label}: Executing original init...`);
-          try {
-            const originalResult = original(...args);
-            debug(`${label}: original init executed, result:`, originalResult);
-            return originalResult;
-          } catch (originalError) {
-            debug(`${label}: original init error: ${originalError?.message || originalError}`);
-            log.error(`${label}: original init error:`, originalError);
-            throw originalError;
-          }
-        };
-        target[flagKey] = true;
-        debug(`${label} patched successfully`);
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:state:patched', meta: { label } }) }).catch(()=>{});} catch(_) {}
-        return true;
-      };
-
-      // CRITICAL: Check if states are available before patching
-      const stateCheck = {
-        newGameState: !!window.newGameState,
-        readyState: !!window.readyState,
-        readyNewState: !!window.readyNewState,
-        readyRestartState: !!window.readyRestartState,
-        overState: !!window.overState,
-        finishState: !!window.finishState
-      };
-      
-      debug(`patchStateHooks: State availability check:`, stateCheck);
-      log.debug(' patchStateHooks: State availability:', stateCheck);
-      
-      if (!stateCheck.overState || !stateCheck.finishState) {
-        const missing = Object.entries(stateCheck).filter(([_, available]) => !available).map(([name]) => name);
-        debug(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        log.warn(`patchStateHooks: CRITICAL - Missing states: ${missing.join(', ')}`);
-        log.warn(`window keys containing 'state':`, Object.keys(window).filter(k => k.toLowerCase().includes('state')));
-        try { 
-          fetch('/api/app-log', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ 
-              event: 'patchStateHooks:critical-missing-states', 
-              meta: { 
-                attempt: attempt + 1,
-                missing,
-                available: stateCheck,
-                windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('state'))
-              } 
-            }) 
-          }).catch(()=>{});
-        } catch(_) {}
-      }
-
-      const results = {
-        newGameState: patchInit(window.newGameState, "_patchedForOnchainNewGame", handleRunStart, "newGameState.init", false),
-        readyState: patchInit(window.readyState, "_patchedForOnchainReady", ensureRunStart, "readyState.init", false),
-        readyNewState: patchInit(window.readyNewState, "_patchedForOnchainReadyNew", ensureRunStart, "readyNewState.init", false),
-        readyRestartState: patchInit(window.readyRestartState, "_patchedForOnchainReadyRestart", ensureRunStart, "readyRestartState.init", false),
-        overState: patchInit(window.overState, "_patchedForOnchainOver", submitScore, "overState.init", true), // async hook - UNIQUE FLAG KEY
-        finishState: patchInit(window.finishState, "_patchedForOnchainFinish", submitScore, "finishState.init", true), // async hook
-      };
-
-      const allPatched = Object.values(results).every(r => r === true);
-
-      // Log which states were successfully patched for debugging
-      const patchedStates = Object.entries(results).filter(([_, patched]) => patched).map(([name]) => name);
-      const failedStates = Object.entries(results).filter(([_, patched]) => !patched).map(([name]) => name);
-
-      debug(`patchStateHooks: Results - Patched: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
-      log.debug(`patchStateHooks: Patched states: [${patchedStates.join(', ')}], Failed: [${failedStates.join(', ')}]`);
-
-      if (allPatched) {
-        debug('patchStateHooks: All states patched successfully (including overState and finishState for score submission)');
-        log.debug('patchStateHooks: ✅ All states patched successfully - score submission hooks active');
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:success', meta: { attempt: attempt + 1, patchedStates } }) }).catch(()=>{});} catch(_) {}
-      } else {
-        const missing = Object.entries(results).filter(([_, patched]) => !patched).map(([name, _]) => name);
-        debug(`patchStateHooks: Some states not patched yet: ${missing.join(', ')}`);
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:partial', meta: { attempt: attempt + 1, missing } }) }).catch(()=>{});} catch(_) {}
-        
-        if (attempt < 20) { // Increased from 10 to 20 attempts
-          setTimeout(() => patchStateHooks(attempt + 1), 500); // Increased from 250ms to 500ms
-        } else {
-          debug('patchStateHooks: Max attempts reached, some states may not be patched');
-          log.warn(' patchStateHooks: Max attempts reached. Missing states:', missing);
-          try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'patchStateHooks:max-attempts', meta: { missing } }) }).catch(()=>{});} catch(_) {}
-        }
-      }
-    }
-
-    // Try to patch game states after they are loaded
-    // pacman.js loads in <head> and initializes states on window load event
-    // We need to wait for that to complete before patching
-    
-    function schedulePatchStateHooks() {
-      // Try immediately (states might already be available)
-    patchStateHooks();
-      
-      // Also try after a delay to ensure states are loaded
-      setTimeout(() => patchStateHooks(), 100);
-      setTimeout(() => patchStateHooks(), 500);
-      setTimeout(() => patchStateHooks(), 1000);
-      setTimeout(() => patchStateHooks(), 2000);
-      setTimeout(() => patchStateHooks(), 3000);
-    }
-    
-    // If window is already loaded, schedule immediately
-    if (document.readyState === 'complete') {
-      // Window load event already fired
-      schedulePatchStateHooks();
-    } else if (document.readyState === 'interactive') {
-      // DOM is ready but resources might still be loading
-      schedulePatchStateHooks();
-      // Also wait for load event
-      window.addEventListener('load', () => {
-        setTimeout(() => patchStateHooks(), 500);
-        setTimeout(() => patchStateHooks(), 1000);
-        setTimeout(() => patchStateHooks(), 2000);
-      }, { once: true });
-    } else {
-      // Wait for DOMContentLoaded first
-      document.addEventListener('DOMContentLoaded', () => {
-        schedulePatchStateHooks();
-      }, { once: true });
-      
-      // Then wait for window load event (when pacman.js initializes states)
-      window.addEventListener('load', () => {
-        debug('Window load event fired - scheduling patchStateHooks');
-        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'window:load', meta: { timestamp: new Date().toISOString() } }) }).catch(()=>{});} catch(_) {}
-        // Try multiple times with increasing delays
-        setTimeout(() => patchStateHooks(), 100);
-        setTimeout(() => patchStateHooks(), 500);
-        setTimeout(() => patchStateHooks(), 1000);
-        setTimeout(() => patchStateHooks(), 2000);
-        setTimeout(() => patchStateHooks(), 3000);
-      }, { once: true });
-    }
+    scheduleStateHookPatching({ state, debug, log, submitScore, handleRunStart });
 
     // getCurrentChainId function
     function getCurrentChainId() {
       return config?.chainId || null;
     }
 
-    // CRITICAL: Update window.BaseManOnchain with actual implementations
-    // This replaces the placeholder created at module load time
-    if (typeof window !== "undefined" && window.BaseManOnchain) {
-      // Update all methods with actual implementations
-      window.BaseManOnchain.ensureWallet = ensureWallet;
-      window.BaseManOnchain.setNetwork = reconfigureNetwork;
-      window.BaseManOnchain.submitScore = submitScore;
-      window.BaseManOnchain.completeQuest = completeQuest;
-      window.BaseManOnchain.handleRunStart = handleRunStart;
-      window.BaseManOnchain.getCurrentChainId = getCurrentChainId;
-      window.BaseManOnchain.log = debug;
-      window.BaseManOnchain.isWalletReady = () => state.walletReady;
-      window.BaseManOnchain.getWalletError = () => state.walletError;
-      window.BaseManOnchain.getWalletAddress = () => state.address;
-    } else {
-      // Fallback: create new object if placeholder wasn't created (shouldn't happen)
-      window.BaseManOnchain = {
-        ensureWallet,
-        setNetwork: reconfigureNetwork,
-        submitScore,
-        completeQuest,
-        handleRunStart,
-        getCurrentChainId,
-        log: debug,
-        isWalletReady: () => state.walletReady,
-        getWalletError: () => state.walletError,
-        getWalletAddress: () => state.address
-      };
-    }
+    bindPublicOnchainApi({
+      ensureWallet,
+      setNetwork: reconfigureNetwork,
+      submitScore,
+      completeQuest,
+      handleRunStart,
+      getCurrentChainId
+    }, state, debug);
 
     // Mini app'te açılışta passkey tetiklemeden read-only bağlanmayı dene.
     // Sadece eth_accounts çağrısı yap; hesap varsa ensureWallet(false) ile state'i güncelle.
     if (isMiniAppEnv()) {
-      (async () => {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          if (sdk?.wallet && typeof sdk.wallet.getEthereumProvider === "function" && !state.contract) {
-            let provider;
-            try {
-              provider = await sdk.wallet.getEthereumProvider();
-            } catch (providerError) {
-              const errorMsg = providerError?.message || String(providerError);
-              const isRequestError = errorMsg.includes('Request failed') || 
-                                    providerError?.name === 'RequestFailedError' ||
-                                    providerError?.status === 400;
-              
-              if (isRequestError) {
-                debug(`Background wallet: SDK getEthereumProvider request failed (non-critical): ${errorMsg}`);
-                return; // Silently fail for background check
-              } else {
-                throw providerError; // Re-throw non-request errors
-              }
-            }
-            if (provider) {
-              const accounts = await safeProviderRequest(provider, { method: "eth_accounts" }, []);
-              if (Array.isArray(accounts) && accounts.length > 0) {
-                debug("Background wallet: accounts already available, connecting without request");
-                await ensureWallet(false);
-              } else {
-                debug("Background wallet: no accounts yet, will connect on first on-chain action");
-              }
-            }
-          }
-        } catch (err) {
-          debug(`Background wallet preparation: ${err?.message || err}`);
-        }
-      })();
+      scheduleBackgroundMiniAppWallet({ sdk, state, ensureWallet, safeProviderRequest, debug });
     }
-  }
-
-  function createDebugOverlay() {
-    // Disabled by default. Enable only if NEXT_PUBLIC_DEBUG_OVERLAY=1 or ?debug present.
-    try {
-      const enabledByEnv =
-        (window.__ENV && String(window.__ENV.NEXT_PUBLIC_DEBUG_OVERLAY) === '1') ||
-        new URLSearchParams(window.location.search).has('debug');
-      if (!enabledByEnv) {
-        return function () {};
-      }
-    } catch (_) {
-      // no-op
-      return function () {};
-    }
-    const containerId = "baseman-debug";
-    const existing = document.getElementById(containerId);
-    if (existing) existing.remove();
-
-    const container = document.createElement("div");
-    container.id = containerId;
-    container.style.position = "fixed";
-    container.style.left = "8px";
-    container.style.right = "8px";
-    container.style.bottom = "8px";
-    container.style.maxHeight = "45vh";
-    container.style.overflowY = "auto";
-    container.style.background = "rgba(0, 0, 0, 0.75)";
-    container.style.color = "#0f0";
-    container.style.font = "12px monospace";
-    container.style.padding = "6px";
-    container.style.zIndex = "9999";
-    container.style.pointerEvents = "none";
-    container.style.whiteSpace = "pre-wrap";
-    container.style.display = "none";
-
-    const buffer = [];
-    const flush = () => {
-      if (container.parentElement || !document.body) return;
-      document.body.appendChild(container);
-      if (buffer.length) {
-        container.textContent = buffer.join("\n") + "\n";
-        container.style.display = "block";
-        buffer.length = 0;
-      }
-    };
-
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-      flush();
-    } else {
-      document.addEventListener("DOMContentLoaded", flush, { once: true });
-    }
-
-    return (message) => {
-      const entry = `[${new Date().toISOString().split("T")[1].split(".")[0]}] ${message}`;
-      if (container.parentElement && document.body) {
-        container.style.display = "block";
-        container.textContent += entry + "\n";
-      } else {
-        buffer.push(entry);
-        flush();
-      }
-    };
   }
 
   tryInitialize();
