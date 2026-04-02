@@ -16,12 +16,48 @@ const USER_INFO_CACHE_TTL_MS = 30000; // 30 seconds
 // Cached SDK user to avoid repeated context awaits
 let cachedSdkUser = null;
 let sdkUserFetched = false;
+let cachedSdkContext = null;
+let sdkContextFetched = false;
+
+function mapPlatformFromClientFid(clientFid) {
+  if (typeof clientFid !== 'number' || !Number.isFinite(clientFid)) {
+    return null;
+  }
+  return clientFid === 309857 ? 'base-app' : 'farcaster';
+}
+
+async function getSdkContextOnce() {
+  if (sdkContextFetched) {
+    return cachedSdkContext;
+  }
+
+  try {
+    if (window.sdk?.context) {
+      const context = await Promise.race([
+        window.sdk.context,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SDK context timeout')), 2500))
+      ]);
+      cachedSdkContext = context || null;
+      cachedSdkUser = context?.user || null;
+      sdkUserFetched = true;
+    }
+  } catch (_err) {
+    log.debug('SDK context fetch failed or timed out');
+  }
+
+  sdkContextFetched = true;
+  return cachedSdkContext;
+}
 
 /**
  * Get SDK user once and cache it
  * @returns {Promise<Object|null>} SDK user object or null
  */
 async function getSdkUserOnce() {
+  if (!sdkContextFetched) {
+    await getSdkContextOnce();
+  }
+
   if (sdkUserFetched) {
     return cachedSdkUser;
   }
@@ -59,6 +95,7 @@ export async function getCachedUserInfo() {
   let address = null;
   let user = null;
   let platform = null;
+  let sdkContext = null;
 
   try {
     // Get wallet address - try multiple sources
@@ -73,7 +110,8 @@ export async function getCachedUserInfo() {
     }
 
     // Get SDK user first (needed for address fallbacks)
-    user = await getSdkUserOnce();
+    sdkContext = await getSdkContextOnce();
+    user = sdkContext?.user || await getSdkUserOnce();
 
     // 3. If still null, try to get address from SDK user object
     if (!address && user?.custody_address) {
@@ -112,7 +150,13 @@ export async function getCachedUserInfo() {
     // This is critical for mobile MiniApp environments where SDK may load slowly
     try {
       let detectedPlatform;
-      if (isPlatformDetected()) {
+      if (sdkContext?.client?.clientFid != null) {
+        platform = mapPlatformFromClientFid(sdkContext.client.clientFid);
+        log.debug('Platform derived from SDK context clientFid', {
+          clientFid: sdkContext.client.clientFid,
+          platform
+        });
+      } else if (isPlatformDetected()) {
         // Use cached value if available
         detectedPlatform = getPlatformSync();
       } else {
@@ -134,19 +178,23 @@ export async function getCachedUserInfo() {
       }
       
       // Convert platform format: 'base' -> 'base-app', 'farcaster' -> 'farcaster'
-      if (detectedPlatform === 'base') {
-        platform = 'base-app';
-        log.debug('Platform detected: base-app');
-      } else if (detectedPlatform === 'farcaster') {
-        platform = 'farcaster';
-        log.debug('Platform detected: farcaster');
-      } else {
-        log.debug('Platform not detected (web mode):', detectedPlatform);
+      if (!platform) {
+        if (detectedPlatform === 'base') {
+          platform = 'base-app';
+          log.debug('Platform detected: base-app');
+        } else if (detectedPlatform === 'farcaster') {
+          platform = 'farcaster';
+          log.debug('Platform detected: farcaster');
+        } else {
+          log.debug('Platform not detected (web mode):', detectedPlatform);
+        }
       }
     } catch (platformErr) {
       log.warn('Platform detection failed:', platformErr?.message);
       // Fallback: try sync version
-      if (isPlatformDetected()) {
+      if (sdkContext?.client?.clientFid != null) {
+        platform = mapPlatformFromClientFid(sdkContext.client.clientFid);
+      } else if (isPlatformDetected()) {
         const detectedPlatform = getPlatformSync();
         if (detectedPlatform === 'base') {
           platform = 'base-app';
@@ -182,6 +230,8 @@ export function clearUserInfoCache() {
   // Also reset SDK user cache to allow re-fetch
   cachedSdkUser = null;
   sdkUserFetched = false;
+  cachedSdkContext = null;
+  sdkContextFetched = false;
 }
 
 /**

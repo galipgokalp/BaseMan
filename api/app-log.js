@@ -86,7 +86,7 @@ function shouldForwardAlert(entry) {
   return isAlertEvent(entry) && !getAlertSuppressionReason(entry);
 }
 
-const RING_SIZE = 200;
+const RING_SIZE = 500;
 globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
 
 function parseTimestampQuery(value) {

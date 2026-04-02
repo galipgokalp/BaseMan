@@ -287,6 +287,7 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     if (getLoading()) return;
     if (!getVisible()) return;
     setLoading(true);
+    const loadStartedAt = Date.now();
 
     // Phase 6: Show loading state
     renderLoading({ topListEl, restListEl, scrollWrapper, statusEl });
@@ -336,12 +337,15 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     await loadLeaderboard({
       limit,
       onSuccess: (items, debugInfo, isDebugMode) => {
-        log.debug('loadLeaderboard onSuccess:', {
+        log.debug('loadLeaderboard onSuccess', {
           itemsCount: items?.length || 0,
           hasTopListEl: !!topListEl,
           hasRestListEl: !!restListEl,
           hasScrollWrapper: !!scrollWrapper,
-          hasStatusEl: !!statusEl
+          hasStatusEl: !!statusEl,
+          durationMs: Date.now() - loadStartedAt,
+          limit,
+          currentPlatform
         });
         
         // Phase 6: Handle empty state
@@ -402,7 +406,14 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
         setLoading(false);
       },
       onError: (error) => {
-        log.error("load failed", error);
+        log.error("load failed", {
+          error,
+          durationMs: Date.now() - loadStartedAt,
+          limit,
+          currentPlatform,
+          hasAddress: !!currentAddress,
+          hasFid: !!currentUser?.fid
+        });
         
         // Phase 6: Map error to user-friendly message
         const errorMsg = error?.message || String(error);

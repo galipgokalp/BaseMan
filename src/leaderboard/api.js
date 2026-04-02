@@ -33,6 +33,7 @@ const leaderboardCache = {
   limit: null
 };
 const LEADERBOARD_CACHE_TTL_MS = 5000; // 5 seconds - fast updates after score submission
+const LEADERBOARD_TIMEOUT_MS = 15000;
 
 /**
  * Invalidate leaderboard cache
@@ -66,6 +67,7 @@ let inflightLeaderboardRequest = null;
 export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh = false }) {
   const leaderboardChainId = getConfiguredChainId();
   const now = Date.now();
+  const requestStartedAt = now;
   
   // Check for debug mode
   const urlHash = window.location.hash || '';
@@ -77,7 +79,11 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
       leaderboardCache.chainId === leaderboardChainId &&
       leaderboardCache.limit >= limit &&
       (now - leaderboardCache.timestamp) < LEADERBOARD_CACHE_TTL_MS) {
-    log.debug('Returning cached leaderboard data (age:', now - leaderboardCache.timestamp, 'ms)');
+    log.debug('Returning cached leaderboard data', {
+      ageMs: now - leaderboardCache.timestamp,
+      chainId: leaderboardChainId,
+      limit
+    });
     if (onSuccess) {
       // Return subset if cached limit was higher
       const items = leaderboardCache.data.slice(0, limit);
@@ -88,7 +94,10 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
   
   // Phase 4.3: Deduplicate in-flight requests
   if (inflightLeaderboardRequest) {
-    log.debug('Reusing in-flight leaderboard request');
+    log.debug('Reusing in-flight leaderboard request', {
+      chainId: leaderboardChainId,
+      limit
+    });
     try {
       const { items, debugInfo } = await inflightLeaderboardRequest;
       if (onSuccess) {
@@ -106,6 +115,7 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
   
   // Create the actual fetch promise
   inflightLeaderboardRequest = (async () => {
+    const fetchStartedAt = Date.now();
     try {
       // Ensure platform detection is complete before getting user info
       // This ensures profile mappings include the correct platform
@@ -148,7 +158,12 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
       }
       
       const apiUrl = `/api/leaderboard?limit=${limit}&chain=${leaderboardChainId}${isDebugMode ? '&debug=1' : ''}`;
-      log.debug('Fetching leaderboard from:', apiUrl);
+      log.debug('Fetching leaderboard', {
+        apiUrl,
+        chainId: leaderboardChainId,
+        limit,
+        hasProfileMappingHeader: !!profileMappingHeader
+      });
       
       // Phase 6: Check if online before making request
       const offlineCheck = requireOnline('loadLeaderboard', 'leaderboard');
@@ -162,26 +177,31 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
         cache: "no-store"
       }, {
         context: 'leaderboard',
-        timeoutMs: 7000
+        timeoutMs: LEADERBOARD_TIMEOUT_MS
       });
 
       if (!result.ok) {
-        log.error('Leaderboard API error:', {
+        log.error('Leaderboard API error', {
           kind: result.error.kind,
           message: result.error.message,
           technicalMessage: result.error.technicalMessage,
           context: result.error.context,
-          meta: result.error.meta
+          meta: result.error.meta,
+          durationMs: Date.now() - fetchStartedAt,
+          chainId: leaderboardChainId,
+          limit
         });
         throw result.error;
       }
 
       const payload = result.data;
-      log.debug('API payload:', {
+      log.debug('Leaderboard API success', {
         source: payload.source,
         chainId: payload.chainId,
         count: payload.count,
-        itemsCount: Array.isArray(payload.items) ? payload.items.length : 0
+        itemsCount: Array.isArray(payload.items) ? payload.items.length : 0,
+        durationMs: Date.now() - fetchStartedAt,
+        requestedLimit: limit
       });
       
       const items = Array.isArray(payload.items) ? payload.items : [];
@@ -207,7 +227,13 @@ export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh 
       onSuccess(items, debugInfo, isDebugMode);
     }
   } catch (error) {
-    log.error("load failed", error);
+    log.error("load failed", {
+      error,
+      durationMs: Date.now() - requestStartedAt,
+      chainId: leaderboardChainId,
+      limit,
+      forceRefresh
+    });
     if (onError) {
       onError(error);
     }
