@@ -5,6 +5,8 @@ import {
   requestScoreSignature as requestScoreSignatureUtil,
   sendCalls as sendCallsUtil,
   sendEthTransaction as sendEthTransactionUtil,
+  isUnsupportedMethodError,
+  selectSubmissionTransport,
   ensureOnchainPlaceholder,
   bindPublicOnchainApi,
   createEventBridge,
@@ -1137,6 +1139,177 @@ ensureOnchainPlaceholder();
       return typeof result === 'string' ? { hash: result } : result;
     }
 
+    async function resolveSubmissionPlatform() {
+      try {
+        if (typeof window !== 'undefined' && typeof window.getPlatform === 'function') {
+          const platform = await window.getPlatform();
+          if (platform === 'base') return 'base-app';
+          if (platform === 'farcaster') return 'farcaster';
+        }
+      } catch (error) {
+        debug(`resolveSubmissionPlatform: getPlatform failed: ${error?.message || error}`);
+      }
+
+      try {
+        if (typeof window !== 'undefined') {
+          if (typeof window.isBaseAppSync === 'function' && window.isBaseAppSync()) {
+            return 'base-app';
+          }
+          if (typeof window.isFarcasterMiniAppSync === 'function' && window.isFarcasterMiniAppSync()) {
+            return 'farcaster';
+          }
+          if (window.MiniKit || window.BaseAppSDK || window.MiniApp) {
+            return 'base-app';
+          }
+          if (window.fc?.miniapp || window.farcaster?.miniapp) {
+            return 'farcaster';
+          }
+        }
+      } catch (error) {
+        debug(`resolveSubmissionPlatform: sync detection failed: ${error?.message || error}`);
+      }
+
+      return 'unknown';
+    }
+
+    function extractSubmissionIdentifier(result) {
+      if (typeof result === 'string') {
+        return result;
+      }
+      if (result && typeof result === 'object') {
+        if (typeof result.id === 'string') {
+          return result.id;
+        }
+        if (typeof result.hash === 'string') {
+          return result.hash;
+        }
+      }
+      return null;
+    }
+
+    async function submitSponsorlessCall(callData, actionLabel) {
+      const platform = await resolveSubmissionPlatform();
+      const preferredTransport = selectSubmissionTransport(platform);
+
+      debug(`submitSponsorlessCall: platform=${platform}, transport=${preferredTransport}, action=${actionLabel}`);
+      try {
+        fetch('/api/app-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'submission_transport_selected',
+            meta: { action: actionLabel, platform, transport: preferredTransport, chainId: config.chainId, address: state.address || null }
+          })
+        }).catch(()=>{});
+      } catch (_) {}
+
+      const runTransport = async (transport) => {
+        if (transport === 'eth_sendTransaction') {
+          const result = await sendEthTransaction(callData);
+          return {
+            result,
+            identifier: extractSubmissionIdentifier(result),
+            transport,
+            statusId: null,
+            platform
+          };
+        }
+
+        const result = await sendCalls(callData, null);
+        return {
+          result,
+          identifier: extractSubmissionIdentifier(result),
+          transport,
+          statusId: typeof result?.id === 'string' ? result.id : null,
+          platform
+        };
+      };
+
+      try {
+        const submission = await runTransport(preferredTransport);
+        try {
+          fetch('/api/app-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'submission_transport_success',
+              meta: {
+                action: actionLabel,
+                platform,
+                transport: submission.transport,
+                identifier: submission.identifier || null,
+                chainId: config.chainId,
+                address: state.address || null
+              }
+            })
+          }).catch(()=>{});
+        } catch (_) {}
+        return submission;
+      } catch (error) {
+        if (preferredTransport === 'wallet_sendCalls' && isUnsupportedMethodError(error)) {
+          debug(`submitSponsorlessCall: wallet_sendCalls unsupported for ${platform}; falling back to eth_sendTransaction`);
+          try {
+            fetch('/api/app-log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event: 'submission_transport_fallback',
+                meta: {
+                  action: actionLabel,
+                  platform,
+                  from: 'wallet_sendCalls',
+                  to: 'eth_sendTransaction',
+                  chainId: config.chainId,
+                  address: state.address || null
+                }
+              })
+            }).catch(()=>{});
+          } catch (_) {}
+
+          const submission = await runTransport('eth_sendTransaction');
+          try {
+            fetch('/api/app-log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event: 'submission_transport_success',
+                meta: {
+                  action: actionLabel,
+                  platform,
+                  transport: submission.transport,
+                  identifier: submission.identifier || null,
+                  chainId: config.chainId,
+                  address: state.address || null
+                }
+              })
+            }).catch(()=>{});
+          } catch (_) {}
+          return submission;
+        }
+
+        try {
+          fetch('/api/app-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'submission_transport_error',
+              meta: {
+                action: actionLabel,
+                platform,
+                transport: preferredTransport,
+                error: error?.message || String(error),
+                code: error?.code || error?.error?.code || null,
+                chainId: config.chainId,
+                address: state.address || null
+              }
+            })
+          }).catch(()=>{});
+        } catch (_) {}
+
+        throw error;
+      }
+    }
+
     async function submitScore() {
       debug('submitScore: Function called');
       log.debug('submitScore: Function called - START');
@@ -1322,174 +1495,33 @@ ensureOnchainPlaceholder();
         debug('submitScore: Submitting transaction WITHOUT paymaster (sponsorless mode - user pays gas fee)');
         try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submission:sponsorless', meta: { score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
 
-        // For mini-app environments (Farcaster/Base App), use wallet_sendCalls without paymaster
-        // Check SDK presence as fallback if isMiniAppEnv() returns false
-        // Also check for Base App specifically
+        // For mini-app environments (Farcaster/Base App), use platform-selected sponsorless transport
         const hasSDK = sdk && sdk.wallet && typeof sdk.wallet.getEthereumProvider === 'function';
-        const isBaseAppSpecific = (() => {
-          try {
-            if (typeof window !== 'undefined') {
-              if (typeof window.isBaseAppSync === 'function') {
-                return window.isBaseAppSync();
-              }
-              if (typeof window.isBaseApp === 'function') {
-                const detected = window.isBaseApp();
-                if (typeof detected === 'boolean') return detected;
-              }
-              return Boolean(window.MiniKit || window.ReactNativeWebView);
-            }
-            return false;
-          } catch (_) {
-            return false;
-          }
-        })();
-        const isFarcasterSpecific = (() => {
-          try {
-            if (typeof window !== 'undefined') {
-              if (typeof window.isFarcasterMiniAppSync === 'function') {
-                return window.isFarcasterMiniAppSync();
-              }
-              if (typeof window.isFarcasterMiniApp === 'function') {
-                const detected = window.isFarcasterMiniApp();
-                if (typeof detected === 'boolean') return detected;
-              }
-              return Boolean(window.fc || (window.farcaster && window.farcaster.miniapp));
-            }
-            return false;
-          } catch (_) {
-            return false;
-          }
-        })();
-        const isMiniApp = isMiniAppEnv() || hasSDK || isBaseAppSpecific || isFarcasterSpecific;
+        const isMiniApp = isMiniAppEnv() || hasSDK;
         
         if (isMiniApp) {
           if (hasSDK && !isMiniAppEnv()) {
             debug("submitScore: SDK detected but isMiniAppEnv() returned false - using SDK anyway");
           }
-          if (isBaseAppSpecific) {
-            debug("submitScore: Base App detected - attempting wallet_sendCalls first, will fallback to eth_sendTransaction if unsupported");
-          }
-          if (isFarcasterSpecific) {
-            debug("submitScore: Farcaster detected - using wallet_sendCalls without paymaster");
-          }
-          debug("submitScore: Mini-app environment detected - attempting wallet_sendCalls without paymaster");
+          debug("submitScore: Mini-app environment detected - selecting sponsorless transport");
           try {
             if (!state.provider || typeof state.provider.request !== "function") {
-              debug('submitScore: No provider available for wallet_sendCalls');
+              debug('submitScore: No provider available for sponsorless transaction');
               throw new Error("No provider available");
             }
-            
-            // Try wallet_sendCalls first (EIP-5792)
-            let result = null;
-            try {
-              debug("submitScore: Attempting wallet_sendCalls (EIP-5792)...");
-              result = await sendCalls(callData, null); // null = no paymaster
-            } catch (sendCallsError) {
-              const sendCallsErrorMsg = sendCallsError?.message || String(sendCallsError);
-              const sendCallsErrorCode = sendCallsError?.code || sendCallsError?.error?.code || null;
-              
-              // Enhanced error logging for Base App debugging
-              debug(`submitScore: wallet_sendCalls error details:`, {
-                message: sendCallsErrorMsg,
-                code: sendCallsErrorCode,
-                error: sendCallsError,
-                isBaseApp: isBaseAppSpecific,
-                isFarcaster: isFarcasterSpecific
-              });
-              
-              // Log to app-log for debugging
-              try { 
-                fetch('/api/app-log', { 
-                  method: 'POST', 
-                  headers: { 'Content-Type': 'application/json' }, 
-                  body: JSON.stringify({ 
-                    event: 'score:submission:wallet_sendCalls:error', 
-                    meta: { 
-                      error: sendCallsErrorMsg,
-                      code: sendCallsErrorCode,
-                      isBaseApp: isBaseAppSpecific,
-                      isFarcaster: isFarcasterSpecific,
-                      address: state.address,
-                      chainId: config.chainId
-                    } 
-                  }) 
-                }).catch(()=>{});
-              } catch(_) {}
-              
-              // Check if error is "unsupported method" - Base App may not support wallet_sendCalls
-              if (sendCallsErrorCode === 4200 || sendCallsErrorMsg.includes('UnsupportedMethodError') || sendCallsErrorMsg.includes('does not support the requested method')) {
-                debug(`submitScore: wallet_sendCalls not supported (code: ${sendCallsErrorCode}), falling back to eth_sendTransaction`);
-                log.warn(`submitScore: wallet_sendCalls not supported, using eth_sendTransaction fallback`);
-                
-                // Fallback to eth_sendTransaction for Base App
-                if (isBaseAppSpecific || !isFarcasterSpecific) {
-                  try {
-                    debug("submitScore: Using eth_sendTransaction fallback for Base App");
-                    result = await sendEthTransaction(callData);
-                    if (result) {
-                      debug(`submitScore: eth_sendTransaction success: ${JSON.stringify(result)}`);
-                      log.debug(`Score submission transaction started via eth_sendTransaction: ${result.hash || result.id}`);
-                    }
-                  } catch (ethTxError) {
-                    const ethTxErrorMsg = ethTxError?.message || String(ethTxError);
-                    const ethTxErrorCode = ethTxError?.code || ethTxError?.error?.code || null;
-                    debug(`submitScore: eth_sendTransaction also failed:`, {
-                      message: ethTxErrorMsg,
-                      code: ethTxErrorCode,
-                      error: ethTxError
-                    });
-                    
-                    // Log detailed error for debugging
-                    try { 
-                      fetch('/api/app-log', { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                          event: 'score:submission:eth_sendTransaction:error', 
-                          meta: { 
-                            error: ethTxErrorMsg,
-                            code: ethTxErrorCode,
-                            wallet_sendCallsError: sendCallsErrorMsg,
-                            wallet_sendCallsCode: sendCallsErrorCode,
-                            address: state.address,
-                            chainId: config.chainId
-                          } 
-                        }) 
-                      }).catch(()=>{});
-                    } catch(_) {}
-                    
-                    throw new Error(`Both wallet_sendCalls and eth_sendTransaction failed. wallet_sendCalls: ${sendCallsErrorMsg} (code: ${sendCallsErrorCode}), eth_sendTransaction: ${ethTxErrorMsg} (code: ${ethTxErrorCode})`);
-                  }
-                } else {
-                  // For Farcaster, re-throw the original error
-                  throw sendCallsError;
-                }
-              } else {
-                // For other errors, re-throw with more context
-                throw new Error(`wallet_sendCalls failed: ${sendCallsErrorMsg} (code: ${sendCallsErrorCode})`);
-              }
-            }
-            if (result) {
-              let identifier = null;
-              if (typeof result === "string") {
-                identifier = result;
-              } else if (typeof result === "object") {
-                if (typeof result.id === "string") {
-                  identifier = result.id;
-                } else if (typeof result.hash === "string") {
-                  identifier = result.hash;
-                }
-              }
-            if (identifier) {
-                debug(`submitScore: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                log.debug(`Score submission transaction started: ${identifier}`);
-                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId } }) }).catch(()=>{});} catch(_) {}
+
+            const submission = await submitSponsorlessCall(callData, 'score');
+            if (submission?.result) {
+              if (submission.identifier) {
+                debug(`submitScore: Transaction submitted via ${submission.transport} (sponsorless - user pays gas) (id: ${submission.identifier})`);
+                log.debug(`Score submission transaction started: ${submission.identifier}`);
+                try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:submitted:sponsorless', meta: { identifier: submission.identifier, score: scoreValue.toString(), address: state.address, chainId: config.chainId, transport: submission.transport, platform: submission.platform } }) }).catch(()=>{});} catch(_) {}
                 
                 // Emit toast event for UI feedback - score submitted
                 emitToastEvent('score:submitted', { 
                   score: scoreValue.toString(), 
-                  identifier, 
-                  txHash: identifier,
+                  identifier: submission.identifier, 
+                  txHash: submission.identifier,
                   address: state.address 
                 });
                 
@@ -1501,17 +1533,17 @@ ensureOnchainPlaceholder();
                 } catch (_) {}
 
                 // Optionally check transaction status after a delay
-                if (typeof result === "object" && typeof result.id === "string") {
+                if (submission.transport === 'wallet_sendCalls' && submission.statusId) {
                 setTimeout(() => {
                   if (!state.provider || typeof state.provider.request !== "function") return;
                   state.provider
                     .request({
                       method: "wallet_getCallsStatus",
-                        params: [result.id]
+                        params: [submission.statusId]
                     })
                     .then((status) => {
                         debug(`submitScore: wallet_getCallsStatus response: ${status ? JSON.stringify(status) : "empty response"}`);
-                        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:transaction:status', meta: { id: result.id, status } }) }).catch(()=>{});} catch(_) {}
+                        try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'score:transaction:status', meta: { id: submission.statusId, status } }) }).catch(()=>{});} catch(_) {}
                     })
                     .catch((statusError) => {
                         debug(`submitScore: wallet_getCallsStatus error: ${statusError?.message || statusError}`);
@@ -1520,24 +1552,24 @@ ensureOnchainPlaceholder();
               }
                 return;
               } else {
-                debug('submitScore: wallet_sendCalls returned result but no identifier found');
+                debug('submitScore: sponsorless submission returned result but no identifier found');
                 throw new Error("Transaction submitted but no identifier returned");
               }
             } else {
-              debug('submitScore: wallet_sendCalls returned null/undefined');
+              debug('submitScore: sponsorless submission returned null/undefined');
               throw new Error("Transaction submission returned no result");
             }
-          } catch (sendCallsError) {
-            const errorMsg = sendCallsError?.message || String(sendCallsError);
-            const errorCode = sendCallsError?.code || sendCallsError?.error?.code || null;
-            debug(`submitScore: wallet_sendCalls failed:`, {
+          } catch (submissionError) {
+            const errorMsg = submissionError?.message || String(submissionError);
+            const errorCode = submissionError?.code || submissionError?.error?.code || null;
+            const platform = await resolveSubmissionPlatform();
+            debug(`submitScore: sponsorless submission failed:`, {
               message: errorMsg,
               code: errorCode,
-              error: sendCallsError,
-              isBaseApp: isBaseAppSpecific,
-              isFarcaster: isFarcasterSpecific
+              error: submissionError,
+              platform
             });
-            log.error(' Score submission failed:', sendCallsError);
+            log.error(' Score submission failed:', submissionError);
             try { 
               fetch('/api/app-log', { 
                 method: 'POST', 
@@ -1550,9 +1582,8 @@ ensureOnchainPlaceholder();
                     score: scoreValue.toString(), 
                     address: state.address,
                     chainId: config.chainId,
-                    isBaseApp: isBaseAppSpecific,
-                    isFarcaster: isFarcasterSpecific,
-                    stack: sendCallsError?.stack || null
+                    platform,
+                    stack: submissionError?.stack || null
                   } 
                 }) 
               }).catch(()=>{});
@@ -1688,24 +1719,30 @@ ensureOnchainPlaceholder();
               if (!state.provider || typeof state.provider.request !== "function") {
                 throw new Error("No provider available");
               }
-              const result = await sendCalls(callData, null); // null = no paymaster
-              if (result) {
-                let identifier = null;
-                if (typeof result === "string") {
-                  identifier = result;
-                } else if (typeof result === "object") {
-                  if (typeof result.id === "string") {
-                    identifier = result.id;
-                  } else if (typeof result.hash === "string") {
-                    identifier = result.hash;
-                  }
-                }
-                if (identifier) {
-                  debug(`completeQuest: Transaction submitted via wallet_sendCalls (sponsorless - user pays gas) (id: ${identifier})`);
-                  log.debug(`Quest completion transaction started: ${identifier}`);
-                  return;
-                }
+              const submission = await submitSponsorlessCall(callData, 'quest');
+              if (submission?.identifier) {
+                debug(`completeQuest: Transaction submitted via ${submission.transport} (sponsorless - user pays gas) (id: ${submission.identifier})`);
+                log.debug(`Quest completion transaction started: ${submission.identifier}`);
+                try {
+                  fetch('/api/app-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      event: 'quest:submitted:sponsorless',
+                      meta: {
+                        identifier: submission.identifier,
+                        questId: qid.toString(),
+                        address: state.address,
+                        chainId: config.chainId,
+                        transport: submission.transport,
+                        platform: submission.platform
+                      }
+                    })
+                  }).catch(()=>{});
+                } catch (_) {}
+                return;
               }
+              throw new Error("Quest transaction submitted but no identifier returned");
             } catch (questError) {
               debug(`completeQuest: Transaction failed: ${questError?.message || questError}`);
               throw questError;
@@ -1713,7 +1750,6 @@ ensureOnchainPlaceholder();
           } else {
             throw new Error("Mini-app environment required for quest completion");
           }
-          return;
         }
 
         // Legacy fallback (should not be reached)

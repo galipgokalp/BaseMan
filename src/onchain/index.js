@@ -22,7 +22,9 @@ export {
 export { 
   requestScoreSignature, 
   sendCalls, 
-  sendEthTransaction 
+  sendEthTransaction,
+  isUnsupportedMethodError,
+  selectSubmissionTransport
 } from './score-service.js';
 
 // Runtime helpers

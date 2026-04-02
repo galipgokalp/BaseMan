@@ -17,6 +17,26 @@ import { getChainKey } from './provider.js';
 
 const log = createLogger('OnchainScoreService');
 
+export function isUnsupportedMethodError(error) {
+  const message = error?.message || String(error || '');
+  const code = error?.code || error?.error?.code || null;
+  return (
+    code === 4200 ||
+    message.includes('UnsupportedMethodError') ||
+    message.includes('does not support the requested method')
+  );
+}
+
+export function selectSubmissionTransport(platform) {
+  if (platform === 'farcaster') {
+    return 'eth_sendTransaction';
+  }
+  if (platform === 'base-app') {
+    return 'wallet_sendCalls';
+  }
+  return 'wallet_sendCalls';
+}
+
 /**
  * Request score signature from backend
  * @param {Object} params - Parameters
@@ -270,8 +290,16 @@ export async function sendCalls({
   } catch (error) {
     const errorMsg = error?.message || String(error);
     const errorCode = error?.code || error?.error?.code || null;
+    const unsupported = isUnsupportedMethodError(error);
     debug(`sendCalls: wallet_sendCalls error: ${errorMsg} (code: ${errorCode})`);
-    log.error('sendCalls: wallet_sendCalls failed:', error);
+    if (unsupported) {
+      log.warn('sendCalls: wallet_sendCalls unsupported:', {
+        message: errorMsg,
+        code: errorCode
+      });
+    } else {
+      log.error('sendCalls: wallet_sendCalls failed:', error);
+    }
     
     // Log error with details
     try { 
@@ -279,7 +307,7 @@ export async function sendCalls({
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ 
-          event: 'wallet_sendCalls:error', 
+          event: unsupported ? 'wallet_sendCalls:unsupported' : 'wallet_sendCalls:error',
           meta: { 
             error: errorMsg,
             code: errorCode,
