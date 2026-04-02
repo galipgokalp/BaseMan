@@ -56,6 +56,18 @@ This documentation describes all environment variables used in the BaseMan proje
 - **Default:** `"https://base-man.vercel.app/api/ai-agent-webhook"`
 - **Description:** AI Agent webhook endpoint URL. Address where error analysis results will be sent.
 
+### `AI_AGENT_WEBHOOK_SECRET`
+- **Type:** `string`
+- **Required:** Required in production if `/api/ai-agent-webhook` is enabled
+- **Default:** None
+- **Description:** Shared secret for `/api/ai-agent-webhook`. Send it as `Authorization: Bearer <secret>` or `x-ai-agent-secret`.
+
+### `AI_AGENT_ALLOW_DEBUG_GET`
+- **Type:** `string` (boolean)
+- **Required:** Optional
+- **Default:** `"false"`
+- **Description:** Allows `GET /api/ai-agent-webhook` debug responses in production. Keep disabled by default.
+
 ### `AI_PROVIDER`
 - **Type:** `string`
 - **Required:** Optional
@@ -283,8 +295,8 @@ This documentation describes all environment variables used in the BaseMan proje
 ### `MINIAPP_AUTH_MODE`
 - **Type:** `string`
 - **Required:** Optional
-- **Default:** `"verify"`
-- **Description:** MiniApp authentication mode. Values: `verify`, `skip`.
+- **Default:** `"jwks"` (effective default)
+- **Description:** MiniApp authentication mode. Use `remote` only if an explicit remote verification service must be used; otherwise BaseMan verifies tokens against Farcaster JWKS directly.
 
 ### `MINIAPP_AUTH_ORIGIN`
 - **Type:** `string` (URL)
@@ -294,16 +306,28 @@ This documentation describes all environment variables used in the BaseMan proje
 - **Note:** This variable is **NOT used** for Quick Auth Server origin. The Quick Auth Server origin is hardcoded to `https://auth.farcaster.xyz` per Farcaster official documentation. This variable may be used for other purposes in the future.
 
 ### `MINIAPP_AUTH_VERIFY_HEADERS`
-- **Type:** `string` (comma-separated)
+- **Type:** `string` (JSON object)
 - **Required:** Optional
-- **Default:** `"x-miniapp-signature,x-miniapp-timestamp"`
-- **Description:** Headers to verify for MiniApp authentication. Comma-separated header names.
+- **Default:** None
+- **Description:** Extra headers for remote MiniApp verification mode. Provide a JSON object string when `MINIAPP_AUTH_MODE=remote`.
 
 ### `MINIAPP_AUTH_VERIFY_URL`
 - **Type:** `string` (URL)
 - **Required:** Optional
-- **Default:** `"https://base-man.vercel.app/api/miniapp-auth"`
-- **Description:** MiniApp authentication verification endpoint URL'i.
+- **Default:** None
+- **Description:** Remote MiniApp authentication verification endpoint. Only used when `MINIAPP_AUTH_MODE=remote`.
+
+### `MINIAPP_AUTH_DEBUG`
+- **Type:** `string` (boolean)
+- **Required:** Optional
+- **Default:** `"false"`
+- **Description:** Enables verbose MiniApp auth verification diagnostics. Keep disabled in production unless actively debugging auth incidents.
+
+### `CDP_WEBHOOK_SECRET`
+- **Type:** `string`
+- **Required:** Required in production if `/api/miniapp-webhook` is enabled
+- **Default:** None
+- **Description:** Shared secret used to validate incoming Mini App/CDP webhook signatures. Production webhook delivery is denied when this is missing.
 
 ---
 
@@ -486,6 +510,18 @@ Paymaster support is available in Base App; Farcaster mini-app wallets do not su
 - **Required:** Required (for paymaster proxy)
 - **Default:** None
 - **Description:** Paymaster service endpoint URL (CDP Paymaster). Use `/base` for mainnet or `/base-sepolia` for testnet.
+
+### `PAYMASTER_PROXY_DEBUG`
+- **Type:** `string` (boolean)
+- **Required:** Optional
+- **Default:** `"false"`
+- **Description:** Enables debug response headers on `/api/paymaster-proxy`. Keep disabled in production.
+
+### `TEST_REDIS_ENABLE_IN_PRODUCTION`
+- **Type:** `string` (boolean)
+- **Required:** Optional
+- **Default:** `"false"`
+- **Description:** Re-enables `/api/test-redis` in production. Keep disabled by default.
 
 ---
 

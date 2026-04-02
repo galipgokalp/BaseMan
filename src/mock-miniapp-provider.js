@@ -100,7 +100,7 @@
                   {}
                 ]
               };
-              const r = await fetch('/api/paymaster-proxy?auth=basic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pmPayload) });
+              const r = await fetch('/api/paymaster-proxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pmPayload) });
               const t = await r.text();
               try { fetch('/api/app-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'wallet_sendCalls:mock', meta: { status: r.status } }) }).catch(()=>{});} catch(_) {}
               if (r.status !== 200) throw new Error(`proxy status ${r.status}: ${t.slice(0,160)}`);

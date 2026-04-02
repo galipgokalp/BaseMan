@@ -1,324 +1,198 @@
 import { z } from 'zod';
 import { createClient as createQuickAuthClient } from '@farcaster/quick-auth';
+import { createLogger } from '../../src/utils/logger.js';
+import { isDebugFlagEnabled } from './request-policy.js';
+
+const log = createLogger('ApiMiniappAuthVerify');
+const FARCASTER_AUTH_ORIGIN = 'https://auth.farcaster.xyz';
 
 function env(key, fallback = '') {
-  const v = process?.env?.[key];
-  return typeof v === 'string' ? v.trim() : fallback;
+  const value = process?.env?.[key];
+  return typeof value === 'string' ? value.trim() : fallback;
 }
 
 function parseHeadersConfig(raw) {
   if (!raw || typeof raw !== 'string') return null;
   try {
-    const obj = JSON.parse(raw);
-    if (obj && typeof obj === 'object') return obj;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
   } catch (_) {}
   return null;
+}
+
+function createAuthError(code, statusCode, message, cause) {
+  const error = new Error(message);
+  error.code = code;
+  error.statusCode = statusCode;
+  error.cause = cause;
+  return error;
+}
+
+function resolveDomain(req, domainOverride) {
+  const explicitDomain = domainOverride || env('MINIAPP_AUTH_DOMAIN', '');
+  const hostHeader = String(req?.headers?.host || '').split(':')[0];
+  return explicitDomain || hostHeader || '';
+}
+
+function shouldUseRemoteVerification() {
+  const mode = env('MINIAPP_AUTH_MODE', '').toLowerCase();
+  const verifyUrl = env('MINIAPP_AUTH_VERIFY_URL', '');
+  return mode === 'remote' && Boolean(verifyUrl);
+}
+
+function isDebugEnabled() {
+  return isDebugFlagEnabled('MINIAPP_AUTH_DEBUG');
 }
 
 export const TokenSchema = z.object({ token: z.string().min(8) });
 
-export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) {
-  const mode = (env('MINIAPP_AUTH_MODE', '').toLowerCase() || '').trim();
-  const VERIFY_URL = env('MINIAPP_AUTH_VERIFY_URL');
+export function formatMiniAppAuthError(error, fallbackStatusCode = 401) {
+  const code = error?.code || 'verification_failed';
+  const statusCode = Number(error?.statusCode || fallbackStatusCode || 401);
+  if (code === 'missing_token') {
+    return { statusCode, body: { error: 'Mini App auth token missing', code } };
+  }
+  if (code === 'invalid_token') {
+    return { statusCode, body: { error: 'Mini App auth invalid', code } };
+  }
+  if (code === 'misconfigured_auth') {
+    return { statusCode, body: { error: 'Mini App auth misconfigured', code } };
+  }
+  return { statusCode, body: { error: 'Mini App auth verification failed', code } };
+}
 
-  // CRITICAL: Always use JWKS verification by default
-  // Remote endpoint is unreliable and often misconfigured (404 errors)
-  // JWKS is the official Farcaster method and more reliable
-  // Only use remote endpoint if explicitly required (mode='remote' AND VERIFY_URL set)
-  
-  // Local/JWKS verification using Farcaster issuer JWKS (DEFAULT)
-  // Use JWKS unless explicitly told to use remote endpoint
-  const shouldUseRemote = mode === 'remote' && VERIFY_URL;
-  const shouldUseJWKS = !shouldUseRemote;
-  
-  if (shouldUseJWKS) {
-    // CRITICAL: Always use Farcaster's official auth origin for JWKS
-    // Do not allow environment variable override - it causes issues when misconfigured
-    const origin = 'https://auth.farcaster.xyz';
-    
-    // Domain resolution: explicit domain > domainOverride > host header
-    const explicitDomain = env('MINIAPP_AUTH_DOMAIN', '');
-    const resolvedDomain = domainOverride || explicitDomain || String(req?.headers?.host || '').split(':')[0] || undefined;
-    
-    if (!resolvedDomain) {
-      const err = new Error('Missing MINIAPP_AUTH_DOMAIN and could not infer from Host header');
-      err.statusCode = 400;
-      throw err;
-    }
-    
-    const domain = resolvedDomain;
-    
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      level: 'debug',
-      message: 'miniapp-auth-verify: using JWKS verification',
-      origin,
+async function verifyWithJwks({ token, domain }) {
+  const client = createQuickAuthClient({ origin: FARCASTER_AUTH_ORIGIN });
+  try {
+    const identity = await client.verifyJwt({ token, domain });
+    log.debug('JWKS verification succeeded', { domain, fid: identity?.fid || null });
+    return { ok: true, identity };
+  } catch (error) {
+    log.warn('JWKS verification failed', {
       domain,
-      mode: mode || 'default (no VERIFY_URL)',
-      jwksUrl: `${origin}/.well-known/jwks.json`
-    }));
-    
-    const client = createQuickAuthClient({ origin });
-    try {
-      const payload = await client.verifyJwt({ token, domain });
-      console.log(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'miniapp-auth-verify: JWKS verification success',
-        hasIdentity: !!payload,
-        fid: payload?.fid || null
-      }));
-      return { ok: true, identity: payload };
-    } catch (error) {
-      // Enhanced error logging for JWKS failures
-      const errorDetails = {
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'miniapp-auth-verify: JWKS verification failed',
-        error: error?.message || 'invalid token (jwks)',
-        errorName: error?.name || 'UnknownError',
-        origin,
-        domain,
-        jwksUrl: `${origin}/.well-known/jwks.json`
-      };
-      
-      // Try to fetch JWKS endpoint to diagnose the issue
-      try {
-        const jwksResponse = await fetch(`${origin}/.well-known/jwks.json`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-        errorDetails.jwksStatus = jwksResponse.status;
-        errorDetails.jwksStatusText = jwksResponse.statusText;
-        const jwksText = await jwksResponse.text();
-        errorDetails.jwksResponseLength = jwksText.length;
-        errorDetails.jwksResponsePreview = jwksText.substring(0, 200);
-        try {
-          JSON.parse(jwksText);
-          errorDetails.jwksIsValidJson = true;
-        } catch {
-          errorDetails.jwksIsValidJson = false;
-        }
-      } catch (jwksFetchErr) {
-        errorDetails.jwksFetchError = jwksFetchErr?.message || 'failed to fetch JWKS';
+      name: error?.name || 'UnknownError',
+      message: isDebugEnabled() ? error?.message || 'invalid token' : 'invalid token'
+    });
+    throw createAuthError('invalid_token', 401, 'Mini App auth invalid', error);
+  }
+}
+
+async function verifyWithRemote({ token, req }) {
+  const verifyUrl = env('MINIAPP_AUTH_VERIFY_URL', '');
+  if (!verifyUrl) {
+    throw createAuthError('misconfigured_auth', 500, 'Mini App auth misconfigured');
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  const extraHeaders = parseHeadersConfig(env('MINIAPP_AUTH_VERIFY_HEADERS', ''));
+  if (extraHeaders) {
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      if (typeof value === 'string') {
+        headers[key] = value;
       }
-      
-      console.log(JSON.stringify(errorDetails));
-      
-      const err = new Error(error?.message || 'invalid token (jwks)');
-      err.statusCode = 401;
-      throw err;
     }
   }
 
-  // Remote verify endpoint (only if explicitly requested: mode='remote' AND VERIFY_URL set)
-  if (shouldUseRemote && VERIFY_URL) {
-    const headers = { 'Content-Type': 'application/json' };
-    const extra = parseHeadersConfig(env('MINIAPP_AUTH_VERIFY_HEADERS', ''));
-    if (extra) {
-      for (const [k, v] of Object.entries(extra)) {
-        if (typeof v === 'string') headers[k] = v;
-      }
-    }
-    
-    // Log request details (mask token for security)
-    const tokenPrefix = token?.substring(0, 20) || 'missing';
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      level: 'debug',
-      message: 'miniapp-auth-verify: calling remote endpoint',
-      verifyUrl: VERIFY_URL,
-      tokenPrefix: tokenPrefix + '...',
-      tokenLength: token?.length || 0,
-      hasExtraHeaders: !!extra,
-      headerKeys: Object.keys(headers)
-    }));
-    
+  try {
+    const upstream = await fetch(verifyUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ token })
+    });
+
+    const text = await upstream.text();
+    let json = null;
     try {
-      const upstream = await fetch(VERIFY_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ token })
-      });
-      const text = await upstream.text();
-      let json = null; 
-      try { 
-        json = JSON.parse(text); 
-      } catch (_parseErr) {
-        console.log(JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'warn',
-          message: 'miniapp-auth-verify: failed to parse response as JSON',
-          status: upstream.status,
-          statusText: upstream.statusText,
-          responseText: text?.substring(0, 200) || 'empty'
-        }));
-      }
-      
-      if (!upstream.ok) {
-        // CRITICAL: If remote endpoint returns 404 (not found), fallback to JWKS verification
-        // This handles cases where VERIFY_URL is misconfigured or endpoint doesn't exist
-        if (upstream.status === 404) {
-          console.log(JSON.stringify({
-            timestamp: new Date().toISOString(),
-            level: 'warn',
-            message: 'miniapp-auth-verify: remote endpoint 404, falling back to JWKS',
-            verifyUrl: VERIFY_URL
-          }));
-          
-          // Fallback to JWKS verification
-          // CRITICAL: Always use Farcaster's official auth origin
-          const origin = 'https://auth.farcaster.xyz';
-          const explicitDomain = domainOverride || env('MINIAPP_AUTH_DOMAIN', '');
-          const hostHeader = String(req?.headers?.host || '').split(':')[0];
-          const domain = explicitDomain || hostHeader || undefined;
-          
-          if (domain) {
-            try {
-              console.log(JSON.stringify({
-                timestamp: new Date().toISOString(),
-                level: 'debug',
-                message: 'miniapp-auth-verify: attempting JWKS fallback',
-                origin,
-                domain,
-                jwksUrl: `${origin}/.well-known/jwks.json`
-              }));
-              
-              const client = createQuickAuthClient({ origin });
-              const payload = await client.verifyJwt({ token, domain });
-              console.log(JSON.stringify({
-                timestamp: new Date().toISOString(),
-                level: 'info',
-                message: 'miniapp-auth-verify: JWKS fallback success',
-                hasIdentity: !!payload,
-                fid: payload?.fid || null
-              }));
-              return { ok: true, identity: payload };
-            } catch (jwksError) {
-              // Enhanced error logging for JWKS fallback failures
-              const errorDetails = {
-                timestamp: new Date().toISOString(),
-                level: 'error',
-                message: 'miniapp-auth-verify: JWKS fallback also failed',
-                error: jwksError?.message || 'invalid token (jwks)',
-                errorName: jwksError?.name || 'UnknownError',
-                origin,
-                domain,
-                jwksUrl: `${origin}/.well-known/jwks.json`
-              };
-              
-              // Try to fetch JWKS endpoint to diagnose the issue
-              try {
-                const jwksResponse = await fetch(`${origin}/.well-known/jwks.json`, {
-                  method: 'GET',
-                  headers: { 'Accept': 'application/json' }
-                });
-                errorDetails.jwksStatus = jwksResponse.status;
-                errorDetails.jwksStatusText = jwksResponse.statusText;
-                const jwksText = await jwksResponse.text();
-                errorDetails.jwksResponseLength = jwksText.length;
-                errorDetails.jwksResponsePreview = jwksText.substring(0, 200);
-                try {
-                  JSON.parse(jwksText);
-                  errorDetails.jwksIsValidJson = true;
-                } catch {
-                  errorDetails.jwksIsValidJson = false;
-                }
-              } catch (jwksFetchErr) {
-                errorDetails.jwksFetchError = jwksFetchErr?.message || 'failed to fetch JWKS';
-              }
-              
-              console.log(JSON.stringify(errorDetails));
-              
-              const err = new Error(jwksError?.message || 'token verification failed (remote 404, JWKS fallback failed)');
-              err.statusCode = 401;
-              throw err;
-            }
-          } else {
-            // Can't fallback - no domain
-            const err = new Error('Remote endpoint 404 and cannot fallback to JWKS (missing domain)');
-            err.statusCode = 500;
-            throw err;
-          }
-        }
-        
-        // For other errors (not 404), log and throw
-        console.log(JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'error',
-          message: 'miniapp-auth-verify: remote endpoint returned error',
-          verifyUrl: VERIFY_URL,
-          status: upstream.status,
-          statusText: upstream.statusText,
-          response: json || text?.substring(0, 200) || 'empty',
-          responseType: json ? 'json' : 'text'
-        }));
-        
-        const err = new Error(json?.error || text || 'token verification failed');
-        err.statusCode = upstream.status === 401 || upstream.status === 403 ? 401 : 500;
-        err.response = json || text;
-        err.remoteStatus = upstream.status;
-        err.remoteStatusText = upstream.statusText;
-        throw err;
-      }
-      
-      console.log(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'miniapp-auth-verify: remote endpoint success',
-        verifyUrl: VERIFY_URL,
+      json = JSON.parse(text);
+    } catch (_) {}
+
+    if (!upstream.ok) {
+      const isAuthStatus = upstream.status === 401 || upstream.status === 403;
+      log.warn('Remote Mini App auth verification failed', {
         status: upstream.status,
-        hasIdentity: !!json
-      }));
-      
-      return { ok: true, identity: json || null };
-    } catch (fetchErr) {
-      // Network or fetch errors
-      console.log(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'miniapp-auth-verify: fetch error',
-        verifyUrl: VERIFY_URL,
-        error: fetchErr?.message || 'unknown fetch error',
-        errorName: fetchErr?.name || 'UnknownError',
-        errorCode: fetchErr?.code || null
-      }));
-      
-      const err = new Error(fetchErr?.message || 'token verification failed (network error)');
-      err.statusCode = 500;
-      err.originalError = fetchErr;
-      throw err;
+        verifyUrl,
+        bodyPreview: isDebugEnabled() ? String(text || '').slice(0, 160) : undefined
+      });
+      throw createAuthError(
+        isAuthStatus ? 'invalid_token' : 'verification_failed',
+        isAuthStatus ? 401 : 502,
+        isAuthStatus ? 'Mini App auth invalid' : 'Mini App auth verification failed'
+      );
     }
+
+    log.debug('Remote Mini App auth verification succeeded', {
+      verifyUrl,
+      fid: json?.fid || null,
+      host: req?.headers?.host || null
+    });
+    return { ok: true, identity: json || null };
+  } catch (error) {
+    if (error?.code) {
+      throw error;
+    }
+    log.error('Remote Mini App auth verification error', {
+      verifyUrl,
+      name: error?.name || 'UnknownError',
+      message: error?.message || 'network failure'
+    });
+    throw createAuthError('verification_failed', 502, 'Mini App auth verification failed', error);
+  }
+}
+
+export async function verifyQuickAuthToken({ token, req, domainOverride } = {}) {
+  const domain = resolveDomain(req, domainOverride);
+  if (!domain) {
+    log.error('Mini App auth domain resolution failed');
+    throw createAuthError('misconfigured_auth', 500, 'Mini App auth misconfigured');
   }
 
-  const err = new Error('Verification not configured');
-  err.statusCode = 501;
-  throw err;
+  if (shouldUseRemoteVerification()) {
+    return verifyWithRemote({ token, req, domain });
+  }
+
+  return verifyWithJwks({ token, domain });
 }
 
 export function extractQuickAuthToken(req, body) {
   try {
-    const h = req?.headers || {};
-    const auth = h['authorization'] || h['Authorization'];
+    const headers = req?.headers || {};
+    const auth = headers.authorization || headers.Authorization;
     if (typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) {
       return auth.slice(7).trim();
     }
-    const x1 = h['x-miniapp-auth-token'] || h['x-quickauth-token'];
-    if (typeof x1 === 'string' && x1.trim().length >= 8) return x1.trim();
+
+    const altHeader = headers['x-miniapp-auth-token'] || headers['x-quickauth-token'];
+    if (typeof altHeader === 'string' && altHeader.trim().length >= 8) {
+      return altHeader.trim();
+    }
+
     const token = body?.quickAuthToken || body?.token;
-    if (typeof token === 'string' && token.length >= 8) return token;
+    if (typeof token === 'string' && token.length >= 8) {
+      return token;
+    }
   } catch (_) {}
   return null;
 }
 
+export function requireMiniAppToken(req, body) {
+  const token = extractQuickAuthToken(req, body);
+  if (!token) {
+    throw createAuthError('missing_token', 401, 'Mini App auth token missing');
+  }
+  return token;
+}
+
 export function isMiniAppAuthRequired(endpoint) {
-  const global = (env('REQUIRE_MINIAPP_AUTH', 'false').toLowerCase() || '') === 'true';
-  const map = {
+  const global = env('REQUIRE_MINIAPP_AUTH', 'false').toLowerCase() === 'true';
+  const endpointSetting = {
     score: env('SCORE_REQUIRE_MINIAPP_AUTH', ''),
     quest: env('QUEST_REQUIRE_MINIAPP_AUTH', '')
-  };
-  const v = (map[endpoint] || '').toLowerCase();
-  if (v === 'true') return true;
-  if (v === 'false') return false;
+  }[endpoint];
+
+  const normalized = String(endpointSetting || '').toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
   return global;
 }

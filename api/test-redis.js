@@ -6,10 +6,16 @@
 
 import { saveProfileMapping, getProfileMapping, isRedisAvailable } from './_lib/redis-profiles.js';
 import { createLogger } from "../src/utils/logger.js";
+import { denyInProduction } from './_lib/request-policy.js';
 
 const log = createLogger("ApiTestRedis");
 
 export default async function handler(req, res) {
+  const denied = denyInProduction(res, 'TEST_REDIS_ENABLE_IN_PRODUCTION', 'test-redis');
+  if (denied) {
+    return denied;
+  }
+
   // Only allow GET and POST
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');

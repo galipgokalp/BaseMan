@@ -5,6 +5,11 @@
 
 import { createLogger } from "../src/utils/logger.js";
 import { getRollbar } from './_lib/rollbar.js';
+import {
+  denyInProduction,
+  hasBearerSecret,
+  isProductionRuntime
+} from './_lib/request-policy.js';
 
 const log = createLogger("ApiAiAgentWebhook");
 
@@ -454,6 +459,12 @@ export default async function handler(req, res) {
   const config = getAiAgentConfig();
   // Debug endpoint - GET request for checking configuration
   if (req.method === 'GET') {
+    if (isProductionRuntime()) {
+      const denied = denyInProduction(res, 'AI_AGENT_ALLOW_DEBUG_GET', 'ai-agent-webhook');
+      if (denied) {
+        return denied;
+      }
+    }
     return res.status(200).json({
       enabled: config.agentEnabled,
       provider: config.provider,
@@ -474,6 +485,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST, GET');
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (isProductionRuntime()) {
+    const denied = denyInProduction(res, 'AI_AGENT_ENABLE_IN_PRODUCTION', 'ai-agent-webhook');
+    if (denied) {
+      return denied;
+    }
+  }
+
+  if (!hasBearerSecret(req, 'AI_AGENT_WEBHOOK_SECRET', ['authorization', 'x-ai-agent-secret'])) {
+    return res.status(403).json({ error: 'ai-agent-webhook forbidden' });
   }
 
   try {

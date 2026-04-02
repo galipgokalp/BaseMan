@@ -1,8 +1,9 @@
 import { ethers } from "ethers";
 import { Buffer } from "buffer";
 import { z } from "zod";
-import { getRegistryContext } from "./_lib/registry.js";
+import { getRegistryContext, getRegistryTargets } from "./_lib/registry.js";
 import { createLogger } from "../src/utils/logger.js";
+import { isDebugFlagEnabled } from "./_lib/request-policy.js";
 
 const log = createLogger("ApiPaymasterProxy");
 
@@ -75,6 +76,18 @@ function buildAllowlistContext(registryContext, extraTargets) {
   }
 
   return { allowedTargets: addresses, normalizedRegistryAddress, expectedChainIdHex };
+}
+
+function resolveRegistryContextForChainId(chainIdValue) {
+  const normalizedChainId = ethers.toBeHex(chainIdValue).toLowerCase();
+  for (const target of getRegistryTargets()) {
+    const candidate = getRegistryContext(target);
+    const candidateChainId = ethers.toBeHex(candidate.chainId).toLowerCase();
+    if (candidateChainId === normalizedChainId) {
+      return candidate;
+    }
+  }
+  throw new Error(`No registry configured for chainId ${normalizedChainId}`);
 }
 
 const smartWalletInterface = new ethers.Interface([
@@ -154,6 +167,22 @@ function extractUserOperation(payload) {
       }
     }
   }
+  return null;
+}
+
+function extractRequestedChainId(payload, userOp) {
+  if (userOp?.chainId != null) {
+    return userOp.chainId;
+  }
+
+  if (!payload?.params || !Array.isArray(payload.params)) {
+    return null;
+  }
+
+  if (payload.params.length >= 3) {
+    return payload.params[2];
+  }
+
   return null;
 }
 
@@ -273,17 +302,13 @@ function validateTargetsFromCallData(callData, allowlist, config) {
   return { ok: true };
 }
 
-async function forwardToPaymaster(payload, authMode, overrideHeaders) {
+async function forwardToPaymaster(payload) {
   const paymasterServiceUrl = readEnv('PAYMASTER_SERVICE_URL') || readEnv('PAYMASTER_URL');
   if (!paymasterServiceUrl) {
     throw new Error("Paymaster proxy is missing PAYMASTER_SERVICE_URL configuration.");
   }
 
-  // Birden fazla kimlik doğrulama modu deneyebilmek için aday başlık setleri oluştur.
   const authHeaderCandidates = (() => {
-    if (overrideHeaders && typeof overrideHeaders === 'object') {
-      return [Object.assign({ "Content-Type": "application/json" }, overrideHeaders)];
-    }
     const list = [];
     const PAYMASTER_API_KEY = readEnv('PAYMASTER_API_KEY');
     const PAYMASTER_API_KEY_HEADER = readEnv('PAYMASTER_API_KEY_HEADER', 'Authorization') || 'Authorization';
@@ -325,9 +350,6 @@ async function forwardToPaymaster(payload, authMode, overrideHeaders) {
     // 6) x-api-key: <CDP_API_KEY_SECRET>
     if (CDP_API_KEY_SECRET) addAuth("x-api-key", "", CDP_API_KEY_SECRET);
 
-    // 7) Headersız (bazı path‑param’lı endpointler için)
-    list.push({ "Content-Type": "application/json" });
-
     // Tekrarlı kombinasyonları ele
     const serialized = new Set();
     const unique = [];
@@ -338,24 +360,10 @@ async function forwardToPaymaster(payload, authMode, overrideHeaders) {
         unique.push(h);
       }
     }
-    let out = unique;
-    // Force mode for diagnostics: 'basic', 'both', 'bearer', 'x-api-key', 'none'
-    const mode = (authMode || "").toString().toLowerCase();
-    if (mode === 'basic' && (CDP_API_KEY_ID && CDP_API_KEY_SECRET)) {
-      try {
-        const token = Buffer.from(`${CDP_API_KEY_ID}:${CDP_API_KEY_SECRET}`).toString('base64');
-        out = [{ "Content-Type": "application/json", Authorization: `Basic ${token}` }];
-      } catch (_) {}
-    } else if (mode === 'both' && (CDP_API_KEY_ID && CDP_API_KEY_SECRET)) {
-      out = [{ "Content-Type": "application/json", "x-api-key": CDP_API_KEY_ID, Authorization: `Bearer ${CDP_API_KEY_SECRET}` }];
-    } else if (mode === 'bearer' && CDP_API_KEY_SECRET) {
-      out = [{ "Content-Type": "application/json", Authorization: `Bearer ${CDP_API_KEY_SECRET}` }];
-    } else if (mode === 'x-api-key' && PAYMASTER_API_KEY) {
-      out = [{ "Content-Type": "application/json", "x-api-key": PAYMASTER_API_KEY }];
-    } else if (mode === 'none') {
-      out = [{ "Content-Type": "application/json" }];
+    if (unique.length) {
+      return unique;
     }
-    return out;
+    return [{ "Content-Type": "application/json" }];
   })();
 
   let lastResponse = null;
@@ -424,10 +432,25 @@ export default async function handler(req, res) {
 
   const jsonRpc = parsed.data;
   let allowlistCtx = null;
+  const debugHeadersEnabled = isDebugFlagEnabled('PAYMASTER_PROXY_DEBUG');
+  const userOp = extractUserOperation(jsonRpc);
+  const requestedChainId = extractRequestedChainId(jsonRpc, userOp);
+
+  if (req.headers?.authorization || req.headers?.['x-api-key']) {
+    return res.status(403).json({
+      error: "Client-supplied paymaster credentials are not supported"
+    });
+  }
 
   if (config.enforceAllowlist) {
+    if (requestedChainId == null) {
+      return res.status(403).json({
+        error: "chainId is required for sponsored calls"
+      });
+    }
+
     try {
-      const registryContext = getRegistryContext();
+      const registryContext = resolveRegistryContextForChainId(requestedChainId);
       allowlistCtx = buildAllowlistContext(registryContext, config.extraTargets);
     } catch (error) {
       return res.status(503).json({
@@ -436,7 +459,12 @@ export default async function handler(req, res) {
       });
     }
 
-    const userOp = extractUserOperation(jsonRpc);
+    if (!userOp?.callData) {
+      return res.status(400).json({
+        error: "UserOperation callData is required for sponsorship"
+      });
+    }
+
     if (userOp?.callData) {
       const validation = validateTargetsFromCallData(userOp.callData, allowlistCtx, config);
       if (!validation.ok) {
@@ -444,35 +472,27 @@ export default async function handler(req, res) {
       }
     }
 
-    if (userOp?.chainId) {
-      try {
-        const normalizedChainId = ethers.toBeHex(userOp.chainId);
-        const expectedChainIdHex = allowlistCtx.expectedChainIdHex;
-        if (normalizedChainId.toLowerCase() !== expectedChainIdHex.toLowerCase()) {
-          return res.status(403).json({
-            error: `Unsupported chainId ${normalizedChainId}, expected ${expectedChainIdHex}`
-          });
-        }
-      } catch (error) {
+    try {
+      const normalizedChainId = ethers.toBeHex(requestedChainId);
+      const expectedChainIdHex = allowlistCtx.expectedChainIdHex;
+      if (normalizedChainId.toLowerCase() !== expectedChainIdHex.toLowerCase()) {
         return res.status(403).json({
-          error: `Unable to normalize chainId: ${error?.message || error}`
+          error: `Unsupported chainId ${normalizedChainId}, expected ${expectedChainIdHex}`
         });
       }
+    } catch (error) {
+      return res.status(403).json({
+        error: `Unable to normalize chainId: ${error?.message || error}`
+      });
     }
   }
 
   try {
-    const override = {};
-    if (req.headers && typeof req.headers === 'object') {
-      if (req.headers['authorization']) override['Authorization'] = String(req.headers['authorization']);
-      if (req.headers['x-api-key']) override['x-api-key'] = String(req.headers['x-api-key']);
-    }
     const method = jsonRpc.method || 'unknown';
-    const upstream = await forwardToPaymaster(jsonRpc, req.query?.auth, Object.keys(override).length ? override : null);
+    const upstream = await forwardToPaymaster(jsonRpc);
     res.status(upstream.status);
     res.setHeader("Content-Type", upstream.contentType);
-    const isProd = String(process?.env?.NODE_ENV || '').toLowerCase() === 'production';
-    if (!isProd) {
+    if (debugHeadersEnabled) {
       try { res.setHeader('X-Env-Has-PSU', String(Boolean(process?.env?.PAYMASTER_SERVICE_URL))); } catch (_) {}
       try { if (Array.isArray(upstream.debug)) res.setHeader('X-Auth-Debug', upstream.debug.join(',')); } catch (_) {}
       try { const u = new URL(serviceUrl); res.setHeader('X-Target-Host', u.host); res.setHeader('X-Target-Path', u.pathname); } catch (_) {}

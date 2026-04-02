@@ -4,7 +4,7 @@
  - Uses /api/score-sign to get a valid signature (v1 or v2)
  - Encodes Registry.submitScore callData
  - Wraps into smart wallet execute(...) callData
- - Calls /api/paymaster-proxy?auth=basic with pm_getPaymasterStubData
+ - Calls /api/paymaster-proxy with pm_getPaymasterStubData
  - Expects 200 and result.paymasterAndData
 
  Env:
@@ -137,7 +137,7 @@ async function main() {
         {}
       ]
     };
-    const r = await fetch(`${BASE}/api/paymaster-proxy?auth=basic`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const r = await fetch(`${BASE}/api/paymaster-proxy`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const txt = await r.text();
     let j; try { j = JSON.parse(txt); } catch {}
     const ok = r.status === 200 && j && j.result && typeof j.result.paymasterAndData === 'string' && j.result.paymasterAndData.startsWith('0x');

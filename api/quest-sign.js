@@ -7,7 +7,12 @@ import {
   normalizeAddress,
   getQuestTypes
 } from "./_lib/registry.js";
-import { extractQuickAuthToken, isMiniAppAuthRequired, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
+import {
+  formatMiniAppAuthError,
+  isMiniAppAuthRequired,
+  requireMiniAppToken,
+  verifyQuickAuthToken
+} from './_lib/miniapp-auth-verify.js';
 import { getEnv } from "./_lib/env.js";
 
 let cachedConfig = null;
@@ -80,15 +85,12 @@ export default async function handler(req, res) {
 
   // Enforce Quick Auth if configured
   if (isMiniAppAuthRequired('quest')) {
-    const token = extractQuickAuthToken(req, payload);
-    if (!token) {
-      return res.status(401).json({ error: 'Mini App auth token missing' });
-    }
     try {
+      const token = requireMiniAppToken(req, payload);
       await verifyQuickAuthToken({ token, req });
     } catch (error) {
-      const status = Number(error?.statusCode || 401);
-      return res.status(status).json({ error: 'Mini App auth invalid', details: error?.message || String(error) });
+      const failure = formatMiniAppAuthError(error, 401);
+      return res.status(failure.statusCode).json(failure.body);
     }
   }
 

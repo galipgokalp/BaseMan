@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { createLogger } from "../src/utils/logger.js";
+import { denyInProduction, isProductionRuntime } from "./_lib/request-policy.js";
 
 const log = createLogger("ApiMiniappWebhook");
 
@@ -174,9 +175,27 @@ async function forwardLog(details, config) {
 }
 
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    if (isProductionRuntime()) {
+      const denied = denyInProduction(
+        res,
+        "MINIAPP_WEBHOOK_ALLOW_NON_POST_IN_PRODUCTION",
+        "miniapp-webhook"
+      );
+      if (denied) {
+        return denied;
+      }
+    }
+    return res.status(200).json({ status: "ok" });
+  }
+
+  const secret = process.env.CDP_WEBHOOK_SECRET;
+  if (isProductionRuntime() && !secret) {
+    return res.status(404).json({ error: "miniapp-webhook is not available" });
+  }
+
   if (req.method === "POST") {
     const config = getWebhookConfig();
-    const secret = process.env.CDP_WEBHOOK_SECRET;
     const cacheTtl = Number(process.env.CDP_WEBHOOK_CACHE_TTL_MS || 5 * 60 * 1000);
     const rawBody = extractRawBody(req);
     let _parsedBody = null;
@@ -222,8 +241,6 @@ export default async function handler(req, res) {
     }, config);
     return res.status(200).json({ received: true });
   }
-
-  return res.status(200).json({ status: "ok" });
 }
 
 

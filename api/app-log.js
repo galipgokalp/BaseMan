@@ -283,10 +283,15 @@ export default async function handler(req, res) {
     const AI_AGENT_URL = process.env.AI_AGENT_WEBHOOK_URL || '';
     if (AI_AGENT_URL && (entry.event === 'error' || entry.event === 'warn')) {
       try {
+        const secret = String(process.env.AI_AGENT_WEBHOOK_SECRET || '').trim();
+        const headers = { 'Content-Type': 'application/json' };
+        if (secret) {
+          headers.Authorization = `Bearer ${secret}`;
+        }
         // Fire-and-forget; do not block response on failures
         fetch(AI_AGENT_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(entry)
         }).catch(() => {});
       } catch (_) {}

@@ -8,7 +8,13 @@ import {
   normalizeAddress,
   getScoreTypes
 } from "./_lib/registry.js";
-import { extractQuickAuthToken, isMiniAppAuthRequired, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
+import {
+  extractQuickAuthToken,
+  formatMiniAppAuthError,
+  isMiniAppAuthRequired,
+  requireMiniAppToken,
+  verifyQuickAuthToken
+} from './_lib/miniapp-auth-verify.js';
 import { setManualProfile } from "./_lib/farcaster-profiles.js";
 
 import { getEnv } from "./_lib/env.js";
@@ -116,15 +122,13 @@ export default async function handler(req, res) {
   let decodedIdentity = null;
   const token = extractQuickAuthToken(req, payload);
   if (isMiniAppAuthRequired('score')) {
-    if (!token) {
-      return res.status(401).json({ error: 'Mini App auth token missing' });
-    }
     try {
-      const verified = await verifyQuickAuthToken({ token, req });
+      const requiredToken = requireMiniAppToken(req, payload);
+      const verified = await verifyQuickAuthToken({ token: requiredToken, req });
       decodedIdentity = verified?.identity || null;
     } catch (error) {
-      const status = Number(error?.statusCode || 401);
-      return res.status(status).json({ error: 'Mini App auth invalid', details: error?.message || String(error) });
+      const failure = formatMiniAppAuthError(error, 401);
+      return res.status(failure.statusCode).json(failure.body);
     }
   } else if (token) {
     // Best-effort decode even when not required, to harvest fid/username for leaderboard

@@ -1,4 +1,8 @@
-import { TokenSchema, verifyQuickAuthToken } from './_lib/miniapp-auth-verify.js';
+import {
+  formatMiniAppAuthError,
+  TokenSchema,
+  verifyQuickAuthToken
+} from './_lib/miniapp-auth-verify.js';
 
 // Simple logger for serverless environment
 function log(level, message, meta = {}) {
@@ -45,13 +49,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const tokenPrefix = parsed.data.token?.substring(0, 20) || 'missing';
-    log('debug', 'miniapp-auth verifying token', { 
-      path, 
-      tokenPrefix: tokenPrefix + '...',
-      tokenLength: parsed.data.token?.length || 0
-    });
-    
     const result = await verifyQuickAuthToken({ token: parsed.data.token, req });
     
     const duration = Date.now() - startTime;
@@ -64,18 +61,17 @@ export default async function handler(req, res) {
     
     return res.status(200).json({ ok: true, identity: result.identity || null });
   } catch (error) {
-    const status = Number(error?.statusCode || 500);
+    const failure = formatMiniAppAuthError(error, 500);
     const duration = Date.now() - startTime;
     
     log('error', 'miniapp-auth verification failed', {
       path,
-      status,
+      status: failure.statusCode,
       duration,
-      error: error?.message || 'verification error',
-      errorName: error?.name || 'UnknownError',
-      stack: error?.stack ? error.stack.split('\n').slice(0, 3).join(' | ') : null
+      error: error?.code || 'verification_failed',
+      errorName: error?.name || 'UnknownError'
     });
     
-    return res.status(status).json({ error: error?.message || 'verification error' });
+    return res.status(failure.statusCode).json(failure.body);
   }
 }
