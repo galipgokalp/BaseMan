@@ -108,6 +108,104 @@ export function setPanelVisible(panel, visible) {
 }
 
 /**
+ * Create a shared panel lifecycle controller.
+ * Standardizes open/close state, Escape handling, focus restore, and trigger tracking.
+ *
+ * @param {Object} options
+ * @param {Function} options.getPanel - returns panel element
+ * @param {Function} options.getIsOpen - returns current visibility state
+ * @param {Function} options.applyVisibility - applies visibility/state changes
+ * @param {Function|null} options.onAfterOpen - optional hook after opening
+ * @param {Function|null} options.onAfterClose - optional hook after closing
+ * @param {HTMLElement|Function|null} options.focusFallback - optional fallback focus target
+ * @returns {Object} lifecycle controller
+ */
+export function createPanelLifecycle({
+  getPanel,
+  getIsOpen,
+  applyVisibility,
+  onAfterOpen = null,
+  onAfterClose = null,
+  focusFallback = null
+}) {
+  let triggerEl = null;
+  let keydownHandler = null;
+
+  const attachEscHandler = () => {
+    if (keydownHandler) return;
+    keydownHandler = (e) => {
+      if (!getIsOpen()) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        lifecycle.hide();
+      }
+    };
+    document.addEventListener('keydown', keydownHandler);
+  };
+
+  const detachEscHandler = () => {
+    if (!keydownHandler) return;
+    document.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  };
+
+  const lifecycle = {
+    setVisible(visible, context = {}) {
+      const panel = getPanel();
+      if (!panel) return false;
+
+      const nextVisible = Boolean(visible);
+      const currentVisible = Boolean(getIsOpen());
+      if (currentVisible === nextVisible && !context.force) {
+        return false;
+      }
+
+      applyVisibility(nextVisible, panel, context);
+
+      if (nextVisible) {
+        const fallbackTarget = typeof focusFallback === 'function'
+          ? focusFallback(panel)
+          : (focusFallback || panel);
+        requestAnimationFrame(() => focusFirstFocusable(panel, { fallback: fallbackTarget || panel }));
+        attachEscHandler();
+        if (typeof onAfterOpen === 'function') {
+          onAfterOpen(panel, context);
+        }
+      } else {
+        detachEscHandler();
+        if (triggerEl && typeof triggerEl.focus === 'function') {
+          requestAnimationFrame(() => triggerEl.focus());
+        }
+        if (typeof onAfterClose === 'function') {
+          onAfterClose(panel, context);
+        }
+      }
+
+      return true;
+    },
+    show(context = {}) {
+      return lifecycle.setVisible(true, context);
+    },
+    hide(context = {}) {
+      return lifecycle.setVisible(false, context);
+    },
+    toggle(context = {}) {
+      return lifecycle.setVisible(!getIsOpen(), context);
+    },
+    setTriggerElement(el) {
+      if (el instanceof HTMLElement) {
+        triggerEl = el;
+      }
+    },
+    isOpen() {
+      return Boolean(getIsOpen());
+    }
+  };
+
+  return lifecycle;
+}
+
+/**
  * Wire close button for a panel
  * @param {HTMLElement} panel - Panel element
  * @param {Function} onClose - Callback when close button is clicked
@@ -189,6 +287,7 @@ export const PanelBase = {
   networkName,
   getEnv,
   createElement,
+  createPanelLifecycle,
   setPanelVisible,
   wirePanelCloseButton,
   wirePanelOverlay,

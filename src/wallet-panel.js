@@ -3,7 +3,7 @@
  * Displays wallet information, network, and balances
  */
 
-import { abbreviateAddress, networkLabel, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, createElement, createPanelLifecycle, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('UiWalletPanel');
@@ -77,51 +77,19 @@ let isOpen = false;
 
 // Track if elements are already wired to prevent duplicate listeners
 const wiredElements = new WeakSet();
-let triggerEl = null;
-let keydownHandler = null;
-
-function attachEscHandler() {
-  if (keydownHandler) return;
-  keydownHandler = (e) => {
-    if (!isOpen) return;
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      setVisible(false);
-    }
-  };
-  document.addEventListener('keydown', keydownHandler);
-}
-
-function detachEscHandler() {
-  if (!keydownHandler) return;
-  document.removeEventListener('keydown', keydownHandler);
-  keydownHandler = null;
-}
-
-function setVisible(visible) {
-  const panel = ensurePanel();
-  if (!panel) return;
-
-  isOpen = !!visible;
-  // Show panel immediately (synchronous)
-  setPanelVisible(panel, isOpen);
-  if (isOpen) {
-    requestAnimationFrame(() => focusFirstFocusable(panel));
-    attachEscHandler();
-  } else {
-    detachEscHandler();
-    if (triggerEl && typeof triggerEl.focus === 'function') {
-      requestAnimationFrame(() => triggerEl.focus());
-    }
-  }
-
-  if (isOpen) {
-    // Refresh in background (non-blocking)
+const lifecycle = createPanelLifecycle({
+  getPanel: ensurePanel,
+  getIsOpen: () => isOpen,
+  applyVisibility(visible, panel) {
+    isOpen = !!visible;
+    setPanelVisible(panel, isOpen);
+  },
+  onAfterOpen() {
     requestAnimationFrame(() => {
       refresh();
     });
   }
-}
+});
 
 async function refresh() {
   const panel = ensurePanel();
@@ -366,10 +334,10 @@ function updateStatus(status, className) {
 
 function wire(panel) {
   // Wire close button using shared helper
-  wirePanelCloseButton(panel, () => setVisible(false), wiredElements);
+  wirePanelCloseButton(panel, () => lifecycle.hide(), wiredElements);
   
   // Wire overlay click using shared helper
-  wirePanelOverlay(panel, () => setVisible(false), wiredElements);
+  wirePanelOverlay(panel, () => lifecycle.hide(), wiredElements);
 }
 
 function init() {
@@ -390,12 +358,12 @@ function init() {
 
 // Public API
 window.WalletPanel = {
-  show: () => setVisible(true),
-  hide: () => setVisible(false),
-  toggle: () => setVisible(!isOpen),
-  setTriggerElement: (el) => { if (el instanceof HTMLElement) triggerEl = el; },
+  show: () => lifecycle.show(),
+  hide: () => lifecycle.hide(),
+  toggle: () => lifecycle.toggle(),
+  setTriggerElement: (el) => lifecycle.setTriggerElement(el),
   refresh: () => refresh(),
-  isOpen: () => isOpen
+  isOpen: () => lifecycle.isOpen()
 };
 
 // Initialize immediately - don't wait for SDK

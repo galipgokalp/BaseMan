@@ -3,7 +3,7 @@ import { join } from 'path';
 import { expect } from 'chai';
 
 import { escapeHtml, escapeHtmlPreserveNewlines } from '../src/utils/escape-html.js';
-import { setPanelVisible } from '../src/utils/panel-base.js';
+import { createPanelLifecycle, setPanelVisible } from '../src/utils/panel-base.js';
 
 function parseOnchainConfig() {
   const content = readFileSync(join(process.cwd(), 'src/onchain-config.js'), 'utf-8');
@@ -88,6 +88,51 @@ describe('panel-base setPanelVisible', () => {
     setPanelVisible(panel, false);
     expect(panel.classList.has('open')).to.equal(false);
     expect(panel.getAttribute('aria-hidden')).to.equal('true');
+  });
+
+  it('creates a lifecycle controller that restores trigger focus on close', () => {
+    const originalDocument = global.document;
+    const originalRequestAnimationFrame = global.requestAnimationFrame;
+
+    global.requestAnimationFrame = (cb) => cb();
+    global.document = {
+      addEventListener() {},
+      removeEventListener() {}
+    };
+
+    const panel = createPanelStub();
+    panel.querySelectorAll = () => [];
+    panel.focus = () => {};
+
+    let open = false;
+    let triggerFocused = false;
+    class FakeHTMLElement {
+      focus() {
+        triggerFocused = true;
+      }
+    }
+    const originalHTMLElement = global.HTMLElement;
+    global.HTMLElement = FakeHTMLElement;
+
+    const lifecycle = createPanelLifecycle({
+      getPanel: () => panel,
+      getIsOpen: () => open,
+      applyVisibility(visible, nextPanel) {
+        open = visible;
+        setPanelVisible(nextPanel, visible);
+      }
+    });
+
+    lifecycle.setTriggerElement(new FakeHTMLElement());
+    lifecycle.show();
+    expect(open).to.equal(true);
+    lifecycle.hide();
+    expect(open).to.equal(false);
+    expect(triggerFocused).to.equal(true);
+
+    global.document = originalDocument;
+    global.requestAnimationFrame = originalRequestAnimationFrame;
+    global.HTMLElement = originalHTMLElement;
   });
 });
 

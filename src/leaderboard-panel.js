@@ -9,7 +9,7 @@
  */
 
 import { createLogger } from './utils/logger.js';
-import { focusFirstFocusable } from './utils/panel-base.js';
+import { createPanelLifecycle } from './utils/panel-base.js';
 import { loadLeaderboard } from './leaderboard/api.js';
 import { getCachedUserInfo, isMyEntry as isMyEntryService, clearUserInfoCache } from './leaderboard/services/user-detection.js';
 import { calculateMyRank } from './leaderboard/services/rank-calculation.js';
@@ -48,8 +48,6 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   if (titleEl) {
     panel.setAttribute('aria-labelledby', titleEl.id);
   }
-  let triggerEl = null;
-  let escHandler = null;
 
   // ============================================
   // VIEW CACHE - Phase 4.1 optimization
@@ -507,41 +505,34 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
     });
   };
 
-  const attachEscHandler = () => {
-    if (escHandler) return;
-    escHandler = (e) => {
-      if (!getVisible()) return;
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setVisible(false, { onChange: updatePanelVisibility });
-        if (window.BottomNav) window.BottomNav.setActive(null);
-      }
-    };
-    document.addEventListener('keydown', escHandler);
-  };
-
-  const detachEscHandler = () => {
-    if (!escHandler) return;
-    document.removeEventListener('keydown', escHandler);
-    escHandler = null;
-  };
-
   // Helper to update DOM visibility
   const updatePanelVisibility = (visible) => {
     if (visible) {
       panel.removeAttribute('hidden');
       panel.classList.add('open');
-      requestAnimationFrame(() => focusFirstFocusable(panel, { fallback: panel }));
-      attachEscHandler();
     } else {
       panel.setAttribute('hidden', '');
       panel.classList.remove('open');
-      detachEscHandler();
-      if (triggerEl && typeof triggerEl.focus === 'function') {
-        requestAnimationFrame(() => triggerEl.focus());
-      }
     }
   };
+
+  const lifecycle = createPanelLifecycle({
+    getPanel: () => panel,
+    getIsOpen: () => getVisible(),
+    applyVisibility(visible, _panel, options = {}) {
+      setVisible(visible, {
+        onChange: updatePanelVisibility,
+        onShow: loadLeaderboardData,
+        ...options
+      });
+    },
+    focusFallback: panel,
+    onAfterClose() {
+      if (window.BottomNav) {
+        window.BottomNav.setActive(null);
+      }
+    }
+  });
 
   // Initialize panel
   const init = async () => {
@@ -581,13 +572,10 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
         // Reset render cache when closing so next show gets fresh render
         resetRenderCache();
         lastMyRankState = null;
-        setVisible(false, { 
+        lifecycle.hide({ 
           reload: false,
           onChange: updatePanelVisibility
         });
-        if (window.BottomNav) {
-          window.BottomNav.setActive(null);
-        }
       };
       view.closeBtn.addEventListener('click', handleClose);
       view.closeBtn.addEventListener('touchend', handleClose, { passive: false });
@@ -636,31 +624,22 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
   window.BaseManLeaderboard = {
     show() {
       window.__BaseManLeaderboardDesiredVisible = true;
-      setVisible(true, {
-        onChange: updatePanelVisibility,
-        onShow: loadLeaderboardData,
+      lifecycle.show({
         reload: true
       });
     },
     hide() {
       window.__BaseManLeaderboardDesiredVisible = false;
-      setVisible(false, { 
+      lifecycle.hide({ 
         reload: false,
-        onChange: updatePanelVisibility
       });
     },
     setVisible(value, options = {}) {
       window.__BaseManLeaderboardDesiredVisible = Boolean(value);
-      setVisible(value, {
-        onChange: updatePanelVisibility,
-        onShow: loadLeaderboardData,
-        ...options
-      });
+      lifecycle.setVisible(value, options);
     },
     setTriggerElement(el) {
-      if (el instanceof HTMLElement) {
-        triggerEl = el;
-      }
+      lifecycle.setTriggerElement(el);
     },
     refresh() {
       if (getVisible()) {

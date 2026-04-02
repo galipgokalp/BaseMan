@@ -1,4 +1,4 @@
-import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, setPanelVisible, wirePanelCloseButton, wirePanelOverlay, focusFirstFocusable } from './utils/panel-base.js';
+import { abbreviateAddress, networkLabel, networkName, getEnv, createElement, createPanelLifecycle, setPanelVisible, wirePanelCloseButton, wirePanelOverlay } from './utils/panel-base.js';
 import { createLogger } from './utils/logger.js';
 
 const log = createLogger('UiProfilePanel');
@@ -54,8 +54,6 @@ function setupNetworkLogos(panel) {
 let currentDialog = null;
 let isDialogHandling = false;
 let dialogCloseTimeout = null;
-let triggerEl = null;
-let keydownHandler = null;
 
 function showNetworkConfirmDialog(targetChainId, onConfirm, onCancel) {
     // If a dialog is already open, close it first
@@ -632,52 +630,19 @@ let isOpen = false;
 // Track if elements are already wired to prevent duplicate listeners
 const wiredElements = new WeakSet();
 
-function attachEscListener() {
-    if (keydownHandler) return;
-    keydownHandler = (e) => {
-      if (!isOpen) return;
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setVisible(false);
-      }
-    };
-    document.addEventListener('keydown', keydownHandler);
-}
-
-function detachEscListener() {
-    if (!keydownHandler) return;
-    document.removeEventListener('keydown', keydownHandler);
-    keydownHandler = null;
-}
-
-function setVisible(visible) {
-    const shell = ensureShell();
-    if (!shell || !shell.panel) return;
-
+const lifecycle = createPanelLifecycle({
+  getPanel: () => ensureShell()?.panel || null,
+  getIsOpen: () => isOpen,
+  applyVisibility(visible, panel) {
     isOpen = !!visible;
-    // Show panel immediately (synchronous)
-    setPanelVisible(shell.panel, isOpen);
-    if (isOpen) {
-      // Focus first interactive element after open for accessibility
-      requestAnimationFrame(() => focusFirstFocusable(shell.panel));
-      attachEscListener();
-    } else {
-      detachEscListener();
-      if (triggerEl && typeof triggerEl.focus === 'function') {
-        requestAnimationFrame(() => triggerEl.focus());
-      }
-    }
-
-    if (isOpen) {
-      // Refresh panel in background (non-blocking)
-      // NOTE: Do NOT call ensureWallet() or signIn() here to avoid passkey prompts.
-      // Base App mini apps are automatically connected - wallet info is available without requesting.
-      // Only refresh panel to show current wallet status (if already connected).
-      requestAnimationFrame(() => {
-        refresh(shell.panel);
-      });
-    }
+    setPanelVisible(panel, isOpen);
+  },
+  onAfterOpen(panel) {
+    requestAnimationFrame(() => {
+      refresh(panel);
+    });
   }
+});
 
 function wire(panel, btn) {
     if (!panel) {
@@ -689,15 +654,15 @@ function wire(panel, btn) {
     if (btn && !wiredElements.has(btn)) {
       wiredElements.add(btn);
       btn.addEventListener('click', async () => {
-        setVisible(!isOpen);
+        lifecycle.toggle();
       });
     }
 
     // Wire close button using shared helper
-    wirePanelCloseButton(panel, () => setVisible(false), wiredElements);
+    wirePanelCloseButton(panel, () => lifecycle.hide(), wiredElements);
     
     // Wire overlay click using shared helper
-    wirePanelOverlay(panel, () => setVisible(false), wiredElements);
+    wirePanelOverlay(panel, () => lifecycle.hide(), wiredElements);
     
     // Setup network logos
     setupNetworkLogos(panel);
@@ -829,15 +794,15 @@ function initWhenReady() {
 
 // Public API
 window.ProfilePanel = {
-    show: () => setVisible(true),
-    hide: () => setVisible(false),
-    toggle: () => setVisible(!isOpen),
-    setTriggerElement: (el) => { if (el instanceof HTMLElement) triggerEl = el; },
+    show: () => lifecycle.show(),
+    hide: () => lifecycle.hide(),
+    toggle: () => lifecycle.toggle(),
+    setTriggerElement: (el) => lifecycle.setTriggerElement(el),
     refresh: () => {
       const shell = ensureShell();
       if (shell && shell.panel) refresh(shell.panel);
     },
-    isOpen: () => isOpen
+    isOpen: () => lifecycle.isOpen()
 };
 
 initWhenReady();
