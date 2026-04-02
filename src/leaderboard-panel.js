@@ -401,9 +401,11 @@ import { initSearch, closeSearchModal } from './leaderboard/search.js';
           hideDebugInfo(panel);
         }
 
-        if (rendered && statusEl) {
+        if (statusEl) {
           statusEl.textContent = "";
-          
+        }
+
+        if (rendered && statusEl) {
           // Show diagnostic message in dev mode if profiles might be limited
           const isDev = (window.__ENV?.NODE_ENV || window.__ENV?.NEXT_PUBLIC_NODE_ENV || '').toLowerCase() !== 'production';
           if (isDev && debugInfo) {
