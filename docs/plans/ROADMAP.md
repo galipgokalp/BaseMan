@@ -22,16 +22,16 @@ Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde
   - Yapılacaklar: RPC, Paymaster/Bundler, Registry adresi, EIP712 versiyonu (2), WalletConnect Project ID, OnchainKit client key — hepsi`.env`içinde tanımlı olmalı.
 
 - [ ] 2. Kontrat: BaseManRegistry (Deploy + Verify)
-  - Yerel kaynak:`BaseMan/contracts/BaseManRegistry.sol`, `BaseMan/scripts/deploy-baseman-registry.cjs`, `BaseMan/test/BaseManRegistry.test.js`- Resmi web: https://sepolia.basescan.org/ ve https://docs.base.org/tools/builderkits/contracts
+  - Yerel kaynak:`BaseMan/contracts/BaseManRegistry.sol`, `BaseMan/scripts/deploy-baseman-registry.cjs`, `BaseMan/test/BaseManRegistry.test.js`- Resmi web: https://sepolia.basescan.org/ ve https://docs.base.org/get-started/deploy-smart-contracts
   - Yapılacaklar: Base Sepolia deploy (tamam), Etherscan/Sourcify verify (tamam).`.env`ve manifest allowedAddresses güncel.
 
 - [ ] 3. Kontrat Operasyonları: Authorizer, Pause/Unpause, Seed/Migration
-  - Yerel kaynak:`BaseMan/contracts/BaseManRegistry.sol`(setAuthorizer, pause/unpause, seedTotals),`BaseMan/scripts/set-authorizer.cjs`- Resmi web: https://docs.base.org/mini-apps/paymasters ve https://docs.openzeppelin.com/contracts/
+  - Yerel kaynak:`BaseMan/contracts/BaseManRegistry.sol`(setAuthorizer, pause/unpause, seedTotals),`BaseMan/scripts/set-authorizer.cjs`- Resmi web: https://docs.base.org/base-account/improve-ux/sponsor-gas/paymasters ve https://docs.openzeppelin.com/contracts/
   - Yapılacaklar: Authorizer backend imzalayıcıya ayarlı (tamam), gerekirse seedTotals ile göç verilerini yükleyin, pause akışını test edin.
 
 - [ ] 4. Paymaster ve Bundler Entegrasyonu
   - Yerel kaynak:`BaseMan/api/paymaster-proxy.js`, `BaseMan/docs/vendor/CDP_Coinbase_Developer_Docs_MiniApp_Paymaster.md`(Paymaster quickstart ve proxy önerileri)
-  - Resmi web: https://docs.cdp.coinbase.com/paymaster ve https://docs.base.org/mini-apps/paymasters
+  - Resmi web: https://docs.cdp.coinbase.com/paymaster ve https://docs.base.org/base-account/improve-ux/sponsor-gas/paymasters
   - Yapılacaklar:`PAYMASTER_SERVICE_URL`, allowlist ve allowed selectors doğrulaması; sponsorlu submitScore/completeQuest işleyişi.
 
 - [ ] 5. Farcaster Mini App Gereksinimleri (Manifest + Webhook)
@@ -44,19 +44,19 @@ Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde
   - Yapılacaklar: OnchainKit provider konfigürasyonu (chain, projectId), UI bileşenleri ve mini-app konteynerinde yükleme stratejisi.
 
 - [ ] 7. Skor İmzalama Servisi (Score Sign API)
-  - Yerel kaynak:`BaseMan/api/score-sign.js`, `BaseMan/api/_lib/registry.js`, `BaseMan/api/_lib/miniapp-auth-verify.js`- Resmi web: https://docs.base.org/mini-apps/authentication ve https://docs.farcaster.xyz/
+  - Yerel kaynak:`BaseMan/api/score-sign.js`, `BaseMan/api/_lib/registry.js`, `BaseMan/api/_lib/miniapp-auth-verify.js`- Resmi web: https://docs.base.org/mini-apps/features/authentication ve https://docs.farcaster.xyz/
   - Yapılacaklar: EIP-712 v2 imza üretimi (nonce+deadline), Quick Auth zorunluluğu opsiyonu, hız limiti ve skor sınırı.
 
 - [ ] 8. Görev İmzalama Servisi (Quest Sign API)
-  - Yerel kaynak:`BaseMan/api/quest-sign.js`- Resmi web: https://docs.base.org/mini-apps/authentication
+  - Yerel kaynak:`BaseMan/api/quest-sign.js`- Resmi web: https://docs.base.org/mini-apps/features/authentication
   - Yapılacaklar: EIP-712 v2 imza üretimi, izinli quest ID seti (ALLOWED_QUEST_IDS), Quick Auth entegrasyonu.
 
 - [ ] 9. Leaderboard (Toplam Skor) ve Profil Paneli
-  - Yerel kaynak:`BaseMan/api/leaderboard.js`, `BaseMan/src/profile-panel.js`- Resmi web: https://docs.cdp.coinbase.com/platform-data/sql-api ve https://docs.base.org/mini-apps/data
+  - Yerel kaynak:`BaseMan/api/leaderboard.js`, `BaseMan/src/profile-panel.js`- Resmi web: https://docs.cdp.coinbase.com/data/sql-api/welcome ve https://docs.base.org/mini-apps/growth/data-driven-growth
   - Yapılacaklar: CDP SQL API sorguları, RPC fallback, profil zenginleştirme (Farcaster avatar), totalScore’a göre sıralama.
 
 - [ ] 10. Adres Geçmişi ve Olay Akışı
-  - Yerel kaynak:`BaseMan/api/address-history.js`- Resmi web: https://docs.cdp.coinbase.com/platform-data/address-history-api
+  - Yerel kaynak:`BaseMan/api/address-history.js`- Resmi web: https://docs.cdp.coinbase.com/data/wallet-history/overview
   - Yapılacaklar: API/Log tabanlı zaman çizelgesi; blok zaman damgalarıyla zenginleştirme; pagination/limitler.
 
 - [ ] 11. Mini App Kimlik Doğrulama (Quick Auth)
@@ -65,11 +65,11 @@ Bu yol haritası, BaseMan mini uygulamasını Base ve Farcaster ekosistemlerinde
   - Yapılacaklar: JWKS/Local doğrulama, domain ayarı, opsiyonel harici doğrulayıcı endpointi.
 
 - [ ] 12. Güvenlik, Limitler ve Gözlemlenebilirlik
-  - Yerel kaynak:`BaseMan/api/leaderboard.js`(rate limit),`BaseMan/api/score-sign.js`(rate limit ve max score),`BaseMan/scripts/self-check.mjs`- Resmi web: https://docs.base.org/mini-apps/security ve https://docs.cdp.coinbase.com/
+  - Yerel kaynak:`BaseMan/api/leaderboard.js`(rate limit),`BaseMan/api/score-sign.js`(rate limit ve max score),`BaseMan/scripts/self-check.mjs`- Resmi web: https://docs.base.org/mini-apps/featured-guidelines/technical-guidelines ve https://docs.cdp.coinbase.com/
   - Yapılacaklar: Rate limiting, input validation, RPC/SQL timeouts; üretim öncesi self-check ve healthcheck.
 
 - [ ] 13. Üretime Hazırlık (Allowlist, CSP, Manifest)
-  - Yerel kaynak:`BaseMan/config/manifest.base.json`, `BaseMan/scripts/generate-manifest.mjs`, `.well-known/farcaster.json`- Resmi web: https://docs.base.org/mini-apps/publishing ve https://miniapps.farcaster.xyz/
+  - Yerel kaynak:`BaseMan/config/manifest.base.json`, `BaseMan/scripts/generate-manifest.mjs`, `.well-known/farcaster.json`- Resmi web: https://docs.base.org/mini-apps/overview ve https://miniapps.farcaster.xyz/
   - Yapılacaklar: AllowedAddresses (kontrat adresi), CSP kaynakları, requiredChains, Base Builder kuralları.
 
 - [ ] 14. E2E Doğrulama ve Smoke Testler

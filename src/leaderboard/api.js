@@ -16,6 +16,7 @@ import { createLogger } from '../utils/logger.js';
 import { safeFetchJson, requireOnline } from '../lib/safe-fetch.js';
 import { getCachedUserInfo } from './services/user-detection.js';
 import { sendProfileMappingIfNeeded, buildProfileMappingHeader } from './services/profile-mapping.js';
+import { getConfiguredChainId } from '../onchain/provider.js';
 
 const log = createLogger('UiLeaderboard');
 
@@ -63,8 +64,7 @@ let inflightLeaderboardRequest = null;
  * - Profile mapping sent only once per session per address
  */
 export async function loadLeaderboard({ limit, onSuccess, onError, forceRefresh = false }) {
-  // Always use Base Mainnet for leaderboard
-  const leaderboardChainId = 8453;
+  const leaderboardChainId = getConfiguredChainId();
   const now = Date.now();
   
   // Check for debug mode

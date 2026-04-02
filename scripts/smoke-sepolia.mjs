@@ -10,12 +10,12 @@
   6) POST /api/paymaster-proxy forwards allowlisted registry+selector (status != 403)
 */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import process from 'node:process';
 import { ethers } from 'ethers';
 
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:5173';
+const SMOKE_PLAYER_ADDRESS = process.env.SMOKE_PLAYER_ADDRESS || '0x8132c74c2774935e4cca5c9b709e381c143b98f7';
+const SMOKE_ALT_PLAYER_ADDRESS = process.env.SMOKE_ALT_PLAYER_ADDRESS || '0x8132c74c2774935e4cca5c9b709e381c143b98f8';
 
 function log(ok, msg) {
   const tag = ok ? '[OK] ' : '[ERR]';
@@ -92,7 +92,7 @@ async function main() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        playerAddress: '0x8132C74c2774935e4CCa5c9B709E381c143b98f7',
+        playerAddress: SMOKE_PLAYER_ADDRESS,
         score: 1234,
         durationMs: 5000,
         chain: 'base-sepolia'
@@ -107,17 +107,27 @@ async function main() {
     log(false, `score-sign error: ${e.message}`); fail++;
   }
 
-  // Helper: registry address
-  function getRegistryFromOnchainConfig() {
+  let registry = null;
+  try {
+    const r = await get('/api/score-sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerAddress: SMOKE_ALT_PLAYER_ADDRESS,
+        score: 4321,
+        durationMs: 5000,
+        chain: 'base-sepolia'
+      })
+    });
+    const t = await r.text();
     try {
-      const p = resolve('src/onchain-config.js');
-      const s = readFileSync(p, 'utf8');
-      const m = s.match(/registryAddress\"\s*:\s*\"(0x[0-9a-fA-F]{40})\"/);
-      return m ? m[1] : null;
-    } catch { return null; }
-  }
+      const j = JSON.parse(t);
+      if (/^0x[0-9a-fA-F]{40}$/.test(j?.contractAddress || '')) {
+        registry = j.contractAddress;
+      }
+    } catch {}
+  } catch {}
 
-  let registry = getRegistryFromOnchainConfig();
   if (!registry) {
     // Fallback to __env.js
     const r = await get('/__env.js');
@@ -151,14 +161,71 @@ async function main() {
 
   // 6) paymaster-proxy positive (registry + allowlisted selector)
   try {
-    const selector = (process.env.PAYMASTER_ALLOWED_SELECTORS || '0x42a252f6').split(',').map(s => s.trim()).filter(Boolean)[0] || '0x42a252f6';
-    const iface = new ethers.Interface(['function execute(address target,uint256 value,bytes data)']);
-    const goodcd = iface.encodeFunctionData('execute', [registry, 0, selector]);
-    const chainIdHex = '0x' + (84532).toString(16);
+    const signRes = await get('/api/score-sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerAddress: SMOKE_ALT_PLAYER_ADDRESS,
+        score: 5678,
+        durationMs: 5000,
+        chain: 'base-sepolia'
+      })
+    });
+    const signTxt = await signRes.text();
+    let signJson; try { signJson = JSON.parse(signTxt); } catch {}
+    if (signRes.status !== 200 || !signJson?.signature || !signJson?.deadline || !signJson?.contractAddress) {
+      throw new Error(`score-sign precondition failed: status ${signRes.status}`);
+    }
+
+    const registryIface = new ethers.Interface([
+      'function submitScore(address player,uint256 score,uint256 deadline,bytes signature)',
+      'function submitScore(address player,uint256 score,uint256 deadline,uint256 nonce,bytes signature)'
+    ]);
+    const player = SMOKE_ALT_PLAYER_ADDRESS;
+    const registryCallData = signJson?.nonce != null
+      ? registryIface.encodeFunctionData('submitScore(address,uint256,uint256,uint256,bytes)', [
+          player,
+          BigInt(signJson.score || 5678),
+          BigInt(signJson.deadline),
+          BigInt(signJson.nonce),
+          signJson.signature
+        ])
+      : registryIface.encodeFunctionData('submitScore(address,uint256,uint256,bytes)', [
+          player,
+          BigInt(signJson.score || 5678),
+          BigInt(signJson.deadline),
+          signJson.signature
+        ]);
+
+    const walletIface = new ethers.Interface(['function execute(address target,uint256 value,bytes data)']);
+    const goodcd = walletIface.encodeFunctionData('execute', [signJson.contractAddress || registry, 0, registryCallData]);
+    const chainIdHex = '0x' + Number(signJson.chainId || 84532).toString(16);
     const r = await get('/api/paymaster-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'eth_sendUserOperation', params: [{ callData: goodcd, chainId: chainIdHex }] })
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'pm_getPaymasterStubData',
+        params: [
+          {
+            sender: '0xF7DCa789B08Ed2F7995D9bC22c500A8CA715D0A8',
+            nonce: '0x0',
+            initCode: '0x',
+            callData: goodcd,
+            callGasLimit: '0x0',
+            verificationGasLimit: '0x0',
+            preVerificationGas: '0x0',
+            maxFeePerGas: '0x0',
+            maxPriorityFeePerGas: '0x0',
+            paymasterAndData: '0x',
+            signature: '0x'
+          },
+          '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789',
+          chainIdHex,
+          {}
+        ]
+      })
     });
     const ok = r.status !== 403; // forwarded to upstream (may be 200 with error JSON)
     log(ok, `paymaster-proxy forwards allowlisted call (status ${r.status})`);

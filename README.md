@@ -160,19 +160,27 @@ npm run game:build  # Bundles src/*.js → pacman.js
 
 **Location**: `api/` directory (Vercel Serverless Functions)
 
-**Endpoints**:
+**Public Runtime APIs**:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/leaderboard` | GET | Global leaderboard with profile enrichment |
 | `/api/score-sign` | POST | EIP-712 v2 score signature generation |
 | `/api/quest-sign` | POST | Quest completion signature generation |
-| `/api/miniapp-auth` | GET | MiniApp authentication verification |
-| `/api/miniapp-webhook` | POST | Farcaster webhook handler |
+| `/api/miniapp-auth` | POST | MiniApp authentication token verification |
 | `/api/paymaster-proxy` | POST | Paymaster transaction sponsorship |
 | `/api/address-history` | GET | On-chain transaction history |
 | `/api/token-balances` | GET | ERC-20 token balance queries |
-| `/api/app-log` | POST | Error logging and telemetry |
+| `/api/app-log` | POST | Client error logging and telemetry ingestion |
+
+**Internal / Ops / Dev Endpoints**:
+
+| Endpoint | Method | Visibility | Purpose |
+|----------|--------|------------|---------|
+| `/api/miniapp-webhook` | POST | Internal/Ops | Farcaster webhook handler |
+| `/api/ai-agent-webhook` | POST | Internal/Ops | AI agent automation webhook |
+| `/api/env` | GET | Internal/Ops | Runtime environment inspection |
+| `/api/test-redis` | GET | Dev/Test | Redis connectivity diagnostics |
 
 **Supporting Libraries**:
 - `api/_lib/registry.js` - Smart contract interaction utilities
@@ -266,6 +274,7 @@ bool public paused;  // Emergency pause mechanism
 - **Node.js**: Version 20.x (see `package.json` engines)
 - **npm**: Version 9.x or later
 - **Git**: For cloning the repository
+- **nvm** (recommended): Use `.nvmrc` to enter the supported Node runtime quickly
 
 ### Installation
 
@@ -277,6 +286,7 @@ cd BaseMan
 
 2. **Install dependencies**:
 ```bash
+nvm use              # Recommended: picks Node 20 from .nvmrc
 npm install
 ```
 
@@ -314,7 +324,10 @@ http://localhost:5173
 Run the test suite:
 
 ```bash
-npm run test:all        # self-check + config check + healthcheck + docs verify + smoke/e2e checks
+npm run check:local     # Hermetic local gate: config + docs lint/spell + lint + tests
+npm run check:integration # Starts/reuses local dev server and runs env-backed integration checks
+npm run check:external  # Live docs-link validation
+npm run test:all        # Aggregate: local + integration + external
 npm run test:phase5     # Phase 5 tests
 npm run test:phase6     # Phase 6 tests
 npm run self:check      # Self-check validation
@@ -695,7 +708,7 @@ The leaderboard system provides global rankings with real-time updates and rich 
 
 **Query Parameters**:
 - `limit` (required): Number of entries to return (default: 10, max: 100)
-- `chain` (optional): Chain ID (default: 8453 for Base Mainnet)
+- `chain` (optional): Chain ID override. Frontend requests default to the active runtime registry chain.
 - `debug` (optional): Enable debug mode (`?debug=1`)
 
 **Response Format**:
@@ -786,6 +799,8 @@ The leaderboard panel (`src/leaderboard-panel.js`) provides:
 - **My Rank Summary**: Current user's position and score
 - **Real-Time Updates**: Polling for new scores
 
+The frontend leaderboard request follows the active runtime chain from `window.BaseManOnchainConfig.chainId` after runtime overrides are applied. In production this is typically Base Mainnet, while Sepolia remains available for configured test/staging environments.
+
 **Usage**:
 ```javascript
 import { loadLeaderboard } from './leaderboard/api.js';
@@ -859,7 +874,7 @@ BaseMan supports seamless authentication through Farcaster Quick Auth and Base A
 
 ### Quick Auth (Farcaster)
 
-**Endpoint**: `GET /api/miniapp-auth`
+**Endpoint**: `POST /api/miniapp-auth`
 
 **Flow**:
 1. MiniApp requests authentication token
@@ -879,7 +894,9 @@ const { token } = await authenticate({
 
 // Send token to backend for verification
 const response = await fetch('/api/miniapp-auth', {
-  headers: { 'Authorization': `Bearer ${token}` }
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ token })
 });
 ```
 
@@ -1068,12 +1085,15 @@ npm run contracts:set-authorizer:base     # Set authorizer (Mainnet)
 ### Testing
 
 ```bash
+npm run check:local          # Hermetic local validation
+npm run check:integration    # Starts/reuses local dev server + env-backed validation
+npm run check:external       # Live external link validation
 npm run test:phase5:axis-a  # Phase 5 tests - Axis A
 npm run test:phase5:axis-b  # Phase 5 tests - Axis B
 npm run test:phase5:axis-c  # Phase 5 tests - Axis C
 npm run test:phase5         # All Phase 5 tests
 npm run test:phase6         # Phase 6 tests
-npm run test:all            # self-check + config check + healthcheck + docs verify + smoke/e2e checks
+npm run test:all            # Aggregate: local + integration + external
 npm run self:check           # Self-check validation
 npm run healthcheck          # Health check endpoint
 ```
@@ -1090,7 +1110,8 @@ npm run onchain:config     # Generate onchain configuration
 ```bash
 npm run lint                # Run ESLint
 npm run lint:fix            # Fix ESLint errors
-npm run docs:verify         # Verify documentation
+npm run docs:verify         # Local docs lint + spell checks
+npm run docs:verify:external # Live docs-link validation
 ```
 
 ### E2E Testing

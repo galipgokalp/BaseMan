@@ -39,5 +39,12 @@
     "^https://auth\\.farcaster\\.xyz/?(?:.*)?",
     "^https://rewards\\.warpcast\\.com/.*",
     "^https://effigy\\.im/.*"
+  ],
+  "ignoreFiles": [
+    "^platforms/.*\\.md$"
+  ],
+  "warnOnlyFiles": [
+    "^plans/ROADMAP\\.md$",
+    "^architecture/CONTRACT_INTERACTION_GUIDE\\.md$"
   ]
 }

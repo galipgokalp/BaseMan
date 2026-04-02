@@ -378,14 +378,14 @@ console.log('Transaction status:', status);
 
 ### Base Mini Apps
 
-- **Wallet Integration:** https://docs.base.org/base-app/mini-apps/wallet
+- **Wallet Integration:** https://docs.base.org/mini-apps/features/wallet
 - **wallet_sendCalls:** https://docs.base.org/base-account/reference/core/provider-rpc-methods/wallet_sendCalls
 - **Capabilities:** https://docs.base.org/base-account/reference/core/provider-rpc-methods/wallet_getCapabilities
 
 ### Coinbase Developer Platform
 
 - **Paymaster:** https://docs.cdp.coinbase.com/paymaster/introduction/welcome
-- **Smart Wallets:** https://docs.cdp.coinbase.com/wallets/server-wallet/v2/introduction
+- **Smart Wallets:** https://docs.cdp.coinbase.com/server-wallets/v2/introduction/welcome
 
 ### EIP Standards
 

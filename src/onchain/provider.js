@@ -95,3 +95,36 @@ export async function ensureChain(provider, chainId, debug = () => {}) {
 export function getChainKey(chainId) {
   return chainId === 8453 ? 'base' : (chainId === 84532 ? 'base-sepolia' : 'base');
 }
+
+/**
+ * Resolve the active configured chain ID from runtime config.
+ * Frontend callers should prefer this over hard-coded chain literals.
+ * @param {number} fallbackChainId
+ * @returns {number}
+ */
+export function getConfiguredChainId(fallbackChainId = 8453) {
+  try {
+    const configured = Number(window?.BaseManOnchainConfig?.chainId);
+    if (Number.isFinite(configured) && configured > 0) {
+      return configured;
+    }
+  } catch (_) {
+    // no-op, fall through to env/fallback
+  }
+
+  try {
+    const env = (window?.__ENV && typeof window.__ENV === 'object') ? window.__ENV : {};
+    const direct = Number(env.NEXT_PUBLIC_REGISTRY_CHAIN_ID || env.REGISTRY_CHAIN_ID);
+    if (Number.isFinite(direct) && direct > 0) {
+      return direct;
+    }
+
+    const target = String(env.REGISTRY_DEFAULT_TARGET || '').toLowerCase();
+    if (target === 'base') return 8453;
+    if (target === 'base-sepolia') return 84532;
+  } catch (_) {
+    // no-op best effort
+  }
+
+  return fallbackChainId;
+}

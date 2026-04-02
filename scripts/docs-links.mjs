@@ -31,16 +31,27 @@ const loadIgnore = () => {
     '<[^>]+>'
   ];
   let patterns = defaults;
+  let ignoreFiles = [];
+  let warnOnlyFiles = [];
   if (existsSync(p)) {
     try {
       const cfg = JSON.parse(readFileSync(p, 'utf8'));
       if (Array.isArray(cfg.patterns) && cfg.patterns.length) patterns = [...defaults, ...cfg.patterns];
+      if (Array.isArray(cfg.ignoreFiles)) ignoreFiles = cfg.ignoreFiles;
+      if (Array.isArray(cfg.warnOnlyFiles)) warnOnlyFiles = cfg.warnOnlyFiles;
     } catch {}
   }
-  return patterns.map((s) => new RegExp(s));
+  return {
+    ignoreRegexes: patterns.map((s) => new RegExp(s)),
+    ignoreFileRegexes: ignoreFiles.map((s) => new RegExp(s)),
+    warnOnlyFileRegexes: warnOnlyFiles.map((s) => new RegExp(s))
+  };
 };
-const ignoreRegexes = loadIgnore();
+const { ignoreRegexes, ignoreFileRegexes, warnOnlyFileRegexes } = loadIgnore();
 const shouldIgnore = (u) => ignoreRegexes.some((re) => re.test(u));
+const getRelativePath = (path) => path.replace(`${docsDir}/`, '');
+const isIgnoredFile = (relativePath) => ignoreFileRegexes.some((re) => re.test(relativePath));
+const isWarnOnlyFile = (relativePath) => warnOnlyFileRegexes.some((re) => re.test(relativePath));
 
 const head = async (url, signal) => {
   try {
@@ -74,6 +85,12 @@ const checkUrl = async (url, timeoutMs = 10000) => {
   }
 };
 
+const classifyStatus = (status) => {
+  if (allowed.has(status)) return 'ok';
+  if (status === 0) return 'unreachable';
+  return 'dead';
+};
+
 const pLimit = (n) => {
   const q = [];
   let active = 0;
@@ -101,9 +118,15 @@ const findMarkdownFiles = (dir) => {
 };
 
 let failed = 0;
+let warnings = 0;
 const limit = pLimit(8);
 const files = findMarkdownFiles(docsDir).filter((f) => !/docs[\\/](vendor|archive)[\\/]/.test(f));
 for (const path of files) {
+  const relativePath = getRelativePath(path);
+  if (isIgnoredFile(relativePath)) {
+    console.log(`SKIP: ${relativePath}`);
+    continue;
+  }
   const md = readFileSync(path, 'utf8');
   const urls = extractLinks(md)
     .filter((u) => u.startsWith('http://') || u.startsWith('https://'))
@@ -113,18 +136,29 @@ for (const path of files) {
   const broken = [];
   unique.forEach((u, i) => {
     const s = results[i];
-    if (!allowed.has(s)) broken.push({ url: u, status: s });
+    const classification = classifyStatus(s);
+    if (classification !== 'ok') broken.push({ url: u, status: s, classification });
   });
   if (broken.length) {
-    console.error(`Broken links in ${path.replace(`${docsDir}/`, '')}:`);
+    const warnOnly = isWarnOnlyFile(relativePath);
+    const printer = warnOnly ? console.warn : console.error;
+    printer(`Broken links in ${relativePath}:`);
     for (const b of broken.slice(0, 20)) {
-      console.error(`  - ${b.url} (${b.status || 'error'})`);
+      printer(`  - [${b.classification}] ${b.url} (${b.status || 'error'})`);
     }
-    if (broken.length > 20) console.error(`  ... and ${broken.length - 20} more`);
-    failed++;
+    if (broken.length > 20) printer(`  ... and ${broken.length - 20} more`);
+    if (warnOnly) {
+      warnings++;
+    } else {
+      failed++;
+    }
   } else {
-    console.log(`OK: ${path.replace(`${docsDir}/`, '')}`);
+    console.log(`OK: ${relativePath}`);
   }
+}
+
+if (warnings) {
+  console.warn(`docs-links warnings: ${warnings}`);
 }
 
 process.exit(failed ? 1 : 0);

@@ -17,6 +17,7 @@ import { ethers } from 'ethers';
 
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:5173';
 const CHAIN = (process.env.CHAIN || 'base-sepolia').trim();
+const SPONSOR_PLAYER_ADDRESS = process.env.SPONSOR_PLAYER_ADDRESS || '0x0000000000000000000000000000000000000002';
 
 function log(ok, msg) {
   const tag = ok ? '[OK] ' : '[ERR]';
@@ -61,7 +62,7 @@ async function main() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        playerAddress: '0x8132C74c2774935e4CCa5c9B709E381c143b98f7',
+        playerAddress: SPONSOR_PLAYER_ADDRESS,
         score: 42,
         durationMs: 5000,
         chain: CHAIN
@@ -84,18 +85,18 @@ async function main() {
     const iface = new ethers.Interface(abi);
     const isV2 = typeof sign?.nonce === 'string' || typeof sign?.nonce === 'number';
     if (isV2) {
-      const sig = 'submitScore(address,uint256,uint256,uint256,bytes)';
-      registryCallData = iface.encodeFunctionData(sig, [
-        '0x8132C74c2774935e4CCa5c9B709E381c143b98f7',
+        const sig = 'submitScore(address,uint256,uint256,uint256,bytes)';
+        registryCallData = iface.encodeFunctionData(sig, [
+        SPONSOR_PLAYER_ADDRESS,
         BigInt(sign.score || 42n),
         BigInt(sign.deadline),
         BigInt(sign.nonce),
         sign.signature
       ]);
     } else {
-      const sig = 'submitScore(address,uint256,uint256,bytes)';
-      registryCallData = iface.encodeFunctionData(sig, [
-        '0x8132C74c2774935e4CCa5c9B709E381c143b98f7',
+        const sig = 'submitScore(address,uint256,uint256,bytes)';
+        registryCallData = iface.encodeFunctionData(sig, [
+        SPONSOR_PLAYER_ADDRESS,
         BigInt(sign.score || 42n),
         BigInt(sign.deadline),
         sign.signature
