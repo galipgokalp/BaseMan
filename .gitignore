@@ -12,6 +12,7 @@ node_modules/
 artifacts/
 cache/
 .codex/
+.codex
 tmp/
 # Legacy runtime files (dot-prefixed)
 .server.log
