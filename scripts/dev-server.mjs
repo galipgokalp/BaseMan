@@ -77,11 +77,32 @@ app.get('/__env.js', (req, res) => {
 // Static files (serve repo root) — allow dotfiles for .well-known
 app.use(express.static(ROOT, { dotfiles: 'allow' }));
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`[dev] Server running at http://${HOST}:${PORT}`);
   try {
     console.log('[dev] env PAYMASTER_SERVICE_URL set:', Boolean(process.env.PAYMASTER_SERVICE_URL));
     console.log('[dev] env CDP_API_KEY_ID set:', Boolean(process.env.CDP_API_KEY_ID));
     console.log('[dev] env CDP_API_KEY_SECRET set:', Boolean(process.env.CDP_API_KEY_SECRET));
   } catch (_) {}
+});
+
+function shutdown(signal) {
+  try {
+    console.log(`[dev] received ${signal}, shutting down`);
+  } catch (_) {}
+  server.close(() => {
+    process.exit(0);
+  });
+  setTimeout(() => {
+    process.exit(0);
+  }, 1000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+const keepAlive = setInterval(() => {}, 1 << 30);
+
+server.on('close', () => {
+  clearInterval(keepAlive);
 });

@@ -16,7 +16,6 @@ function resolveBaseUrl() {
 }
 
 const BASE_URL = resolveBaseUrl();
-const HEALTH_URL = `${BASE_URL}/`;
 const START_TIMEOUT_MS = Number(process.env.INTEGRATION_START_TIMEOUT_MS || 20000);
 const CHECKS = [
   ['self:check', 'npm', ['run', 'self:check']],
@@ -27,28 +26,6 @@ const CHECKS = [
   ['check:sponsor', 'npm', ['run', 'check:sponsor']],
   ['check:bundler', 'npm', ['run', 'check:bundler']]
 ];
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function isServerReady() {
-  try {
-    const response = await fetch(HEALTH_URL, { method: 'GET' });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function waitForServer(timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (await isServerReady()) return true;
-    await sleep(500);
-  }
-  return false;
-}
 
 function killChild(child) {
   if (!child || child.killed) return;
@@ -78,6 +55,28 @@ async function runCheck(label, command, args, env) {
   });
 }
 
+async function waitForServerStart(child, timeoutMs) {
+  await new Promise((resolve, reject) => {
+    const graceMs = Math.min(timeoutMs, 1500);
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, graceMs);
+
+    function handleExit(code, signal) {
+      clearTimeout(timer);
+      cleanup();
+      reject(new Error(`local dev server exited before ready (code=${code}, signal=${signal || 'none'})`));
+    }
+
+    function cleanup() {
+      child.off('exit', handleExit);
+    }
+
+    child.on('exit', handleExit);
+  });
+}
+
 async function main() {
   const inheritedEnv = {
     ...process.env,
@@ -88,22 +87,19 @@ async function main() {
   let startedServer = false;
   let serverChild = null;
 
-  if (!(await isServerReady())) {
-    console.log(`[integration] starting local dev server at ${BASE_URL}`);
-    serverChild = spawn(process.execPath, ['scripts/dev-server.mjs'], {
-      stdio: 'inherit',
-      env: inheritedEnv,
-      shell: false
-    });
-    startedServer = true;
+  console.log(`[integration] starting local dev server at ${BASE_URL}`);
+  serverChild = spawn(process.execPath, ['scripts/dev-server.mjs'], {
+    stdio: 'inherit',
+    env: inheritedEnv,
+    shell: false
+  });
+  startedServer = true;
 
-    const ready = await waitForServer(START_TIMEOUT_MS);
-    if (!ready) {
-      killChild(serverChild);
-      throw new Error(`local dev server did not become ready within ${START_TIMEOUT_MS}ms`);
-    }
-  } else {
-    console.log(`[integration] reusing existing server at ${BASE_URL}`);
+  try {
+    await waitForServerStart(serverChild, START_TIMEOUT_MS);
+  } catch (error) {
+    killChild(serverChild);
+    throw error;
   }
 
   try {
