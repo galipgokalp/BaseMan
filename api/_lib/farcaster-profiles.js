@@ -8,7 +8,7 @@
  * - Bulk FID lookups to minimize API calls
  */
 import { ethers } from "ethers";
-import { getAllFidMappings, getProfileMapping } from "../leaderboard.js";
+import { getAllFidMappings, getProfileMapping } from "./leaderboard-profile-mapping.js";
 import { getProfileMappings as getFromRedis } from "./redis-profiles.js";
 
 // Logger import for server-side logging
