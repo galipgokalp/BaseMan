@@ -360,12 +360,18 @@ export default async function handler(req, res) {
       }
     } catch (_) {}
 
+    let persistentWriteFailed = false;
+    let persistentWriteError = null;
     if (shouldPersistAppLogEntry(entry)) {
-      writePersistentAppLogEntry(entry).catch((persistError) => {
+      try {
+        await writePersistentAppLogEntry(entry);
+      } catch (persistError) {
+        persistentWriteFailed = true;
+        persistentWriteError = persistError?.message || String(persistError);
         try {
-          log.warn('Persistent app-log write failed:', persistError?.message || persistError);
+          log.warn('Persistent app-log write failed:', persistentWriteError);
         } catch (_) {}
-      });
+      }
     }
     // Avoid logging secrets
     try { log.debug('App log received', { event: entry.event, message: entry.message }); } catch (_) {}
@@ -438,7 +444,11 @@ export default async function handler(req, res) {
       sendTelegramAlert(entry, config).catch(() => {});
     }
 
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({
+      ok: true,
+      persistentWriteFailed,
+      persistentWriteError
+    });
   } catch (error) {
     try { log.error('handler error', error?.message || error); } catch (_) {}
     return res.status(500).json({ error: 'log failed' });
