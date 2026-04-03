@@ -247,9 +247,17 @@ export async function writePersistentAppLogEntry(entry) {
 }
 
 function parseStoredEntries(values) {
-  if (!Array.isArray(values)) return [];
+  let normalized = values;
+  for (let i = 0; i < 2 && typeof normalized === 'string'; i += 1) {
+    try {
+      normalized = JSON.parse(normalized);
+    } catch (_error) {
+      break;
+    }
+  }
+  if (!Array.isArray(normalized)) return [];
   const parsed = [];
-  for (const value of values) {
+  for (const value of normalized) {
     if (!value) continue;
     try {
       const entry = typeof value === 'string' ? JSON.parse(value) : value;
