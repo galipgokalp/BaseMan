@@ -5,6 +5,7 @@
  */
 
 import { saveProfileMapping, getProfileMapping, isRedisAvailable } from './_lib/redis-profiles.js';
+import { runAppLogStoreSmoke } from './_lib/app-log-store.js';
 import { createLogger } from "../src/utils/logger.js";
 import { denyInProduction } from './_lib/request-policy.js';
 
@@ -90,12 +91,15 @@ export default async function handler(req, res) {
           };
         }
 
+        const appLogSmoke = await runAppLogStoreSmoke();
+
         return res.status(200).json({
           success: true,
           redisAvailable: true,
           message: 'Redis is available and ready',
           environmentVariables: envVars,
           redisTest: testResult,
+          appLogStoreSmoke: appLogSmoke,
           note: 'If Redis.fromEnv() succeeded, Redis is configured correctly even if env vars show "Not set"'
         });
       }

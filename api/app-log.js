@@ -182,6 +182,8 @@ export default async function handler(req, res) {
       let partial = false;
       let persistentStored = 0;
       let persistentError = null;
+      let readPath = 'memory-ring-buffer';
+      let redisAvailable = storeConfig.available;
 
       if (requestedSource !== 'memory') {
         try {
@@ -201,11 +203,14 @@ export default async function handler(req, res) {
             dump = persistent.logs;
             source = persistent.source;
             partial = persistent.partial;
+            readPath = persistent.readPath || 'redis-global-zset';
+            redisAvailable = persistent.redisAvailable ?? storeConfig.available;
           }
         } catch (persistentReadError) {
           persistentError = persistentReadError?.message || String(persistentReadError);
           partial = true;
           source = 'memory';
+          readPath = 'memory-fallback-after-redis-read-error';
           log.warn('Persistent app-log read failed, falling back to memory:', persistentError);
         }
       }
@@ -274,6 +279,8 @@ export default async function handler(req, res) {
         summary,
         source,
         partial,
+        readPath,
+        redisAvailable,
         retentionDays: storeConfig.retentionDays,
         persistentStored,
         memoryStored: storedCount,
