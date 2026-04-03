@@ -26,6 +26,11 @@ function parsePositiveInt(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function readEnvValue(name) {
+  const value = process.env[name];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function getStoreConfig() {
   const enabledRaw = String(process.env.APP_LOG_PERSIST_ENABLED ?? 'true').trim().toLowerCase();
   const enabled = !(enabledRaw === 'false' || enabledRaw === '0' || enabledRaw === 'no' || enabledRaw === 'off');
@@ -43,11 +48,11 @@ function initRedis() {
   redisInitDebug.attempted = true;
 
   try {
-    const kvRestApiUrl = process.env.KV_REST_API_URL || '';
-    const kvRestApiToken = process.env.KV_REST_API_TOKEN || '';
-    const upstashRestUrl = process.env.UPSTASH_REDIS_REST_URL || '';
-    const upstashRestToken = process.env.UPSTASH_REDIS_REST_TOKEN || '';
-    const redisUrl = process.env.REDIS_URL || '';
+    const kvRestApiUrl = readEnvValue('KV_REST_API_URL');
+    const kvRestApiToken = readEnvValue('KV_REST_API_TOKEN');
+    const upstashRestUrl = readEnvValue('UPSTASH_REDIS_REST_URL');
+    const upstashRestToken = readEnvValue('UPSTASH_REDIS_REST_TOKEN');
+    const redisUrl = readEnvValue('REDIS_URL');
 
     const hasKVVars = !!(kvRestApiUrl && kvRestApiToken);
     const hasStandardVars = !!(upstashRestUrl && upstashRestToken);
