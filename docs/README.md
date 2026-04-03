@@ -1,9 +1,10 @@
 # Documentation Index
 
-README.md is the human-facing constitution and project overview. AGENTS.md is the constitution for AI agent behavior. Start here: [../AGENTS.md](../AGENTS.md)
+README.md is the human-facing constitution and project overview. AGENTS.md is the constitution for AI agent behavior. Default startup order: [../AGENTS.md](../AGENTS.md) -> [operations/ENGINEERING_PLAYBOOK.md](operations/ENGINEERING_PLAYBOOK.md) -> active backlog/audit documents.
 
 ## Start Here
 
+- [AGENTS.md](../AGENTS.md)
 - [Engineering Playbook](operations/ENGINEERING_PLAYBOOK.md)
 - [Development Guide](guides/DEVELOPMENT_GUIDE.md)
 - [Debug Guide](guides/DEBUG_GUIDE.md)

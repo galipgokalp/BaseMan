@@ -5,6 +5,8 @@ This file is the **single source of truth** for AI agent behavior in the BaseMan
 > **Note**: README.md is the human-facing constitution and project overview. AGENTS.md and README.md serve different audiences; they should not override each other. If facts diverge, confirm with the maintainer.
 >
 > **Workflow Note**: The repo-wide execution, review, and release workflow is documented in `docs/operations/ENGINEERING_PLAYBOOK.md`. If workflow guidance conflicts with AI safety rules, follow AGENTS.md.
+>
+> **Operating Discipline Note**: The default BaseMan operating discipline for planning, packaging, incident handling, and production verification is defined in `docs/operations/ENGINEERING_PLAYBOOK.md`. AGENTS.md remains the authority for AI safety, repo boundaries, and non-negotiable agent rules.
 
 ---
 

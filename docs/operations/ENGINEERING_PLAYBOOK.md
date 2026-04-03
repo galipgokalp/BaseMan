@@ -30,7 +30,21 @@ If these documents conflict:
 - Default to deterministic verification over intuition.
 - Security-sensitive changes are never single-eye merges.
 
-## 3. Roles
+## 3. Default Operating Discipline
+
+- Work in small, reviewable slices and separate runtime/security work from docs/process work.
+- Treat production behavior, deployed commit state, endpoint responses, and live logs as first-class evidence.
+- For "next step" decisions, prefer the highest-risk unresolved operational issue over new feature work unless the maintainer redirects.
+- Use diagnosis-first incident handling:
+  1. verify the live symptom
+  2. collect direct evidence from logs, timings, and production responses
+  3. isolate the root cause before widening the patch
+  4. apply the smallest deterministic fix
+- When a production-facing fix needs code, env, or deploy changes, treat all three as part of the implementation surface and verify each layer explicitly.
+- For mobile MiniApp issues, verify on Farcaster first when it is the primary failing surface.
+- For slow or flaky UX paths, prefer stale-first rendering, bounded latency budgets, graceful degradation, and explicit stage timing over clever but opaque behavior.
+
+## 4. Roles
 
 ### Implementer
 
@@ -63,7 +77,7 @@ If these documents conflict:
 - must not self-authorize risky assumptions
 - must surface decisions, limits, and residual risks clearly
 
-## 4. Change Classes
+## 5. Change Classes
 
 Every change must be classified before review.
 
@@ -127,7 +141,7 @@ Minimum bar:
 - explicit rollback path
 - post-change smoke verification
 
-## 5. Default Sensitive Zones
+## 6. Default Sensitive Zones
 
 Treat these as `R3` unless explicitly downgraded by a maintainer:
 
@@ -143,7 +157,7 @@ Treat these as `R3` unless explicitly downgraded by a maintainer:
 
 Changes in `contracts/` are not normal PR work. They require explicit instruction, migration planning, and separate rollout handling.
 
-## 6. Standard Delivery Flow
+## 7. Standard Delivery Flow
 
 ### Step 1: Ground Truth
 
@@ -195,7 +209,7 @@ The PR must state:
 - re-check release-facing env assumptions before deployment
 - if release-impacting, run targeted smoke checks after merge
 
-## 7. Check Matrix
+## 8. Check Matrix
 
 | Change Type | Required Checks |
 |-------------|-----------------|
@@ -208,7 +222,7 @@ The PR must state:
 
 If a check is intentionally skipped, the PR must say why.
 
-## 8. Branch and PR Discipline
+## 9. Branch and PR Discipline
 
 - prefer one purpose per branch
 - prefer one bounded outcome per PR
