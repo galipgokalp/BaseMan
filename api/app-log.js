@@ -1,5 +1,10 @@
 import { createLogger } from "../src/utils/logger.js";
 import { getRollbar } from './_lib/rollbar.js';
+import {
+  getAppLogStoreConfig,
+  readPersistentAppLogs,
+  writePersistentAppLogEntry
+} from './_lib/app-log-store.js';
 
 const log = createLogger("ApiAppLog");
 
@@ -86,6 +91,44 @@ function shouldForwardAlert(entry) {
   return isAlertEvent(entry) && !getAlertSuppressionReason(entry);
 }
 
+function shouldPersistAppLogEntry(entry) {
+  if (!entry || typeof entry !== 'object') return false;
+  if (isAlertEvent(entry)) return true;
+
+  const event = String(entry.event || '');
+  const message = String(entry.message || '');
+
+  if (
+    event.startsWith('score-sign:') ||
+    event.startsWith('score:submission:') ||
+    event.startsWith('score:submitted:') ||
+    event.startsWith('score:transaction:') ||
+    event.startsWith('quest:') ||
+    event.startsWith('submission_transport_') ||
+    event.startsWith('eth_sendTransaction:') ||
+    event.startsWith('wallet_sendCalls:') ||
+    event.startsWith('miniapp-auth') ||
+    event.startsWith('paymaster')
+  ) {
+    return true;
+  }
+
+  const lowerMessage = message.toLowerCase();
+  if (
+    lowerMessage.includes('[uileaderboard]') &&
+    (
+      lowerMessage.includes('loadleaderboard') ||
+      lowerMessage.includes('fetching leaderboard') ||
+      lowerMessage.includes('rendered stale leaderboard snapshot') ||
+      lowerMessage.includes('timed out')
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 const RING_SIZE = 500;
 globalThis.__APP_LOGS = globalThis.__APP_LOGS || [];
 
@@ -127,71 +170,105 @@ function summarizeLogs(entries, allStoredCount) {
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      let dump = Array.isArray(globalThis.__APP_LOGS) ? globalThis.__APP_LOGS.slice(-RING_SIZE) : [];
-      const storedCount = dump.length;
-      
-      // Filter by event type if provided
-      if (req.query.event) {
-        const eventFilter = String(req.query.event).trim();
-        dump = dump.filter(entry => entry.event === eventFilter);
-      }
+      const memoryDump = Array.isArray(globalThis.__APP_LOGS) ? globalThis.__APP_LOGS.slice(-RING_SIZE) : [];
+      const storedCount = memoryDump.length;
+      const order = String(req.query.order || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
+      const limit = req.query.limit ? Math.min(parseInt(req.query.limit, 10) || 200, 500) : 200;
+      const requestedSource = String(req.query.source || '').trim().toLowerCase();
+      const storeConfig = getAppLogStoreConfig();
 
-      // Filter by event prefix if provided
-      if (req.query.eventPrefix) {
-        const prefix = String(req.query.eventPrefix).trim();
-        if (prefix) {
-          dump = dump.filter(entry => String(entry?.event || '').startsWith(prefix));
+      let dump = memoryDump;
+      let source = 'memory';
+      let partial = false;
+      let persistentStored = 0;
+
+      if (requestedSource !== 'memory') {
+        const persistent = await readPersistentAppLogs({
+          event: req.query.event || null,
+          eventPrefix: req.query.eventPrefix || null,
+          address: req.query.address || null,
+          contains: req.query.contains || null,
+          sinceTs: parseTimestampQuery(req.query.since),
+          untilTs: parseTimestampQuery(req.query.until),
+          order,
+          limit
+        });
+
+        persistentStored = persistent.persistentStored || 0;
+        if (persistent.available || requestedSource === 'redis') {
+          dump = persistent.logs;
+          source = persistent.source;
+          partial = persistent.partial;
         }
       }
       
-      // Filter by address if provided (check meta.address or meta.stateAddress)
-      if (req.query.address) {
-        const addressFilter = String(req.query.address).trim().toLowerCase();
-        dump = dump.filter(entry => {
-          if (!entry.meta) return false;
-          const addr = entry.meta.address || entry.meta.stateAddress || entry.meta.from;
-          return addr && String(addr).toLowerCase() === addressFilter;
-        });
-      }
+      if (source === 'memory') {
+        // Filter by event type if provided
+        if (req.query.event) {
+          const eventFilter = String(req.query.event).trim();
+          dump = dump.filter(entry => entry.event === eventFilter);
+        }
+
+        // Filter by event prefix if provided
+        if (req.query.eventPrefix) {
+          const prefix = String(req.query.eventPrefix).trim();
+          if (prefix) {
+            dump = dump.filter(entry => String(entry?.event || '').startsWith(prefix));
+          }
+        }
       
-      // Filter by event pattern (contains)
-      if (req.query.contains) {
-        const containsFilter = String(req.query.contains).trim().toLowerCase();
-        dump = dump.filter(entry => {
-          const eventMatch = entry.event && entry.event.toLowerCase().includes(containsFilter);
-          const messageMatch = entry.message && entry.message.toLowerCase().includes(containsFilter);
-          return eventMatch || messageMatch;
-        });
+        // Filter by address if provided (check meta.address or meta.stateAddress)
+        if (req.query.address) {
+          const addressFilter = String(req.query.address).trim().toLowerCase();
+          dump = dump.filter(entry => {
+            if (!entry.meta) return false;
+            const addr = entry.meta.address || entry.meta.stateAddress || entry.meta.from;
+            return addr && String(addr).toLowerCase() === addressFilter;
+          });
+        }
+      
+        // Filter by event pattern (contains)
+        if (req.query.contains) {
+          const containsFilter = String(req.query.contains).trim().toLowerCase();
+          dump = dump.filter(entry => {
+            const eventMatch = entry.event && entry.event.toLowerCase().includes(containsFilter);
+            const messageMatch = entry.message && entry.message.toLowerCase().includes(containsFilter);
+            return eventMatch || messageMatch;
+          });
+        }
+
+        // Filter by time range if provided (unix sec/ms or ISO string)
+        const sinceTs = parseTimestampQuery(req.query.since);
+        const untilTs = parseTimestampQuery(req.query.until);
+        if (sinceTs != null) {
+          dump = dump.filter(entry => {
+            const ts = Date.parse(String(entry?.ts || ''));
+            return Number.isFinite(ts) && ts >= sinceTs;
+          });
+        }
+        if (untilTs != null) {
+          dump = dump.filter(entry => {
+            const ts = Date.parse(String(entry?.ts || ''));
+            return Number.isFinite(ts) && ts <= untilTs;
+          });
+        }
+
+        if (order === 'desc') dump = dump.slice().reverse();
+      
+        dump = order === 'desc' ? dump.slice(0, limit) : dump.slice(-limit);
       }
 
-      // Filter by time range if provided (unix sec/ms or ISO string)
-      const sinceTs = parseTimestampQuery(req.query.since);
-      const untilTs = parseTimestampQuery(req.query.until);
-      if (sinceTs != null) {
-        dump = dump.filter(entry => {
-          const ts = Date.parse(String(entry?.ts || ''));
-          return Number.isFinite(ts) && ts >= sinceTs;
-        });
-      }
-      if (untilTs != null) {
-        dump = dump.filter(entry => {
-          const ts = Date.parse(String(entry?.ts || ''));
-          return Number.isFinite(ts) && ts <= untilTs;
-        });
-      }
-
-      const order = String(req.query.order || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
-      if (order === 'desc') dump = dump.slice().reverse();
-      
-      // Limit results
-      const limit = req.query.limit ? Math.min(parseInt(req.query.limit, 10) || 200, 500) : 200;
-      dump = order === 'desc' ? dump.slice(0, limit) : dump.slice(-limit);
       const summary = summarizeLogs(dump, storedCount);
       
       return res.status(200).json({ 
         logs: dump,
         total: dump.length,
         summary,
+        source,
+        partial,
+        retentionDays: storeConfig.retentionDays,
+        persistentStored,
+        memoryStored: storedCount,
         filters: {
           event: req.query.event || null,
           eventPrefix: req.query.eventPrefix || null,
@@ -200,7 +277,8 @@ export default async function handler(req, res) {
           since: req.query.since || null,
           until: req.query.until || null,
           order,
-          limit
+          limit,
+          source: requestedSource || null
         }
       });
     } catch (err) {
@@ -264,6 +342,14 @@ export default async function handler(req, res) {
         globalThis.__APP_LOGS.splice(0, globalThis.__APP_LOGS.length - RING_SIZE);
       }
     } catch (_) {}
+
+    if (shouldPersistAppLogEntry(entry)) {
+      writePersistentAppLogEntry(entry).catch((persistError) => {
+        try {
+          log.warn('Persistent app-log write failed:', persistError?.message || persistError);
+        } catch (_) {}
+      });
+    }
     // Avoid logging secrets
     try { log.debug('App log received', { event: entry.event, message: entry.message }); } catch (_) {}
     

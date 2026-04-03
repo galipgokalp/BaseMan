@@ -56,6 +56,24 @@ This documentation describes all environment variables used in the BaseMan proje
 - **Default:** `"https://base-man.vercel.app/api/ai-agent-webhook"`
 - **Description:** AI Agent webhook endpoint URL. Address where error analysis results will be sent.
 
+### `APP_LOG_PERSIST_ENABLED`
+- **Type:** `string` (boolean)
+- **Required:** Optional
+- **Default:** `"true"`
+- **Description:** Enables Redis-backed persistent storage for incident-grade `/api/app-log` entries. If disabled, the API falls back to in-memory ring buffer only.
+
+### `APP_LOG_PERSIST_RETENTION_DAYS`
+- **Type:** `string` (number)
+- **Required:** Optional
+- **Default:** `"7"`
+- **Description:** Retention window for persistent app-log entries stored in Redis.
+
+### `APP_LOG_PERSIST_MAX_RESULTS`
+- **Type:** `string` (number)
+- **Required:** Optional
+- **Default:** `"500"`
+- **Description:** Maximum number of persistent app-log entries returned by a single GET request.
+
 ### `AI_AGENT_WEBHOOK_SECRET`
 - **Type:** `string`
 - **Required:** Required in production if `/api/ai-agent-webhook` is enabled

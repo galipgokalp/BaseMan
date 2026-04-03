@@ -100,10 +100,16 @@
 
 ### Özellikler:
 
-- ✅ Server-side log storage
-- ✅ Ring buffer (son 200 log)
+- ✅ Redis-backed persistent incident log storage
+- ✅ In-memory ring buffer fallback
 - ✅ JSON format
 - ✅ Remote access
+
+### Query Notları:
+
+- Varsayılan `GET /api/app-log` artık persistent store'u tercih eder
+- `GET /api/app-log?source=memory` yalnız in-memory ring buffer'ı döndürür
+- `GET /api/app-log?event=warn` ve `GET /api/app-log?event=error` incident odaklı sorgular için uygundur
 
 ### Kullanım Senaryoları:
 
@@ -329,4 +335,3 @@ Mobil uygulamada log'ları görüntülemek için birkaç yöntem var:
 ---
 
 **Not:** Bu rehber, mobil uygulamada log'ları görüntülemek için kapsamlı bir rehber sunar. Sorun devam ederse, log'ları toplayıp destek ekibiyle paylaşın.
-

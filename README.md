@@ -172,7 +172,7 @@ npm run game:build  # Bundles src/*.js → pacman.js
 | `/api/paymaster-proxy` | POST | Paymaster transaction sponsorship |
 | `/api/address-history` | GET | On-chain transaction history |
 | `/api/token-balances` | GET | ERC-20 token balance queries |
-| `/api/app-log` | POST | Client error logging and telemetry ingestion |
+| `/api/app-log` | POST/GET | Client error logging, telemetry ingestion, and incident log retrieval |
 
 **Internal / Ops / Dev Endpoints**:
 
