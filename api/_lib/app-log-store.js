@@ -2,7 +2,7 @@ import { Redis } from '@upstash/redis';
 import { createLogger } from '../../src/utils/logger.js';
 const log = createLogger('ApiAppLogStore');
 
-const EVENTS_KEY = 'applog:events:list';
+const EVENTS_KEY = 'applog:events:json';
 
 const DEFAULT_RETENTION_DAYS = 7;
 const DEFAULT_MAX_RESULTS = 500;
@@ -182,14 +182,13 @@ function buildStoredEntry(entry) {
   };
 }
 
-async function addToIndex(key, member) {
-  if (!redis) return;
-  await redis.lpush(key, member);
-}
-
-async function trimStoredEntries(maxEntries) {
-  if (!redis) return;
-  await redis.ltrim(EVENTS_KEY, 0, Math.max(maxEntries - 1, 0));
+function sortEntriesByTimestamp(entries, order) {
+  const sorted = entries.slice().sort((a, b) => {
+    const aTs = Date.parse(String(a?.ts || '')) || 0;
+    const bTs = Date.parse(String(b?.ts || '')) || 0;
+    return order === 'desc' ? bTs - aTs : aTs - bTs;
+  });
+  return sorted;
 }
 
 export async function writePersistentAppLogEntry(entry) {
@@ -199,18 +198,16 @@ export async function writePersistentAppLogEntry(entry) {
 
   const config = getStoreConfig();
   const storedEntry = buildStoredEntry(entry);
-  const member = JSON.stringify(storedEntry);
-
-  const writeResult = await Promise.allSettled([addToIndex(EVENTS_KEY, member)]);
-  const writeError = writeResult.find((result) => result.status === 'rejected');
-  if (writeError) {
-    throw new Error(`app-log persistent write failed at lpush: ${writeError.reason?.message || writeError.reason || 'unknown error'}`);
-  }
-
   const keepEntries = Math.max(config.scanLimit, config.maxResults);
-  trimStoredEntries(keepEntries).catch((error) => {
-    log.warn('App log trim failed:', error?.message || error);
-  });
+
+  try {
+    const raw = await redis.get(EVENTS_KEY);
+    const currentEntries = parseStoredEntries(typeof raw === 'string' ? JSON.parse(raw) : raw);
+    const nextEntries = [storedEntry, ...currentEntries].slice(0, keepEntries);
+    await redis.set(EVENTS_KEY, JSON.stringify(nextEntries));
+  } catch (error) {
+    throw new Error(`app-log persistent write failed at set/get: ${error?.message || error}`);
+  }
 
   return { ok: true, available: true };
 }
@@ -261,15 +258,6 @@ function filterEntries(entries, filters) {
   });
 }
 
-async function readFromKey(key, order, count) {
-  if (!redis) return [];
-  const values = await redis.lrange(key, 0, Math.max(count - 1, 0));
-  if (order !== 'desc') {
-    values.reverse();
-  }
-  return parseStoredEntries(values);
-}
-
 export async function readPersistentAppLogs(filters = {}) {
   const config = getStoreConfig();
   const memoryStored = Array.isArray(globalThis.__APP_LOGS) ? globalThis.__APP_LOGS.length : 0;
@@ -291,17 +279,22 @@ export async function readPersistentAppLogs(filters = {}) {
   const scanLimit = Math.max(limit, Math.min(config.scanLimit, Math.max(limit * 5, 200)));
   let entries;
   try {
-    entries = await readFromKey(EVENTS_KEY, order, scanLimit);
+    const raw = await redis.get(EVENTS_KEY);
+    const parsed = parseStoredEntries(typeof raw === 'string' ? JSON.parse(raw) : raw);
+    entries = sortEntriesByTimestamp(parsed, order).slice(0, scanLimit);
   } catch (error) {
-    throw new Error(`app-log persistent read failed at lrange: ${error?.message || error}`);
+    throw new Error(`app-log persistent read failed at get: ${error?.message || error}`);
   }
   entries = filterEntries(entries, filters).slice(0, limit);
 
   let persistentStored = 0;
   try {
-    persistentStored = await redis.llen(EVENTS_KEY);
+    persistentStored = entries.length;
+    const raw = await redis.get(EVENTS_KEY);
+    const parsed = parseStoredEntries(typeof raw === 'string' ? JSON.parse(raw) : raw);
+    persistentStored = parsed.length;
   } catch (error) {
-    throw new Error(`app-log persistent read failed at llen: ${error?.message || error}`);
+    throw new Error(`app-log persistent read failed at count-get: ${error?.message || error}`);
   }
 
   return {
@@ -312,7 +305,7 @@ export async function readPersistentAppLogs(filters = {}) {
     retentionDays: config.retentionDays,
     persistentStored,
     memoryStored,
-    readPath: 'redis-global-zset',
+    readPath: 'redis-json-buffer',
     redisAvailable: true,
     initDebug: {
       ...getAppLogStoreConfig().initDebug
@@ -328,10 +321,7 @@ export async function runAppLogStoreSmoke() {
     maxResults: config.maxResults,
     checks: {
       setGet: { ok: false, detail: null },
-      lpush: { ok: false, detail: null },
-      lrange: { ok: false, detail: null },
-      llen: { ok: false, detail: null },
-      ltrim: { ok: false, detail: null }
+      jsonWriteRead: { ok: false, detail: null }
     }
   };
 
@@ -354,37 +344,15 @@ export async function runAppLogStoreSmoke() {
   }
 
   try {
-    await redis.lpush(smokeKey, smokeValue);
-    result.checks.lpush = { ok: true, detail: 'lpush ok' };
-  } catch (error) {
-    result.checks.lpush.detail = error?.message || String(error);
-  }
-
-  try {
-    const range = await redis.lrange(smokeKey, 0, 0);
-    result.checks.lrange = {
-      ok: Array.isArray(range),
-      detail: Array.isArray(range) ? `returned ${range.length} member(s)` : 'non-array response'
+    const payload = JSON.stringify([{ ok: true, ts: new Date().toISOString() }]);
+    await redis.set(smokeKey, payload, { ex: 60 });
+    const got = await redis.get(smokeKey);
+    result.checks.jsonWriteRead = {
+      ok: String(got || '') === payload,
+      detail: got ? 'json roundtrip ok' : 'empty json read-back'
     };
   } catch (error) {
-    result.checks.lrange.detail = error?.message || String(error);
-  }
-
-  try {
-    const count = await redis.llen(smokeKey);
-    result.checks.llen = {
-      ok: Number.isFinite(Number(count)),
-      detail: `count=${count}`
-    };
-  } catch (error) {
-    result.checks.llen.detail = error?.message || String(error);
-  }
-
-  try {
-    await redis.ltrim(smokeKey, 0, 0);
-    result.checks.ltrim = { ok: true, detail: 'ltrim ok' };
-  } catch (error) {
-    result.checks.ltrim.detail = error?.message || String(error);
+    result.checks.jsonWriteRead.detail = error?.message || String(error);
   }
 
   return result;
