@@ -285,6 +285,7 @@ export default async function handler(req, res) {
         persistentStored,
         memoryStored: storedCount,
         persistentError,
+        initDebug: storeConfig.initDebug || null,
         filters: {
           event: req.query.event || null,
           eventPrefix: req.query.eventPrefix || null,

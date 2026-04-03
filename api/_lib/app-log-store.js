@@ -11,6 +11,15 @@ const DEFAULT_SCAN_LIMIT = 1500;
 let redis = null;
 let redisInitAttempted = false;
 let hasLoggedMissingRedis = false;
+let redisInitDebug = {
+  attempted: false,
+  enabled: true,
+  hasKVVars: false,
+  hasStandardVars: false,
+  hasRedisUrl: false,
+  initMode: 'not-attempted',
+  initError: null
+};
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -31,6 +40,7 @@ function getStoreConfig() {
 function initRedis() {
   if (redisInitAttempted) return;
   redisInitAttempted = true;
+  redisInitDebug.attempted = true;
 
   try {
     const kvRestApiUrl = process.env.KV_REST_API_URL || '';
@@ -42,28 +52,39 @@ function initRedis() {
     const hasKVVars = !!(kvRestApiUrl && kvRestApiToken);
     const hasStandardVars = !!(upstashRestUrl && upstashRestToken);
     const hasRedisUrl = !!redisUrl;
+    redisInitDebug.hasKVVars = hasKVVars;
+    redisInitDebug.hasStandardVars = hasStandardVars;
+    redisInitDebug.hasRedisUrl = hasRedisUrl;
 
     if (hasKVVars) {
       redis = new Redis({
         url: kvRestApiUrl,
         token: kvRestApiToken
       });
+      redisInitDebug.initMode = 'kv-rest-api';
+      redisInitDebug.initError = null;
       log.debug('App log Redis initialized with KV_REST_API');
       return;
     }
 
     if (hasStandardVars || hasRedisUrl) {
       redis = Redis.fromEnv();
+      redisInitDebug.initMode = hasStandardVars ? 'upstash-from-env' : 'redis-url-from-env';
+      redisInitDebug.initError = null;
       log.debug('App log Redis initialized');
       return;
     }
 
+    redisInitDebug.initMode = 'missing-config';
+    redisInitDebug.initError = 'Redis environment variables not found';
     if (!hasLoggedMissingRedis) {
       hasLoggedMissingRedis = true;
       log.warnOnce('app-log-missing-redis-config', 'Redis environment variables not found. app-log persistence disabled.');
     }
     redis = null;
   } catch (error) {
+    redisInitDebug.initMode = 'init-error';
+    redisInitDebug.initError = error?.message || String(error);
     if (!hasLoggedMissingRedis) {
       hasLoggedMissingRedis = true;
       log.warnOnce('app-log-redis-init-failed', `App log Redis initialization failed: ${error?.message || error}`);
@@ -81,13 +102,18 @@ export function isAppLogStoreAvailable() {
 
 export function getAppLogStoreConfig() {
   const config = getStoreConfig();
-  return {
+  const base = {
     enabled: config.enabled,
     available: isAppLogStoreAvailable(),
     retentionDays: config.retentionDays,
     maxResults: config.maxResults,
-    scanLimit: config.scanLimit
+    scanLimit: config.scanLimit,
+    initDebug: {
+      ...redisInitDebug
+    }
   };
+  base.initDebug.enabled = config.enabled;
+  return base;
 }
 
 function normalizeAddress(address) {
@@ -282,7 +308,10 @@ export async function readPersistentAppLogs(filters = {}) {
     persistentStored,
     memoryStored,
     readPath: 'redis-global-zset',
-    redisAvailable: true
+    redisAvailable: true,
+    initDebug: {
+      ...getAppLogStoreConfig().initDebug
+    }
   };
 }
 
