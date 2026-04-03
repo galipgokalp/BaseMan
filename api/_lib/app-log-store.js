@@ -1,10 +1,8 @@
 import { Redis } from '@upstash/redis';
 import { createLogger } from '../../src/utils/logger.js';
-import { getEnv } from './env.js';
-
 const log = createLogger('ApiAppLogStore');
 
-const EVENTS_KEY = 'applog:events';
+const EVENTS_KEY = 'applog:events:list';
 
 const DEFAULT_RETENTION_DAYS = 7;
 const DEFAULT_MAX_RESULTS = 500;
@@ -35,15 +33,20 @@ function initRedis() {
   redisInitAttempted = true;
 
   try {
-    const env = getEnv();
-    const hasKVVars = !!(env.redis.kvRestApiUrl && env.redis.kvRestApiToken);
-    const hasStandardVars = !!(env.redis.upstashRestUrl && env.redis.upstashRestToken);
-    const hasRedisUrl = !!env.redis.url;
+    const kvRestApiUrl = process.env.KV_REST_API_URL || '';
+    const kvRestApiToken = process.env.KV_REST_API_TOKEN || '';
+    const upstashRestUrl = process.env.UPSTASH_REDIS_REST_URL || '';
+    const upstashRestToken = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+    const redisUrl = process.env.REDIS_URL || '';
+
+    const hasKVVars = !!(kvRestApiUrl && kvRestApiToken);
+    const hasStandardVars = !!(upstashRestUrl && upstashRestToken);
+    const hasRedisUrl = !!redisUrl;
 
     if (hasKVVars) {
       redis = new Redis({
-        url: env.redis.kvRestApiUrl,
-        token: env.redis.kvRestApiToken
+        url: kvRestApiUrl,
+        token: kvRestApiToken
       });
       log.debug('App log Redis initialized with KV_REST_API');
       return;
@@ -148,14 +151,14 @@ function buildStoredEntry(entry) {
   };
 }
 
-async function addToIndex(key, score, member) {
+async function addToIndex(key, member) {
   if (!redis) return;
-  await redis.zadd(key, { score, member });
+  await redis.lpush(key, member);
 }
 
-async function pruneExpiredEntries(cutoffMs) {
+async function trimStoredEntries(maxEntries) {
   if (!redis) return;
-  await redis.zremrangebyscore(EVENTS_KEY, 0, cutoffMs);
+  await redis.ltrim(EVENTS_KEY, 0, Math.max(maxEntries - 1, 0));
 }
 
 export async function writePersistentAppLogEntry(entry) {
@@ -165,18 +168,17 @@ export async function writePersistentAppLogEntry(entry) {
 
   const config = getStoreConfig();
   const storedEntry = buildStoredEntry(entry);
-  const score = Date.parse(storedEntry.ts);
   const member = JSON.stringify(storedEntry);
 
-  const writeResult = await Promise.allSettled([addToIndex(EVENTS_KEY, score, member)]);
+  const writeResult = await Promise.allSettled([addToIndex(EVENTS_KEY, member)]);
   const writeError = writeResult.find((result) => result.status === 'rejected');
   if (writeError) {
-    throw new Error(`app-log persistent write failed at zadd: ${writeError.reason?.message || writeError.reason || 'unknown error'}`);
+    throw new Error(`app-log persistent write failed at lpush: ${writeError.reason?.message || writeError.reason || 'unknown error'}`);
   }
 
-  const cutoffMs = score - config.retentionDays * 24 * 60 * 60 * 1000;
-  pruneExpiredEntries(cutoffMs).catch((error) => {
-    log.warn('App log prune failed:', error?.message || error);
+  const keepEntries = Math.max(config.scanLimit, config.maxResults);
+  trimStoredEntries(keepEntries).catch((error) => {
+    log.warn('App log trim failed:', error?.message || error);
   });
 
   return { ok: true, available: true };
@@ -230,8 +232,10 @@ function filterEntries(entries, filters) {
 
 async function readFromKey(key, order, count) {
   if (!redis) return [];
-  const options = order === 'desc' ? { rev: true } : {};
-  const values = await redis.zrange(key, 0, Math.max(count - 1, 0), options);
+  const values = await redis.lrange(key, 0, Math.max(count - 1, 0));
+  if (order !== 'desc') {
+    values.reverse();
+  }
   return parseStoredEntries(values);
 }
 
@@ -258,15 +262,15 @@ export async function readPersistentAppLogs(filters = {}) {
   try {
     entries = await readFromKey(EVENTS_KEY, order, scanLimit);
   } catch (error) {
-    throw new Error(`app-log persistent read failed at zrange: ${error?.message || error}`);
+    throw new Error(`app-log persistent read failed at lrange: ${error?.message || error}`);
   }
   entries = filterEntries(entries, filters).slice(0, limit);
 
   let persistentStored = 0;
   try {
-    persistentStored = await redis.zcard(EVENTS_KEY);
+    persistentStored = await redis.llen(EVENTS_KEY);
   } catch (error) {
-    throw new Error(`app-log persistent read failed at zcard: ${error?.message || error}`);
+    throw new Error(`app-log persistent read failed at llen: ${error?.message || error}`);
   }
 
   return {
@@ -290,10 +294,10 @@ export async function runAppLogStoreSmoke() {
     maxResults: config.maxResults,
     checks: {
       setGet: { ok: false, detail: null },
-      zadd: { ok: false, detail: null },
-      zrange: { ok: false, detail: null },
-      zcard: { ok: false, detail: null },
-      zremrangebyscore: { ok: false, detail: null }
+      lpush: { ok: false, detail: null },
+      lrange: { ok: false, detail: null },
+      llen: { ok: false, detail: null },
+      ltrim: { ok: false, detail: null }
     }
   };
 
@@ -316,37 +320,37 @@ export async function runAppLogStoreSmoke() {
   }
 
   try {
-    await redis.zadd(smokeKey, { score: Date.now(), member: smokeValue });
-    result.checks.zadd = { ok: true, detail: 'zadd ok' };
+    await redis.lpush(smokeKey, smokeValue);
+    result.checks.lpush = { ok: true, detail: 'lpush ok' };
   } catch (error) {
-    result.checks.zadd.detail = error?.message || String(error);
+    result.checks.lpush.detail = error?.message || String(error);
   }
 
   try {
-    const range = await redis.zrange(smokeKey, 0, 0, { rev: true });
-    result.checks.zrange = {
+    const range = await redis.lrange(smokeKey, 0, 0);
+    result.checks.lrange = {
       ok: Array.isArray(range),
       detail: Array.isArray(range) ? `returned ${range.length} member(s)` : 'non-array response'
     };
   } catch (error) {
-    result.checks.zrange.detail = error?.message || String(error);
+    result.checks.lrange.detail = error?.message || String(error);
   }
 
   try {
-    const count = await redis.zcard(smokeKey);
-    result.checks.zcard = {
+    const count = await redis.llen(smokeKey);
+    result.checks.llen = {
       ok: Number.isFinite(Number(count)),
       detail: `count=${count}`
     };
   } catch (error) {
-    result.checks.zcard.detail = error?.message || String(error);
+    result.checks.llen.detail = error?.message || String(error);
   }
 
   try {
-    await redis.zremrangebyscore(smokeKey, 0, Date.now());
-    result.checks.zremrangebyscore = { ok: true, detail: 'zremrangebyscore ok' };
+    await redis.ltrim(smokeKey, 0, 0);
+    result.checks.ltrim = { ok: true, detail: 'ltrim ok' };
   } catch (error) {
-    result.checks.zremrangebyscore.detail = error?.message || String(error);
+    result.checks.ltrim.detail = error?.message || String(error);
   }
 
   return result;
