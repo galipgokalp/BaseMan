@@ -181,24 +181,32 @@ export default async function handler(req, res) {
       let source = 'memory';
       let partial = false;
       let persistentStored = 0;
+      let persistentError = null;
 
       if (requestedSource !== 'memory') {
-        const persistent = await readPersistentAppLogs({
-          event: req.query.event || null,
-          eventPrefix: req.query.eventPrefix || null,
-          address: req.query.address || null,
-          contains: req.query.contains || null,
-          sinceTs: parseTimestampQuery(req.query.since),
-          untilTs: parseTimestampQuery(req.query.until),
-          order,
-          limit
-        });
+        try {
+          const persistent = await readPersistentAppLogs({
+            event: req.query.event || null,
+            eventPrefix: req.query.eventPrefix || null,
+            address: req.query.address || null,
+            contains: req.query.contains || null,
+            sinceTs: parseTimestampQuery(req.query.since),
+            untilTs: parseTimestampQuery(req.query.until),
+            order,
+            limit
+          });
 
-        persistentStored = persistent.persistentStored || 0;
-        if (persistent.available || requestedSource === 'redis') {
-          dump = persistent.logs;
-          source = persistent.source;
-          partial = persistent.partial;
+          persistentStored = persistent.persistentStored || 0;
+          if (persistent.available || requestedSource === 'redis') {
+            dump = persistent.logs;
+            source = persistent.source;
+            partial = persistent.partial;
+          }
+        } catch (persistentReadError) {
+          persistentError = persistentReadError?.message || String(persistentReadError);
+          partial = true;
+          source = 'memory';
+          log.warn('Persistent app-log read failed, falling back to memory:', persistentError);
         }
       }
       
@@ -269,6 +277,7 @@ export default async function handler(req, res) {
         retentionDays: storeConfig.retentionDays,
         persistentStored,
         memoryStored: storedCount,
+        persistentError,
         filters: {
           event: req.query.event || null,
           eventPrefix: req.query.eventPrefix || null,
