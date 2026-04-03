@@ -1,4 +1,3 @@
-import { Redis } from '@upstash/redis';
 import { createLogger } from '../../src/utils/logger.js';
 const log = createLogger('ApiAppLogStore');
 
@@ -29,6 +28,40 @@ function parsePositiveInt(value, fallback) {
 function readEnvValue(name) {
   const value = process.env[name];
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function buildRestClient(url, token) {
+  const normalizedUrl = String(url || '').replace(/\/+$/, '');
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  };
+
+  return {
+    async get(key) {
+      const response = await fetch(`${normalizedUrl}/get/${encodeURIComponent(key)}`, {
+        method: 'GET',
+        headers
+      });
+      if (!response.ok) {
+        throw new Error(`KV get failed with status ${response.status}`);
+      }
+      const payload = await response.json();
+      return payload?.result ?? null;
+    },
+    async set(key, value) {
+      const response = await fetch(`${normalizedUrl}/set/${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(value)
+      });
+      if (!response.ok) {
+        throw new Error(`KV set failed with status ${response.status}`);
+      }
+      const payload = await response.json();
+      return payload?.result ?? null;
+    }
+  };
 }
 
 function getStoreConfig() {
@@ -62,10 +95,7 @@ function initRedis() {
     redisInitDebug.hasRedisUrl = hasRedisUrl;
 
     if (hasKVVars) {
-      redis = new Redis({
-        url: kvRestApiUrl,
-        token: kvRestApiToken
-      });
+      redis = buildRestClient(kvRestApiUrl, kvRestApiToken);
       redisInitDebug.initMode = 'kv-rest-api';
       redisInitDebug.initError = null;
       log.debug('App log Redis initialized with KV_REST_API');
@@ -73,7 +103,11 @@ function initRedis() {
     }
 
     if (hasStandardVars || hasRedisUrl) {
-      redis = Redis.fromEnv();
+      if (hasStandardVars) {
+        redis = buildRestClient(upstashRestUrl, upstashRestToken);
+      } else {
+        throw new Error('REDIS_URL-only mode is not supported for app-log persistence');
+      }
       redisInitDebug.initMode = hasStandardVars ? 'upstash-from-env' : 'redis-url-from-env';
       redisInitDebug.initError = null;
       log.debug('App log Redis initialized');
